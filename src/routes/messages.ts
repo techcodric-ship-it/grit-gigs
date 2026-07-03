@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { uploadToSupabase } from "../lib/storage";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -37,11 +38,14 @@ router.post("/messages/upload", authenticate, upload.array("files", 10), async (
     res.status(400).json({ success: false, message: "No files uploaded" });
     return;
   }
-  const result = files.map(f => ({
-    name: f.originalname,
-    url: `/uploads/messages/${f.filename}`,
-    size: f.size,
-    mimeType: f.mimetype,
+  const result = await Promise.all(files.map(async (f) => {
+    const supabaseUrl = await uploadToSupabase(fs.readFileSync(f.path), f.originalname, "messages");
+    return {
+      name: f.originalname,
+      url: supabaseUrl || `/uploads/messages/${f.filename}`,
+      size: f.size,
+      mimeType: f.mimetype,
+    };
   }));
   res.json({ success: true, data: { files: result } });
 });

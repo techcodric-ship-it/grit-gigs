@@ -10,6 +10,7 @@ import {
 import { eq, ilike, or, and, desc, ne, sql, asc, count, inArray } from "drizzle-orm";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { getActivePlanForUser } from "../lib/subscriptions";
+import { uploadToSupabase } from "../lib/storage";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -225,7 +226,9 @@ router.post("/services", authenticate, upload.array("images", 5), async (req, re
   }
 
   const files = (req.files as Express.Multer.File[]) ?? [];
-  const imageUrls = files.map((f) => `/uploads/services/${f.filename}`);
+  const imageUrls = await Promise.all(files.map(async (f) =>
+    (await uploadToSupabase(fs.readFileSync(f.path), f.originalname, "services")) || `/uploads/services/${f.filename}`
+  ));
 
   const [service] = await db
     .insert(servicesTable)
@@ -254,7 +257,9 @@ router.post("/services/:id/images", authenticate, upload.array("images", 5), asy
   if (service.sellerId !== req.user!.id) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
 
   const files = (req.files as Express.Multer.File[]) ?? [];
-  const newImages = files.map((f) => `/uploads/services/${f.filename}`);
+  const newImages = await Promise.all(files.map(async (f) =>
+    (await uploadToSupabase(fs.readFileSync(f.path), f.originalname, "services")) || `/uploads/services/${f.filename}`
+  ));
   const allImages = [...service.images, ...newImages].slice(0, 5);
 
   const [updated] = await db.update(servicesTable).set({ images: allImages }).where(eq(servicesTable.id, service.id)).returning({ id: servicesTable.id, images: servicesTable.images });

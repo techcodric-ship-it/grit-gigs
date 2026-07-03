@@ -8,6 +8,7 @@ import { reviewsTable } from '../db/schema/orders';
 import { clientReviewsTable } from '../db/schema/client-reviews';
 import { authenticate, optionalAuth } from '../middlewares/authenticate';
 import { getActivePlanForUser, getOrCreateSubscription } from '../lib/subscriptions';
+import { uploadToSupabase } from '../lib/storage';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -499,7 +500,9 @@ router.delete('/projects/:id', authenticate, async (req: Request, res: Response)
 // ── POST /projects/upload — upload a project cover image ─────────────────────
 router.post('/projects/upload', authenticate, _projUpload.single('image'), async (req: Request, res: Response) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
-  return res.json({ success: true, data: { imageUrl: `/uploads/projects/${req.file.filename}` } });
+  const supabaseUrl = await uploadToSupabase(fs.readFileSync(req.file.path), req.file.originalname, "projects");
+  const imageUrl = supabaseUrl || `/uploads/projects/${req.file.filename}`;
+  return res.json({ success: true, data: { imageUrl } });
 });
 
 // ── PUT /projects/:id — edit a project ────────────────────────────────────────

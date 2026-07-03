@@ -14,6 +14,7 @@ import {
 import { eq, ilike, or, desc, sql, and, gt, inArray } from "drizzle-orm";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { getActivePlanForUser, getOrCreateSubscription, getPlan } from "../lib/subscriptions";
+import { uploadToSupabase } from "../lib/storage";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -185,7 +186,12 @@ router.post(
       return;
     }
 
-    const photoUrl = `/uploads/profiles/${req.file.filename}`;
+    const supabaseUrl = await uploadToSupabase(
+      fs.readFileSync(req.file.path),
+      req.file.originalname,
+      "profiles",
+    );
+    const photoUrl = supabaseUrl || `/uploads/profiles/${req.file.filename}`;
     await db
       .update(usersTable)
       .set({ profilePhoto: photoUrl })

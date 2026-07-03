@@ -4,6 +4,7 @@ import app from "./app";
 import { setupSocket } from "./lib/socket";
 import { logger } from "./lib/logger";
 import { pool } from "./db";
+import { ensureBucket } from "./lib/storage";
 
 process.on("unhandledRejection", (reason) => {
   logger.error({ err: reason }, "Unhandled promise rejection");
@@ -531,6 +532,8 @@ app.set("io", io);
     const msg = _ce instanceof Error ? _ce.message : String(_ce);
     logger.error({ err: msg }, "DB connect error — " + msg);
   }
+
+  await ensureBucket();
 
   httpServer.listen(port, () => {
     logger.info({ port }, "SwiftExchange API server listening");

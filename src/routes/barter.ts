@@ -12,6 +12,7 @@ import {
 import { eq, ilike, or, and, desc, ne, inArray, sql } from "drizzle-orm";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { getActivePlanForUser, getOrCreateSubscription } from "../lib/subscriptions";
+import { uploadToSupabase } from "../lib/storage";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -145,7 +146,9 @@ router.post("/barter/requests", authenticate, barterUpload.single("image"), asyn
     }
   }
 
-  const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+  const imageUrl = req.file
+    ? (await uploadToSupabase(fs.readFileSync(req.file.path), req.file.originalname, "barter")) || `/uploads/${req.file.filename}`
+    : null;
 
   const [request] = await db
     .insert(barterRequestsTable)
