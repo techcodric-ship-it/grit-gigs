@@ -15,6 +15,7 @@ import { eq, ilike, or, desc, sql, and, gt, inArray } from "drizzle-orm";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { getActivePlanForUser, getOrCreateSubscription, getPlan } from "../lib/subscriptions";
 import { uploadToSupabase } from "../lib/storage";
+import { logger } from "../lib/logger";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -181,25 +182,36 @@ router.post(
   authenticate,
   upload.single("photo"),
   async (req, res): Promise<void> => {
-    if (!req.file) {
-      res.status(400).json({ success: false, message: "No photo uploaded" });
-      return;
+    try {
+      if (!req.file) {
+        res.status(400).json({ success: false, message: "No photo uploaded" });
+        return;
+      }
+
+      let supabaseUrl: string | null = null;
+      try {
+        supabaseUrl = await uploadToSupabase(
+          fs.readFileSync(req.file.path),
+          req.file.originalname,
+          "profiles",
+        );
+      } catch (_su) {
+        logger.error({ err: _su }, "Profile photo Supabase upload failed");
+      }
+      const photoUrl = supabaseUrl || `/uploads/profiles/${req.file.filename}`;
+      await db
+        .update(usersTable)
+        .set({ profilePhoto: photoUrl })
+        .where(eq(usersTable.id, req.user!.id));
+
+      try { req.app?.get("io")?.emit("profile:updated", { userId: req.user!.id }); } catch {}
+
+      res.json({ success: true, data: { profilePhoto: photoUrl } });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error({ err, url: req.url, method: req.method }, "Profile photo upload error: " + msg);
+      res.status(500).json({ success: false, message: msg });
     }
-
-    const supabaseUrl = await uploadToSupabase(
-      fs.readFileSync(req.file.path),
-      req.file.originalname,
-      "profiles",
-    );
-    const photoUrl = supabaseUrl || `/uploads/profiles/${req.file.filename}`;
-    await db
-      .update(usersTable)
-      .set({ profilePhoto: photoUrl })
-      .where(eq(usersTable.id, req.user!.id));
-
-    try { req.app?.get("io")?.emit("profile:updated", { userId: req.user!.id }); } catch {}
-
-    res.json({ success: true, data: { profilePhoto: photoUrl } });
   },
 );
 
@@ -211,69 +223,82 @@ router.put("/users/me/availability", authenticate, async (req, res): Promise<voi
 });
 
 router.put("/users/me", authenticate, async (req, res): Promise<void> => {
-  const { firstName, lastName, bio, tagline, city, country, phone, hourlyRate, languages, skillsOffered, skillsNeeded, portfolioLinks, socialLinks } = req.body;
+  try {
+    const { firstName, lastName, bio, tagline, city, country, phone, hourlyRate, languages, skillsOffered, skillsNeeded, portfolioLinks, socialLinks } = req.body;
 
-  const ADMIN_UUID = 'b5ad53bd-6c50-490b-8c3a-d77200f99383';
-  if (req.user?.id !== ADMIN_UUID) {
-    const fullName = ((firstName || '') + ' ' + (lastName || '')).trim().toLowerCase();
-    if (fullName === 'grit&gigs admin' || fullName.indexOf('grit&gigs admin') !== -1) {
-      res.status(400).json({ success: false, message: "This name is reserved for the platform administrator. Please choose a different name." });
-      return;
+    const ADMIN_UUID = 'b5ad53bd-6c50-490b-8c3a-d77200f99383';
+    if (req.user?.id !== ADMIN_UUID) {
+      const fullName = ((firstName || '') + ' ' + (lastName || '')).trim().toLowerCase();
+      if (fullName === 'grit&gigs admin' || fullName.indexOf('grit&gigs admin') !== -1) {
+        res.status(400).json({ success: false, message: "This name is reserved for the platform administrator. Please choose a different name." });
+        return;
+      }
     }
-  }
 
-  const updates: Partial<typeof usersTable.$inferInsert> = {};
-  if (firstName !== undefined) updates.firstName = firstName;
-  if (lastName !== undefined) updates.lastName = lastName;
-  if (bio !== undefined) updates.bio = bio;
-  if (tagline !== undefined) updates.tagline = tagline;
-  if (city !== undefined) updates.city = city;
-  if (country !== undefined) updates.country = country;
-  if (hourlyRate !== undefined) updates.hourlyRate = Number(hourlyRate);
-  if (languages !== undefined) updates.languages = Array.isArray(languages) ? languages : [languages];
-  if (skillsOffered !== undefined) updates.skillsOffered = Array.isArray(skillsOffered) ? skillsOffered : [skillsOffered];
-  if (skillsNeeded !== undefined) updates.skillsNeeded = Array.isArray(skillsNeeded) ? skillsNeeded : [skillsNeeded];
-  if (portfolioLinks !== undefined) {
-    const plan = await getActivePlanForUser(req.user!.id);
-    const arr = Array.isArray(portfolioLinks) ? portfolioLinks : [portfolioLinks];
-    if (plan.portfolioSlots !== -1 && arr.length > plan.portfolioSlots) {
-      res.status(403).json({
-        success: false,
-        message: `Your ${plan.name} plan allows max ${plan.portfolioSlots} portfolio link${plan.portfolioSlots === 1 ? '' : 's'}. Upgrade your plan to add more.`,
-        _planLimitExceeded: true,
+    const updates: Partial<typeof usersTable.$inferInsert> = {};
+    if (firstName !== undefined) updates.firstName = firstName;
+    if (lastName !== undefined) updates.lastName = lastName;
+    if (bio !== undefined) updates.bio = bio;
+    if (tagline !== undefined) updates.tagline = tagline;
+    if (city !== undefined) updates.city = city;
+    if (country !== undefined) updates.country = country;
+    if (hourlyRate !== undefined) {
+      const hr = Number(hourlyRate);
+      if (Number.isNaN(hr)) {
+        res.status(400).json({ success: false, message: "Invalid hourly rate" });
+        return;
+      }
+      updates.hourlyRate = hr;
+    }
+    if (languages !== undefined) updates.languages = Array.isArray(languages) ? languages : [languages];
+    if (skillsOffered !== undefined) updates.skillsOffered = Array.isArray(skillsOffered) ? skillsOffered : [skillsOffered];
+    if (skillsNeeded !== undefined) updates.skillsNeeded = Array.isArray(skillsNeeded) ? skillsNeeded : [skillsNeeded];
+    if (portfolioLinks !== undefined) {
+      const plan = await getActivePlanForUser(req.user!.id);
+      const arr = Array.isArray(portfolioLinks) ? portfolioLinks : [portfolioLinks];
+      if (plan.portfolioSlots !== -1 && arr.length > plan.portfolioSlots) {
+        res.status(403).json({
+          success: false,
+          message: `Your ${plan.name} plan allows max ${plan.portfolioSlots} portfolio link${plan.portfolioSlots === 1 ? '' : 's'}. Upgrade your plan to add more.`,
+          _planLimitExceeded: true,
+        });
+        return;
+      }
+      updates.portfolioLinks = arr;
+    }
+    if (socialLinks !== undefined) updates.socialLinks = socialLinks;
+    if (phone !== undefined) updates.phone = phone || null;
+
+    const [updated] = await db
+      .update(usersTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(usersTable.id, req.user!.id))
+      .returning({
+        id: usersTable.id,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+        bio: usersTable.bio,
+        tagline: usersTable.tagline,
+        city: usersTable.city,
+        country: usersTable.country,
+        phone: usersTable.phone,
+        hourlyRate: usersTable.hourlyRate,
+        languages: usersTable.languages,
+        skillsOffered: usersTable.skillsOffered,
+        skillsNeeded: usersTable.skillsNeeded,
+        portfolioLinks: usersTable.portfolioLinks,
+        socialLinks: usersTable.socialLinks,
+        profilePhoto: usersTable.profilePhoto,
       });
-      return;
-    }
-    updates.portfolioLinks = arr;
+
+    try { req.app?.get("io")?.emit("profile:updated", { userId: req.user!.id }); } catch {}
+
+    res.json({ success: true, data: { user: updated }, message: "Profile updated" });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error({ err, url: req.url, method: req.method }, "Profile update error: " + msg);
+    res.status(500).json({ success: false, message: msg });
   }
-  if (socialLinks !== undefined) updates.socialLinks = socialLinks;
-  if (phone !== undefined) updates.phone = phone;
-
-  const [updated] = await db
-    .update(usersTable)
-    .set({ ...updates, updatedAt: new Date() })
-    .where(eq(usersTable.id, req.user!.id))
-    .returning({
-      id: usersTable.id,
-      firstName: usersTable.firstName,
-      lastName: usersTable.lastName,
-      bio: usersTable.bio,
-      tagline: usersTable.tagline,
-      city: usersTable.city,
-      country: usersTable.country,
-      phone: usersTable.phone,
-      hourlyRate: usersTable.hourlyRate,
-      languages: usersTable.languages,
-      skillsOffered: usersTable.skillsOffered,
-      skillsNeeded: usersTable.skillsNeeded,
-      portfolioLinks: usersTable.portfolioLinks,
-      socialLinks: usersTable.socialLinks,
-      profilePhoto: usersTable.profilePhoto,
-    });
-
-  try { req.app?.get("io")?.emit("profile:updated", { userId: req.user!.id }); } catch {}
-
-  res.json({ success: true, data: { user: updated }, message: "Profile updated" });
 });
 
 // -- GET /users/me/notifications/stream -- SSE real-time notifications

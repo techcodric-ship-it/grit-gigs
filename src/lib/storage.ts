@@ -20,16 +20,20 @@ export const UPLOADS_BUCKET = "uploads";
 
 export async function ensureBucket(): Promise<void> {
   if (!supabase) return;
-  const { data: buckets } = await supabase.storage.listBuckets();
-  if (!buckets?.find((b) => b.name === UPLOADS_BUCKET)) {
-    const { error } = await supabase.storage.createBucket(UPLOADS_BUCKET, {
-      public: true,
-    });
-    if (error) {
-      logger.error({ err: error }, "Storage: failed to create bucket");
-    } else {
-      logger.info(`Storage: bucket "${UPLOADS_BUCKET}" created`);
+  try {
+    const { data: buckets } = await supabase.storage.listBuckets();
+    if (!buckets?.find((b) => b.name === UPLOADS_BUCKET)) {
+      const { error } = await supabase.storage.createBucket(UPLOADS_BUCKET, {
+        public: true,
+      });
+      if (error) {
+        logger.error({ err: error }, "Storage: failed to create bucket");
+      } else {
+        logger.info(`Storage: bucket "${UPLOADS_BUCKET}" created`);
+      }
     }
+  } catch (err: unknown) {
+    logger.error({ err }, "Storage: ensureBucket threw — uploads fall back to local disk");
   }
 }
 
@@ -40,40 +44,49 @@ export async function uploadToSupabase(
 ): Promise<string | null> {
   if (!supabase) return null;
 
-  const ext = path.extname(originalName) || ".bin";
-  const fileName = `${subfolder}/${Date.now()}-${uuid().slice(0, 8)}${ext}`;
+  try {
+    const ext = path.extname(originalName) || ".bin";
+    const fileName = `${subfolder}/${Date.now()}-${uuid().slice(0, 8)}${ext}`;
 
-  const { error } = await supabase.storage
-    .from(UPLOADS_BUCKET)
-    .upload(fileName, buffer, {
-      contentType: "application/octet-stream",
-      upsert: false,
-    });
+    const { error } = await supabase.storage
+      .from(UPLOADS_BUCKET)
+      .upload(fileName, buffer, {
+        contentType: "application/octet-stream",
+        upsert: false,
+      });
 
-  if (error) {
-    logger.error({ err: error }, "Storage: upload failed");
+    if (error) {
+      logger.error({ err: error }, "Storage: upload failed");
+      return null;
+    }
+
+    const { data: publicUrl } = supabase.storage
+      .from(UPLOADS_BUCKET)
+      .getPublicUrl(fileName);
+
+    return publicUrl?.publicUrl || null;
+  } catch (err: unknown) {
+    logger.error({ err }, "Storage: upload threw");
     return null;
   }
-
-  const { data: publicUrl } = supabase.storage
-    .from(UPLOADS_BUCKET)
-    .getPublicUrl(fileName);
-
-  return publicUrl?.publicUrl || null;
 }
 
 export async function deleteFromSupabase(fileUrl: string): Promise<void> {
   if (!supabase) return;
 
-  const parts = fileUrl.split(`/storage/v1/object/public/${UPLOADS_BUCKET}/`);
-  if (parts.length !== 2) return;
+  try {
+    const parts = fileUrl.split(`/storage/v1/object/public/${UPLOADS_BUCKET}/`);
+    if (parts.length !== 2) return;
 
-  const filePath = parts[1];
-  const { error } = await supabase.storage
-    .from(UPLOADS_BUCKET)
-    .remove([filePath]);
+    const filePath = parts[1];
+    const { error } = await supabase.storage
+      .from(UPLOADS_BUCKET)
+      .remove([filePath]);
 
-  if (error) {
-    logger.error({ err: error }, "Storage: delete failed");
+    if (error) {
+      logger.error({ err: error }, "Storage: delete failed");
+    }
+  } catch (err: unknown) {
+    logger.error({ err }, "Storage: delete threw");
   }
 }
