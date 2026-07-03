@@ -1,0 +1,7 @@
+{
+  "steps": {
+    "install": {
+      "commands": ["npm install"]
+    }
+  }
+}
