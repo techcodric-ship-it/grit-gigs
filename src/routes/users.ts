@@ -267,7 +267,17 @@ router.put("/users/me", authenticate, async (req, res): Promise<void> => {
       updates.portfolioLinks = arr;
     }
     if (socialLinks !== undefined) updates.socialLinks = socialLinks;
-    if (phone !== undefined) updates.phone = phone || null;
+    if (phone !== undefined) {
+      const cleaned = phone.trim();
+      if (cleaned) {
+        const digits = cleaned.replace(/\D/g, "");
+        if (digits.length !== 10 && digits.length !== 12) {
+          res.status(400).json({ success: false, message: "Please enter a valid 10-digit mobile number (e.g. +91 9876543210)." });
+          return;
+        }
+      }
+      updates.phone = cleaned || null;
+    }
 
     const [updated] = await db
       .update(usersTable)
@@ -298,7 +308,7 @@ router.put("/users/me", authenticate, async (req, res): Promise<void> => {
     const msg = err instanceof Error ? err.message : String(err);
     logger.error({ err, url: req.url, method: req.method }, "Profile update error: " + msg);
     if (msg.includes("users_phone_key")) {
-      res.status(409).json({ success: false, message: "This phone number is already linked to another account." });
+      res.status(409).json({ success: false, message: "This phone number is already registered with another account. Please use a different number." });
       return;
     }
     res.status(500).json({ success: false, message: msg });
