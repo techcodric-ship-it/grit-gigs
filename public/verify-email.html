@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Verify Email — Grit&Gigs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:#f5f5f7;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.vc{background:#fff;border-radius:20px;padding:48px 40px;max-width:440px;width:100%;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.06);}
+.vc .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;margin-bottom:20px;}
+.vc .logo .g{color:#0A0A0F;}
+.vc .logo .amp{color:#6C3FE8;}
+.v-status{width:64px;height:64px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:16px;}
+.v-status.loading{background:#fef3c7;animation:pulse 1.5s ease-in-out infinite;}
+.v-status.success{background:#d1fae5;}
+.v-status.error{background:#fee2e2;}
+.v-title{font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:700;margin-bottom:6px;color:#0A0A0F;}
+.v-msg{font-size:.85rem;color:#6b7280;line-height:1.6;margin-bottom:22px;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:11px 24px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;text-decoration:none;cursor:pointer;border:none;transition:all .15s;}
+.btn-p{background:#6C3FE8;color:#fff;}
+.btn-p:hover{background:#5a2dd6;}
+.btn-o{background:transparent;color:#6C3FE8;border:1px solid #e5e7eb;}
+.btn-o:hover{background:#f5f5f7;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+</style>
+</head>
+<body>
+<div class="vc">
+  <div class="logo"><span class="g">Grit</span><span class="amp">&amp;Gigs</span></div>
+  <div class="v-status loading" id="vStatusIcon">⏳</div>
+  <div class="v-title" id="vTitle">Verifying your email...</div>
+  <div class="v-msg" id="vMsg">Please wait while we confirm your email address.</div>
+  <div id="vActions"></div>
+</div>
+<script>
+(async function(){
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  if (!token) {
+    document.getElementById('vStatusIcon').className = 'v-status error';
+    document.getElementById('vStatusIcon').textContent = '❌';
+    document.getElementById('vTitle').textContent = 'Invalid link';
+    document.getElementById('vMsg').textContent = 'This verification link is missing a token. Please try signing up again.';
+    document.getElementById('vActions').innerHTML = '<a href="/" class="btn btn-p">Go to Home</a>';
+    return;
+  }
+  try {
+    const res = await fetch('/api/auth/verify-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+    const d = await res.json();
+    if (d.success) {
+      document.getElementById('vStatusIcon').className = 'v-status success';
+      document.getElementById('vStatusIcon').textContent = '✅';
+      document.getElementById('vTitle').textContent = 'Email verified!';
+      document.getElementById('vMsg').textContent = 'Your email has been verified successfully. You can now sign in to your account.';
+      document.getElementById('vActions').innerHTML = '<a href="/" class="btn btn-p">Sign In Now</a>';
+    } else {
+      document.getElementById('vStatusIcon').className = 'v-status error';
+      document.getElementById('vStatusIcon').textContent = '❌';
+      document.getElementById('vTitle').textContent = 'Verification failed';
+      document.getElementById('vMsg').textContent = d.message || 'This link may be expired or invalid. Please try signing up again.';
+      document.getElementById('vActions').innerHTML = '<a href="/" class="btn btn-p">Back to Home</a>';
+    }
+  } catch(e) {
+    document.getElementById('vStatusIcon').className = 'v-status error';
+    document.getElementById('vStatusIcon').textContent = '❌';
+    document.getElementById('vTitle').textContent = 'Something went wrong';
+    document.getElementById('vMsg').textContent = 'Could not connect to the server. Please try again later.';
+    document.getElementById('vActions').innerHTML = '<a href="/" class="btn btn-p">Back to Home</a>';
+  }
+})();
+</script>
+</body>
+</html>

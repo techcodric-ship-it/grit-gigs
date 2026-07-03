@@ -1,0 +1,108 @@
+<script>
+// ──────────────────────────────────────────────────────────
+//  GRIT&GIGS — dashboard-override.html (injected by patch)
+//  Adds: fetchBidBalance(), improved openProjectDet()
+// ──────────────────────────────────────────────────────────
+
+async function fetchBidBalance() {
+  try {
+    const d = await api('/users/me/wallet');
+    const el = document.getElementById('bidCrBal');
+    if (el && d.success) el.textContent = Math.floor(d.data?.wallet?.balance ?? 0);
+  } catch(e) {}
+}
+
+function renderBidCard(b, projectId) {
+  const bInits = (((b.user?.firstName || '?')[0]) + ((b.user?.lastName || '?')[0])).toUpperCase();
+  const skills = Array.isArray(b.user?.skillsOffered) ? b.user.skillsOffered.slice(0, 3).join(', ') : '';
+  let porto = '';
+  if (Array.isArray(b.user?.portfolioLinks) && b.user.portfolioLinks.length) {
+    porto = b.user.portfolioLinks[0]?.url || b.user.portfolioLinks[0] || '';
+  } else if (typeof b.user?.portfolioLinks === 'string') {
+    porto = b.user.portfolioLinks;
+  }
+
+  const statusBtn = b.status === 'PENDING'
+    ? `<button class="btn bp btn-xs" onclick="acceptBid('${b.id}','${projectId}',this.closest('.mo'))">✓ Accept Proposal</button>`
+    : `<span class="pill ${b.status === 'ACCEPTED' ? 'pd' : 'perr'}">${b.status}</span>`;
+
+  return `<div style="border:1px solid var(--bd);border-radius:var(--rm);padding:14px;margin-bottom:10px;">
+    <div style="display:flex;gap:10px;margin-bottom:10px;">
+      <div style="width:38px;height:38px;border-radius:50%;background:var(--vl);color:var(--violet);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">${bInits}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:.88rem;">${b.user?.firstName || '?'} ${b.user?.lastName || ''}</div>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:2px;">${b.user?.city || 'India'} · ⭐ Rep ${b.user?.reputationScore || 0}${b.user?.tagline ? ' · ' + b.user.tagline : ''}</div>
+        ${skills ? `<div style="font-size:.68rem;color:var(--violet);margin-top:3px;font-weight:500;">🔧 ${skills}</div>` : ''}
+        ${porto ? `<a href="${porto}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:.68rem;color:var(--ink);text-decoration:underline;margin-top:3px;display:inline-block;">🔗 View Portfolio</a>` : ''}
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-weight:700;color:var(--violet);font-size:.95rem;">₹${b.amount?.toLocaleString('en-IN') || '?'}</div>
+        ${b.deliveryDays ? `<div style="font-size:.64rem;color:var(--muted);margin-top:2px;">⏱ ${b.deliveryDays}d delivery</div>` : ''}
+        <div style="font-size:.62rem;color:var(--muted);margin-top:2px;">${typeof timeSince === 'function' ? timeSince(b.createdAt) : ''}</div>
+      </div>
+    </div>
+    <div style="font-size:.78rem;color:var(--sec);line-height:1.65;background:var(--bg);padding:10px 12px;border-radius:8px;margin-bottom:10px;">${esc(b.proposal || '')}</div>
+    <div style="display:flex;align-items:center;gap:8px;">${statusBtn}</div>
+  </div>`;
+}
+
+// Override openProjectDet with improved version
+async function openProjectDet(projectId, viewAs, myBidId) {
+  if (!projectId) return;
+  const d = await api('/projects/' + projectId);
+  if (!d.success) { showToast('Could not load project', 'err'); return; }
+  const p = d.data.project;
+  const u = gU();
+  const isOwn = p.userId === u?.id;
+  const myBid = p.bids?.find(b => b.userId === u?.id);
+
+  const div = document.createElement('div');
+  div.className = 'mo open';
+
+  const bidsList = (isOwn && p.bids?.length > 0)
+    ? `<div style="margin-bottom:14px;">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:.84rem;margin-bottom:8px;">📨 Proposals (${p.bids.length})</div>
+        ${p.bids.map(b => renderBidCard(b, p.id)).join('')}
+      </div>`
+    : '';
+
+  const bidForm = (!isOwn && p.status === 'OPEN')
+    ? (myBid
+      ? `<div style="background:var(--vl);border-radius:var(--rm);padding:12px;text-align:center;font-size:.8rem;color:var(--violet);">✓ You already submitted a proposal of ₹${myBid.amount?.toLocaleString('en-IN')}</div>`
+      : `<div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:.84rem;margin-bottom:8px;">Submit Your Proposal</div>
+          <div class="fg"><label class="fl">Your Bid Amount (₹) <span style="color:var(--err)">*</span></label><input class="fi" type="number" id="bidAmt" placeholder="Enter your price in ₹" min="0"/></div>
+          <div class="fg"><label class="fl">Delivery Days</label><input class="fi" type="number" id="bidDelivery" placeholder="e.g. 7" min="1"/></div>
+          <div class="fg"><label class="fl">Cover Letter <span style="color:var(--err)">*</span></label><textarea class="fi" id="bidProp" rows="3" placeholder="Why are you the best fit? What's your approach?"></textarea></div>
+          <button class="btn bp btn-lg" style="width:100%;justify-content:center;" onclick="submitBid('${p.id}',this.closest('.mo'))">📨 Submit Proposal</button>
+        </div>`)
+    : '';
+
+  const skills = (p.skills || '').split(',').map(s => s.trim()).filter(Boolean);
+
+  div.innerHTML = `<div class="md" style="max-width:580px;max-height:88vh;overflow-y:auto;">
+    <button class="mc" onclick="this.closest('.mo').remove();document.body.style.overflow='';">✕</button>
+    <div style="margin-bottom:14px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px;">
+        <div style="font-weight:700;font-size:1.05rem;line-height:1.3;">${p.title}</div>
+        <span class="pill pa" style="flex-shrink:0;">${p.status}</span>
+      </div>
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;">${p.category || ''} · Posted by ${p.user?.firstName || '?'} ${p.user?.lastName || ''} · ${typeof timeSince === 'function' ? timeSince(p.createdAt) : ''}</div>
+      ${skills.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;">${skills.map(s => `<span style="font-size:.7rem;padding:2px 8px;border-radius:5px;background:rgba(108,63,232,.07);color:var(--violet);">${s}</span>`).join('')}</div>` : ''}
+    </div>
+    <div style="font-size:.82rem;color:var(--ink);line-height:1.7;margin-bottom:14px;background:var(--bg);padding:12px;border-radius:var(--rm);">${p.description}</div>
+    <div style="display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap;">
+      ${p.budgetMin ? `<div style="font-size:.8rem;"><span style="color:var(--muted);font-size:.68rem;text-transform:uppercase;font-weight:700;">Budget</span><br/>₹${p.budgetMin.toLocaleString('en-IN')} – ₹${p.budgetMax?.toLocaleString('en-IN') || '?'}</div>` : ''}
+      ${p.deadline ? `<div style="font-size:.8rem;"><span style="color:var(--muted);font-size:.68rem;text-transform:uppercase;font-weight:700;">Deadline</span><br/>${new Date(p.deadline).toLocaleDateString('en-IN', {day:'numeric',month:'long',year:'numeric'})}</div>` : ''}
+      <div style="font-size:.8rem;"><span style="color:var(--muted);font-size:.68rem;text-transform:uppercase;font-weight:700;">Total Bids</span><br/>${p.bids?.length || 0}</div>
+    </div>
+    ${bidsList}
+    ${bidForm}
+  </div>`;
+
+  div.addEventListener('click', e => { if (e.target === div) { div.remove(); document.body.style.overflow = ''; } });
+  document.body.appendChild(div);
+  document.body.style.overflow = 'hidden';
+  if (bidForm.includes('bidCrBal')) fetchBidBalance();
+}
+</script>

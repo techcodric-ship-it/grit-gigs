@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Browse Projects — Grit&Gigs</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/main.css"/>
+<style>
+/* ── HERO ── */
+.proj-hero{padding:130px 24px 60px;background:var(--ink);position:relative;overflow:hidden;}
+.proj-hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 50% 70% at 20% 50%,rgba(108,63,232,.28) 0%,transparent 70%),radial-gradient(ellipse 40% 50% at 80% 30%,rgba(232,160,32,.08) 0%,transparent 70%);}
+.proj-hero-grid{position:absolute;inset:0;opacity:.035;background-image:linear-gradient(rgba(255,255,255,1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,1) 1px,transparent 1px);background-size:60px 60px;}
+.proj-hero-inner{max-width:1200px;margin:0 auto;position:relative;z-index:1;}
+.proj-hero-top{display:flex;gap:40px;align-items:center;justify-content:space-between;margin-bottom:36px;flex-wrap:wrap;}
+.proj-hero-left{flex:1;min-width:280px;}
+.proj-hero-title{font-family:'Syne',sans-serif;font-size:2.6rem;font-weight:800;color:#fff;line-height:1.15;margin-bottom:14px;}
+.proj-hero-sub{color:rgba(255,255,255,.6);font-size:1rem;line-height:1.7;margin-bottom:24px;max-width:460px;}
+.hero-stats{display:flex;gap:14px;flex-wrap:wrap;}
+.hero-stat{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 20px;text-align:center;min-width:110px;}
+.hero-stat-num{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:700;color:#fff;}
+.hero-stat-label{font-size:.72rem;color:rgba(255,255,255,.5);margin-top:2px;}
+
+/* ── SEARCH BAR ── */
+.proj-search{background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:14px;padding:14px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.proj-search-input{flex:1;min-width:200px;background:white;border-radius:9px;display:flex;align-items:center;gap:10px;padding:0 14px;height:44px;}
+.proj-search-input input{flex:1;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--ink);background:transparent;}
+.proj-search-select{height:44px;padding:0 14px;background:white;border:none;border-left:1.5px solid rgba(10,10,15,.08);border-radius:0 9px 9px 0;font-family:'DM Sans',sans-serif;font-size:.85rem;color:var(--ink);outline:none;cursor:pointer;}
+.proj-search-btn{height:44px;padding:0 22px;background:var(--violet);color:#fff;border:none;border-radius:9px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.88rem;cursor:pointer;transition:background .2s;white-space:nowrap;}
+.proj-search-btn:hover{background:#4A25B8;}
+
+/* ── CATEGORY PILLS ── */
+.cat-pills-wrap{background:var(--white);border-bottom:1px solid rgba(10,10,15,.08);padding:14px 24px;position:sticky;top:68px;z-index:50;overflow-x:auto;}
+.cat-pills-inner{max-width:1200px;margin:0 auto;display:flex;gap:8px;align-items:center;}
+.cat-pill-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:100px;border:1.5px solid rgba(10,10,15,.12);background:white;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:500;color:var(--ink);cursor:pointer;transition:all .18s;white-space:nowrap;}
+.cat-pill-btn:hover{border-color:var(--violet);color:var(--violet);}
+.cat-pill-btn.active{background:var(--violet);border-color:var(--violet);color:white;}
+.cat-pill-icon{font-size:14px;}
+
+/* ── MAIN LAYOUT ── */
+.proj-layout{max-width:1200px;margin:0 auto;padding:32px 24px;display:grid;grid-template-columns:260px 1fr;gap:28px;align-items:start;}
+
+/* ── FILTERS PANEL ── */
+.proj-filters{background:white;border-radius:16px;border:1px solid rgba(10,10,15,.08);padding:22px;position:sticky;top:120px;}
+.proj-filters-title{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;color:var(--ink);margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;}
+.proj-filters-title button{font-size:.72rem;font-weight:600;color:var(--violet);background:none;border:none;cursor:pointer;padding:0;}
+.filter-section{margin-bottom:22px;padding-bottom:22px;border-bottom:1px solid rgba(10,10,15,.07);}
+.filter-section:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none;}
+.filter-section-title{font-weight:600;font-size:.82rem;color:var(--ink);margin-bottom:12px;}
+.filter-check{display:flex;align-items:center;gap:9px;margin-bottom:9px;cursor:pointer;}
+.filter-check input[type=checkbox]{width:15px;height:15px;accent-color:var(--violet);cursor:pointer;}
+.filter-check-label{font-size:.82rem;color:#3D3A50;flex:1;}
+.filter-check-count{font-size:.72rem;color:#6B6880;}
+.price-inputs{display:grid;grid-template-columns:1fr 18px 1fr;gap:6px;align-items:center;}
+.price-inp{width:100%;min-width:0;padding:7px 10px;border-radius:7px;border:1.5px solid rgba(10,10,15,.15);font-family:'DM Sans',sans-serif;font-size:.82rem;outline:none;transition:border-color .2s;}
+.price-inp:focus{border-color:var(--violet);}
+.price-sep{text-align:center;font-size:.8rem;color:#6B6880;}
+
+/* ── TOOLBAR ── */
+.proj-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+.proj-count{font-size:.85rem;color:#6B6880;}
+.proj-sort{padding:8px 13px;border-radius:7px;border:1.5px solid rgba(10,10,15,.15);background:white;font-family:'DM Sans',sans-serif;font-size:.84rem;color:var(--ink);outline:none;cursor:pointer;}
+
+/* ── PROJECT CARDS ── */
+.proj-list{display:flex;flex-direction:column;gap:14px;}
+.proj-card{background:white;border-radius:14px;border:1px solid rgba(10,10,15,.08);padding:20px 22px;cursor:pointer;transition:all .22s;position:relative;}
+.proj-card:hover{box-shadow:0 6px 24px rgba(10,10,15,.1);border-color:rgba(108,63,232,.2);transform:translateY(-1px);}
+.proj-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px;}
+.proj-card-title{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:var(--ink);line-height:1.3;flex:1;}
+.proj-card-bids{flex-shrink:0;background:rgba(108,63,232,.08);color:var(--violet);font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:100px;}
+.proj-card-meta{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+.proj-card-cat{font-size:.74rem;font-weight:600;padding:3px 9px;border-radius:6px;background:rgba(10,10,15,.05);color:#3D3A50;}
+.proj-card-skill-tag{font-size:.72rem;padding:3px 8px;border-radius:6px;background:rgba(108,63,232,.07);color:var(--violet);}
+.proj-card-time{font-size:.72rem;color:#6B6880;margin-left:auto;}
+.proj-card-desc{font-size:.83rem;color:#3D3A50;line-height:1.65;margin-bottom:14px;}
+.proj-card-footer{display:flex;align-items:center;justify-content:space-between;padding-top:14px;border-top:1px solid rgba(10,10,15,.07);gap:12px;flex-wrap:wrap;}
+.proj-card-budget{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;color:var(--ink);}
+.proj-card-deadline{font-size:.75rem;color:#6B6880;display:flex;align-items:center;gap:4px;}
+.proj-card-client{display:flex;align-items:center;gap:7px;}
+.proj-client-av{width:24px;height:24px;border-radius:50%;background:rgba(108,63,232,.12);color:var(--violet);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;}
+.proj-client-name{font-size:.76rem;color:#3D3A50;}
+.proj-card-actions{display:flex;gap:8px;align-items:center;}
+.btn-propose{padding:8px 16px;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.8rem;cursor:pointer;border:none;transition:all .18s;}
+.btn-propose.primary{background:var(--violet);color:white;}
+.btn-propose.primary:hover{background:#4A25B8;}
+.btn-propose.applied{background:rgba(26,122,94,.1);color:#1A7A5E;cursor:default;}
+
+/* ── SIDEBAR WIDGETS ── */
+.proj-sidebar{display:flex;flex-direction:column;gap:20px;}
+.proj-widget{background:white;border-radius:14px;border:1px solid rgba(10,10,15,.08);padding:22px;}
+.proj-widget-title{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;color:var(--ink);margin-bottom:16px;}
+.post-cta{background:linear-gradient(135deg,#6C3FE8 0%,#9B59B6 100%);border-radius:14px;padding:22px;color:white;}
+.post-cta-title{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700;margin-bottom:8px;}
+.post-cta-sub{font-size:.8rem;color:rgba(255,255,255,.7);line-height:1.6;margin-bottom:16px;}
+.stat-row{display:flex;gap:10px;}
+.stat-box{flex:1;text-align:center;padding:14px;background:rgba(10,10,15,.04);border-radius:10px;}
+.stat-box-num{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:700;color:var(--ink);}
+.stat-box-label{font-size:.68rem;color:#6B6880;margin-top:2px;}
+.how-step-item{display:flex;gap:11px;align-items:flex-start;margin-bottom:14px;}
+.how-step-num{width:22px;height:22px;border-radius:50%;background:rgba(108,63,232,.1);color:var(--violet);font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.how-step-txt{font-size:.82rem;color:#3D3A50;line-height:1.5;}
+.how-step-txt strong{color:var(--ink);}
+
+/* ── PROPOSAL MODAL ── */
+.proposal-mo{position:fixed;inset:0;background:rgba(10,10,15,.55);z-index:2000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.proposal-mo.open{opacity:1;pointer-events:all;}
+.proposal-md{background:white;border-radius:20px;padding:28px;max-width:560px;width:calc(100% - 32px);max-height:90vh;overflow-y:auto;transform:translateY(20px);transition:transform .25s;}
+.proposal-mo.open .proposal-md{transform:translateY(0);}
+.proposal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px;}
+.proposal-title{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;color:var(--ink);line-height:1.3;flex:1;}
+.proposal-close{background:none;border:none;font-size:20px;cursor:pointer;color:#6B6880;padding:0;line-height:1;}
+.proposal-project-info{background:rgba(10,10,15,.03);border-radius:10px;padding:12px 14px;margin-bottom:18px;}
+.proposal-budget{font-size:.8rem;color:#6B6880;margin-bottom:4px;}
+.proposal-budget strong{color:var(--ink);}
+.form-grp{margin-bottom:16px;}
+.form-lbl{display:block;font-size:.82rem;font-weight:600;color:var(--ink);margin-bottom:6px;}
+.form-inp{width:100%;padding:10px 13px;border-radius:9px;border:1.5px solid rgba(10,10,15,.15);font-family:'DM Sans',sans-serif;font-size:.86rem;color:var(--ink);outline:none;transition:border-color .2s;box-sizing:border-box;}
+.form-inp:focus{border-color:var(--violet);}
+.form-textarea{resize:vertical;min-height:100px;}
+.credit-notice{background:rgba(232,160,32,.1);border-radius:9px;padding:10px 13px;margin-bottom:16px;font-size:.78rem;color:#7A4500;display:flex;align-items:center;gap:8px;}
+.btn-submit-prop{width:100%;padding:13px;border-radius:10px;background:var(--violet);color:white;border:none;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.9rem;cursor:pointer;transition:background .2s;}
+.btn-submit-prop:hover{background:#4A25B8;}
+.btn-submit-prop:disabled{opacity:.6;cursor:not-allowed;}
+
+/* ── EMPTY ── */
+.proj-empty{text-align:center;padding:60px 20px;background:white;border-radius:14px;border:1px solid rgba(10,10,15,.08);}
+.proj-empty-icon{font-size:3rem;margin-bottom:12px;}
+.proj-empty-title{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;color:var(--ink);margin-bottom:8px;}
+.proj-empty-sub{font-size:.85rem;color:#6B6880;max-width:320px;margin:0 auto 20px;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1024px){.proj-layout{grid-template-columns:1fr;}.proj-filters{position:static;}}
+@media(max-width:640px){.proj-hero-title{font-size:1.8rem;}.proj-hero-top{gap:24px;}}
+.nav-logo-mark{width:auto!important;min-width:44px!important;padding:0 8px!important;}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav" id="mainNav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <div class="nav-logo-mark">
+        <span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span>
+      </div>
+      <div class="nav-logo-text">
+        <span class="logo-text-black" style="color:black;">Grit</span><span class="logo-text-blue">&amp;Gigs</span>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="index.html#how-it-works">How it works</a>
+      <a href="barter.html">Skill Exchange</a>
+      <a href="freelance.html">Freelance</a>
+      <a href="projects.html" style="color:var(--violet);font-weight:600;">Projects</a>
+      <a href="index.html#about">About</a>
+    </div>
+    <div class="nav-actions" id="projNavActions">
+      <button class="btn btn-secondary btn-sm" onclick="openModal('loginModal')">Sign in</button>
+      <button class="btn btn-primary btn-sm" onclick="openModal('signupModal')">Join free</button>
+    </div>
+    <div class="nav-hamburger"><span></span><span></span><span></span></div>
+  </div>
+</nav>
+
+<script>
+(function(){
+  try {
+    var u = JSON.parse(localStorage.getItem('se_user')||'null');
+    var t = localStorage.getItem('se_token');
+    if (u && u.firstName && t) {
+      var el = document.getElementById('projNavActions');
+      if (el) {
+        var planBadge = '';
+        var x = new XMLHttpRequest();
+        x.open('GET', '/api/subscriptions/my-plan', false);
+        x.setRequestHeader('Authorization', 'Bearer ' + t);
+        x.setRequestHeader('Content-Type', 'application/json');
+        try { x.send(); var pr = JSON.parse(x.responseText); if (pr.success && pr.data.plan) { var b = pr.data.plan.badge; planBadge = b ? '<span style="background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">' + b + '</span>' : '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Free</span>'; try{localStorage.setItem('se_plan_cache',JSON.stringify({badge:b||'Free'}));}catch(e){} } } catch(e) {}
+        el.innerHTML = planBadge + '<a href="dashboard.html" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
+          '<button class="btn btn-primary btn-sm" onclick="window.doLogout();">Sign out</button>';
+      }
+    }
+  } catch(e) {}
+})();
+</script>
+
+<!-- HERO -->
+<section class="proj-hero">
+  <div class="proj-hero-bg"></div>
+  <div class="proj-hero-grid"></div>
+  <div class="proj-hero-inner">
+    <div class="proj-hero-top">
+      <div class="proj-hero-left">
+        <span class="badge badge-violet" style="margin-bottom:16px;">For Freelancers</span>
+        <h1 class="proj-hero-title">Find Projects.<br/>Win Clients.</h1>
+        <p class="proj-hero-sub">Browse open projects from verified clients. Submit your best proposal and get hired — starting at just ₹200 per bid.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <button class="btn btn-primary btn-lg" onclick="document.querySelector('.proj-search-input input').focus()">Browse Projects</button>
+          <a href="dashboard.html#post-project" class="btn btn-lg" style="background:rgba(255,255,255,.1);color:white;border:1.5px solid rgba(255,255,255,.2);">Post a Project</a>
+        </div>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="hero-stat-num" id="heroTotalProj">—</div><div class="hero-stat-label">Open Projects</div></div>
+        <div class="hero-stat"><div class="hero-stat-num">2cr</div><div class="hero-stat-label">Cost to Bid</div></div>
+        <div class="hero-stat"><div class="hero-stat-num">24h</div><div class="hero-stat-label">Avg. Response</div></div>
+      </div>
+    </div>
+    <div class="proj-search">
+      <div class="proj-search-input" style="flex:1;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B6880" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="heroSearch" placeholder="Search by keyword, skill, or technology..." autocomplete="off"/>
+        <select id="heroCatSelect" style="border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:.85rem;color:#6B6880;outline:none;cursor:pointer;">
+          <option value="">All Categories</option>
+          <option>Design &amp; Creative</option>
+          <option>Development</option>
+          <option>Writing &amp; Content</option>
+          <option>Digital Marketing</option>
+          <option>Video &amp; Animation</option>
+          <option>Business</option>
+          <option>Music &amp; Audio</option>
+          <option>Data &amp; Analytics</option>
+          <option>Education</option>
+        </select>
+      </div>
+      <button class="proj-search-btn" id="heroSearchBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:6px;vertical-align:middle;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Search Projects
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- CATEGORY PILLS -->
+<div class="cat-pills-wrap">
+  <div class="cat-pills-inner">
+    <button class="cat-pill-btn active" data-cat="">
+      <span class="cat-pill-icon">🌐</span> All Projects
+    </button>
+    <button class="cat-pill-btn" data-cat="Design &amp; Creative">
+      <span class="cat-pill-icon">🎨</span> Design
+    </button>
+    <button class="cat-pill-btn" data-cat="Development">
+      <span class="cat-pill-icon">💻</span> Development
+    </button>
+    <button class="cat-pill-btn" data-cat="Writing &amp; Content">
+      <span class="cat-pill-icon">✍️</span> Writing
+    </button>
+    <button class="cat-pill-btn" data-cat="Digital Marketing">
+      <span class="cat-pill-icon">📣</span> Marketing
+    </button>
+    <button class="cat-pill-btn" data-cat="Video &amp; Animation">
+      <span class="cat-pill-icon">🎬</span> Video
+    </button>
+    <button class="cat-pill-btn" data-cat="Business">
+      <span class="cat-pill-icon">💼</span> Business
+    </button>
+    <button class="cat-pill-btn" data-cat="Music &amp; Audio">
+      <span class="cat-pill-icon">🎵</span> Audio
+    </button>
+    <button class="cat-pill-btn" data-cat="Data &amp; Analytics">
+      <span class="cat-pill-icon">📊</span> Data
+    </button>
+    <button class="cat-pill-btn" data-cat="Education">
+      <span class="cat-pill-icon">🎓</span> Education
+    </button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="proj-layout">
+
+  <!-- FILTERS SIDEBAR -->
+  <aside class="proj-filters">
+    <div class="proj-filters-title">
+      Filters
+      <button onclick="clearFilters()">Clear all</button>
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-section-title">Category</div>
+      <label class="filter-check"><input type="checkbox" value="Design &amp; Creative" onchange="applyFilters()"/><span class="filter-check-label">Design &amp; Creative</span></label>
+      <label class="filter-check"><input type="checkbox" value="Development" onchange="applyFilters()"/><span class="filter-check-label">Development</span></label>
+      <label class="filter-check"><input type="checkbox" value="Writing &amp; Content" onchange="applyFilters()"/><span class="filter-check-label">Writing &amp; Content</span></label>
+      <label class="filter-check"><input type="checkbox" value="Digital Marketing" onchange="applyFilters()"/><span class="filter-check-label">Digital Marketing</span></label>
+      <label class="filter-check"><input type="checkbox" value="Video &amp; Animation" onchange="applyFilters()"/><span class="filter-check-label">Video &amp; Animation</span></label>
+      <label class="filter-check"><input type="checkbox" value="Business" onchange="applyFilters()"/><span class="filter-check-label">Business</span></label>
+      <label class="filter-check"><input type="checkbox" value="Music &amp; Audio" onchange="applyFilters()"/><span class="filter-check-label">Music &amp; Audio</span></label>
+      <label class="filter-check"><input type="checkbox" value="Data &amp; Analytics" onchange="applyFilters()"/><span class="filter-check-label">Data &amp; Analytics</span></label>
+      <label class="filter-check"><input type="checkbox" value="Education" onchange="applyFilters()"/><span class="filter-check-label">Education</span></label>
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-section-title">Budget Range (₹)</div>
+      <div class="price-inputs">
+        <input type="number" class="price-inp" id="filterBudgetMin" placeholder="Min" min="0" onchange="applyFilters()"/>
+        <span class="price-sep">—</span>
+        <input type="number" class="price-inp" id="filterBudgetMax" placeholder="Max" min="0" onchange="applyFilters()"/>
+      </div>
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-section-title">Project Type</div>
+      <label class="filter-check"><input type="checkbox" value="fixed" id="filterFixed" onchange="applyFilters()"/><span class="filter-check-label">Fixed Price</span></label>
+      <label class="filter-check"><input type="checkbox" value="hourly" id="filterHourly" onchange="applyFilters()"/><span class="filter-check-label">Hourly Rate</span></label>
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-section-title">Deadline</div>
+      <label class="filter-check"><input type="radio" name="deadline" value="7" onchange="applyFilters()"/><span class="filter-check-label">Within 1 week</span></label>
+      <label class="filter-check"><input type="radio" name="deadline" value="30" onchange="applyFilters()"/><span class="filter-check-label">Within 1 month</span></label>
+      <label class="filter-check"><input type="radio" name="deadline" value="" onchange="applyFilters()"/><span class="filter-check-label">Any time</span></label>
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-section-title">Proposals</div>
+      <label class="filter-check"><input type="radio" name="proposals" value="low" onchange="applyFilters()"/><span class="filter-check-label">Less competition (&lt;5)</span></label>
+      <label class="filter-check"><input type="radio" name="proposals" value="any" onchange="applyFilters()"/><span class="filter-check-label">Any</span></label>
+    </div>
+
+    <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:4px;" onclick="applyFilters()">Apply Filters</button>
+  </aside>
+
+  <!-- RIGHT COLUMN -->
+  <div>
+    <div class="proj-toolbar">
+      <div class="proj-count" id="projCount">Loading projects...</div>
+      <select class="proj-sort" id="projSort" onchange="applyFilters()">
+        <option value="newest">Newest First</option>
+        <option value="budget_high">Budget: High to Low</option>
+        <option value="budget_low">Budget: Low to High</option>
+        <option value="most_bids">Most Proposals</option>
+        <option value="least_bids">Fewest Proposals (less competition)</option>
+      </select>
+    </div>
+    <div class="proj-list" id="projList">
+      <div class="proj-empty"><div class="proj-empty-icon">⏳</div><div class="proj-empty-title">Loading projects...</div></div>
+    </div>
+    <div id="projPagination"></div>
+  </div>
+</div>
+
+<!-- PROPOSAL MODAL -->
+<div class="proposal-mo" id="proposalModal">
+  <div class="proposal-md">
+    <div class="proposal-header">
+      <div class="proposal-title" id="proposalProjectTitle">Submit Proposal</div>
+      <button class="proposal-close" onclick="closeProposalModal()">✕</button>
+    </div>
+    <div class="proposal-project-info" id="proposalProjectInfo"></div>
+    <div id="proposalPlanInfo"></div>
+    <input type="hidden" id="proposalProjectId"/>
+    <div class="form-grp">
+      <label class="form-lbl">Your Bid Amount (₹) <span style="color:#C0392B">*</span></label>
+      <input type="number" class="form-inp" id="propBidAmt" placeholder="Enter your price" min="0"/>
+    </div>
+    <div class="form-grp">
+      <label class="form-lbl">Delivery Days</label>
+      <input type="number" class="form-inp" id="propDelivery" placeholder="e.g. 7" min="1"/>
+    </div>
+    <div style="background:linear-gradient(135deg,rgba(255,193,7,.08),rgba(255,152,0,.04));border:1px solid rgba(255,193,7,.25);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;">
+        <input type="checkbox" id="propHighlight" style="width:16px;height:16px;accent-color:#F59E0B;cursor:pointer;flex-shrink:0;margin-top:1px;"/>
+        <div>
+          <div style="font-weight:600;font-size:.82rem;color:#1C1C2E;">🌟 Highlight your proposal</div>
+          <div style="font-size:.72rem;color:#6B6880;margin-top:2px;">Stand out — your bid appears at the top with a gold badge.</div>
+        </div>
+      </label>
+    </div>
+    <div class="form-grp">
+      <label class="form-lbl">Cover Letter <span style="color:#C0392B">*</span></label>
+      <textarea class="form-inp form-textarea" id="propCoverLetter" rows="4" placeholder="Describe your approach, relevant experience, and why you're the best fit for this project..."></textarea>
+    </div>
+    <div class="form-grp">
+      <label class="form-lbl">Portfolio / Relevant Work URL</label>
+      <input type="url" class="form-inp" id="propPortfolio" placeholder="https://..."/>
+    </div>
+    <button class="btn-submit-prop" id="propSubmitBtn" onclick="submitProposal()">📨 Submit Proposal</button>
+    <p style="font-size:.72rem;color:#6B6880;text-align:center;margin-top:10px;">Your proposal will be visible to the client immediately</p>
+  </div>
+</div>
+
+<!-- LOGIN MODAL -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('loginModal')">&times;</button>
+    <div class="modal-logo">
+      <div class="nav-logo-mark"><span style="color:#0A0A0F;">G</span><span style="color:var(--violet);">&amp;G</span></div>
+      <span class="nav-logo-text">Grit<span style="color:var(--violet);">&amp;Gigs</span></span>
+    </div>
+    <h2>Welcome back</h2>
+    <p class="modal-sub">Sign in to your account.</p>
+    <button class="btn-google">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Continue with Google
+    </button>
+    <div class="divider-or">or sign in with email</div>
+    <form id="loginForm">
+      <div class="form-group"><label class="form-label">Email address</label><input class="form-input" type="email" id="loginEmail" placeholder="arjun@email.com" required/></div>
+      <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" id="loginPassword" placeholder="Your password" required/></div>
+      <div style="text-align:right;margin-top:-10px;margin-bottom:18px;">
+        <a style="font-size:0.83rem;color:var(--violet);cursor:pointer;" onclick="alert('Password reset is not yet implemented. Please contact support.');">Forgot password?</a>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;">Sign in</button>
+    </form>
+    <p class="modal-footer-text">New to Grit&Gigs? <a onclick="closeModal('loginModal');openModal('signupModal')">Create account</a></p>
+  </div>
+</div>
+
+<!-- SIGNUP MODAL -->
+<div class="modal-overlay" id="signupModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('signupModal')">&times;</button>
+    <div class="modal-logo">
+      <div class="nav-logo-mark"><span style="color:#0A0A0F;">G</span><span style="color:var(--violet);">&amp;G</span></div>
+      <span class="nav-logo-text">Grit<span style="color:var(--violet);">&amp;Gigs</span></span>
+    </div>
+    <h2>Create your account</h2>
+    <p class="modal-sub">Free forever. No credit card needed.</p>
+    <button class="btn-google">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Continue with Google
+    </button>
+    <div class="divider-or">or sign up with email</div>
+    <form id="signupForm">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">First name</label><input class="form-input" type="text" placeholder="Arjun" required/></div>
+        <div class="form-group"><label class="form-label">Last name</label><input class="form-input" type="text" placeholder="Kumar" required/></div>
+      </div>
+      <div class="form-group"><label class="form-label">Email address</label><input class="form-input" type="email" placeholder="arjun@email.com" required/></div>
+      <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" placeholder="Min. 8 characters" required/></div>
+      <div class="form-group"><label class="form-label">Phone (for OTP verification)</label><input class="form-input" type="tel" placeholder="+91 98765 43210"/></div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;">Create account</button>
+    </form>
+    <p class="modal-footer-text">Already have an account?<a onclick="closeModal('signupModal');openModal('loginModal')">Sign in</a></p>
+  </div>
+</div>
+
+<div id="toast" style="position:fixed;bottom:24px;right:24px;z-index:9999;padding:13px 18px;border-radius:12px;font-size:.86rem;font-family:'DM Sans',sans-serif;max-width:300px;line-height:1.5;box-shadow:0 8px 32px rgba(0,0,0,.18);transform:translateY(80px);opacity:0;transition:all .32s ease;background:#1C1C2E;color:white;"></div>
+
+<script src="js/main.js"></script>
+<script>
+// ══════════════════════════════════════════════
+//  PROJECTS PAGE — Grit&Gigs
+// ══════════════════════════════════════════════
+const _API = '/api';
+const _gT = () => localStorage.getItem('se_token');
+const _gU = () => { try { return JSON.parse(localStorage.getItem('se_user')||'null'); } catch(e) { return null; } };
+
+async function _api(ep, opts = {}) {
+  try {
+    const r = await fetch(_API + ep, {
+      ...opts,
+      headers: { 'Content-Type': 'application/json', ...(_gT() && { Authorization: 'Bearer ' + _gT() }), ...(opts.headers||{}) }
+    });
+    return r.json();
+  } catch(e) { return { success: false, message: 'Network error' }; }
+}
+
+function _toast(msg, type = 'info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = type === 'error' ? '#C0392B' : type === 'success' ? '#1A7A5E' : '#1C1C2E';
+  t.style.transform = 'translateY(0)'; t.style.opacity = '1';
+  setTimeout(() => { t.style.transform = 'translateY(80px)'; t.style.opacity = '0'; }, 3500);
+}
+
+function _starsHtml(avg, cnt) { if (cnt === undefined || cnt === null) return ''; return cnt > 0 ? '<span style="color:#F59E0B;letter-spacing:1px;font-size:.6rem;">★★★★★</span> ' + (+avg||0).toFixed(1) + ' <span style="color:var(--text-muted);font-weight:400;font-size:.6rem;">(' + cnt + ')</span>' : '<span style="color:var(--text-muted);font-size:.6rem;">No reviews</span>'; }
+function _timeAgo(d) {
+  if (!d) return '';
+  const diff = Date.now() - new Date(d).getTime();
+  const m = Math.floor(diff/60000);
+  if (m < 60) return m + 'm ago';
+  const h = Math.floor(m/60);
+  if (h < 24) return h + 'h ago';
+  return Math.floor(h/24) + 'd ago';
+}
+
+function openModal(id) { document.getElementById(id)?.classList.add('open'); document.body.style.overflow='hidden'; }
+function closeModal(id) { document.getElementById(id)?.classList.remove('open'); document.body.style.overflow=''; }
+
+// ── State ──
+let _state = { q: '', cat: '', minBudget: '', maxBudget: '', sort: 'newest', allProjects: [] };
+let _debounceTimer = null;
+
+// ── Filters ──
+function clearFilters() {
+  document.querySelectorAll('.proj-filters input[type=checkbox]').forEach(c => c.checked = false);
+  document.querySelectorAll('.proj-filters input[type=radio]').forEach(r => r.checked = false);
+  document.getElementById('filterBudgetMin').value = '';
+  document.getElementById('filterBudgetMax').value = '';
+  document.getElementById('projSort').value = 'newest';
+  document.getElementById('heroSearch').value = '';
+  document.querySelectorAll('.cat-pill-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === ''));
+  _state = { ..._state, q: '', cat: '', minBudget: '', maxBudget: '', sort: 'newest' };
+  _projPage = 1;
+  loadProjects();
+}
+
+function applyFilters() {
+  const cats = [...document.querySelectorAll('.proj-filters input[type=checkbox]:checked')].map(c => c.value).filter(Boolean);
+  _state.cat = cats[0] || document.querySelector('.cat-pill-btn.active')?.dataset?.cat || '';
+  _state.minBudget = document.getElementById('filterBudgetMin').value;
+  _state.maxBudget = document.getElementById('filterBudgetMax').value;
+  _state.sort = document.getElementById('projSort').value;
+  _projPage = 1;
+  renderProjects();
+}
+
+// ── Category pills ──
+document.querySelectorAll('.cat-pill-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.cat-pill-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    _state.cat = btn.dataset.cat || '';
+    // Also update hero select
+    const sel = document.getElementById('heroCatSelect');
+    if (sel) sel.value = _state.cat;
+    _projPage = 1;
+    renderProjects();
+    document.querySelector('.proj-layout')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+
+// ── Search ──
+document.getElementById('heroSearchBtn').addEventListener('click', () => {
+  _state.q = document.getElementById('heroSearch').value.trim();
+  const catVal = document.getElementById('heroCatSelect').value;
+  _state.cat = catVal;
+  document.querySelectorAll('.cat-pill-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === catVal));
+  _projPage = 1;
+  renderProjects();
+});
+document.getElementById('heroSearch').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('heroSearchBtn').click();
+});
+
+// ── Load from API ──
+async function loadProjects() {
+  document.getElementById('projList').innerHTML = '<div class="proj-empty"><div class="proj-empty-icon">⏳</div><div class="proj-empty-title">Loading projects...</div></div>';
+  const d = await _api('/projects?limit=50');
+  if (!d.success) {
+    document.getElementById('projList').innerHTML = '<div class="proj-empty"><div class="proj-empty-icon">⚠️</div><div class="proj-empty-title">Could not load projects</div><div class="proj-empty-sub">Make sure the server is running on port 5000.</div></div>';
+    return;
+  }
+  _state.allProjects = d.data.projects || [];
+  _state.totalCount = d.data.total || _state.allProjects.length;
+  const totalEl = document.getElementById('heroTotalProj');
+  if (totalEl) totalEl.textContent = _state.totalCount;
+  _projPage = 1;
+  renderProjects();
+}
+
+
+
+// ── Open project detail ──
+async function openProjectDetail(projectId) {
+  // Go to dashboard with the project detail opened
+  if (_gT()) {
+    // Show project in a lightweight modal
+    const d = await _api('/projects/' + projectId);
+    if (!d.success) { _toast('Could not load project', 'error'); return; }
+    const p = d.data.project;
+    const u = _gU();
+    const isOwn = u && p.userId === u.id;
+    const alreadyBid = p.bids?.find(b => b.userId === u?.id);
+    const skills = (p.skills||'').split(',').map(s => s.trim()).filter(Boolean);
+    const budgetStr = p.budgetMin || p.budgetMax
+      ? '₹' + (p.budgetMin||0).toLocaleString('en-IN') + (p.budgetMax ? ' – ₹' + p.budgetMax.toLocaleString('en-IN') : '+')
+      : 'Budget TBD';
+
+    const overlay = document.createElement('div');
+    overlay.className = 'proposal-mo open';
+    overlay.innerHTML = `<div class="proposal-md" style="max-width:620px;padding:0;border-radius:20px;overflow:hidden;">
+      ${p.imageUrl
+        ? `<div style="position:relative;"><img src="${p.imageUrl}" alt="" style="width:100%;height:200px;object-fit:cover;display:block;"/>
+           <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 35%,rgba(10,10,15,.6));"></div>
+           <button class="proposal-close" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,.9);border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.2);" onclick="this.closest('.proposal-mo').remove();document.body.style.overflow='';">✕</button>
+           <div style="position:absolute;bottom:14px;left:18px;right:50px;">
+             <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;color:#fff;line-height:1.3;text-shadow:0 1px 4px rgba(0,0,0,.4);">${p.title}</div>
+           </div></div>`
+        : `<div style="padding:22px 24px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+             <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;color:var(--ink);line-height:1.3;flex:1;">${p.title}</div>
+             <button class="proposal-close" onclick="this.closest('.proposal-mo').remove();document.body.style.overflow='';">✕</button>
+           </div>`
+      }
+      <div style="padding:18px 24px 24px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+          <span class="proj-card-cat">${p.category||'General'}</span>
+          ${skills.map(s => `<span class="proj-card-skill-tag">${s}</span>`).join('')}
+          <span style="font-size:.72rem;color:#6B6880;margin-left:auto;">${_timeAgo(p.createdAt)} · ${p.user?.profilePhoto ? `<img src="${p.user.profilePhoto}" style="width:16px;height:16px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:2px;"/>` : ''}${p.user?.firstName||'Client'} ${_starsHtml(p.user?.avgRating, p.user?.reviewCount)}</span>
+        </div>
+        <div style="font-size:.84rem;color:#3D3A50;line-height:1.72;background:rgba(10,10,15,.03);padding:14px;border-radius:10px;margin-bottom:16px;">${p.description}</div>
+        <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
+          ${p.budgetMin || p.budgetMax ? `<div style="flex:1;min-width:90px;background:linear-gradient(135deg,rgba(108,63,232,.07),rgba(108,63,232,.03));border:1px solid rgba(108,63,232,.15);border-radius:10px;padding:10px 13px;">
+            <div style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--violet);margin-bottom:2px;">Budget</div>
+            <div style="font-weight:700;font-size:.9rem;color:var(--ink);">${budgetStr}</div>
+          </div>` : ''}
+          ${p.deadline ? `<div style="flex:1;min-width:90px;background:rgba(10,10,15,.03);border:1px solid rgba(10,10,15,.07);border-radius:10px;padding:10px 13px;">
+            <div style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#6B6880;margin-bottom:2px;">Deadline</div>
+            <div style="font-size:.84rem;font-weight:600;color:var(--ink);">${new Date(p.deadline).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>
+          </div>` : ''}
+          <div style="flex:1;min-width:90px;background:rgba(10,10,15,.03);border:1px solid rgba(10,10,15,.07);border-radius:10px;padding:10px 13px;">
+            <div style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#6B6880;margin-bottom:2px;">Proposals</div>
+            <div style="font-size:.84rem;font-weight:700;color:var(--ink);">${p.bids?.length||0} received</div>
+          </div>
+        </div>
+        ${isOwn
+          ? '<div style="background:rgba(108,63,232,.08);border-radius:12px;padding:14px 16px;font-size:.84rem;color:var(--violet);text-align:center;">This is your project — view proposals in your <a href="dashboard.html#my-projects" style="font-weight:700;color:var(--violet);text-decoration:underline;">Dashboard</a></div>'
+          : alreadyBid
+            ? `<div style="background:rgba(26,122,94,.08);border:1px solid rgba(26,122,94,.2);border-radius:12px;padding:14px 16px;font-size:.84rem;color:#1A7A5E;text-align:center;">✓ You have submitted a proposal of <strong>₹${alreadyBid.amount?.toLocaleString('en-IN')}</strong> for this project</div>`
+            : `<button class="btn-submit-prop" style="border-radius:12px;background:linear-gradient(135deg,#6C3FE8,#2980b9);box-shadow:0 3px 14px rgba(108,63,232,.35);font-size:.9rem;" onclick="this.closest('.proposal-mo').remove();document.body.style.overflow='';openProposalModal('${p.id}','${(p.title||'').replace(/'/g,"\\'").replace(/"/g,"&quot;")}',${p.budgetMin||0},${p.budgetMax||0})">📨 Submit Proposal</button>`
+        }
+      </div>
+    </div>`;
+    overlay.addEventListener('click', e => { if (e.target === overlay) { overlay.remove(); document.body.style.overflow=''; } });
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+  } else {
+    openModal('loginModal');
+  }
+}
+
+// ── Open proposal modal ──
+async function openProposalModal(projectId, title, budgetMin, budgetMax) {
+  const u = _gU();
+  if (!u) { openModal('loginModal'); return; }
+
+  document.getElementById('proposalProjectId').value = projectId;
+  document.getElementById('proposalProjectTitle').textContent = title;
+  document.getElementById('proposalProjectInfo').innerHTML = `
+    <div class="proposal-budget">Budget: <strong>₹${(budgetMin||0).toLocaleString('en-IN')}${budgetMax ? ' – ₹' + budgetMax.toLocaleString('en-IN') : '+'}</strong></div>`;
+  document.getElementById('propBidAmt').value = '';
+  document.getElementById('propDelivery').value = '';
+  document.getElementById('propCoverLetter').value = '';
+  document.getElementById('propPortfolio').value = '';
+
+  // Show subscription plan info & remaining proposal/featured credits
+  let planHtml = '';
+  try {
+    const planRes = await _api('/subscriptions/my-plan');
+    if (planRes.success) {
+      const p = planRes.data;
+      const propLeft = p.proposalCreditsRemaining;
+      const propUnlimited = propLeft === -1;
+      const planName = p.plan?.name || 'Free';
+      const planBadge = p.plan?.badge || '';
+      const planLabel = planBadge
+        ? `<span style="background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;">${planBadge}</span>`
+        : `<span style="font-size:.72rem;font-weight:600;color:var(--violet);">${planName}</span>`;
+      const propText = propUnlimited
+        ? '<span style="color:#1A7A5E;font-weight:600;">♾️ Unlimited proposals</span>'
+        : `<span style="font-weight:600;color:${propLeft > 0 ? 'var(--ink)' : '#C0392B'};">📝 ${propLeft} proposal credit${propLeft !== 1 ? 's' : ''}</span>`;
+      const upgradeLink = (!propUnlimited && propLeft <= 0)
+        ? '<div style="margin-top:6px;"><a href="dashboard.html?tab=plans" style="color:var(--violet);font-weight:600;font-size:.78rem;">⬆ Upgrade your plan</a></div>'
+        : '';
+      const highlightHint = `<div style="margin-top:4px;font-size:.7rem;color:#D69E2E;">🌟 Highlight costs ₹50 from wallet</div>`;
+      const creditsBlocked = !propUnlimited && propLeft <= 0;
+      planHtml = `<div style="background:rgba(10,10,15,.03);border:1px solid rgba(10,10,15,.07);border-radius:10px;padding:10px 14px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;font-size:.8rem;">
+          <div style="display:flex;align-items:center;gap:8px;">${planLabel} <span style="color:#6B6880;">·</span> ${propText}</div>
+          ${upgradeLink}
+        </div>
+        ${highlightHint}
+        ${creditsBlocked ? '<div style="margin-top:6px;font-size:.7rem;color:#C0392B;font-weight:600;">⬆ No proposal credits left — upgrade to submit proposals</div>' : ''}
+      </div>`;
+      // Disable submit button when no credits
+      const submitBtn = document.getElementById('propSubmitBtn');
+      if (submitBtn) submitBtn.disabled = creditsBlocked;
+    }
+  } catch(e) {}
+  document.getElementById('proposalPlanInfo').innerHTML = planHtml;
+
+  document.getElementById('proposalModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeProposalModal() {
+  document.getElementById('proposalModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ── Submit proposal ──
+async function submitProposal() {
+  const projectId = document.getElementById('proposalProjectId').value;
+  const amt = parseFloat(document.getElementById('propBidAmt').value);
+  const proposal = document.getElementById('propCoverLetter').value.trim();
+  const deliveryDays = parseInt(document.getElementById('propDelivery').value) || null;
+  const highlight = document.getElementById('propHighlight').checked;
+  const portfolioUrl = document.getElementById('propPortfolio').value.trim();
+
+  if (!amt || amt <= 0) { _toast('Enter a valid bid amount', 'error'); return; }
+  if (!proposal) { _toast('Please write a cover letter', 'error'); return; }
+
+  const btn = document.getElementById('propSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Submitting...';
+
+  var finalProposal = proposal;
+  if (portfolioUrl) finalProposal += '\nPortfolio:\n' + portfolioUrl;
+  var body = { amount: amt, proposal: finalProposal, deliveryDays: deliveryDays };
+  if (highlight) body.highlight = true;
+
+  const d = await _api('/projects/' + projectId + '/bids', {
+    method: 'POST',
+    body: JSON.stringify(body)
+  });
+
+  btn.disabled = false; btn.textContent = '📨 Submit Proposal';
+
+  if (d.success) {
+    closeProposalModal();
+    var msg = '🎉 Proposal submitted!';
+    if (highlight && d.data?.bid?.isHighlighted) msg += ' 🌟 Highlighted!';
+    _toast(msg, 'success');
+    await loadProjects(); // Refresh to update "Applied" state
+  } else if (d._highlightFailed) {
+    _toast(d.message, 'error');
+  } else if (d._creditsExhausted) {
+    _toast('No proposal credits left. Upgrade your plan!', 'error');
+    document.getElementById('proposalPlanInfo').innerHTML = '<div style="background:#FFF0F0;border:1px solid #F5C6C6;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:.8rem;color:#C0392B;text-align:center;">You\'ve used all your free proposal credits. <a href="dashboard.html?tab=plans" style="color:var(--violet);font-weight:700;">Upgrade your plan →</a></div>';
+  } else {
+    _toast(d.message || 'Failed to submit proposal', 'error');
+  }
+}
+
+// ── Login form ──
+document.getElementById('loginForm')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.textContent = 'Signing in...'; btn.disabled = true;
+  const d = await _api('/auth/login', { method: 'POST', body: JSON.stringify({ email: document.getElementById('loginEmail').value, password: document.getElementById('loginPassword').value }) });
+  btn.textContent = 'Sign in'; btn.disabled = false;
+  if (d.success && d.data?.accessToken) {
+    localStorage.setItem('se_token', d.data.accessToken);
+    if (d.data.refreshToken) localStorage.setItem('se_refresh', d.data.refreshToken);
+    if (d.data.user) localStorage.setItem('se_user', JSON.stringify(d.data.user));
+    closeModal('loginModal');
+    const u = d.data.user;
+    await _refreshNavWithPlan(u);
+    loadProjects();
+    _toast('Welcome back, ' + u.firstName + '!', 'success');
+  } else { _toast(d.message || 'Login failed', 'error'); }
+});
+
+// Close modal on overlay click
+document.getElementById('proposalModal').addEventListener('click', e => { if (e.target === document.getElementById('proposalModal')) closeProposalModal(); });
+document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) closeModal(o.id); }));
+
+// ── Refresh nav with plan badge ──
+async function _refreshNavWithPlan(u) {
+  const el = document.getElementById('projNavActions');
+  if (!el) return;
+  let planBadge = '';
+  try {
+    const pr = await _api('/subscriptions/my-plan');
+    if (pr.success && pr.data.plan) {
+      const b = pr.data.plan.badge;
+      planBadge = b
+        ? '<span style="background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">' + b + '</span>'
+        : '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Free</span>';
+    }
+  } catch(e) {}
+  el.innerHTML = planBadge + '<a href="dashboard.html" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' + '<button class="btn btn-primary btn-sm" onclick="window.doLogout();">Sign out</button>';
+}
+
+// ── Signup form ──
+document.getElementById('signupForm')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = e.target;
+  const btn = f.querySelector('button[type=submit]');
+  btn.textContent = 'Creating account...'; btn.disabled = true;
+  const d = await _api('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({
+      firstName: f.querySelector('input[type="text"]')?.value,
+      lastName: f.querySelectorAll('input[type="text"]')[1]?.value,
+      email: f.querySelector('input[type="email"]')?.value,
+      password: f.querySelector('input[type="password"]')?.value,
+      phone: f.querySelector('input[type="tel"]')?.value || '',
+    })
+  });
+  btn.textContent = 'Create account'; btn.disabled = false;
+  if (d.success && d.data?.accessToken) {
+    localStorage.setItem('se_token', d.data.accessToken);
+    if (d.data.refreshToken) localStorage.setItem('se_refresh', d.data.refreshToken);
+    if (d.data.user) localStorage.setItem('se_user', JSON.stringify(d.data.user));
+    closeModal('signupModal');
+    const u = d.data.user;
+    await _refreshNavWithPlan(u);
+    loadProjects();
+    _toast('Welcome, ' + u.firstName + '!', 'success');
+  } else {
+    _toast(d.message || 'Registration failed', 'error');
+  }
+});
+
+// ── Pagination ──
+const PROJ_PER_PAGE = 12;
+let _projPage = 1;
+
+function renderPagination(total) {
+  const totalPages = Math.ceil(total / PROJ_PER_PAGE) || 1;
+  if (totalPages <= 1) { document.getElementById('projPagination').innerHTML = ''; return; }
+  let html = '<div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:24px;">';
+  html += `<button class="btn btn-sm" style="border:1px solid var(--border);padding:6px 14px;${_projPage <= 1 ? 'opacity:.4;pointer-events:none;' : ''}" onclick="goProjPage(${_projPage - 1})" ${_projPage <= 1 ? 'disabled' : ''}>‹ Prev</button>`;
+  const start = Math.max(1, Math.min(_projPage - 2, totalPages - 4));
+  const end = Math.min(start + 4, totalPages);
+  for (let i = start; i <= end; i++) {
+    html += `<button class="btn btn-sm" style="border:1px solid ${i === _projPage ? 'var(--violet)' : 'var(--border)'};background:${i === _projPage ? 'var(--violet)' : 'transparent'};color:${i === _projPage ? '#fff' : 'var(--ink)'};padding:6px 12px;font-weight:${i === _projPage ? '700' : '400'};" onclick="goProjPage(${i})" ${i === _projPage ? 'disabled' : ''}>${i}</button>`;
+  }
+  html += `<button class="btn btn-sm" style="border:1px solid var(--border);padding:6px 14px;${_projPage >= totalPages ? 'opacity:.4;pointer-events:none;' : ''}" onclick="goProjPage(${_projPage + 1})" ${_projPage >= totalPages ? 'disabled' : ''}>Next ›</button>`;
+  html += '</div>';
+  document.getElementById('projPagination').innerHTML = html;
+}
+
+function goProjPage(page) {
+  _projPage = page;
+  renderProjects();
+  document.querySelector('.proj-layout')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+renderProjects = function() {
+  let projects = [..._state.allProjects];
+  const u = _gU();
+
+  if (_state.cat) projects = projects.filter(p => p.category === _state.cat);
+  if (_state.q) {
+    const q = _state.q.toLowerCase();
+    projects = projects.filter(p =>
+      p.title.toLowerCase().includes(q) ||
+      (p.description||'').toLowerCase().includes(q) ||
+      (p.skills||'').toLowerCase().includes(q) ||
+      (p.category||'').toLowerCase().includes(q)
+    );
+  }
+  if (_state.minBudget) projects = projects.filter(p => (p.budgetMax || 0) >= Number(_state.minBudget));
+  if (_state.maxBudget) projects = projects.filter(p => (p.budgetMin || 0) <= Number(_state.maxBudget));
+
+  const sort = _state.sort || document.getElementById('projSort').value;
+  if (sort === 'budget_high') projects.sort((a,b) => (b.budgetMax||0) - (a.budgetMax||0));
+  else if (sort === 'budget_low') projects.sort((a,b) => (a.budgetMin||0) - (b.budgetMin||0));
+  else if (sort === 'most_bids') projects.sort((a,b) => (b._count?.bids||0) - (a._count?.bids||0));
+  else if (sort === 'least_bids') projects.sort((a,b) => (a._count?.bids||0) - (b._count?.bids||0));
+  else projects.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  const totalFiltered = projects.length;
+  const totalPages = Math.ceil(totalFiltered / PROJ_PER_PAGE) || 1;
+  if (_projPage > totalPages) _projPage = totalPages;
+
+  const start = (_projPage - 1) * PROJ_PER_PAGE;
+  const pageProjects = projects.slice(start, start + PROJ_PER_PAGE);
+
+  document.getElementById('projCount').innerHTML = `Showing <strong>${totalFiltered}</strong> open project${totalFiltered !== 1 ? 's' : ''}${_state.cat ? ' in <strong>' + _state.cat + '</strong>' : ''}${_state.q ? ' for "<strong>' + _state.q + '</strong>"' : ''}${totalPages > 1 ? ' · Page ' + _projPage + ' of ' + totalPages : ''}`;
+
+  if (!pageProjects.length) {
+    document.getElementById('projList').innerHTML = '<div class="proj-empty"><div class="proj-empty-icon">🔍</div><div class="proj-empty-title">No projects found</div><div class="proj-empty-sub">Try a different search or clear the filters.</div><button class="btn btn-primary btn-sm" onclick="clearFilters()" style="margin:0 auto;">Clear Filters</button></div>';
+    document.getElementById('projPagination').innerHTML = '';
+    return;
+  }
+
+  document.getElementById('projList').innerHTML = pageProjects.map(p => {
+    const clientInitials = ((p.user?.firstName||'?')[0]+(p.user?.lastName||'')[0]).toUpperCase();
+    const alreadyBid = p._userBid != null;
+    const isOwn = u && p.userId === u.id;
+    const skills = (p.skills||'').split(',').map(s => s.trim()).filter(Boolean);
+    const budgetStr = p.budgetMin || p.budgetMax
+      ? '₹' + (p.budgetMin||0).toLocaleString('en-IN') + (p.budgetMax ? ' – ₹' + p.budgetMax.toLocaleString('en-IN') : '+')
+      : 'Budget TBD';
+
+    return `<div class="proj-card" onclick="openProjectDetail('${p.id}')">
+      ${p.imageUrl ? `<div style="margin:-20px -22px 18px;height:170px;overflow:hidden;border-radius:13px 13px 0 0;"><img src="${p.imageUrl}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s;" onmouseenter="this.style.transform='scale(1.04)'" onmouseleave="this.style.transform='scale(1)'"/></div>` : ''}
+      <div class="proj-card-header">
+        <div class="proj-card-title">${p.title}</div>
+        <div class="proj-card-bids">${p._count?.bids||0} proposal${p._count?.bids !== 1 ? 's' : ''}</div>
+      </div>
+      <div class="proj-card-meta">
+        <span class="proj-card-cat">${p.category||'General'}</span>
+        ${skills.slice(0,3).map(s => `<span class="proj-card-skill-tag">${s}</span>`).join('')}
+        <span class="proj-card-time">${_timeAgo(p.createdAt)}</span>
+      </div>
+      <div class="proj-card-desc">${(p.description||'').slice(0,200)}${(p.description||'').length > 200 ? '…' : ''}</div>
+      <div class="proj-card-footer">
+        <div>
+          <div class="proj-card-budget">${budgetStr}</div>
+          ${p.deadline ? `<div class="proj-card-deadline">📅 Due ${new Date(p.deadline).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>` : ''}
+        </div>
+        <div class="proj-card-client">
+          ${p.user?.profilePhoto ? `<img src="${p.user.profilePhoto}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;"/>` : `<div class="proj-client-av">${clientInitials}</div>`}
+          <span class="proj-client-name">${p.user?.firstName||'Client'} ${_starsHtml(p.user?.avgRating, p.user?.reviewCount)}</span>
+        </div>
+        <div class="proj-card-actions" onclick="event.stopPropagation()">
+          ${isOwn
+            ? '<span class="btn-propose applied">Your Project</span>'
+            : alreadyBid
+              ? '<span class="btn-propose applied">✓ Applied</span>'
+              : `<button class="btn-propose primary" onclick="openProposalModal('${p.id}','${(p.title||'').replace(/'/g,"\\'").replace(/"/g,"&quot;")}',${p.budgetMin||0},${p.budgetMax||0})">Submit Proposal</button>`
+          }
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  renderPagination(totalFiltered);
+};
+
+// ── Init ──
+loadProjects();
+</script>
+</body>
+</html>

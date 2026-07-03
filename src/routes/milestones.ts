@@ -1,0 +1,189 @@
+import { Router, type IRouter, type Request, type Response } from "express";
+import { eq, and, desc, sum } from "drizzle-orm";
+import {
+  db, projectMilestonesTable, projectsTable, projectBidsTable,
+  notificationsTable, usersTable, transactionsTable,
+  freelanceWalletsTable,
+} from "../db";
+import { authenticate } from "../middlewares/authenticate";
+import { getActivePlanForUser } from "../lib/subscriptions";
+
+const router: IRouter = Router();
+
+// POST /projects/:id/milestones — client sets up milestones against an accepted bid.
+// body: { bidId, milestones: [{ title, amount }] }  amounts must sum <= bid.amount
+router.post("/projects/:id/milestones", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const userId = req.user!.id;
+  const { bidId, milestones } = req.body;
+  if (!bidId || !Array.isArray(milestones) || milestones.length === 0) {
+    res.status(400).json({ success: false, message: "bidId and milestones array are required" }); return;
+  }
+
+  const projectId = req.params.id as string;
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId)).limit(1);
+  if (!project) { res.status(404).json({ success: false, message: "Project not found" }); return; }
+  if (project.userId !== userId) { res.status(403).json({ success: false, message: "Only the project owner can set milestones" }); return; }
+
+  const [bid] = await db.select().from(projectBidsTable).where(and(eq(projectBidsTable.id, bidId), eq(projectBidsTable.projectId, project.id))).limit(1);
+  if (!bid) { res.status(404).json({ success: false, message: "Bid not found on this project" }); return; }
+  if (bid.status !== "ACCEPTED") { res.status(400).json({ success: false, message: "Milestones can only be added to an accepted bid" }); return; }
+
+  const total = milestones.reduce((s: number, m: { amount: number }) => s + Number(m.amount), 0);
+  if (total > bid.amount * 1.01) {
+    res.status(400).json({ success: false, message: `Milestone total (${total}) exceeds the accepted bid amount (${bid.amount})` }); return;
+  }
+
+  // Clear any previously set milestones for this bid before re-creating
+  await db.delete(projectMilestonesTable).where(and(eq(projectMilestonesTable.bidId, bidId), eq(projectMilestonesTable.projectId, project.id)));
+
+  const rows = await db.insert(projectMilestonesTable).values(
+    milestones.map((m: { title: string; amount: number }, i: number) => ({
+      projectId: project.id, bidId, title: m.title, amount: Number(m.amount), sortOrder: i,
+    }))
+  ).returning();
+
+  await db.insert(notificationsTable).values({
+    userId: bid.userId, type: "MILESTONE",
+    title: "Milestones set for your project",
+    message: `${milestones.length} milestone${milestones.length > 1 ? "s" : ""} have been set for "${project.title}". Complete each one to receive staged payments.`,
+    linkUrl: `/dashboard.html?tab=orders`,
+  });
+
+  res.status(201).json({ success: true, data: { milestones: rows } });
+});
+
+// GET /projects/:id/milestones — anyone involved can view
+router.get("/projects/:id/milestones", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const projectId = req.params.id as string;
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId)).limit(1);
+  if (!project) { res.status(404).json({ success: false, message: "Project not found" }); return; }
+
+  const milestones = await db.select().from(projectMilestonesTable)
+    .where(eq(projectMilestonesTable.projectId, project.id))
+    .orderBy(projectMilestonesTable.sortOrder);
+
+  res.json({ success: true, data: { milestones } });
+});
+
+// POST /milestones/:id/deliver — freelancer marks a milestone as delivered
+router.post("/milestones/:id/deliver", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const msId = req.params.id as string;
+  const [ms] = await db.select().from(projectMilestonesTable).where(eq(projectMilestonesTable.id, msId)).limit(1);
+  if (!ms) { res.status(404).json({ success: false, message: "Milestone not found" }); return; }
+
+  const [bid] = await db.select().from(projectBidsTable).where(eq(projectBidsTable.id, ms.bidId)).limit(1);
+  if (!bid || bid.userId !== req.user!.id) { res.status(403).json({ success: false, message: "Only the assigned freelancer can deliver a milestone" }); return; }
+  if (ms.status !== "IN_PROGRESS" && ms.status !== "PENDING") { res.status(400).json({ success: false, message: "Milestone is not in a deliverable state" }); return; }
+
+  const { deliveryNote } = req.body;
+  await db.update(projectMilestonesTable).set({ status: "DELIVERED", deliveryNote: deliveryNote || null, deliveredAt: new Date() }).where(eq(projectMilestonesTable.id, ms.id));
+
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, ms.projectId)).limit(1);
+  await db.insert(notificationsTable).values({
+    userId: project.userId, type: "MILESTONE",
+    title: `Milestone delivered: "${ms.title}"`,
+    message: `Your freelancer has submitted "${ms.title}" for review. Approve it to release the ₹${ms.amount} payment.`,
+    linkUrl: `/dashboard.html?tab=my-projects&project=${ms.projectId}`,
+  });
+
+  res.json({ success: true, message: "Milestone marked as delivered" });
+});
+
+// POST /milestones/:id/approve — client approves delivery with commission
+router.post("/milestones/:id/approve", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const msId = req.params.id as string;
+  const [ms] = await db.select().from(projectMilestonesTable).where(eq(projectMilestonesTable.id, msId)).limit(1);
+  if (!ms) { res.status(404).json({ success: false, message: "Milestone not found" }); return; }
+  if (ms.status !== "DELIVERED") { res.status(400).json({ success: false, message: "Milestone has not been delivered yet" }); return; }
+
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, ms.projectId)).limit(1);
+  if (!project || project.userId !== req.user!.id) { res.status(403).json({ success: false, message: "Only the project owner can approve milestones" }); return; }
+
+  const [bid] = await db.select().from(projectBidsTable).where(eq(projectBidsTable.id, ms.bidId)).limit(1);
+  if (!bid) { res.status(500).json({ success: false, message: "Could not find associated bid" }); return; }
+
+  // Calculate commission based on freelancer's plan
+  const plan = await getActivePlanForUser(bid.userId);
+  const commissionPct = plan.serviceFeePercent;
+  const milestoneAmount = Number(ms.amount) || 0;
+  const commission = Math.round(milestoneAmount * commissionPct / 100);
+  const netAmount = milestoneAmount - commission;
+
+  // Deduct full milestone amount from client's wallet FIRST
+  const [clientWallet] = await db.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, project.userId));
+  if (!clientWallet || Number(clientWallet.balance) < milestoneAmount) {
+    res.status(400).json({ success: false, message: 'You don\'t have enough funds in your wallet. Please add funds and try again.' }); return;
+  }
+  await db.update(freelanceWalletsTable)
+    .set({
+      balance: Number(clientWallet.balance) - milestoneAmount,
+      updatedAt: new Date(),
+    })
+    .where(eq(freelanceWalletsTable.id, clientWallet.id));
+
+  // Credit freelancer's wallet with net amount
+  const [freelancerWallet] = await db.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, bid.userId));
+  if (freelancerWallet) {
+    await db.update(freelanceWalletsTable)
+      .set({
+        balance: Number(freelancerWallet.balance) + netAmount,
+        totalEarned: Number(freelancerWallet.totalEarned || 0) + netAmount,
+        updatedAt: new Date(),
+      })
+      .where(eq(freelanceWalletsTable.id, freelancerWallet.id));
+  } else {
+    await db.insert(freelanceWalletsTable).values({
+      userId: bid.userId,
+      balance: netAmount,
+      totalEarned: netAmount,
+      updatedAt: new Date(),
+    });
+  }
+
+  // Mark APPROVED — only after all wallet operations succeed
+  await db.update(projectMilestonesTable).set({ status: "APPROVED", approvedAt: new Date() }).where(eq(projectMilestonesTable.id, ms.id));
+
+  // Record payment deduction from client
+  await db.insert(transactionsTable).values({
+    userId: project.userId,
+    type: 'SERVICE_PAYMENT',
+    amount: milestoneAmount,
+    description: `Payment for milestone "${ms.title}"`,
+    status: 'COMPLETED',
+  });
+
+  // Record earnings and commission as transactions
+  await db.insert(transactionsTable).values({
+    userId: bid.userId,
+    type: 'SERVICE_EARNING',
+    amount: netAmount,
+    description: `Payment received for milestone "${ms.title}"`,
+    status: 'COMPLETED',
+  });
+  if (commission > 0) {
+    await db.insert(transactionsTable).values({
+      userId: bid.userId,
+      type: 'COMMISSION',
+      amount: commission,
+      description: `Platform commission (${commissionPct}%) on milestone "${ms.title}"`,
+      status: 'COMPLETED',
+    });
+  }
+
+  await db.insert(notificationsTable).values({
+    userId: project.userId, type: "MILESTONE",
+    title: `Milestone approved and paid`,
+    message: `₹${milestoneAmount} deducted from your wallet for "${ms.title}".`,
+    linkUrl: `/dashboard.html?tab=my-projects&project=${ms.projectId}`,
+  });
+  await db.insert(notificationsTable).values({
+    userId: bid.userId, type: "MILESTONE",
+    title: `Milestone approved!`,
+    message: `"${ms.title}" approved — you received ₹${netAmount} (${commissionPct}% commission: ₹${commission}).`,
+    linkUrl: `/dashboard.html?tab=orders`,
+  });
+
+  res.json({ success: true, message: `Milestone approved. Freelancer receives ₹${netAmount} (${commissionPct}% commission: ₹${commission}).` });
+});
+
+export default router;

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Signing in...</title>
+<style>body{background:#0A0A0F;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:system-ui,sans-serif}.spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,0.15);border-top-color:var(--violet,#6C3FE8);border-radius:50%;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}p{color:rgba(255,255,255,0.6);margin-top:16px}</style>
+</head>
+<body>
+<div style="text-align:center"><div class="spinner"></div><p>Completing sign-in...</p></div>
+<script>
+(function(){
+  var params = new URLSearchParams(window.location.search);
+  var accessToken = params.get('accessToken');
+  var refreshToken = params.get('refreshToken');
+  var userRaw = params.get('user');
+  var error = params.get('error');
+
+  if (error) {
+    document.body.innerHTML = '<div style="text-align:center"><p style="color:#ef4444;">Sign-in failed: ' + error + '</p><button onclick="window.close()" style="margin-top:12px;padding:8px 20px;background:var(--violet,#6C3FE8);color:#fff;border:none;border-radius:6px;cursor:pointer;">Close</button></div>';
+    return;
+  }
+
+  if (accessToken && refreshToken && userRaw) {
+    try {
+      var user = JSON.parse(decodeURIComponent(userRaw));
+      localStorage.setItem('se_token', accessToken);
+      localStorage.setItem('se_refresh', refreshToken);
+      localStorage.setItem('se_user', JSON.stringify(user));
+      window.location.href = 'dashboard.html';
+    } catch(e) {
+      document.body.textContent = 'Error processing sign-in';
+    }
+  } else {
+    // Try closing window — might be a popup
+    if (window.opener) { window.close(); }
+    else { document.body.textContent = 'No credentials received. Please try again.'; }
+  }
+})();
+</script>
+</body>
+</html>

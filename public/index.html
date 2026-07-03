@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Grit&Gigs — Exchange Skills. Build Wealth.</title>
+<meta name="description" content="Trade skills without money, freelance for real income, and invest in local businesses — all on one platform."/>
+<link rel="stylesheet" href="css/main.css"/>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<style>
+  /* G&G logo mark: auto-width so G&G fits inside the box */
+  .nav-logo-mark{width:auto!important;min-width:44px!important;padding:0 8px!important;}
+  .footer .nav-logo-mark{width:auto!important;min-width:38px!important;padding:0 6px!important;}
+  .modal-logo .nav-logo-mark{width:auto!important;min-width:38px!important;padding:0 6px!important;}
+  </style>
+</head>
+<body>
+
+<!-- ── NAVBAR ── -->
+<nav class="nav" id="mainNav">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+  
+  <div class="nav-logo-mark">
+    <span class="logo-g-black">G</span>
+    <span class="logo-g-blue">&amp;G</span>
+  </div>
+
+  <span class="nav-logo-text">
+    <span class="logo-text-black">Grit</span>
+    <span class="logo-text-blue">&amp;Gigs</span>
+  </span>
+
+</a>
+    <div class="nav-links">
+      <a href="#how-it-works">How it works</a>
+      <a href="#barter">Skill Exchange</a>
+      <a href="#freelance">Freelance</a>
+      <a href="projects.html">Browse Projects</a>
+      <a href="#about">About</a>
+    </div>
+    <div class="nav-actions" id="siteNavActions">
+        <button class="btn btn-secondary btn-sm" onclick="openModal('loginModal')">Sign in</button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('signupModal')">Join free</button>
+      </div>
+      <script>
+      // Runs synchronously — updates nav instantly from localStorage
+      (function() {
+        try {
+          var t = localStorage.getItem('se_token');
+          var raw = t && localStorage.getItem('se_user');
+          var u = raw && JSON.parse(raw);
+          if (u && u.firstName) {
+            var el = document.getElementById('siteNavActions');
+            if (el) {
+              var planBadge = '';
+              try { var x=new XMLHttpRequest(); x.open('GET','/api/subscriptions/my-plan',false); x.setRequestHeader('Authorization','Bearer '+t); x.setRequestHeader('Content-Type','application/json'); x.send(); var pr=JSON.parse(x.responseText); if(pr.success&&pr.data.plan){var b=pr.data.plan.badge;planBadge=b?'<span style="background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">'+b+'</span>':'<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Free</span>';try{localStorage.setItem('se_plan_cache',JSON.stringify({badge:b||'Free'}));}catch(e){}} } catch(e){}
+              el.innerHTML = planBadge +
+                '<a href="dashboard.html" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
+                '<button class="btn btn-primary btn-sm" onclick="window.doLogout && window.doLogout()">Sign out</button>';
+            }
+          }
+          // Update CTA button text for logged-in users (runs after DOM ready)
+          if (u && u.firstName) {
+            document.addEventListener('DOMContentLoaded', function() {
+              var ctaBtn = document.getElementById('ctaMainBtn');
+              if (ctaBtn) ctaBtn.childNodes[0].textContent = 'Go to dashboard ';
+            });
+          }
+        } catch(e) {}
+      })();
+      </script>
+    <div class="nav-hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+</nav>
+
+<!-- ── MOBILE MENU ── -->
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#how-it-works">How it works</a>
+  <a href="#barter">Skill Exchange</a>
+  <a href="#freelance">Freelance</a>
+  <a href="projects.html">Browse Projects</a>
+  <a href="#about">About</a>
+  <button class="btn btn-secondary" onclick="openModal('loginModal')">Sign in</button>
+  <button class="btn btn-primary" onclick="openModal('signupModal')">Join free</button>
+</div>
+
+<!-- ── HERO ── -->
+<section class="hero" id="home">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-inner">
+    <div class="hero-content">
+      <div class="hero-eyebrow anim-fade-up">
+        <span class="badge badge-violet">
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><circle cx="4" cy="4" r="4" fill="#6C3FE8"/></svg>
+          India's first all-in-one skills platform
+        </span>
+      </div>
+      <h1 class="hero-title anim-fade-up anim-delay-1">
+        Exchange skills.<br/>
+        <span class="accent">Earn freely.</span><br/>
+        Build wealth.
+      </h1>
+      <p class="hero-sub anim-fade-up anim-delay-2">
+        Trade your skills without money, work as a freelancer to earn real income, or invest in local businesses — all from one powerful platform built for India.
+      </p>
+      <div class="hero-actions anim-fade-up anim-delay-3">
+        <button class="btn btn-primary btn-lg" onclick="localStorage.getItem('se_token')?location.href='dashboard.html':openModal('signupModal')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          Start for free
+        </button>
+        <a href="#how-it-works" class="btn btn-secondary btn-lg">See how it works</a>
+      </div>
+      <div class="hero-stats anim-fade-up anim-delay-4">
+        <div>
+          <div class="hero-stat-num"><span data-target="28000" data-suffix="+">0+</span></div>
+          <div class="hero-stat-label">Active members</div>
+        </div>
+        <div>
+          <div class="hero-stat-num"><span data-target="9400" data-suffix="+">0+</span></div>
+          <div class="hero-stat-label">Exchanges completed</div>
+        </div>
+        <div>
+          <div class="hero-stat-num">&#8377;<span data-target="4" data-suffix="Cr+">0</span></div>
+          <div class="hero-stat-label">Earned by freelancers</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hero visual -->
+    <div class="hero-visual anim-fade-up anim-delay-2">
+      <div class="hero-card-stack">
+        <div class="hero-main-card">
+          <div class="hero-video-thumb">
+            <video autoplay muted loop playsinline poster="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&q=80">
+              <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4"/>
+            </video>
+            <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(108,63,232,0.5),rgba(10,10,15,0.4));"></div>
+            <div style="position:absolute;bottom:16px;left:16px;">
+              <div style="font-family:var(--font-display);color:white;font-weight:700;font-size:1rem;">Skills meet opportunity</div>
+              <div style="color:rgba(255,255,255,0.75);font-size:0.78rem;">Join 28,000+ members across India</div>
+            </div>
+          </div>
+          <div class="hero-card-body">
+            <div class="hero-card-meta">
+              <div class="hero-user">
+                <div class="avatar-placeholder avatar-v">PK</div>
+                <div>
+                  <div class="user-name">Priya K.</div>
+                  <div class="user-meta">UI Designer — Chennai</div>
+                </div>
+              </div>
+              <div>
+                <div class="stars">★★★★★</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);text-align:right">4.9 (142)</div>
+              </div>
+            </div>
+            <div style="font-size:0.85rem;color:var(--text-secondary);line-height:1.55;">
+              "Exchanged my design skills for web development help — saved ₹30,000 and made a great connection."
+            </div>
+          </div>
+        </div>
+
+        <!-- Float card 1 -->
+        <div class="hero-float-card" style="bottom:90px;right:-16px;width:180px;">
+          <div class="float-label">This week's earnings</div>
+          <div class="float-val">&#8377;18,400</div>
+          <div class="float-sub">+23% vs last week</div>
+        </div>
+
+        <!-- Float card 2 -->
+        <div class="hero-float-card" style="bottom:10px;left:-16px;width:185px;">
+          <div class="float-label">New match found</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+            <div class="avatar-placeholder avatar-g" style="width:28px;height:28px;font-size:11px;">RV</div>
+            <div>
+              <div style="font-size:0.82rem;font-weight:600;color:var(--ink);">Ravi V.</div>
+              <div style="font-size:0.72rem;color:var(--text-muted);">React Dev — Bangalore</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TRUST BAR ── -->
+<div class="trust-bar">
+  <div class="trust-track">
+    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">28,000+ active members</span></div>
+    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">9,400+ skills exchanged</span></div>
+    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">Launched in Chennai</span></div>
+    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">&#8377;4 Crore+ paid to freelancers</span></div>
+    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">Razorpay secured payments</span></div>
+    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">2,000+ verified freelancers</span></div>
+    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">Free to start, no card needed</span></div>
+    <!-- duplicate for seamless loop -->
+    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">28,000+ active members</span></div>
+    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">9,400+ skills exchanged</span></div>
+    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">Launched in Chennai</span></div>
+    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">&#8377;4 Crore+ paid to freelancers</span></div>
+    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">Razorpay secured payments</span></div>
+    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">2,000+ verified freelancers</span></div>
+    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">Free to start, no card needed</span></div>
+  </div>
+</div>
+
+<!-- ── HOW IT WORKS ── -->
+<section class="section" id="how-it-works">
+  <div class="container">
+    <div class="section-header">
+      <span class="badge badge-violet">How it works</span>
+      <h2>Three systems, one platform</h2>
+      <p>Whether you have money or not, Grit&Gigs has a path for you — from your first skill trade to your first paycheck.</p>
+    </div>
+    <div class="how-grid">
+      <div class="how-card anim-fade-up">
+        <div class="how-card-video">
+          <video muted loop playsinline poster="https://images.unsplash.com/photo-1552664730-d307ca884978?w=500&q=70">
+            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4"/>
+          </video>
+          <div class="how-card-video-overlay"></div>
+          <div class="how-card-num">01</div>
+        </div>
+        <div class="how-card-body">
+          <div class="badge badge-violet" style="margin-bottom:10px;font-size:0.72rem;">Free &amp; zero money</div>
+          <div class="how-card-title">Skill Exchange</div>
+          <div class="how-card-desc">Post what you need and what you offer. Our AI matches you with the right person. Trade skills directly — no credits, no cash, no barriers.</div>
+        </div>
+      </div>
+      <div class="how-card anim-fade-up anim-delay-1">
+        <div class="how-card-video">
+          <video muted loop playsinline poster="https://images.unsplash.com/photo-1600880292089-90a7e086ee0c?w=500&q=70">
+            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4"/>
+          </video>
+          <div class="how-card-video-overlay"></div>
+          <div class="how-card-num">02</div>
+        </div>
+        <div class="how-card-body">
+          <div class="badge badge-gold" style="margin-bottom:10px;font-size:0.72rem;">Earn real money</div>
+          <div class="how-card-title">Freelance Marketplace</div>
+          <div class="how-card-desc">List your services, get hired, get paid. Use our secure wallet system. Withdraw directly to your bank account.</div>
+        </div>
+      </div>
+      <div class="how-card anim-fade-up anim-delay-2" style="position:relative;">
+        <div class="how-card-video">
+          <video muted loop playsinline poster="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=500&q=70">
+            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4"/>
+          </video>
+          <div class="how-card-video-overlay"></div>
+          <div class="how-card-num">03</div>
+        </div>
+        <div class="how-card-body">
+          <div class="badge badge-coming" style="margin-bottom:10px;font-size:0.72rem;">Coming soon</div>
+          <div class="how-card-title">MicroEquity Investment</div>
+          <div class="how-card-desc">Invest from ₹10,000 in verified local businesses and earn quarterly dividends. Build long-term wealth with businesses you know and trust.</div>
+        </div>
+        <div class="coming-soon-overlay">
+          <div style="text-align:center;">
+            <span class="badge badge-coming" style="font-size:0.85rem;padding:8px 20px;">Coming Soon</span>
+            <div style="margin-top:10px;font-size:0.82rem;color:var(--text-muted);">Launching Q3 2026</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SYSTEMS DEEP DIVE ── -->
+<section class="section" style="background:white;" id="systems">
+  <div class="container">
+    <div class="section-header" style="text-align:left;max-width:none;margin-bottom:36px;">
+      <span class="badge badge-violet">Platform features</span>
+      <h2 style="margin-top:10px;">Everything you need to grow</h2>
+    </div>
+    <div class="systems-tabs" id="sysTabs">
+      <button class="sys-tab active" data-tab="panel-barter">Skill Exchange</button>
+      <button class="sys-tab" data-tab="panel-freelance">Freelance</button>
+      <button class="sys-tab" data-tab="panel-invest" style="opacity:0.5;cursor:default;" disabled>Invest (Soon)</button>
+    </div>
+
+    <!-- Barter Panel -->
+    <div class="sys-panel active" id="panel-barter">
+      <div class="sys-content">
+        <h2>Trade skills, not money</h2>
+        <p>No bank account needed. No credit card. No subscription fee. Just two people who need what the other has. It's the world's oldest economy — reimagined for 2026.</p>
+        <div class="sys-steps">
+          <div class="sys-step">
+            <div class="sys-step-dot">1</div>
+            <div class="sys-step-text"><strong>Post your exchange.</strong> Tell us what skill you're offering and what you need in return.</div>
+          </div>
+          <div class="sys-step">
+            <div class="sys-step-dot">2</div>
+            <div class="sys-step-text"><strong>Get AI-matched.</strong> Our algorithm finds the best complementary match based on skills, location, and availability.</div>
+          </div>
+          <div class="sys-step">
+            <div class="sys-step-dot">3</div>
+            <div class="sys-step-text"><strong>Chat, agree, deliver.</strong> Discuss terms, complete the work, and both parties confirm. Build your reputation with every trade.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="localStorage.getItem('se_token')?location.href='dashboard.html?tab=post-exchange':openModal('barterModal')">Post an exchange</button>
+          <a href="#barter" class="btn btn-secondary">Browse matches</a>
+        </div>
+      </div>
+      <div class="sys-visual">
+        <div class="sys-visual-video">
+          <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=640&q=80" alt="Team collaboration" style="width:100%;height:100%;object-fit:cover;"/>
+        </div>
+        <div class="sys-visual-footer">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="font-weight:600;font-size:0.9rem;color:var(--ink);">9,400+ exchanges completed</div>
+              <div style="font-size:0.8rem;color:var(--text-muted);">Zero fees. Pure skill trade.</div>
+            </div>
+            <div class="badge badge-violet">Free forever</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Freelance Panel -->
+    <div class="sys-panel" id="panel-freelance">
+      <div class="sys-content">
+        <h2>Your skills are worth real money</h2>
+        <p>List your services, get discovered by thousands of buyers, and get paid securely. Your balance is always displayed in real ₹.</p>
+        <div class="sys-steps">
+          <div class="sys-step">
+            <div class="sys-step-dot">1</div>
+            <div class="sys-step-text"><strong>Create your service.</strong> Set your packages, prices, and delivery time. Takes under 5 minutes.</div>
+          </div>
+          <div class="sys-step">
+            <div class="sys-step-dot">2</div>
+            <div class="sys-step-text"><strong>Get hired.</strong> Buyers pay into escrow. You only start working after payment is secured.</div>
+          </div>
+          <div class="sys-step">
+            <div class="sys-step-dot">3</div>
+            <div class="sys-step-text"><strong>Deliver and withdraw.</strong> Complete the work, get paid, and withdraw to your bank in 3–5 days.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="localStorage.getItem('se_token')?location.href='dashboard.html':openModal('signupModal')">Start selling</button>
+          <a href="#freelance" class="btn btn-secondary">Browse services</a>
+        </div>
+      </div>
+      <div class="sys-visual">
+        <div class="sys-visual-video">
+          <img src="https://images.unsplash.com/photo-1551434678-e076c223a692?w=640&q=80" alt="Working on laptop" style="width:100%;height:100%;object-fit:cover;"/>
+        </div>
+        <div class="sys-visual-footer">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="font-weight:600;font-size:0.9rem;color:var(--ink);">&#8377;4 Crore+ paid to freelancers</div>
+              <div style="font-size:0.8rem;color:var(--text-muted);">10% platform fee. 90% yours.</div>
+            </div>
+            <div class="badge badge-gold">Secure escrow</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── BARTER SECTION ── -->
+<section class="section" id="barter">
+  <div class="container">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:40px;flex-wrap:wrap;gap:16px;">
+      <div>
+        <span class="badge badge-violet" style="margin-bottom:12px;">Skill Exchange</span>
+        <h2 style="margin:0;">Live exchange requests</h2>
+        <p style="margin-top:8px;">These people are looking for someone exactly like you.</p>
+      </div>
+      <button class="btn btn-primary" onclick="localStorage.getItem('se_token')?location.href='dashboard.html?tab=post-exchange':openModal('barterModal')">Post your exchange</button>
+    </div>
+
+    <div class="barter-grid"></div>
+  </div>
+</section>
+
+<!-- ── FREELANCE SECTION ── -->
+<section class="section" style="background:white;" id="freelance">
+  <div class="container">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:16px;">
+      <div>
+        <span class="badge badge-gold" style="margin-bottom:12px;">Freelance Marketplace</span>
+        <h2 style="margin:0;">Hire a skilled professional</h2>
+        <p style="margin-top:8px;">Browse verified services from talented Indian professionals.</p>
+      </div>
+      <button class="btn btn-primary" onclick="localStorage.getItem('se_token')?location.href='dashboard.html':openModal('signupModal')">Sell your skills</button>
+    </div>
+
+    <!-- Category pills -->
+    <div class="categories-scroll">
+      <div class="cat-pill active">All</div>
+      <div class="cat-pill">Design &amp; Creative</div>
+      <div class="cat-pill">Development</div>
+      <div class="cat-pill">Writing &amp; Content</div>
+      <div class="cat-pill">Digital Marketing</div>
+      <div class="cat-pill">Video &amp; Animation</div>
+      <div class="cat-pill">Business</div>
+      <div class="cat-pill">Music &amp; Audio</div>
+      <div class="cat-pill">Data &amp; Analytics</div>
+      <div class="cat-pill">Education</div>
+    </div>
+
+    <!-- Search bar -->
+    <div style="margin-bottom:36px;">
+      <div class="search-bar" style="max-width:560px;">
+        <input type="text" placeholder="Search for any service — logo design, video editing, copywriting..."/>
+        <button type="button">Search</button>
+      </div>
+    </div>
+
+    <div class="services-grid">
+      <!-- Service 1 -->
+      <div class="service-card" data-category="Design &amp; Creative">
+        <div class="service-card-img">
+          <img src="https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&q=70" alt="Logo design"/>
+        </div>
+        <div class="service-card-body">
+          <div class="service-card-seller">
+            <div class="avatar-placeholder avatar-v" style="width:24px;height:24px;font-size:10px;">PK</div>
+            <span class="service-card-seller-name">Priya K.</span>
+            <span class="badge badge-violet" style="font-size:0.68rem;padding:2px 7px;">Top Rated</span>
+          </div>
+          <div class="service-card-title">I will design a modern professional logo with unlimited revisions</div>
+          <div class="service-card-footer">
+            <div class="service-card-rating">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="#F59E0B"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              4.9 <span style="color:var(--text-muted);font-weight:400;">(142)</span>
+            </div>
+            <div class="service-card-price">From &#8377;1,500</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Service 2 -->
+      <div class="service-card" data-category="Development">
+        <div class="service-card-img">
+          <img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&q=70" alt="Web development"/>
+        </div>
+        <div class="service-card-body">
+          <div class="service-card-seller">
+            <div class="avatar-placeholder avatar-g" style="width:24px;height:24px;font-size:10px;">RV</div>
+            <span class="service-card-seller-name">Ravi V.</span>
+            <span class="badge badge-gold" style="font-size:0.68rem;padding:2px 7px;">Level 2</span>
+          </div>
+          <div class="service-card-title">I will build a full-stack React web application with clean code</div>
+          <div class="service-card-footer">
+            <div class="service-card-rating">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="#F59E0B"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              4.8 <span style="color:var(--text-muted);font-weight:400;">(88)</span>
+            </div>
+            <div class="service-card-price">From &#8377;5,000</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Service 3 -->
+      <div class="service-card" data-category="Video &amp; Animation">
+        <div class="service-card-img">
+          <img src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&q=70" alt="Video editing"/>
+        </div>
+        <div class="service-card-body">
+          <div class="service-card-seller">
+            <div class="avatar-placeholder avatar-a" style="width:24px;height:24px;font-size:10px;">KS</div>
+            <span class="service-card-seller-name">Kiran S.</span>
+            <span class="badge badge-surface" style="font-size:0.68rem;padding:2px 7px;">Level 1</span>
+          </div>
+          <div class="service-card-title">I will edit your YouTube or Instagram reels with professional motion graphics</div>
+          <div class="service-card-footer">
+            <div class="service-card-rating">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="#F59E0B"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              4.7 <span style="color:var(--text-muted);font-weight:400;">(56)</span>
+            </div>
+            <div class="service-card-price">From &#8377;800</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Service 4 -->
+      <div class="service-card" data-category="Writing &amp; Content">
+        <div class="service-card-img">
+          <img src="https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?w=400&q=70" alt="SEO writing"/>
+        </div>
+        <div class="service-card-body">
+          <div class="service-card-seller">
+            <div class="avatar-placeholder avatar-v" style="width:24px;height:24px;font-size:10px;background:#FCE8F0;color:#A0205A;">MD</div>
+            <span class="service-card-seller-name">Meera D.</span>
+            <span class="badge badge-violet" style="font-size:0.68rem;padding:2px 7px;">Top Rated</span>
+          </div>
+          <div class="service-card-title">I will write SEO-optimised blog posts and articles that rank on Google</div>
+          <div class="service-card-footer">
+            <div class="service-card-rating">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="#F59E0B"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              5.0 <span style="color:var(--text-muted);font-weight:400;">(203)</span>
+            </div>
+            <div class="service-card-price">From &#8377;1,200</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-top:40px;">
+      <button class="btn btn-secondary" onclick="localStorage.getItem('se_token')?location.href='freelance.html':openModal('signupModal')">
+        View all services
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ── DASHBOARD PREVIEW ── -->
+<section class="section" id="about">
+  <div class="container">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;">
+      <div>
+        <span class="badge badge-violet" style="margin-bottom:16px;">Your command centre</span>
+        <h2 style="margin-bottom:16px;">One dashboard for everything</h2>
+        <p style="margin-bottom:24px;line-height:1.75;">Track your exchanges, manage orders, watch your earnings grow — all in a clean, fast dashboard designed to help you move quickly.</p>
+        <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:32px;">
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--violet-light);color:var(--violet);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <div style="font-size:0.92rem;color:var(--text-secondary);"><strong style="color:var(--ink);">Real-time notifications</strong> for every match, order, payment, and message.</div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--violet-light);color:var(--violet);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <div style="font-size:0.92rem;color:var(--text-secondary);"><strong style="color:var(--ink);">Earnings analytics</strong> with charts showing your income over time.</div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--violet-light);color:var(--violet);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <div style="font-size:0.92rem;color:var(--text-secondary);"><strong style="color:var(--ink);">Separate wallets</strong> for freelance earnings and future investment funds.</div>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="localStorage.getItem('se_token')?location.href='dashboard.html':openModal('signupModal')">Open your dashboard</button>
+      </div>
+      <div class="dashboard-preview">
+        <div class="db-topbar">
+          <div class="db-dot" style="background:#FF6B6B;"></div>
+          <div class="db-dot" style="background:#FFD93D;"></div>
+          <div class="db-dot" style="background:#6BCB77;"></div>
+          <span style="font-size:0.72rem;color:rgba(255,255,255,0.3);margin-left:12px;">Grit&Gigs Dashboard</span>
+        </div>
+        <div class="db-body">
+          <div class="db-sidebar">
+            <div class="db-nav-item active">Overview</div>
+            <div class="db-nav-item">Exchanges</div>
+            <div class="db-nav-item">Orders</div>
+            <div class="db-nav-item">Wallet</div>
+            <div class="db-nav-item">Messages</div>
+            <div class="db-nav-item" style="margin-top:auto;opacity:0.4;font-size:0.75rem;">MicroEquity <span style="font-size:0.65rem;">(Soon)</span></div>
+          </div>
+          <div class="db-main">
+            <div class="db-stats">
+              <div class="db-stat-card">
+                <div class="db-stat-label">Balance</div>
+                <div class="db-stat-val">₹38,000</div>
+                <div class="db-stat-change">+45 this week</div>
+              </div>
+              <div class="db-stat-card">
+                <div class="db-stat-label">Exchanges</div>
+                <div class="db-stat-val">12</div>
+                <div class="db-stat-change">3 active</div>
+              </div>
+              <div class="db-stat-card">
+                <div class="db-stat-label">Earned (&#8377;)</div>
+                <div class="db-stat-val">38K</div>
+                <div class="db-stat-change">This month</div>
+              </div>
+            </div>
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:var(--radius-md);padding:16px;">
+              <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.05em;">Recent activity</div>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:0.82rem;color:rgba(255,255,255,0.7);">Order #1082 completed</span>
+                  <span style="font-size:0.78rem;color:#1A7A5E;font-weight:600;">+₹9,000</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:0.82rem;color:rgba(255,255,255,0.7);">New barter match</span>
+                  <span style="font-size:0.78rem;color:rgba(108,63,232,0.9);font-weight:600;">Pending</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:0.82rem;color:rgba(255,255,255,0.7);">Withdrawal processed</span>
+                  <span style="font-size:0.78rem;color:rgba(255,255,255,0.4);font-weight:500;">&#8377;9,000</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TESTIMONIALS ── -->
+<section class="section" style="background:white;">
+  <div class="container">
+    <div class="section-header">
+      <span class="badge badge-violet">Stories</span>
+      <h2>Real people. Real results.</h2>
+      <p>From students to senior professionals, Grit&Gigs works for everyone.</p>
+    </div>
+    <div class="testimonials-grid">
+      <div class="testimonial-card anim-fade-up">
+        <div class="testimonial-quote">"</div>
+        <p class="testimonial-text">I was a student with zero money but strong React skills. I traded web dev help for a complete brand identity. Saved at least ₹40,000 and built an amazing portfolio.</p>
+        <div class="testimonial-user">
+          <div class="avatar-placeholder avatar-v">AK</div>
+          <div>
+            <div class="testimonial-name">Arjun K.</div>
+            <div class="testimonial-role">CS Student, Chennai</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card anim-fade-up anim-delay-1">
+        <div class="testimonial-quote">"</div>
+        <p class="testimonial-text">I quit my agency job and went full freelance on Grit&Gigs. Within 3 months I was earning more than my salary and working from home.</p>
+        <div class="testimonial-user">
+          <div class="avatar-placeholder avatar-g">SR</div>
+          <div>
+            <div class="testimonial-name">Sunita R.</div>
+            <div class="testimonial-role">Freelance Designer, Pune</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card anim-fade-up anim-delay-2">
+        <div class="testimonial-quote">"</div>
+        <p class="testimonial-text">The platform is incredibly clean. I hired a video editor, a copywriter, and a developer in the same week. The escrow system makes me feel completely safe.</p>
+        <div class="testimonial-user">
+          <div class="avatar-placeholder avatar-a">VN</div>
+          <div>
+            <div class="testimonial-name">Varun N.</div>
+            <div class="testimonial-role">Startup Founder, Bangalore</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<section class="section-sm">
+  <div class="cta-section">
+    <div class="cta-bg"></div>
+    <div class="cta-inner">
+      <span class="badge badge-coming" style="margin-bottom:20px;">Join 28,000+ members</span>
+      <h2>Start exchanging today.<br/>It's completely free.</h2>
+      <p>No credit card. No hidden fees. Just sign up and start trading your skills for things you actually need.</p>
+      <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-lg" id="ctaMainBtn" onclick="localStorage.getItem('se_token')?location.href='dashboard.html':openModal('signupModal')">
+          Create free account
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+        <a href="#how-it-works" class="btn btn-lg" style="background:rgba(255,255,255,0.12);color:white;border:1.5px solid rgba(255,255,255,0.25);">Learn more</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+     <div class="nav-logo">
+
+  <div class="nav-logo-mark">
+    <span class="logo-g-black">G</span>
+    <span class="logo-g-blue">&amp;G</span>
+  </div>
+
+  <div class="nav-logo-text">
+    <span class="logo-text-black" style="color:black;">Grit</span>
+    <span class="logo-text-blue">&amp;Gigs</span>
+  </div>
+
+</div>
+      <p>India's first platform that combines skill barter, freelancing, and business investment — built to empower every Indian with a skill.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Platform</h4>
+      <a href="#barter">Skill Exchange</a>
+      <a href="#freelance">Freelance</a>
+      <a href="#">MicroEquity <span style="font-size:0.72rem;opacity:0.5;">(soon)</span></a>
+      <a href="#">Pricing</a>
+    </div>
+    <div class="footer-col">
+      <h4>Company</h4>
+      <a href="#">About us</a>
+      <a href="#">Blog</a>
+      <a href="#">Careers</a>
+      <a href="#">Press</a>
+    </div>
+    <div class="footer-col">
+      <h4>Legal</h4>
+      <a href="#">Terms of service</a>
+      <a href="#">Privacy policy</a>
+      <a href="#">Cookie policy</a>
+      <a href="#">Refund policy</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 Grit&Gigs Technologies Pvt. Ltd. All rights reserved.</p>
+    <p>Built with love in Chennai, India</p>
+  </div>
+</footer>
+
+<!-- ── MODALS ── -->
+
+<!-- Signup Modal -->
+<div class="modal-overlay" id="signupModal">
+  <div class="modal">
+
+    <button class="modal-close" onclick="closeModal('signupModal')">&times;</button>
+
+    <div class="modal-logo">
+      <div class="nav-logo-mark">
+  <span style="color:#0A0A0F;">G</span><span style="color:var(--violet);">&amp;G</span>
+</div>
+      <span class="nav-logo-text">
+        Grit<span style="color:var(--violet);">&amp;Gigs</span>
+      </span>
+    </div>
+    <h2>Create your account</h2>
+    <p class="modal-sub">Free forever. No credit card needed.</p>
+    <button class="btn-google">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Continue with Google
+    </button>
+    <div class="divider-or">or sign up with email</div>
+    <form id="signupForm">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">First name</label>
+          <input class="form-input" type="text" placeholder="Arjun" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last name</label>
+          <input class="form-input" type="text" placeholder="Kumar" required/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email address</label>
+        <input class="form-input" type="email" placeholder="arjun@email.com" required/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" placeholder="Min. 8 characters" required/>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;">Create account</button>
+    </form>
+    <div id="signupOtpStep" style="display:none;">
+      <div style="text-align:center;padding:8px 0 16px;">
+        <div style="font-size:13px;margin-bottom:4px;">✉️</div>
+        <div style="font-size:.9rem;font-weight:600;margin-bottom:2px;">Check your email</div>
+        <div style="font-size:.78rem;color:var(--muted);" id="otpEmailDisplay"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Enter verification code</label>
+        <input class="form-input" id="otpInput" type="text" inputmode="numeric" pattern="[0-9]{6}" placeholder="000000" maxlength="6" style="text-align:center;font-size:1.3rem;letter-spacing:6px;font-weight:700;"/>
+      </div>
+      <button class="btn btn-primary" id="verifyOtpBtn" style="width:100%;justify-content:center;padding:13px;">Verify & Sign In</button>
+      <div style="text-align:center;margin-top:10px;font-size:.75rem;color:var(--muted);">Didn't get it? <a id="resendOtpLink" style="color:var(--violet);cursor:pointer;">Resend</a></div>
+    </div>
+    <p class="modal-footer-text">Already have an account?<a onclick="closeModal('signupModal');openModal('loginModal')">Sign in</a></p>
+  </div>
+</div>
+
+<!-- Login Modal -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal">
+
+    <button class="modal-close" onclick="closeModal('loginModal')">&times;</button>
+
+    <div class="modal-logo">
+      <div class="nav-logo-mark">
+  <span style="color:#0A0A0F;">G</span><span style="color:var(--violet);">&amp;G</span>
+</div>
+      <span class="nav-logo-text">
+        Grit<span style="color:var(--violet);">&amp;Gigs</span>
+      </span>
+    </div>
+    <h2>Welcome back</h2>
+    <p class="modal-sub">Sign in to your account.</p>
+    <button class="btn-google">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Continue with Google
+    </button>
+    <div class="divider-or">or sign in with email</div>
+    <form id="loginForm">
+      <div class="form-group">
+        <label class="form-label">Email address</label>
+        <input class="form-input" type="email" placeholder="arjun@email.com" required/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" placeholder="Your password" required/>
+      </div>
+      <div style="text-align:right;margin-top:-10px;margin-bottom:18px;">
+        <a style="font-size:0.83rem;color:var(--violet);cursor:pointer;" onclick="alert('Password reset is not yet implemented. Please contact support.');">Forgot password?</a>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;">Sign in</button>
+    </form>
+    <p class="modal-footer-text">New to Grit&Gigs? <a onclick="closeModal('loginModal');openModal('signupModal')">Create account</a></p>
+  </div>
+</div>
+
+<!-- Barter Post Modal -->
+<div class="modal-overlay" id="barterModal">
+  <div class="modal" style="max-width:500px;">
+    <button class="modal-close" onclick="closeModal('barterModal')">&times;</button>
+    <h2 style="margin-bottom:6px;">Post an exchange</h2>
+    <p class="modal-sub">Tell us what you need and what you're offering. We'll find your match.</p>
+    <form id="barterForm">
+      <div class="form-group">
+        <label class="form-label">I am offering (your skill)</label>
+        <input class="form-input" type="text" placeholder="e.g. React development, Logo design, Copywriting" required/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">I need (what you want in return)</label>
+        <input class="form-input" type="text" placeholder="e.g. SEO content, Video editing, Mobile app" required/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-input" rows="3" placeholder="Describe what you're looking for and what you'll deliver in exchange..." style="resize:vertical;"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Timeline</label>
+          <select class="form-input">
+            <option>1–3 days</option>
+            <option>1 week</option>
+            <option>2 weeks</option>
+            <option>1 month</option>
+            <option>Flexible</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Your city</label>
+          <input class="form-input" type="text" placeholder="Chennai"/>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;">Post exchange request</button>
+    </form>
+  </div>
+</div>
+
+<!-- Service Detail Modal -->
+<div class="modal-overlay" id="serviceModal">
+  <div class="modal" style="max-width:580px;max-height:90vh;overflow-y:auto;position:relative;">
+    <!-- filled dynamically by JS -->
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<script src="js/main.js"></script>
+<script>
+// Category filter patch: fetch all services once, then filter client-side on pill click.
+// The server ignores the ?category= param, so we must filter locally.
+(function() {
+  var _allServices = null; // cached after first fetch
+
+  function buildCard(s) {
+    var fn = (s.seller && s.seller.firstName) || '?';
+    var ln = (s.seller && s.seller.lastName) || '';
+    var initials = (fn[0] + (ln[0] || '?')).toUpperCase();
+    var pp = (s.seller && s.seller.profilePhoto) || '';
+    var ppEnc = encodeURIComponent(pp);
+    var img = (s.images && s.images[0]) || (typeof getDefaultImg === 'function' ? getDefaultImg(s.category) : '');
+    var price = (s.packages && s.packages[0] && s.packages[0].priceInr) || 0;
+    var cnt = s.orderCount || 0;
+    var lb = cnt > 200 ? 'Top Rated' : cnt > 50 ? 'Level 2' : cnt > 10 ? 'Level 1' : 'New';
+    var lc = lb === 'Top Rated' ? 'badge-violet' : lb === 'Level 2' ? 'badge-gold' : 'badge-surface';
+    var title = (s.title || '').replace(/'/g, "\\'");
+    var rating = s.ratingAvg ? s.ratingAvg.toFixed(1) : 'New';
+    var reviews = s.reviewCount || 0;
+    var sellerAv = pp ? '<img src="' + pp + '" style="width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;"/>' : '<div class="avatar-placeholder avatar-v" style="width:24px;height:24px;font-size:10px;">' + initials + '</div>';
+    return '<div class="service-card" onclick="openServiceModal(\'' + s.id + '\',\'' + title + '\',' + price + ',\'' + ppEnc + '\',\'' + fn + ' ' + ln + '\')">'
+      + '<div class="service-card-img"><img src="' + img + '" alt="' + s.title + '" loading="lazy"/></div>'
+      + '<div class="service-card-body">'
+      + '<div class="service-card-seller">'
+      + sellerAv
+      + '<span class="service-card-seller-name">' + fn + ' ' + ln + '</span>'
+      + '<span class="badge ' + lc + '" style="font-size:0.68rem;padding:2px 7px;">' + lb + '</span>'
+      + '</div>'
+      + '<div class="service-card-title">' + s.title + '</div>'
+      + '<div class="service-card-footer">'
+      + '<div class="service-card-rating"><svg width="12" height="12" viewBox="0 0 24 24" fill="#F59E0B"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>'
+      + rating + ' <span style="color:var(--text-muted);font-weight:400;">(' + reviews + ')</span></div>'
+      + '<div class="service-card-price">From &#8377;' + price.toLocaleString('en-IN') + '</div>'
+      + '</div></div></div>';
+  }
+
+  function applyFilter(category) {
+    var grid = document.querySelector('.services-grid');
+    if (!grid) return;
+
+    // Live data path (after first fetch)
+    if (_allServices !== null) {
+      var filtered = category
+        ? _allServices.filter(function(s) { return s.category === category; })
+        : _allServices.slice(0, 8);
+
+      if (filtered.length) {
+        grid.innerHTML = filtered.map(buildCard).join('');
+      } else if (category) {
+        // No services in this category → show empty state
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">No services in <strong>' + category + '</strong> yet. <a href="dashboard.html" style="color:var(--violet);font-weight:600;">Be the first to post one!</a></div>';
+      } else {
+        // "All" but no services at all
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">No services yet. <a href="dashboard.html" style="color:var(--violet);font-weight:600;">Be the first to post one!</a></div>';
+      }
+      return;
+    }
+
+    // No live data yet — fallback: show/hide static placeholder cards by data-category
+    grid.querySelectorAll('.service-card[data-category]').forEach(function(c) {
+      c.style.display = (!category || c.dataset.category === category) ? '' : 'none';
+    });
+  }
+
+  function onPillClick() {
+    var cat = this.textContent.trim();
+    var category = (cat === 'All') ? '' : cat;
+
+    if (_allServices !== null) {
+      // Already fetched — filter immediately
+      applyFilter(category);
+    } else {
+      // First click: fetch all services, cache, then filter
+      api('/services?limit=100').then(function(data) {
+        if (data && data.success && data.data.services && data.data.services.length) {
+          _allServices = data.data.services;
+        } else {
+          _allServices = []; // mark as fetched (empty)
+        }
+        applyFilter(category);
+      }).catch(function() {
+        _allServices = [];
+        applyFilter(category);
+      });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // Run after main.js DOMContentLoaded handlers (200ms gap)
+    setTimeout(function() {
+      document.querySelectorAll('.cat-pill').forEach(function(pill) {
+        pill.addEventListener('click', onPillClick);
+      });
+    }, 200);
+  });
+})();
+</script>
+</body>
+</html>

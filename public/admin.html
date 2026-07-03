@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Admin Panel — Grit&amp;Gigs</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0A0A0F;--ink2:#1C1C2E;--bg:#F4F3EF;--bg2:#ECEAE4;
+  --white:#fff;--violet:#6C3FE8;--vd:#4A25B8;--vl:#EDE8FC;
+  --gold:#E8A020;--gl:#FEF3DC;--ok:#1A7A5E;--okl:#E1F5EE;
+  --err:#C0392B;--errl:#FCEBEB;--muted:#6B6880;--sec:#3D3A50;
+  --bd:rgba(10,10,15,0.08);--bd2:rgba(10,10,15,0.14);
+  --sh:0 1px 4px rgba(10,10,15,0.06);--shm:0 4px 16px rgba(10,10,15,0.09);
+  --shl:0 12px 40px rgba(10,10,15,0.12);
+  --r:8px;--rm:12px;--rl:18px;--rxl:24px;--fw:248px;
+  font-family:'DM Sans',sans-serif;
+}
+html,body{height:100%;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;}
+h1,h2,h3,h4{font-family:'Syne',sans-serif;letter-spacing:-.02em;}
+a{text-decoration:none;color:inherit;}
+#loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0A0A0F 0%,#1C1C2E 100%);position:relative;overflow:hidden;}
+#loginScreen::before{content:'';position:absolute;width:400px;height:400px;border-radius:50%;background:rgba(108,63,232,.15);top:-100px;right:-100px;}
+#loginScreen::after{content:'';position:absolute;width:300px;height:300px;border-radius:50%;background:rgba(232,160,32,.06);bottom:-80px;left:-80px;}
+.login-card{background:var(--white);border-radius:var(--rxl);padding:40px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);position:relative;z-index:1;margin:16px;}
+.login-logo{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.login-logo .lm{width:34px;height:34px;border-radius:8px;background:var(--ink2);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:12px;color:#fff;}
+.login-logo .lt{font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;color:var(--ink);}
+.login-title{font-size:1.4rem;margin-bottom:2px;}
+.login-sub{font-size:.8rem;color:var(--muted);margin-bottom:22px;line-height:1.5;}
+.login-divider{height:1px;background:var(--bd);margin:18px 0;}
+.fg{margin-bottom:16px;}
+.fl{display:block;font-size:.76rem;font-weight:600;color:var(--ink);margin-bottom:4px;}
+.fi{width:100%;padding:10px 12px;border-radius:var(--r);border:1.5px solid var(--bd2);font-family:'DM Sans',sans-serif;font-size:.85rem;color:var(--ink);background:var(--bg);transition:border-color .2s,box-shadow .2s;outline:none;}
+.fi:focus{border-color:var(--violet);background:var(--white);box-shadow:0 0 0 3px rgba(108,63,232,.1);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;border-radius:var(--r);font-weight:600;font-size:.85rem;cursor:pointer;border:none;transition:all .2s;white-space:nowrap;font-family:'DM Sans',sans-serif;}
+.btn-full{width:100%;}
+.bp{background:var(--violet);color:#fff;box-shadow:0 3px 12px rgba(108,63,232,.25);}
+.bp:hover{background:var(--vd);transform:translateY(-1px);box-shadow:0 6px 20px rgba(108,63,232,.3);}
+.bs{background:var(--white);color:var(--ink);border:1px solid var(--bd2);}
+.bs:hover{border-color:var(--violet);color:var(--violet);}
+.bg2{background:transparent;color:var(--violet);padding:6px 10px;}
+.bg2:hover{background:var(--vl);}
+.btn-sm{padding:6px 14px;font-size:.78rem;}
+.btn-xs{padding:4px 10px;font-size:.7rem;}
+.error{font-size:.78rem;color:var(--err);margin-top:8px;display:none;}
+#adminApp{display:none;}
+.app{display:flex;min-height:100vh;}
+
+/* ── SIDEBAR ── */
+.sb{width:var(--fw);flex-shrink:0;background:var(--ink2);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;overflow-y:auto;}
+.sb-logo{padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:9px;}
+.lm2{width:auto;min-width:32px;padding:0 6px;height:32px;border-radius:8px;background:white;border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:12px;color:#fff;}
+.lt2{font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;color:#fff;}
+.sb-nav{flex:1;padding:10px 8px;overflow-y:auto;}
+.ns{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,0.2);padding:10px 10px 4px;}
+.ni{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:var(--r);font-size:.82rem;font-weight:500;color:rgba(255,255,255,0.5);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left;margin-bottom:1px;text-decoration:none;}
+.ni svg{flex-shrink:0;opacity:.55;}
+.ni:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.85);}
+.ni.active{background:rgba(108,63,232,.2);color:#fff;}
+.ni.active svg{opacity:1;}
+.ni .ni-badge{font-size:.58rem;margin-left:auto;background:var(--err);color:#fff;padding:2px 5px;border-radius:100px;font-weight:700;}
+.ni.danger{color:rgba(255,100,100,.65);}
+.ni.danger:hover{background:rgba(255,50,50,.1);color:#ff6b6b;}
+.sb-foot{padding:10px 8px;border-top:1px solid rgba(255,255,255,.06);}
+.uc{display:flex;align-items:center;gap:8px;padding:8px 10px;}
+.av{width:28px;height:28px;border-radius:50%;background:var(--vl);color:var(--violet);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:9px;font-weight:700;flex-shrink:0;}
+.un{font-size:.78rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* ── TOPBAR ── */
+.topbar{position:sticky;top:0;z-index:50;background:rgba(244,243,239,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--bd);padding:0 28px;height:54px;display:flex;align-items:center;justify-content:space-between;}
+.topbar-title{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;}
+.main{margin-left:var(--fw);flex:1;min-height:100vh;display:flex;flex-direction:column;}
+.pb{flex:1;padding:22px 26px;}
+
+/* ── NOTIFICATION BANNER ── */
+#notifBanner{position:fixed;top:0;left:0;right:0;z-index:9999;display:flex;flex-direction:column;gap:0;pointer-events:none;}
+.nb-item{display:flex;align-items:center;gap:12px;padding:14px 20px;background:var(--ink2);color:white;font-size:.84rem;line-height:1.4;border-bottom:1px solid rgba(255,255,255,0.1);transform:translateY(-100%);transition:transform .35s cubic-bezier(0.34,1.56,0.64,1);pointer-events:all;cursor:pointer;}
+.nb-item.show{transform:translateY(0);}
+.nb-item.ok{background:#1A7A5E;}
+.nb-item.err{background:#C0392B;}
+.nb-icon{font-size:18px;flex-shrink:0;}
+.nb-content{flex:1;}
+.nb-title{font-size:.85rem;font-weight:600;}
+
+/* ── BADGES ── */
+.bdg{display:inline-flex;align-items:center;padding:3px 8px;border-radius:100px;font-size:.66rem;font-weight:600;}
+.bdg-v{background:var(--vl);color:var(--violet);}
+.bdg-g{background:var(--gl);color:var(--gold);}
+.bdg-ok{background:var(--okl);color:var(--ok);}
+.bdg-err{background:var(--errl);color:var(--err);}
+.bdg-ink{background:rgba(10,10,15,.07);color:var(--sec);}
+.pill{font-size:.63rem;padding:3px 7px;border-radius:100px;font-weight:600;}
+.pa{background:var(--vl);color:var(--violet);}
+.pp{background:var(--gl);color:var(--gold);}
+.pd{background:var(--okl);color:var(--ok);}
+.perr{background:var(--errl);color:var(--err);}
+.pbanned{background:#1C1C2E;color:#fff;}
+
+/* ── CARDS ── */
+.card{background:var(--white);border-radius:var(--rl);border:1px solid var(--bd);padding:20px;transition:box-shadow .2s;}
+.card:hover{box-shadow:var(--sh);}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.card-title{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;color:var(--ink);}
+
+/* ── STAT GRID ── */
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.sc{background:var(--white);border-radius:var(--rl);padding:18px 20px;border:1px solid var(--bd);position:relative;overflow:hidden;transition:box-shadow .2s;cursor:pointer;}
+.sc:hover{box-shadow:var(--shm);}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--violet),#A78BFA);border-radius:var(--rl) var(--rl) 0 0;}
+.sl{font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:9px;}
+.sv{font-family:'Syne',sans-serif;font-size:1.85rem;font-weight:800;color:var(--ink);line-height:1;}
+
+/* ── TABLES ── */
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{font-size:.62rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;padding:8px 10px;text-align:left;border-bottom:1px solid var(--bd);}
+.tbl td{font-size:.78rem;padding:8px 10px;border-bottom:1px solid var(--bd);color:var(--sec);vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:var(--bg);}
+.tdt{font-weight:500;color:var(--ink);}
+.tbl-wrap{background:var(--white);border-radius:var(--rl);border:1px solid var(--bd);overflow:hidden;}
+
+/* ── SEARCH ── */
+.search-wrap{position:relative;display:flex;align-items:center;max-width:400px;}
+.search-wrap svg{position:absolute;left:10px;color:var(--muted);pointer-events:none;}
+.search-wrap input{padding-left:34px;}
+
+/* ── USER DETAIL MODAL TABS ── */
+.user-header-card{background:linear-gradient(135deg,var(--ink2) 0%,#2D1F6E 100%);border-radius:var(--rl);padding:24px;margin-bottom:16px;position:relative;overflow:hidden;}
+.user-header-card::before{content:'';position:absolute;width:200px;height:200px;border-radius:50%;background:rgba(108,63,232,.2);top:-60px;right:-40px;}
+.user-header-card::after{content:'';position:absolute;width:100px;height:100px;border-radius:50%;background:rgba(232,160,32,.08);bottom:-30px;left:-20px;}
+.uhc-content{position:relative;z-index:1;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.uhc-av{width:48px;height:48px;border-radius:50%;background:var(--vl);color:var(--violet);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;flex-shrink:0;}
+.uhc-info{flex:1;min-width:0;}
+.uhc-name{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;color:#fff;}
+.uhc-email{font-size:.78rem;color:rgba(255,255,255,.5);margin-top:2px;}
+.uhc-badges{display:flex;gap:6px;flex-wrap:wrap;}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:2px solid var(--bd);padding-bottom:0;overflow-x:auto;flex-wrap:nowrap;}
+.tab{padding:8px 14px;border:none;background:none;font-family:'DM Sans',sans-serif;font-size:.76rem;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap;}
+.tab:hover{color:var(--ink);}
+.tab.active{color:var(--violet);border-bottom-color:var(--violet);}
+
+/* ── MODALS ── */
+.mo{position:fixed;inset:0;z-index:2000;background:rgba(10,10,15,.5);backdrop-filter:blur(8px);display:flex;align-items:flex-start;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .22s;overflow-y:auto;}
+.mo.open{opacity:1;pointer-events:all;}
+.md{background:var(--white);border-radius:var(--rxl);width:100%;max-width:800px;padding:28px;transform:translateY(20px);transition:transform .22s;position:relative;margin:auto;max-height:none;}
+.mo.open .md{transform:translateY(0);}
+.mc{position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:50%;background:var(--bg2);border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .15s;}
+.mc:hover{background:var(--errl);color:var(--err);}
+
+/* ── TAB CONTENT ── */
+.tp{display:none;}.tp.active{display:block;}
+.info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:10px 0;}
+.ig{background:var(--bg);border-radius:var(--r);padding:10px 12px;}
+.ig .igl{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:2px;}
+.ig .igv{font-size:.82rem;font-weight:600;color:var(--ink);word-break:break-all;}
+.stat-mini-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin:10px 0;}
+.smc{background:var(--white);border-radius:var(--r);padding:10px;text-align:center;border:1px solid var(--bd);}
+.smc .n{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:var(--ink);}
+.smc .l{font-size:.65rem;color:var(--muted);margin-top:2px;}
+
+/* ── MISC ── */
+.ps{display:none;}.ps.active{display:block;}
+.empty{text-align:center;padding:40px 16px;}
+.empty-icon{font-size:36px;margin-bottom:10px;opacity:.5;}
+.empty-title{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:600;color:var(--ink);margin-bottom:4px;}
+.empty-sub{font-size:.76rem;color:var(--muted);}
+.action-bar{display:flex;gap:6px;flex-wrap:wrap;}
+.pagination{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;}
+.filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.wallet-card-mini{background:linear-gradient(135deg,var(--ink2) 60%,#2D1F6E);border-radius:var(--rm);padding:16px;color:#fff;position:relative;overflow:hidden;}
+.wallet-card-mini::before{content:'';position:absolute;width:100px;height:100px;border-radius:50%;background:rgba(108,63,232,.25);top:-30px;right:-20px;}
+.wallet-card-mini .wlbl{font-size:.6rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;position:relative;z-index:1;}
+.wallet-card-mini .wval{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;position:relative;z-index:1;}
+
+@media(max-width:1100px){.sg{grid-template-columns:repeat(2,1fr);}.info-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:768px){.sb{transform:translateX(-100%);}.sb.open{transform:translateX(0);}.main{margin-left:0;}.pb{padding:14px;}.topbar{padding:0 14px;}.sg{grid-template-columns:1fr 1fr;}.info-grid{grid-template-columns:1fr;}.md{padding:18px;}}
+@media(max-width:480px){.sg{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div id="notifBanner"></div>
+
+<!-- ══════════ LOGIN ══════════ -->
+<div id="loginScreen">
+<div class="login-card">
+  <div class="login-logo">
+    <div class="lm"><span style="color:black;">G</span><span style="color:#C4B5FD;">&amp;G</span></div>
+    <span class="lt">Grit&amp;Gigs Admin</span>
+  </div>
+  <h1 class="login-title">Admin Sign In</h1>
+  <p class="login-sub">Authorized personnel only.<br/>Enter your credentials to access the admin panel.</p>
+  <div class="fg"><label class="fl">Email</label><input class="fi" id="loginEmail" type="email" value="amuthavananfl@gmail.com" readonly/></div>
+  <div class="fg"><label class="fl">Password</label><input class="fi" id="loginPass" type="password" placeholder="Enter your password" autofocus/></div>
+  <button class="btn bp btn-full" id="loginBtn" onclick="adminLogin()">Sign In</button>
+  <div class="error" id="loginError"></div>
+</div>
+</div>
+
+<!-- ══════════ ADMIN APP ══════════ -->
+<div id="adminApp">
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sb" id="sb">
+  <div class="sb-logo">
+    <div class="lm2"><span style="color:black;">G</span><span style="color:#C4B5FD;">&amp;G</span></div>
+    <span class="lt2">Admin Panel</span>
+  </div>
+  <nav class="sb-nav">
+    <div class="ns">Main</div>
+    <button class="ni active" data-p="overview">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Overview
+    </button>
+    <button class="ni" data-p="users">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Users
+    </button>
+    <button class="ni" data-p="reports">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Reports
+    </button>
+    <button class="ni" data-p="kyc">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      KYC Reviews
+    </button>
+    <button class="ni" data-p="messages">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Messages
+    </button>
+    <div class="ns">Session</div>
+    <button class="ni danger" onclick="adminLogout()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </button>
+  </nav>
+  <div class="sb-foot" style="border-top:1px solid var(--bd);padding:10px 14px;display:flex;align-items:center;gap:8px;">
+    <div id="adminAvatar" onclick="document.getElementById('adminPhotoInput').click()" title="Change profile photo" style="width:30px;height:30px;border-radius:50%;background:var(--white);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;gap:0;font-family:'Syne',sans-serif;font-weight:800;font-size:10px;color:#0A0A0F;flex-shrink:0;letter-spacing:-.3px;cursor:pointer;overflow:hidden;position:relative;"><span style="color:#0A0A0F;">G</span><span style="color:#7C3AED;">&amp;G</span></div>
+    <input type="file" id="adminPhotoInput" accept="image/*" style="display:none;" onchange="uploadAdminPhoto(this)"/>
+    <div style="min-width:0;">
+      <div style="font-weight:600;font-size:.78rem;">Grit&Gigs Admin</div>
+      <div style="font-size:.62rem;color:var(--muted);">Platform Administrator</div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-title">Admin Panel</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span style="font-size:.72rem;color:var(--muted);" id="sessionLabel">Admin</span>
+      <button class="btn bs btn-sm" onclick="adminLogout()">Sign Out</button>
+    </div>
+  </div>
+  <div class="pb">
+
+<!-- ═══ OVERVIEW ═══ -->
+<div class="ps active" id="ps-overview">
+  <div style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+    <div>
+      <h1 style="font-size:1.5rem;">Platform Overview</h1>
+      <p style="font-size:.82rem;color:var(--muted);margin-top:3px;">Real-time platform-wide statistics.</p>
+    </div>
+    <button class="btn bp btn-sm" onclick="loadStats()">⟳ Refresh</button>
+  </div>
+  <div class="sg" id="statsGrid">
+    <div class="sc"><div class="sl">Total Users</div><div class="sv">—</div></div>
+    <div class="sc"><div class="sl">Services</div><div class="sv">—</div></div>
+    <div class="sc"><div class="sl">Projects</div><div class="sv">—</div></div>
+    <div class="sc"><div class="sl">Barter Requests</div><div class="sv">—</div></div>
+    <div class="sc"><div class="sl">Orders</div><div class="sv">—</div></div>
+    <div class="sc"><div class="sl">Disputes</div><div class="sv">—</div></div>
+    <div class="sc"><div class="sl">KYC Pending</div><div class="sv">—</div></div>
+  </div>
+</div>
+
+<!-- ═══ USERS ═══ -->
+<div class="ps" id="ps-users">
+  <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+    <h1 style="font-size:1.2rem;">Manage Users</h1>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
+    <div class="search-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input class="fi" id="userSearch" placeholder="Search by GG ID, name or email..." oninput="debounceSearch()" style="max-width:320px;"/>
+    </div>
+    <button class="btn bs btn-sm" onclick="loadUsers(1)">⟳ Refresh</button>
+  </div>
+  <div id="usersList"></div>
+  <div class="pagination">
+    <button class="btn bs btn-sm" id="userPrevPage" onclick="loadUsers(currentUserPage-1)" disabled>← Prev</button>
+    <span style="font-size:.78rem;color:var(--muted)" id="userPageInfo">Page 1</span>
+    <button class="btn bs btn-sm" id="userNextPage" onclick="loadUsers(currentUserPage+1)">Next →</button>
+  </div>
+</div>
+
+<!-- ═══ REPORTS ═══ -->
+<div class="ps" id="ps-reports">
+  <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+    <div><h1 style="font-size:1.2rem;">Reports</h1><p style="font-size:.82rem;color:var(--muted);margin-top:3px;">User-submitted reports across the platform.</p></div>
+    <div class="filter-bar">
+      <select class="fi" id="reportStatusFilter" onchange="loadReports(1)" style="width:auto;padding:6px 10px;font-size:.76rem;">
+        <option value="">All Status</option>
+        <option value="OPEN">Open</option>
+        <option value="RESOLVED">Resolved</option>
+        <option value="DISMISSED">Dismissed</option>
+      </select>
+      <button class="btn bs btn-sm" onclick="loadReports(1)">⟳ Refresh</button>
+    </div>
+  </div>
+  <div id="reportsList"></div>
+  <div class="pagination">
+    <button class="btn bs btn-sm" id="reportPrevPage" onclick="loadReports(currentReportPage-1)" disabled>← Prev</button>
+    <span style="font-size:.78rem;color:var(--muted)" id="reportPageInfo">Page 1</span>
+    <button class="btn bs btn-sm" id="reportNextPage" onclick="loadReports(currentReportPage+1)">Next →</button>
+  </div>
+</div>
+
+<!-- ═══ KYC ═══ -->
+<div class="ps" id="ps-kyc">
+  <div style="margin-bottom:16px;">
+    <h1 style="font-size:1.2rem;">KYC Review Requests</h1>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:3px;">Identity verification submissions pending review.</p>
+  </div>
+  <div id="kycList"></div>
+</div>
+
+<!-- ═══ MESSAGES ═══ -->
+<div class="ps" id="ps-messages">
+  <div style="margin-bottom:16px;">
+    <h1 style="font-size:1.2rem;">Send Message</h1>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:3px;">Search for a user by GG ID or email and send them a direct message.</p>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
+    <div class="search-wrap" style="flex:1;max-width:400px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input class="fi" id="msgUserSearch" placeholder="Search by GG ID (G&G-...) or email..." oninput="debounceMsgUserSearch()" style="max-width:380px;"/>
+    </div>
+  </div>
+  <div id="msgUserResults" style="max-height:500px;overflow-y:auto;"></div>
+</div>
+
+  </div>
+</main>
+</div>
+</div>
+
+<!-- ══════════ USER DETAIL MODAL (FULL CONTROL) ══════════ -->
+<div class="mo" id="userModal">
+  <div class="md">
+    <button class="mc" onclick="closeModal('userModal')">✕</button>
+    <div id="userModalContent"></div>
+  </div>
+</div>
+
+<!-- ══════════ REPORT ACTION MODAL ══════════ -->
+<div class="mo" id="reportModal">
+  <div class="md" style="max-width:500px;">
+    <button class="mc" onclick="closeModal('reportModal')">✕</button>
+    <h2 class="mh">Report Details</h2>
+    <div id="reportModalBody"></div>
+  </div>
+</div>
+
+<!-- ══════════ CONFIRM MODAL ══════════ -->
+<div class="mo" id="confirmModal">
+  <div class="md" style="max-width:380px;">
+    <button class="mc" onclick="closeModal('confirmModal')">✕</button>
+    <h2 class="mh">Confirm Action</h2>
+    <p class="ms" id="confirmMsg">Are you sure?</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn bs" onclick="closeModal('confirmModal')">Cancel</button>
+      <button class="btn bp" id="confirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MESSAGE COMPOSER MODAL ══════════ -->
+<div class="mo" id="messageModal">
+  <div class="md" style="max-width:480px;">
+    <button class="mc" onclick="closeModal('messageModal')">✕</button>
+    <h2 class="mh">Send Message</h2>
+    <p class="ms" style="margin-bottom:12px;">To: <strong id="messageRecipientName">—</strong></p>
+    <div class="fg">
+      <textarea class="fi" id="messageComposerText" rows="3" placeholder="Type your message..." style="resize:vertical;"></textarea>
+    </div>
+    <div class="fg" style="margin-top:6px;">
+      <label class="fl">Attachments</label>
+      <input type="file" id="messageAttachments" multiple accept="image/*,.pdf,.doc,.docx,.txt" style="font-size:.78rem;">
+      <div id="attachmentPreview" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+      <button class="btn bs" onclick="closeModal('messageModal')">Cancel</button>
+      <button class="btn bp" id="sendMessageBtn" onclick="sendAdminMessage()">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+const KEY_STORE = 'admin_api_key';
+
+function esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function ggId(id) { return 'G&G-' + (id || '').replace(/-/g,'').slice(0,8).toUpperCase(); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+
+function badge(s) {
+  const m = { ACTIVE:'bdg-ok',PAUSED:'bdg-g',DELETED:'bdg-err',PENDING:'bdg-g',COMPLETED:'bdg-ok',CANCELLED:'bdg-err',OPEN:'bdg-v',IN_PROGRESS:'bdg-g','APPROVED':'bdg-ok','REJECTED':'bdg-err',PENDING_REVIEW:'bdg-g',RESOLVED:'bdg-ok',DISMISSED:'bdg-ink' };
+  return `<span class="bdg ${m[s] || 'bdg-ink'}">${esc(s)}</span>`;
+}
+function statusPill(s) {
+  if (s === false || s === 'BANNED') return '<span class="pill pbanned">Banned</span>';
+  if (s === true || s === 'ACTIVE') return '<span class="pill pd">Active</span>';
+  return badge(s);
+}
+
+function notify(msg, type = 'ok') {
+  const b = document.getElementById('notifBanner');
+  const el = document.createElement('div');
+  el.className = `nb-item ${type}`;
+  el.innerHTML = `<span class="nb-icon">${type === 'err' ? '✕' : '✓'}</span><span class="nb-content"><span class="nb-title">${esc(msg)}</span></span>`;
+  b.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 400); }, 3500);
+}
+
+let currentUserPage = 1, currentReportPage = 1;
+let userSearchTimeout = null;
+
+function getKey() { return localStorage.getItem(KEY_STORE); }
+
+async function api(path, opts = {}) {
+  const key = getKey();
+  if (!key) { showLogin(); throw new Error('Not authenticated'); }
+  const isUpload = opts.body instanceof FormData;
+  const headers = { 'X-Admin-Key': key, ...(isUpload ? {} : { 'Content-Type': 'application/json' }), ...opts.headers };
+  const res = await fetch(`${API}${path}`, { ...opts, headers });
+  if (res.status === 401) { localStorage.removeItem(KEY_STORE); showLogin(); throw new Error('Session expired'); }
+  const data = await res.json();
+  if (!data.success) throw new Error(data.message || 'Request failed');
+  return data;
+}
+
+function showLogin() { document.getElementById('loginScreen').style.cssText = 'display:flex;align-items:center;justify-content:center;min-height:100vh;'; document.getElementById('adminApp').style.display = 'none'; }
+function showApp() { document.getElementById('loginScreen').style.display = 'none'; document.getElementById('adminApp').style.display = 'block'; }
+
+// ─── LOGIN ───
+async function adminLogin() {
+  const email = document.getElementById('loginEmail').value;
+  const pass = document.getElementById('loginPass').value;
+  const btn = document.getElementById('loginBtn');
+  const err = document.getElementById('loginError');
+  err.style.display = 'none';
+  if (!pass) { err.textContent = 'Password required'; err.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Signing in...';
+  try {
+    const res = await fetch(`${API}/admin/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,password:pass}) });
+    const d = await res.json();
+    if (!d.success) { err.textContent = d.message||'Login failed'; err.style.display='block'; btn.disabled=false; btn.textContent='Sign In'; return; }
+    localStorage.setItem(KEY_STORE, d.data.adminKey);
+    showApp(); initAdmin();
+  } catch(e) { err.textContent=e.message; err.style.display='block'; btn.disabled=false; btn.textContent='Sign In'; }
+}
+document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') adminLogin(); });
+function adminLogout() { localStorage.removeItem(KEY_STORE); showLogin(); }
+
+async function loadAdminPhoto() {
+  try {
+    const key = localStorage.getItem(KEY_STORE);
+    if (!key) return;
+    const res = await fetch(`${API}/admin/users/b5ad53bd-6c50-490b-8c3a-d77200f99383`, { headers: { 'X-Admin-Key': key } });
+    const d = await res.json();
+    if (d.success && d.data?.profilePhoto) {
+      const el = document.getElementById('adminAvatar');
+      if (el) { el.style.backgroundImage='url('+d.data.profilePhoto+')'; el.style.backgroundSize='cover'; el.style.backgroundPosition='center'; el.textContent=''; }
+    }
+  } catch {}
+}
+async function uploadAdminPhoto(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const key = localStorage.getItem(KEY_STORE);
+  const fd = new FormData();
+  fd.append('photo', file);
+  try {
+    const res = await fetch(`${API}/admin/profile/photo`, { method: 'POST', headers: { 'X-Admin-Key': key }, body: fd });
+    const d = await res.json();
+    if (d.success) {
+      const el = document.getElementById('adminAvatar');
+      if (el) { el.style.backgroundImage='url('+d.data.profilePhoto+')'; el.style.backgroundSize='cover'; el.style.backgroundPosition='center'; el.textContent=''; }
+      showToast('Profile photo updated', 'ok');
+    } else {
+      showToast(d.message || 'Upload failed', 'err');
+    }
+  } catch(e) { showToast(e.message, 'err'); }
+  input.value = '';
+}
+
+// ─── SIDEBAR ───
+document.querySelectorAll('.ni[data-p]').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('.ps').forEach(p => p.classList.remove('active'));
+    const pg = document.getElementById('ps-'+el.dataset.p);
+    if (pg) { pg.classList.add('active'); loadPage(el.dataset.p); }
+  });
+});
+
+function loadPage(n) {
+  if (n==='overview') loadStats();
+  else if (n==='users') loadUsers(1);
+  else if (n==='reports') loadReports(1);
+  else if (n==='kyc') loadKyc();
+  else if (n==='messages') { /* nothing to load on init */ }
+}
+
+// ─── INIT ───
+async function initAdmin() {
+  if (!getKey()) { showLogin(); return; }
+  showApp(); loadStats(); loadAdminPhoto();
+}
+
+// ════════════════════════════════════════════
+//  STATS
+// ════════════════════════════════════════════
+async function loadStats() {
+  try {
+    const r = await api('/admin/stats');
+    const d = r.data;
+    const labels = ['users','services','projects','barters','orders','disputes','kycPending'];
+    const cards = document.querySelectorAll('#statsGrid .sc .sv');
+    labels.forEach((k,i) => { if (cards[i]) cards[i].textContent = d[k]??'—'; });
+  } catch(e) { console.error(e); }
+}
+
+// ════════════════════════════════════════════
+//  USERS
+// ════════════════════════════════════════════
+async function loadUsers(page) {
+  currentUserPage = page;
+  const q = document.getElementById('userSearch').value.trim();
+  try {
+    let data, total;
+    if (q) {
+      const r = await api(`/admin/users/search?q=${encodeURIComponent(q)}`);
+      data = r.data;
+      document.getElementById('userPrevPage').disabled = true;
+      document.getElementById('userNextPage').disabled = true;
+      document.getElementById('userPageInfo').textContent = `Search: ${data.length} results`;
+    } else {
+      const r = await api(`/admin/users?page=${page}&limit=20`);
+      data = r.data||r;
+      total = r.total??data.length;
+      document.getElementById('userPrevPage').disabled = page<=1;
+      document.getElementById('userNextPage').disabled = (page*20)>=total;
+      document.getElementById('userPageInfo').textContent = `Page ${page} of ${Math.ceil(total/20)} (${total} total)`;
+    }
+    renderUsers(data);
+  } catch(e) { console.error(e); }
+}
+
+function renderUsers(list) {
+  const el = document.getElementById('usersList');
+  if (!list.length) { el.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">No users found</div></div>`; return; }
+  el.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th></th><th>GG ID</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr></thead><tbody>${list.map(u => `<tr>
+    <td>${u.profilePhoto ? `<img src="${esc(u.profilePhoto)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;"/>` : `<div class="av" style="width:28px;height:28px;font-size:9px;flex-shrink:0;">${((u.firstName||'?')[0]).toUpperCase()}</div>`}</td>
+    <td class="tdt" style="font-size:.7rem">${esc(ggId(u.id))}</td>
+    <td class="tdt">${esc(u.firstName+' '+u.lastName)}</td>
+    <td>${esc(u.email)}</td>
+    <td>${badge(u.role)}</td>
+    <td>${u.isActive===false?'<span class="pill pbanned">Banned</span>':'<span class="pill pd">Active</span>'}</td>
+    <td style="font-size:.7rem">${u.createdAt?new Date(u.createdAt).toLocaleDateString():'—'}</td>
+    <td style="display:flex;gap:4px;"><button class="btn bp btn-xs" onclick="openUserDetail('${u.id}')">Full Control</button><button class="btn btn-xs" data-name="${esc(u.firstName+' '+u.lastName)}" style="border-color:var(--accent);color:var(--accent);" onclick="openMessageComposer('${u.id}',this.dataset.name)">Message</button></td>
+  </tr>`).join('')}</tbody></table></div>`;
+}
+
+function debounceSearch() { clearTimeout(userSearchTimeout); userSearchTimeout = setTimeout(()=>loadUsers(1), 300); }
+
+// ════════════════════════════════════════════
+//  USER DETAIL — FULL CONTROL MODAL
+// ════════════════════════════════════════════
+let _currentUserId = null;
+const _tabData = {};
+
+async function openUserDetail(id) {
+  _currentUserId = id;
+  try {
+    const r = await api(`/admin/users/${id}`);
+    const u = r.data;
+    _tabData.user = u;
+    renderUserHeader(u);
+    openModal('userModal');
+    switchUserTab('overview');
+  } catch(e) { notify(e.message, 'err'); }
+}
+
+function renderUserHeader(u) {
+  document.getElementById('userModalContent').innerHTML = `
+    <div class="user-header-card">
+      <div class="uhc-content">
+        <div class="uhc-av">${u.profilePhoto ? `<img src="${esc(u.profilePhoto)}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;"/>` : (u.firstName||'?')[0].toUpperCase()}</div>
+        <div class="uhc-info">
+          <div class="uhc-name">${esc(u.firstName+' '+u.lastName)}</div>
+          <div class="uhc-email">${esc(u.email)} · ${esc(ggId(u.id))}</div>
+        </div>
+        <div class="uhc-badges">
+          ${badge(u.role)}
+          ${u.isActive===false?'<span class="pill pbanned">Banned</span>':'<span class="pill pd">Active</span>'}
+          ${u.kycVerified?badge('APPROVED'):badge('PENDING_REVIEW')}
+          ${u.emailVerified?'<span class="bdg bdg-ok">Email ✓</span>':'<span class="bdg bdg-err">Email ✕</span>'}
+        </div>
+      </div>
+    </div>
+    <div class="tabs" id="userTabs">
+      <button class="tab active" data-utab="overview">Overview</button>
+      <button class="tab" data-utab="services">Services</button>
+      <button class="tab" data-utab="projects">Projects</button>
+      <button class="tab" data-utab="barters">Barters</button>
+      <button class="tab" data-utab="orders">Orders</button>
+      <button class="tab" data-utab="wallet">Wallet</button>
+      <button class="tab" data-utab="saved">Saved</button>
+      <button class="tab" data-utab="invites">Invites</button>
+      <button class="tab" data-utab="disputes">Disputes</button>
+      <button class="tab" data-utab="kyc">KYC</button>
+      <button class="tab" data-utab="reports">Reports</button>
+      <button class="tab" data-utab="actions">Actions</button>
+    </div>
+    <div id="userTabContent">
+      <div class="tp active" id="ut-overview"></div>
+      <div class="tp" id="ut-services"></div>
+      <div class="tp" id="ut-projects"></div>
+      <div class="tp" id="ut-barters"></div>
+      <div class="tp" id="ut-orders"></div>
+      <div class="tp" id="ut-wallet"></div>
+      <div class="tp" id="ut-saved"></div>
+      <div class="tp" id="ut-invites"></div>
+      <div class="tp" id="ut-disputes"></div>
+      <div class="tp" id="ut-kyc"></div>
+      <div class="tp" id="ut-reports"></div>
+      <div class="tp" id="ut-actions"></div>
+    </div>`;
+  // Bind tab clicks
+  document.querySelectorAll('[data-utab]').forEach(el => {
+    el.addEventListener('click', () => switchUserTab(el.dataset.utab));
+  });
+}
+
+function switchUserTab(name) {
+  document.querySelectorAll('[data-utab]').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tp').forEach(t => t.classList.remove('active'));
+  const tabBtn = document.querySelector(`[data-utab="${name}"]`);
+  if (tabBtn) tabBtn.classList.add('active');
+  const tp = document.getElementById(`ut-${name}`);
+  if (tp) { tp.classList.add('active'); renderUserTab(name); }
+}
+
+async function renderUserTab(name) {
+  const u = _tabData.user;
+  if (!u) return;
+  const el = document.getElementById(`ut-${name}`);
+  if (!el) return;
+  if (name === 'overview') renderOverviewTab(el, u);
+  else if (name === 'services') renderServicesTab(el, u.id);
+  else if (name === 'projects') renderProjectsTab(el, u.id);
+  else if (name === 'barters') renderBartersTab(el, u.id);
+  else if (name === 'orders') renderOrdersTab(el, u.id);
+  else if (name === 'wallet') renderWalletTab(el, u.id, u.wallet);
+  else if (name === 'saved') renderSavedTab(el, u.id);
+  else if (name === 'invites') renderInvitesTab(el, u.id);
+  else if (name === 'disputes') renderDisputesTab(el, u.id);
+  else if (name === 'kyc') renderKycTab(el, u.id, u.kyc);
+  else if (name === 'reports') renderUserReportsTab(el, u.id);
+  else if (name === 'actions') renderActionsTab(el, u);
+}
+
+function renderOverviewTab(el, u) {
+  el.innerHTML = `
+    <div class="info-grid">
+      <div class="ig"><div class="igl">GG ID</div><div class="igv">${esc(ggId(u.id))}</div></div>
+      <div class="ig"><div class="igl">Email</div><div class="igv">${esc(u.email)}</div></div>
+      <div class="ig"><div class="igl">Phone</div><div class="igv">${esc(u.phone||'—')}</div></div>
+      <div class="ig"><div class="igl">Role</div><div class="igv">${badge(u.role)}</div></div>
+      <div class="ig"><div class="igl">Status</div><div class="igv">${u.isActive===false?'<span class="pill pbanned">Banned</span>':'<span class="pill pd">Active</span>'}</div></div>
+      <div class="ig"><div class="igl">City / Country</div><div class="igv">${esc(u.city||'—')} / ${esc(u.country||'—')}</div></div>
+      <div class="ig"><div class="igl">Available</div><div class="igv">${u.isAvailable?'✓ Yes':'✕ No'}</div></div>
+      <div class="ig"><div class="igl">Reputation</div><div class="igv">${u.reputationScore??0}</div></div>
+      <div class="ig"><div class="igl">Last Login</div><div class="igv" style="font-size:.7rem">${u.lastLoginAt?new Date(u.lastLoginAt).toLocaleString():'—'}</div></div>
+      <div class="ig"><div class="igl">Joined</div><div class="igv" style="font-size:.7rem">${u.createdAt?new Date(u.createdAt).toLocaleString():'—'}</div></div>
+      <div class="ig"><div class="igl">Tagline</div><div class="igv">${esc(u.tagline||'—')}</div></div>
+      <div class="ig"><div class="igl">Bio</div><div class="igv" style="font-size:.76rem">${esc(u.bio||'—')}</div></div>
+    </div>
+    ${u.skillsOffered?.length ? `<div style="margin-top:8px;"><strong style="font-size:.76rem;">Skills Offered:</strong> <span style="font-size:.76rem;color:var(--sec)">${esc(u.skillsOffered.join(', '))}</span></div>` : ''}
+    ${u.skillsNeeded?.length ? `<div style="margin-top:4px;"><strong style="font-size:.76rem;">Skills Needed:</strong> <span style="font-size:.76rem;color:var(--sec)">${esc(u.skillsNeeded.join(', '))}</span></div>` : ''}
+    ${u.languages?.length ? `<div style="margin-top:4px;"><strong style="font-size:.76rem;">Languages:</strong> <span style="font-size:.76rem;color:var(--sec)">${esc(u.languages.join(', '))}</span></div>` : ''}
+    ${u.stats ? `<div class="stat-mini-grid">
+      <div class="smc"><div class="n">${u.stats.services}</div><div class="l">Services</div></div>
+      <div class="smc"><div class="n">${u.stats.projects}</div><div class="l">Projects</div></div>
+      <div class="smc"><div class="n">${u.stats.barters}</div><div class="l">Barters</div></div>
+      <div class="smc"><div class="n">${u.stats.orders}</div><div class="l">Orders</div></div>
+      <div class="smc"><div class="n">${u.stats.disputes}</div><div class="l">Disputes</div></div>
+    </div>` : ''}
+    ${u.subscription ? `<div style="margin-top:8px;" class="ig"><div class="igl">Subscription Plan</div><div class="igv">${esc(u.subscription.planId||'—')}</div></div>` : ''}
+  `;
+}
+
+async function fetchTabData(endpoint) {
+  try { const r = await api(endpoint); return r.data||r; } catch(e) { return []; }
+}
+
+function renderMiniTable(el, rows, cols) {
+  if (!rows||!rows.length) { el.innerHTML = `<div class="empty"><div class="empty-sub">No data</div></div>`; return; }
+  el.innerHTML = `<div class="tbl-wrap" style="max-height:400px;overflow-y:auto;"><table class="tbl"><thead><tr>${cols.map(c => `<th>${esc(c.label)}</th>`).join('')}</tr></thead><tbody>${rows.slice(0,50).map(r => `<tr>${cols.map(c => `<td>${c.val(r)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+
+function deleteService(btn, id, uid) { const title = btn.dataset.title||'this'; confirmAction('Delete service "'+title+'"?',async()=>{await api('/admin/services/'+id,{method:'DELETE'});notify('Service deleted');renderServicesTab(document.getElementById('ut-services'),uid);}); }
+async function renderServicesTab(el, uid) {
+  const rows = await fetchTabData(`/admin/users/${uid}/services`);
+  renderMiniTable(el, rows, [
+    {label:'Title', val:r => esc(r.title||'—')},
+    {label:'Category', val:r => esc(r.category||'—')},
+    {label:'Price', val:r => `₹${r.price||r.startingFrom||0}`},
+    {label:'Status', val:r => badge(r.status)},
+    {label:'Orders', val:r => r.orderCount??0},
+    {label:'Rating', val:r => r.ratingAvg?`★${r.ratingAvg}`:'—'},
+    {label:'', val:r => `<button class="btn bs btn-xs" data-title="${esc(r.title||'this')}" onclick="deleteService(this,'${r.id}','${uid}')">Delete</button>`},
+  ]);
+}
+
+async function renderProjectsTab(el, uid) {
+  const rows = await fetchTabData(`/admin/users/${uid}/projects`);
+  el.innerHTML = '';
+  if (!rows||!rows.length) { el.innerHTML = `<div class="empty"><div class="empty-sub">No projects</div></div>`; return; }
+  const wrap = document.createElement('div');
+  wrap.className = 'tbl-wrap';
+  wrap.style.maxHeight = '400px';
+  wrap.style.overflowY = 'auto';
+  wrap.innerHTML = `<table class="tbl"><thead><tr><th>Title</th><th>Budget</th><th>Status</th><th>Bids</th><th>Created</th><th></th></tr></thead><tbody>${rows.slice(0,50).map(p => `<tr>
+    <td class="tdt">${esc(p.title||'—')}</td>
+    <td>₹${p.budgetMin||0}–₹${p.budgetMax||0}</td>
+    <td>${badge(p.status)}</td>
+    <td>${p.bids?.length||0}</td>
+    <td style="font-size:.7rem">${p.createdAt?new Date(p.createdAt).toLocaleDateString():'—'}</td>
+    <td><button class="btn bs btn-xs" onclick='confirmAction("Delete project?",()=>api("/admin/projects/${p.id}",{method:"DELETE"}).then(()=>{notify("Project deleted");renderProjectsTab(document.getElementById("ut-projects"),"${uid}")}))'>Delete</button></td>
+  </tr>`).join('')}</tbody></table>`;
+  el.appendChild(wrap);
+}
+
+async function renderBartersTab(el, uid) {
+  const rows = await fetchTabData(`/admin/users/${uid}/barters`);
+  renderMiniTable(el, rows, [
+    {label:'Offer', val:r => esc(r.skillOffered||'—')},
+    {label:'Need', val:r => esc(r.skillNeeded||'—')},
+    {label:'Status', val:r => badge(r.status)},
+    {label:'Remote', val:r => r.isRemote?'✓':'✕'},
+    {label:'', val:r => `<button class="btn bs btn-xs" onclick='confirmAction("Delete this barter?",()=>api("/admin/barters/${r.id}",{method:"DELETE"}).then(()=>{notify("Barter deleted");renderBartersTab(document.getElementById("ut-barters"),"${uid}")}))'>Delete</button>`},
+  ]);
+}
+
+async function renderOrdersTab(el, uid) {
+  const rows = await fetchTabData(`/admin/users/${uid}/orders`);
+  renderMiniTable(el, rows, [
+    {label:'ID', val:r => esc(ggId(r.id))},
+    {label:'Status', val:r => badge(r.status)},
+    {label:'Amount', val:r => r.amount?`₹${r.amount}`:'—'},
+    {label:'Role', val:r => r.buyerId===uid?'Buyer':'Seller'},
+    {label:'Created', val:r => r.createdAt?new Date(r.createdAt).toLocaleDateString():'—'},
+  ]);
+}
+
+async function renderWalletTab(el, uid, walletData) {
+  try {
+    let wallet = walletData;
+    let txns = [];
+    if (!wallet) {
+      const r = await api(`/admin/users/${uid}/wallet`);
+      wallet = r.data?.wallet||null;
+      txns = r.data?.transactions||[];
+    }
+    let html = '';
+    if (wallet) {
+      html += `<div class="wallet-card-mini" style="margin-bottom:12px;">
+        <div class="wlbl">Balance</div>
+        <div class="wval">₹${Number(wallet.balance||0).toFixed(2)}</div>
+        <div style="display:flex;gap:16px;margin-top:8px;position:relative;z-index:1;font-size:.72rem;color:rgba(255,255,255,.5);">
+          <span>Earned: ₹${Number(wallet.totalEarned||0).toFixed(2)}</span>
+          <span>Spent: ₹${Number(wallet.totalSpent||0).toFixed(2)}</span>
+          <span>Withdrawn: ₹${Number(wallet.totalWithdrawn||0).toFixed(2)}</span>
+        </div>
+      </div>`;
+    } else {
+      html += `<div class="empty"><div class="empty-sub">No wallet</div></div>`;
+    }
+    if (txns.length) {
+      html += `<div class="tbl-wrap" style="max-height:300px;overflow-y:auto;"><table class="tbl"><thead><tr><th>Type</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead><tbody>${txns.slice(0,30).map(t => `<tr>
+        <td>${esc(t.type||'—')}</td>
+        <td style="color:${t.type==='CREDIT_PURCHASE'||t.type==='SERVICE_EARNING'?'var(--ok)':'var(--err)'};font-weight:600;">${t.type==='CREDIT_PURCHASE'||t.type==='SERVICE_EARNING'?'+':'-'}₹${Number(t.amount||0).toFixed(2)}</td>
+        <td>${badge(t.status)}</td>
+        <td style="font-size:.7rem">${t.createdAt?new Date(t.createdAt).toLocaleDateString():'—'}</td>
+      </tr>`).join('')}</tbody></table></div>`;
+    }
+    el.innerHTML = html;
+  } catch(e) { el.innerHTML = `<div class="empty"><div class="empty-sub">Error loading wallet</div></div>`; }
+}
+
+async function renderSavedTab(el, uid) {
+  const rows = await fetchTabData(`/admin/users/${uid}/saved`);
+  renderMiniTable(el, rows, [
+    {label:'Type', val:r => badge(r.itemType||r.type||'—')},
+    {label:'Item ID', val:r => `<span style="font-size:.7rem">${esc(ggId(r.itemId||r.id))}</span>`},
+    {label:'Saved', val:r => r.createdAt?new Date(r.createdAt).toLocaleDateString():'—'},
+  ]);
+}
+
+async function renderInvitesTab(el, uid) {
+  const rows = await fetchTabData(`/admin/users/${uid}/invites`);
+  renderMiniTable(el, rows, [
+    {label:'Target Type', val:r => esc(r.targetType||'—')},
+    {label:'Status', val:r => badge(r.status)},
+    {label:'Created', val:r => r.createdAt?new Date(r.createdAt).toLocaleDateString():'—'},
+  ]);
+}
+
+async function renderDisputesTab(el, uid) {
+  const rows = await fetchTabData(`/admin/users/${uid}/disputes`);
+  renderMiniTable(el, rows, [
+    {label:'Target', val:r => badge(r.targetType||'—')},
+    {label:'Reason', val:r => esc(r.reason||'—')},
+    {label:'Status', val:r => badge(r.status)},
+    {label:'Created', val:r => r.createdAt?new Date(r.createdAt).toLocaleDateString():'—'},
+  ]);
+}
+
+async function renderKycTab(el, uid, kycData) {
+  try {
+    let doc = kycData;
+    if (!doc) {
+      const r = await api(`/admin/users/${uid}/kyc`);
+      doc = Array.isArray(r.data||r)?(r.data||r)[0]:r.data||r;
+    }
+    if (!doc) { el.innerHTML = `<div class="empty"><div class="empty-sub">No KYC document submitted</div></div>`; return; }
+    el.innerHTML = `
+      <div class="info-grid">
+        <div class="ig"><div class="igl">Document Type</div><div class="igv">${esc(doc.docType||'—')}</div></div>
+        <div class="ig"><div class="igl">Status</div><div class="igv">${badge(doc.status||'PENDING')}</div></div>
+        <div class="ig"><div class="igl">Submitted</div><div class="igv" style="font-size:.7rem">${doc.submittedAt?new Date(doc.submittedAt).toLocaleString():'—'}</div></div>
+        <div class="ig"><div class="igl">Reviewed</div><div class="igv" style="font-size:.7rem">${doc.reviewedAt?new Date(doc.reviewedAt).toLocaleString():'Not yet'}</div></div>
+      </div>
+      ${doc.fileUrl ? `<div style="margin:10px 0;"><a href="${esc(doc.fileUrl)}" target="_blank" class="btn bs btn-sm">📄 View Document</a></div>` : ''}
+      ${doc.reviewNotes ? `<div class="ig" style="margin-top:8px;"><div class="igl">Previous Review Notes</div><div class="igv" style="font-size:.78rem;color:var(--sec)">${esc(doc.reviewNotes)}</div></div>` : ''}
+      ${doc.status==='PENDING' ? `
+        <div class="fg" style="margin-top:12px;"><label class="fl">Review Notes</label><textarea class="fi" id="kycNote" rows="2" placeholder="Optional notes..."></textarea></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn bp btn-sm" onclick="approveKyc('${uid}')">✓ Approve</button>
+          <button class="btn bs btn-sm" onclick="rejectKyc('${uid}')">✕ Reject</button>
+        </div>` : ''}
+    `;
+  } catch(e) { el.innerHTML = `<div class="empty"><div class="empty-sub">Error loading KYC</div></div>`; }
+}
+
+async function approveKyc(uid) {
+  const notes = document.getElementById('kycNote')?.value||'';
+  try { await api(`/admin/kyc/${uid}/review`, { method:'PUT', body:JSON.stringify({status:'APPROVED',reviewNotes:notes}) }); notify('KYC Approved','ok'); renderUserTab('kyc'); } catch(e) { notify(e.message,'err'); }
+}
+async function rejectKyc(uid) {
+  const notes = document.getElementById('kycNote')?.value||'';
+  try { await api(`/admin/kyc/${uid}/review`, { method:'PUT', body:JSON.stringify({status:'REJECTED',reviewNotes:notes}) }); notify('KYC Rejected'); renderUserTab('kyc'); } catch(e) { notify(e.message,'err'); }
+}
+
+async function renderUserReportsTab(el, uid) {
+  const rows = await fetchTabData(`/admin/users/${uid}/reports`);
+  renderMiniTable(el, rows, [
+    {label:'Target Type', val:r => badge(r.targetType||'—')},
+    {label:'Reason', val:r => esc(r.reason||'—')},
+    {label:'Status', val:r => badge(r.status)},
+    {label:'Created', val:r => r.createdAt?new Date(r.createdAt).toLocaleDateString():'—'},
+  ]);
+}
+
+function renderActionsTab(el, u) {
+  const id = u.id;
+  const name = u.firstName + ' ' + u.lastName;
+  el.innerHTML = `
+    <div style="margin-bottom:14px;"><h3 style="font-size:.95rem;">Account Control</h3><p style="font-size:.78rem;color:var(--muted);margin-top:3px;">Manage this user's account access and data.</p></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      ${u.isActive===false
+        ? `<button class="btn bp btn-sm" data-act="unban">✓ Unban User</button>`
+        : `<button class="btn bs btn-sm" data-act="ban">🔨 Ban User</button>`}
+      <button class="btn bs btn-sm" data-act="delete" style="color:var(--err);border-color:var(--err);">🗑 Delete Account</button>
+      <button class="btn btn-sm" data-act="msg" style="border-color:var(--accent);color:var(--accent);">💬 Message User</button>
+    </div>
+    <div class="info-grid" style="margin-top:14px;">
+      <div class="ig"><div class="igl">Account Status</div><div class="igv">${u.isActive===false?'<span class="pill pbanned">Banned</span>':'<span class="pill pd">Active</span>'}</div></div>
+      <div class="ig"><div class="igl">KYC Status</div><div class="igv">${u.kycVerified?badge('APPROVED'):badge('PENDING_REVIEW')}</div></div>
+      <div class="ig"><div class="igl">Email Verified</div><div class="igv">${u.emailVerified?'✓ Yes':'✕ No'}</div></div>
+    </div>
+  `;
+  el.querySelectorAll('[data-act]').forEach(btn => {
+    btn.onclick = () => {
+      if (btn.dataset.act === 'ban') confirmAction('Ban ' + u.firstName + '? They will lose access.', async () => { await api('/admin/users/' + id + '/ban', { method: 'PUT' }); notify('User banned'); openUserDetail(id); });
+      else if (btn.dataset.act === 'unban') confirmAction('Unban ' + u.firstName + '?', async () => { await api('/admin/users/' + id + '/unban', { method: 'PUT' }); notify('User unbanned'); openUserDetail(id); });
+      else if (btn.dataset.act === 'delete') confirmAction('Permanently delete ' + name + ' and all their data? This cannot be undone.', async () => { await api('/admin/users/' + id, { method: 'DELETE' }); notify('User deleted'); closeModal('userModal'); loadUsers(currentUserPage); });
+      else if (btn.dataset.act === 'msg') openMessageComposer(id, name);
+    };
+  });
+}
+
+// ════════════════════════════════════════════
+//  REPORTS (standalone page)
+// ════════════════════════════════════════════
+async function loadReports(page) {
+  currentReportPage = page;
+  const status = document.getElementById('reportStatusFilter').value;
+  try {
+    const q = status ? `?status=${status}&page=${page}&limit=20` : `?page=${page}&limit=20`;
+    const r = await api(`/admin/reports${q}`);
+    const data = r.data||r;
+    const total = r.total??data.length;
+    document.getElementById('reportPrevPage').disabled = page<=1;
+    document.getElementById('reportNextPage').disabled = (page*20)>=total;
+    document.getElementById('reportPageInfo').textContent = `Page ${page} of ${Math.ceil(total/20)} (${total} total)`;
+    renderReports(data);
+  } catch(e) { console.error(e); }
+}
+
+function renderReports(list) {
+  const el = document.getElementById('reportsList');
+  if (!list.length) { el.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">No reports found</div></div>`; return; }
+  el.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>ID</th><th>Reporter</th><th>Target</th><th>Reason</th><th>Status</th><th>Date</th><th></th></tr></thead><tbody>${list.map(r => `<tr>
+    <td style="font-size:.7rem">${esc(ggId(r.id))}</td>
+    <td class="tdt">${esc((r.reporterFirstName||'')+' '+(r.reporterLastName||'')||'—')}</td>
+    <td>${badge(r.targetType)} <span style="font-size:.7rem">${esc(ggId(r.targetId))}</span></td>
+    <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.reason||'—')}</td>
+    <td>${badge(r.status)}</td>
+    <td style="font-size:.7rem">${r.createdAt?new Date(r.createdAt).toLocaleDateString():'—'}</td>
+    <td><button class="btn bp btn-xs" onclick="openReportDetail('${r.id}')">Action</button></td>
+  </tr>`).join('')}</tbody></table></div>`;
+}
+
+async function openReportDetail(id) {
+  try {
+    const r = await api(`/admin/reports/${id}`);
+    const report = r.data; if (!report) { notify('Report not found','err'); return; }
+    const el = document.getElementById('reportModalBody');
+    el.innerHTML = `
+      <div class="info-grid">
+        <div class="ig"><div class="igl">Target Type</div><div class="igv">${badge(report.targetType)}</div></div>
+        <div class="ig"><div class="igl">Target ID</div><div class="igv" style="font-size:.7rem">${esc(report.targetId)}</div></div>
+        <div class="ig"><div class="igl">Status</div><div class="igv">${badge(report.status)}</div></div>
+        <div class="ig"><div class="igl">Reporter</div><div class="igv">${esc((report.reporterFirstName||'')+' '+(report.reporterLastName||'')||'—')}</div></div>
+      </div>
+      <div class="fg" style="margin-top:12px;"><label class="fl">Reason</label><div style="font-size:.82rem;color:var(--sec);background:var(--bg);padding:10px;border-radius:var(--r);">${esc(report.reason||'—')}</div></div>
+      ${report.adminNotes ? `<div class="fg"><label class="fl">Admin Notes</label><div style="font-size:.82rem;color:var(--sec);background:var(--bg);padding:10px;border-radius:var(--r);">${esc(report.adminNotes)}</div></div>` : ''}
+      <div class="fg"><label class="fl">Response Notes</label><textarea class="fi" id="reportActionNotes" rows="2" placeholder="Add notes about this action..."></textarea></div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn bp btn-sm" onclick="takeReportAction('${report.id}','RESOLVED')">✓ Resolve</button>
+        <button class="btn bs btn-sm" onclick="takeReportAction('${report.id}','DISMISSED')">✕ Dismiss</button>
+      </div>`;
+    openModal('reportModal');
+  } catch(e) { notify(e.message,'err'); }
+}
+
+async function takeReportAction(id, status) {
+  const notes = document.getElementById('reportActionNotes')?.value||'';
+  try {
+    await api(`/admin/reports/${id}/action`, { method:'PUT', body:JSON.stringify({status,adminNotes:notes}) });
+    notify(`Report ${status.toLowerCase()}`, 'ok');
+    closeModal('reportModal');
+    loadReports(currentReportPage);
+  } catch(e) { notify(e.message,'err'); }
+}
+
+// ════════════════════════════════════════════
+//  KYC PAGE
+// ════════════════════════════════════════════
+async function loadKyc() {
+  try {
+    const r = await api('/admin/kyc/pending');
+    const docs = Array.isArray(r.data)?r.data:[];
+    const el = document.getElementById('kycList');
+    if (!docs.length) { el.innerHTML = `<div class="empty"><div class="empty-icon">✓</div><div class="empty-title">All clear</div><div class="empty-sub">No pending KYC reviews</div></div>`; return; }
+    el.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Document</th><th>Email</th><th>Submitted</th><th></th></tr></thead><tbody>${docs.map(d => `<tr>
+      <td class="tdt">${esc(d.firstName+' '+d.lastName)}</td>
+      <td style="font-size:.78rem;">${esc(d.docType||'—')}</td>
+      <td style="font-size:.78rem;">${esc(d.email)}</td>
+      <td style="font-size:.7rem">${d.submittedAt?new Date(d.submittedAt).toLocaleDateString():'—'}</td>
+      <td><button class="btn bp btn-xs" onclick="openUserDetail('${d.userId}')">Review</button></td>
+    </tr>`).join('')}</tbody></table></div>`;
+  } catch(e) { console.error(e); }
+}
+
+// ─── MESSAGE TAB SEARCH ───
+let msgSearchTimeout;
+function debounceMsgUserSearch() { clearTimeout(msgSearchTimeout); msgSearchTimeout = setTimeout(loadMsgUserSearch, 300); }
+async function loadMsgUserSearch() {
+  const q = document.getElementById('msgUserSearch').value.trim();
+  const el = document.getElementById('msgUserResults');
+  if (!q) { el.innerHTML = ''; return; }
+  try {
+    const r = await api(`/admin/users/search?q=${encodeURIComponent(q)}`);
+    const users = Array.isArray(r.data)?r.data:[];
+    if (!users.length) { el.innerHTML = `<div class="empty"><div class="empty-title">No users found</div></div>`; return; }
+    el.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th></th><th>GG ID</th><th>Name</th><th>Email</th><th></th></tr></thead><tbody>${users.map(u => `<tr>
+      <td>${u.profilePhoto ? `<img src="${esc(u.profilePhoto)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;"/>` : `<div class="av" style="width:28px;height:28px;font-size:9px;flex-shrink:0;">${((u.firstName||'?')[0]).toUpperCase()}</div>`}</td>
+      <td class="tdt" style="font-size:.7rem">${esc(ggId(u.id))}</td>
+      <td class="tdt">${esc(u.firstName+' '+u.lastName)}</td>
+      <td>${esc(u.email)}</td>
+      <td><button class="btn bp btn-xs" data-name="${esc(u.firstName+' '+u.lastName)}" onclick="openMessageComposer('${u.id}',this.dataset.name)">💬 Send Message</button></td>
+    </tr>`).join('')}</tbody></table></div>`;
+  } catch(e) { el.innerHTML = `<div class="empty"><div class="empty-sub">Search failed</div></div>`; }
+}
+
+// ─── MESSAGE ───
+let messageTargetId = '';
+function openMessageComposer(userId, userName) {
+  messageTargetId = userId;
+  document.getElementById('messageRecipientName').textContent = esc(userName);
+  document.getElementById('messageComposerText').value = '';
+  document.getElementById('messageAttachments').value = '';
+  document.getElementById('attachmentPreview').innerHTML = '';
+  openModal('messageModal');
+}
+document.getElementById('messageAttachments')?.addEventListener('change', function() {
+  const preview = document.getElementById('attachmentPreview');
+  preview.innerHTML = '';
+  for (const f of this.files) {
+    const isImg = f.type.startsWith('image/');
+    const el = document.createElement('div');
+    el.style.cssText = 'position:relative;width:60px;height:60px;border-radius:6px;overflow:hidden;border:1px solid var(--bd);flex-shrink:0;';
+    if (isImg) {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(f);
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+      el.appendChild(img);
+    } else {
+      el.style.cssText += 'display:flex;align-items:center;justify-content:center;font-size:.6rem;color:var(--muted);padding:4px;text-align:center;';
+      el.textContent = f.name.slice(0, 20);
+    }
+    preview.appendChild(el);
+  }
+});
+async function sendAdminMessage() {
+  const text = document.getElementById('messageComposerText').value.trim();
+  const fileInput = document.getElementById('messageAttachments');
+  const files = fileInput?.files || [];
+  if (!text && !files.length) { notify('Please enter a message or attach a file','err'); return; }
+  const btn = document.getElementById('sendMessageBtn');
+  btn.disabled = true; btn.textContent = 'Uploading...';
+  let attachments = [];
+  try {
+    if (files.length) {
+      const fd = new FormData();
+      for (let i = 0; i < files.length; i++) fd.append('files', files[i]);
+      const up = await api('/admin/upload', { method:'POST', body:fd });
+      attachments = (up.data?.files || []).map(f => ({ name: f.name, url: f.url, size: f.size, mimeType: f.mimeType }));
+    }
+    btn.textContent = 'Sending...';
+    await api(`/admin/users/${messageTargetId}/message`, { method:'POST', body:JSON.stringify({messageText:text, attachments}) });
+    notify('Message sent','ok');
+    closeModal('messageModal');
+  } catch(e) { notify(e.message,'err'); }
+  finally { btn.disabled = false; btn.textContent = 'Send'; }
+}
+
+// ─── CONFIRM ───
+function confirmAction(msg, fn) {
+  document.getElementById('confirmMsg').textContent = msg;
+  document.getElementById('confirmBtn').onclick = async () => { closeModal('confirmModal'); try { await fn(); } catch(e) { notify(e.message,'err'); } };
+  openModal('confirmModal');
+}
+
+// ─── START ───
+initAdmin();
+</script>
+</body>
+</html>
