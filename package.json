@@ -4,6 +4,7 @@
   "description": "SwiftExchange — skill exchange + freelance marketplace",
   "scripts": {
     "start": "tsx src/index.ts",
+    "railway": "npm install && tsx src/index.ts",
     "dev": "tsx watch src/index.ts",
     "typecheck": "tsc --noEmit",
     "db:push": "drizzle-kit push --config=drizzle.config.js",
