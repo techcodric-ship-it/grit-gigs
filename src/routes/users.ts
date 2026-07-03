@@ -297,6 +297,10 @@ router.put("/users/me", authenticate, async (req, res): Promise<void> => {
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.error({ err, url: req.url, method: req.method }, "Profile update error: " + msg);
+    if (msg.includes("users_phone_key")) {
+      res.status(409).json({ success: false, message: "This phone number is already linked to another account." });
+      return;
+    }
     res.status(500).json({ success: false, message: msg });
   }
 });
