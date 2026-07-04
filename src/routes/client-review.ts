@@ -2,11 +2,12 @@ import { Router } from 'express';
 import { db } from '../db';
 import { ordersTable, clientReviewsTable, reviewsTable, usersTable } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
+import { authenticate } from '../middlewares/authenticate';
 
 const router = Router();
 
 // POST /orders/:id/client-review — seller rates the buyer after order is completed
-router.post('/orders/:id/client-review', async (req, res) => {
+router.post('/orders/:id/client-review', authenticate, async (req, res) => {
   try {
     const userId = (req as any).user?.id;
     if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
@@ -18,7 +19,7 @@ router.post('/orders/:id/client-review', async (req, res) => {
 
     // Find the order and verify caller is the seller
     const order = await db.query.ordersTable.findFirst({
-      where: eq(ordersTable.id, req.params.id),
+      where: eq(ordersTable.id, String(req.params.id)),
     });
 
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
@@ -27,12 +28,12 @@ router.post('/orders/:id/client-review', async (req, res) => {
 
     // Check if already reviewed
     const existing = await db.query.clientReviewsTable?.findFirst?.({
-      where: eq((clientReviewsTable as any).orderId, req.params.id),
+      where: eq((clientReviewsTable as any).orderId, String(req.params.id)),
     }).catch(() => null);
     if (existing) return res.status(400).json({ success: false, message: 'Client already rated for this order' });
 
     await db.insert(clientReviewsTable as any).values({
-      orderId: req.params.id,
+      orderId: String(req.params.id),
       reviewerId: userId,
       revieweeId: order.buyerId,
       rating,

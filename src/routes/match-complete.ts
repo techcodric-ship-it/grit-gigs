@@ -7,7 +7,7 @@ import {
 import { conversationsTable, messagesTable } from "../db/schema/messages";
 import { notificationsTable } from "../db/schema/users";
 import { authenticate } from "../middlewares/authenticate";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -167,10 +167,13 @@ router.post("/barter/matches/:id/deliver", authenticate, async (req: Request, re
   }
 
   const isUser1 = match.user1Id === userId;
-  const myDelivered = isUser1 ? match.deliveredByUser1 : match.deliveredByUser2;
+  const flagCol = isUser1 ? barterMatchesTable.deliveredByUser1 : barterMatchesTable.deliveredByUser2;
 
-  // Check if user already delivered
-  if (myDelivered) {
+  // Atomically claim delivery flag — only the first request succeeds
+  const claimResult = await db.execute(
+    sql`UPDATE ${barterMatchesTable} SET ${flagCol} = true, updated_at = NOW() WHERE ${barterMatchesTable.id} = ${matchId} AND ${flagCol} = false`
+  );
+  if (claimResult.rowCount === 0) {
     res.status(400).json({ success: false, message: "You have already submitted your deliverable" });
     return;
   }
@@ -194,24 +197,31 @@ router.post("/barter/matches/:id/deliver", authenticate, async (req: Request, re
     })
     .returning();
 
-  // Update delivered flag + clear any revision flags against this user
-  const updates: Record<string, unknown> = {
-    ...(isUser1 ? { deliveredByUser1: true, revisedByUser2: false } : { deliveredByUser2: true, revisedByUser1: false }),
-    updatedAt: new Date(),
-  };
+  // Re-read match to get updated state after our atomic claim
+  const [updatedMatch] = await db
+    .select()
+    .from(barterMatchesTable)
+    .where(eq(barterMatchesTable.id, matchId))
+    .limit(1);
 
-  const newDelivered1 = isUser1 ? true : match.deliveredByUser1;
-  const newDelivered2 = isUser1 ? match.deliveredByUser2 : true;
-  const bothDelivered = newDelivered1 && newDelivered2;
+  const bothDelivered = updatedMatch.deliveredByUser1 && updatedMatch.deliveredByUser2;
 
   if (bothDelivered) {
-    updates.status = "DELIVERED";
+    await db.update(barterMatchesTable)
+      .set({ status: "DELIVERED", updatedAt: new Date() })
+      .where(eq(barterMatchesTable.id, matchId));
   }
 
-  await db
-    .update(barterMatchesTable)
-    .set(updates)
-    .where(eq(barterMatchesTable.id, matchId));
+  // Clear revision flags against this user if applicable
+  if (isUser1) {
+    await db.update(barterMatchesTable)
+      .set({ revisedByUser2: false, updatedAt: new Date() })
+      .where(and(eq(barterMatchesTable.id, matchId), eq(barterMatchesTable.revisedByUser2, true)));
+  } else {
+    await db.update(barterMatchesTable)
+      .set({ revisedByUser1: false, updatedAt: new Date() })
+      .where(and(eq(barterMatchesTable.id, matchId), eq(barterMatchesTable.revisedByUser1, true)));
+  }
 
   // Notifications
   const partnerId = isUser1 ? match.user2Id : match.user1Id;
@@ -295,6 +305,21 @@ router.put("/barter/matches/:id/accept-delivery", authenticate, async (req: Requ
   const userId = req.user!.id;
   const matchId = String(req.params.id);
 
+  // Atomically claim acceptance for the current user
+  const isUser1 = (await db.select({ u1: barterMatchesTable.user1Id }).from(barterMatchesTable).where(eq(barterMatchesTable.id, matchId)).limit(1))[0]?.u1 === userId;
+
+  const acceptCol = isUser1 ? barterMatchesTable.acceptedByUser1 : barterMatchesTable.acceptedByUser2;
+  const deliveredOtherCol = isUser1 ? barterMatchesTable.deliveredByUser2 : barterMatchesTable.deliveredByUser1;
+
+  const claimResult = await db.execute(
+    sql`UPDATE ${barterMatchesTable} SET ${acceptCol} = true, updated_at = NOW() WHERE ${barterMatchesTable.id} = ${matchId} AND ${deliveredOtherCol} = true AND ${acceptCol} = false`
+  );
+  if (claimResult.rowCount === 0) {
+    res.status(400).json({ success: false, message: "Cannot accept: your partner hasn't delivered yet or you already accepted." });
+    return;
+  }
+
+  // Re-read match to get updated state after our atomic claim
   const [match] = await db
     .select()
     .from(barterMatchesTable)
@@ -306,46 +331,24 @@ router.put("/barter/matches/:id/accept-delivery", authenticate, async (req: Requ
     return;
   }
 
-  if (match.user1Id !== userId && match.user2Id !== userId) {
-    res.status(403).json({ success: false, message: "Forbidden" });
-    return;
-  }
+  const bothAccepted = match.acceptedByUser1 && match.acceptedByUser2;
 
-  const isUser1 = match.user1Id === userId;
-  const otherDelivered = isUser1 ? match.deliveredByUser2 : match.deliveredByUser1;
-
-  if (!otherDelivered) {
-    res.status(400).json({ success: false, message: "Your partner hasn't submitted their deliverable yet." });
-    return;
-  }
-
-  const alreadyAccepted = isUser1 ? match.acceptedByUser1 : match.acceptedByUser2;
-
-  if (alreadyAccepted) {
-    res.status(400).json({ success: false, message: "You have already accepted their deliverable" });
-    return;
-  }
-
-  // Mark this user's acceptance + clear revision flag for the deliverer (their delivery is now accepted, no need for revision)
-  const acceptUpdate = isUser1 ? { acceptedByUser1: true, revisedByUser1: false } : { acceptedByUser2: true, revisedByUser2: false };
-  const newAccepted1 = isUser1 ? true : match.acceptedByUser1;
-  const newAccepted2 = isUser1 ? match.acceptedByUser2 : true;
-  const bothAccepted = newAccepted1 && newAccepted2;
-
-  const updates: Record<string, unknown> = {
-    ...acceptUpdate,
-    updatedAt: new Date(),
-  };
   if (bothAccepted) {
-    updates.status = "COMPLETED";
-    updates.completedAt = new Date();
+    await db.update(barterMatchesTable)
+      .set({ status: "COMPLETED", completedAt: new Date(), updatedAt: new Date() })
+      .where(eq(barterMatchesTable.id, matchId));
   }
 
-  const [updated] = await db
-    .update(barterMatchesTable)
-    .set(updates)
-    .where(eq(barterMatchesTable.id, matchId))
-    .returning();
+  // Clear revision flag for the deliverer (their delivery is now accepted)
+  if (isUser1) {
+    await db.update(barterMatchesTable)
+      .set({ revisedByUser1: false, updatedAt: new Date() })
+      .where(and(eq(barterMatchesTable.id, matchId), eq(barterMatchesTable.revisedByUser1, true)));
+  } else {
+    await db.update(barterMatchesTable)
+      .set({ revisedByUser2: false, updatedAt: new Date() })
+      .where(and(eq(barterMatchesTable.id, matchId), eq(barterMatchesTable.revisedByUser2, true)));
+  }
 
   const partnerId = isUser1 ? match.user2Id : match.user1Id;
   const newStatus = bothAccepted ? "COMPLETED" : match.status;
@@ -432,7 +435,7 @@ router.put("/barter/matches/:id/accept-delivery", authenticate, async (req: Requ
     message: bothAccepted
       ? "Exchange completed!"
       : "You accepted their deliverable. Waiting for them to accept yours.",
-    data: { match: updated, bothAccepted },
+    data: { match, bothAccepted },
   });
 });
 

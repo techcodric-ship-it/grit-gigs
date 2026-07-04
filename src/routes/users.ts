@@ -127,7 +127,7 @@ router.post("/users/me/wallet/withdraw", authenticate, async (req: Request, res:
     return;
   }
   const [wallet] = await db.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, req.user!.id));
-  if (!wallet || wallet.balance < amount) {
+  if (!wallet) {
     res.status(400).json({ success: false, message: "You don't have enough funds in your wallet to withdraw. Please check your balance and try again." });
     return;
   }
@@ -138,35 +138,44 @@ router.post("/users/me/wallet/withdraw", authenticate, async (req: Request, res:
   const withdrawalFee = Math.round(amount * commissionPct / 100);
   const netAmount = amount - withdrawalFee;
 
-  await db
-    .update(freelanceWalletsTable)
-    .set({
-      balance: wallet.balance - amount,
-      totalWithdrawn: Number(wallet.totalWithdrawn || 0) + amount,
-      updatedAt: new Date(),
-    })
-    .where(eq(freelanceWalletsTable.id, wallet.id));
+  // Atomically deduct from wallet and record in a transaction
+  try {
+    await db.transaction(async (tx) => {
+      const deductResult = await tx.execute(
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${amount}, total_withdrawn = COALESCE(total_withdrawn, 0) + ${amount}, updated_at = NOW() WHERE ${freelanceWalletsTable.id} = ${wallet.id} AND balance >= ${amount}`
+      );
+      if (deductResult.rowCount === 0) {
+        throw new Error("Insufficient balance");
+      }
 
-  // Record withdrawal commission
-  if (withdrawalFee > 0) {
-    await db.insert(transactionsTable).values({
-      userId: req.user!.id,
-      type: 'COMMISSION',
-      amount: withdrawalFee,
-      description: `Withdrawal commission (${commissionPct}%)`,
-      status: 'COMPLETED',
+      if (withdrawalFee > 0) {
+        await tx.insert(transactionsTable).values({
+          userId: req.user!.id,
+          type: 'COMMISSION',
+          amount: withdrawalFee,
+          description: `Withdrawal commission (${commissionPct}%)`,
+          status: 'COMPLETED',
+        });
+      }
+
+      await tx.insert(withdrawalRequestsTable).values({
+        walletId: wallet.id,
+        userId: req.user!.id,
+        amount: netAmount,
+        bankName,
+        accountNumber,
+        ifscCode,
+        accountName,
+      });
     });
+  } catch (e) {
+    if (e instanceof Error && e.message === "Insufficient balance") {
+      res.status(400).json({ success: false, message: "You don't have enough funds in your wallet to withdraw. Please check your balance and try again." });
+    } else {
+      res.status(500).json({ success: false, message: "Withdrawal failed. Please try again." });
+    }
+    return;
   }
-
-  await db.insert(withdrawalRequestsTable).values({
-    walletId: wallet.id,
-    userId: req.user!.id,
-    amount: netAmount,
-    bankName,
-    accountNumber,
-    ifscCode,
-    accountName,
-  });
   await db.insert(notificationsTable).values({
     userId: req.user!.id,
     type: "WITHDRAWAL_REQUESTED",

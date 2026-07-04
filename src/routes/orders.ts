@@ -14,7 +14,7 @@ import {
   transactionsTable,
   freelanceWalletsTable,
 } from "../db";
-import { eq, or, and, desc, count } from "drizzle-orm";
+import { eq, or, and, desc, count, sql } from "drizzle-orm";
 import { authenticate } from "../middlewares/authenticate";
 import { getActivePlanForUser } from "../lib/subscriptions";
 
@@ -90,6 +90,17 @@ router.post("/orders", authenticate, async (req, res): Promise<void> => {
   if (!service || service.status !== "ACTIVE") { res.status(400).json({ success: false, message: "Service is not available" }); return; }
   if (service.sellerId === req.user!.id) { res.status(400).json({ success: false, message: "Cannot buy your own service" }); return; }
 
+  // Prevent duplicate orders for the same service
+  const [existingOrder] = await db.select().from(ordersTable).where(and(
+    eq(ordersTable.buyerId, req.user!.id),
+    eq(ordersTable.serviceId, serviceId),
+    or(eq(ordersTable.status, 'PENDING'), eq(ordersTable.status, 'ACCEPTED'))
+  )).limit(1);
+  if (existingOrder) {
+    res.status(400).json({ success: false, message: "You already have a pending order for this service" });
+    return;
+  }
+
   const deliveryDate = new Date();
   deliveryDate.setDate(deliveryDate.getDate() + pkg.deliveryDays);
 
@@ -142,7 +153,12 @@ router.put("/orders/:id/deliver", authenticate, async (req, res): Promise<void> 
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, String(req.params.id)));
   if (!order) { res.status(404).json({ success: false, message: "Order not found" }); return; }
   if (order.sellerId !== req.user!.id) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
-  if (!["ACCEPTED", "IN_PROGRESS", "REVISION_REQUESTED"].includes(order.status)) {
+
+  // Atomically claim the delivery — only the first request succeeds
+  const claimResult = await db.execute(
+    sql`UPDATE ${ordersTable} SET ${ordersTable.status} = 'DELIVERED', ${ordersTable.updatedAt} = NOW() WHERE ${ordersTable.id} = ${order.id} AND ${ordersTable.status} IN ('ACCEPTED', 'IN_PROGRESS', 'REVISION_REQUESTED')`
+  );
+  if (claimResult.rowCount === 0) {
     res.status(400).json({ success: false, message: "Order cannot be delivered in current state" });
     return;
   }
@@ -153,7 +169,6 @@ router.put("/orders/:id/deliver", authenticate, async (req, res): Promise<void> 
   // Store delivery message including link in the files/message fields
   const fullDeliveryMessage = deliveryMsg + (deliveryLink ? `\n\n🔗 Deliverable: ${deliveryLink}` : "");
   await db.insert(orderDeliveriesTable).values({ orderId: order.id, message: fullDeliveryMessage, files: files ?? [], revisionNumber });
-  await db.update(ordersTable).set({ status: "DELIVERED", updatedAt: new Date() }).where(eq(ordersTable.id, order.id));
   await db.insert(notificationsTable).values({ userId: order.buyerId, type: "ORDER_DELIVERED", title: "Work delivered!", message: "Your order has been delivered. Please review and accept.", linkUrl: `/dashboard/orders/${order.id}` });
 
   // Send delivery details as inbox message to buyer
@@ -180,6 +195,7 @@ router.put("/orders/:id/revision", authenticate, async (req, res): Promise<void>
   if (order.status !== "DELIVERED") { res.status(400).json({ success: false, message: "Order has not been delivered" }); return; }
 
   const [pkg] = await db.select().from(servicePackagesTable).where(eq(servicePackagesTable.id, order.packageId));
+  if (!pkg) { res.status(400).json({ success: false, message: "Package not found" }); return; }
   const [deliveryCount] = await db.select({ value: count() }).from(orderDeliveriesTable).where(eq(orderDeliveriesTable.orderId, order.id));
   if (deliveryCount.value > pkg.revisions) {
     res.status(400).json({ success: false, message: `Maximum revisions (${pkg.revisions}) reached` });
@@ -211,72 +227,77 @@ router.put("/orders/:id/complete", authenticate, async (req, res): Promise<void>
   if (order.buyerId !== req.user!.id) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
   if (order.status !== "DELIVERED") { res.status(400).json({ success: false, message: "Order has not been delivered" }); return; }
 
+  // Atomically claim the transition — only the first request succeeds
+  const claimResult = await db.execute(
+    sql`UPDATE ${ordersTable} SET ${ordersTable.status} = 'COMPLETED', ${ordersTable.completedAt} = NOW(), ${ordersTable.updatedAt} = NOW() WHERE ${ordersTable.id} = ${order.id} AND ${ordersTable.status} = 'DELIVERED'`
+  );
+  if (claimResult.rowCount === 0) {
+    res.status(409).json({ success: false, message: "Order already completed" });
+    return;
+  }
+
   // Calculate commission based on seller's plan
   const plan = await getActivePlanForUser(order.sellerId);
   const commissionPct = plan.serviceFeePercent;
   const commission = Math.round(order.priceInr * commissionPct / 100);
   const netAmount = order.priceInr - commission;
 
-  // Deduct full amount from buyer's wallet FIRST
-  const [buyerWallet] = await db.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, order.buyerId));
-  if (!buyerWallet || Number(buyerWallet.balance) < order.priceInr) {
-    res.status(400).json({ success: false, message: "You don't have enough funds in your wallet. Please add funds and try again." });
+  // Wallet operations + transaction records in a DB transaction
+  try {
+    await db.transaction(async (tx) => {
+      const deductResult = await tx.execute(
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${order.priceInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${order.buyerId} AND balance >= ${order.priceInr}`
+      );
+      if (deductResult.rowCount === 0) {
+        throw new Error("Insufficient funds");
+      }
+
+      const creditResult = await tx.execute(
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${netAmount}, total_earned = COALESCE(total_earned, 0) + ${netAmount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${order.sellerId}`
+      );
+      if (creditResult.rowCount === 0) {
+        await tx.insert(freelanceWalletsTable).values({
+          userId: order.sellerId,
+          balance: netAmount,
+          totalEarned: netAmount,
+          updatedAt: new Date(),
+        });
+      }
+
+      await tx.insert(transactionsTable).values({
+        userId: order.buyerId,
+        type: 'SERVICE_PAYMENT',
+        amount: order.priceInr,
+        description: `Payment for order #${order.id.slice(-8)}`,
+        status: 'COMPLETED',
+      });
+
+      await tx.insert(transactionsTable).values({
+        userId: order.sellerId,
+        type: 'SERVICE_EARNING',
+        amount: netAmount,
+        description: `Payment received for order #${order.id.slice(-8)}`,
+        status: 'COMPLETED',
+      });
+      if (commission > 0) {
+        await tx.insert(transactionsTable).values({
+          userId: order.sellerId,
+          type: 'COMMISSION',
+          amount: commission,
+          description: `Platform commission (${commissionPct}%) on order #${order.id.slice(-8)}`,
+          status: 'COMPLETED',
+        });
+      }
+    });
+  } catch (e) {
+    // Roll back the order status claim if the transaction failed
+    await db.execute(sql`UPDATE ${ordersTable} SET ${ordersTable.status} = 'DELIVERED', ${ordersTable.updatedAt} = NOW() WHERE ${ordersTable.id} = ${order.id}`);
+    if (e instanceof Error && e.message === "Insufficient funds") {
+      res.status(400).json({ success: false, message: "You don't have enough funds in your wallet. Please add funds and try again." });
+    } else {
+      res.status(500).json({ success: false, message: "Payment processing failed. Please try again." });
+    }
     return;
-  }
-  await db.update(freelanceWalletsTable)
-    .set({
-      balance: Number(buyerWallet.balance) - order.priceInr,
-      updatedAt: new Date(),
-    })
-    .where(eq(freelanceWalletsTable.id, buyerWallet.id));
-
-  // Credit seller's wallet with net amount (Trulancer-style)
-  const [sellerWallet] = await db.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, order.sellerId));
-  if (sellerWallet) {
-    await db.update(freelanceWalletsTable)
-      .set({
-        balance: Number(sellerWallet.balance) + netAmount,
-        totalEarned: Number(sellerWallet.totalEarned || 0) + netAmount,
-        updatedAt: new Date(),
-      })
-      .where(eq(freelanceWalletsTable.id, sellerWallet.id));
-  } else {
-    await db.insert(freelanceWalletsTable).values({
-      userId: order.sellerId,
-      balance: netAmount,
-      totalEarned: netAmount,
-      updatedAt: new Date(),
-    });
-  }
-
-  // Mark COMPLETED — only after all wallet operations succeed
-  await db.update(ordersTable).set({ status: "COMPLETED", completedAt: new Date(), updatedAt: new Date() }).where(eq(ordersTable.id, order.id));
-
-  // Record payment deduction from buyer
-  await db.insert(transactionsTable).values({
-    userId: order.buyerId,
-    type: 'SERVICE_PAYMENT',
-    amount: order.priceInr,
-    description: `Payment for order #${order.id.slice(-8)}`,
-    status: 'COMPLETED',
-  });
-
-  // Record earnings and commission as transactions
-  await db.insert(transactionsTable).values({
-    userId: order.sellerId,
-    type: 'SERVICE_EARNING',
-    amount: netAmount,
-    description: `Payment received for order #${order.id.slice(-8)}`,
-    status: 'COMPLETED',
-  });
-  if (commission > 0) {
-    await db.insert(transactionsTable).values({
-      userId: order.sellerId,
-      type: 'COMMISSION',
-      amount: commission,
-      description: `Platform commission (${commissionPct}%) on order #${order.id.slice(-8)}`,
-      status: 'COMPLETED',
-    });
   }
 
   await db.insert(notificationsTable).values({
@@ -342,7 +363,7 @@ router.post("/orders/:id/review", authenticate, async (req, res): Promise<void> 
   }).returning();
 
   const allReviews = await db.select({ rating: reviewsTable.rating }).from(reviewsTable).where(and(eq(reviewsTable.serviceId, order.serviceId), eq(reviewsTable.type, "service")));
-  const avgRating = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
+  const avgRating = allReviews.length ? allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length : 0;
   await db.update(servicesTable).set({ ratingAvg: avgRating, reviewCount: allReviews.length }).where(eq(servicesTable.id, order.serviceId));
 
   const [seller] = await db.select({ reputationScore: usersTable.reputationScore }).from(usersTable).where(eq(usersTable.id, order.sellerId));

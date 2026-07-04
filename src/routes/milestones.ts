@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { eq, and, desc, sum } from "drizzle-orm";
+import { eq, and, desc, sum, sql } from "drizzle-orm";
 import {
   db, projectMilestonesTable, projectsTable, projectBidsTable,
   notificationsTable, usersTable, transactionsTable,
@@ -102,6 +102,15 @@ router.post("/milestones/:id/approve", authenticate, async (req: Request, res: R
   const [bid] = await db.select().from(projectBidsTable).where(eq(projectBidsTable.id, ms.bidId)).limit(1);
   if (!bid) { res.status(500).json({ success: false, message: "Could not find associated bid" }); return; }
 
+  // Atomically claim the transition — only the first request succeeds
+  const claimResult = await db.execute(
+    sql`UPDATE ${projectMilestonesTable} SET ${projectMilestonesTable.status} = 'APPROVED', ${projectMilestonesTable.approvedAt} = NOW() WHERE ${projectMilestonesTable.id} = ${ms.id} AND ${projectMilestonesTable.status} = 'DELIVERED'`
+  );
+  if (claimResult.rowCount === 0) {
+    res.status(409).json({ success: false, message: "Milestone already approved" });
+    return;
+  }
+
   // Calculate commission based on freelancer's plan
   const plan = await getActivePlanForUser(bid.userId);
   const commissionPct = plan.serviceFeePercent;
@@ -109,65 +118,61 @@ router.post("/milestones/:id/approve", authenticate, async (req: Request, res: R
   const commission = Math.round(milestoneAmount * commissionPct / 100);
   const netAmount = milestoneAmount - commission;
 
-  // Deduct full milestone amount from client's wallet FIRST
-  const [clientWallet] = await db.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, project.userId));
-  if (!clientWallet || Number(clientWallet.balance) < milestoneAmount) {
-    res.status(400).json({ success: false, message: 'You don\'t have enough funds in your wallet. Please add funds and try again.' }); return;
-  }
-  await db.update(freelanceWalletsTable)
-    .set({
-      balance: Number(clientWallet.balance) - milestoneAmount,
-      updatedAt: new Date(),
-    })
-    .where(eq(freelanceWalletsTable.id, clientWallet.id));
+  // Wallet operations + transaction records in a DB transaction
+  try {
+    await db.transaction(async (tx) => {
+      const deductResult = await tx.execute(
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${milestoneAmount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${project.userId} AND balance >= ${milestoneAmount}`
+      );
+      if (deductResult.rowCount === 0) {
+        throw new Error("Insufficient funds");
+      }
 
-  // Credit freelancer's wallet with net amount
-  const [freelancerWallet] = await db.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, bid.userId));
-  if (freelancerWallet) {
-    await db.update(freelanceWalletsTable)
-      .set({
-        balance: Number(freelancerWallet.balance) + netAmount,
-        totalEarned: Number(freelancerWallet.totalEarned || 0) + netAmount,
-        updatedAt: new Date(),
-      })
-      .where(eq(freelanceWalletsTable.id, freelancerWallet.id));
-  } else {
-    await db.insert(freelanceWalletsTable).values({
-      userId: bid.userId,
-      balance: netAmount,
-      totalEarned: netAmount,
-      updatedAt: new Date(),
+      const creditResult = await tx.execute(
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${netAmount}, total_earned = COALESCE(total_earned, 0) + ${netAmount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${bid.userId}`
+      );
+      if (creditResult.rowCount === 0) {
+        await tx.insert(freelanceWalletsTable).values({
+          userId: bid.userId,
+          balance: netAmount,
+          totalEarned: netAmount,
+          updatedAt: new Date(),
+        });
+      }
+
+      await tx.insert(transactionsTable).values({
+        userId: project.userId,
+        type: 'SERVICE_PAYMENT',
+        amount: milestoneAmount,
+        description: `Payment for milestone "${ms.title}"`,
+        status: 'COMPLETED',
+      });
+
+      await tx.insert(transactionsTable).values({
+        userId: bid.userId,
+        type: 'SERVICE_EARNING',
+        amount: netAmount,
+        description: `Payment received for milestone "${ms.title}"`,
+        status: 'COMPLETED',
+      });
+      if (commission > 0) {
+        await tx.insert(transactionsTable).values({
+          userId: bid.userId,
+          type: 'COMMISSION',
+          amount: commission,
+          description: `Platform commission (${commissionPct}%) on milestone "${ms.title}"`,
+          status: 'COMPLETED',
+        });
+      }
     });
-  }
-
-  // Mark APPROVED — only after all wallet operations succeed
-  await db.update(projectMilestonesTable).set({ status: "APPROVED", approvedAt: new Date() }).where(eq(projectMilestonesTable.id, ms.id));
-
-  // Record payment deduction from client
-  await db.insert(transactionsTable).values({
-    userId: project.userId,
-    type: 'SERVICE_PAYMENT',
-    amount: milestoneAmount,
-    description: `Payment for milestone "${ms.title}"`,
-    status: 'COMPLETED',
-  });
-
-  // Record earnings and commission as transactions
-  await db.insert(transactionsTable).values({
-    userId: bid.userId,
-    type: 'SERVICE_EARNING',
-    amount: netAmount,
-    description: `Payment received for milestone "${ms.title}"`,
-    status: 'COMPLETED',
-  });
-  if (commission > 0) {
-    await db.insert(transactionsTable).values({
-      userId: bid.userId,
-      type: 'COMMISSION',
-      amount: commission,
-      description: `Platform commission (${commissionPct}%) on milestone "${ms.title}"`,
-      status: 'COMPLETED',
-    });
+  } catch (e) {
+    await db.execute(sql`UPDATE ${projectMilestonesTable} SET ${projectMilestonesTable.status} = 'DELIVERED' WHERE ${projectMilestonesTable.id} = ${ms.id}`);
+    if (e instanceof Error && e.message === "Insufficient funds") {
+      res.status(400).json({ success: false, message: 'You don\'t have enough funds in your wallet. Please add funds and try again.' });
+    } else {
+      res.status(500).json({ success: false, message: "Payment processing failed. Please try again." });
+    }
+    return;
   }
 
   await db.insert(notificationsTable).values({

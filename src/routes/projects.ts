@@ -266,8 +266,8 @@ router.post('/projects', authenticate, async (req: Request, res: Response) => {
     .insert(projectsTable)
     .values({
       userId,
-      title: title.trim(),
-      description: description.trim(),
+      title: String(title).trim(),
+      description: String(description).trim(),
       category,
       skills: skills || null,
       deadline: (() => { const _dl = deadline; if (!_dl || typeof _dl !== 'string' || !_dl.trim() || _dl === 'dd-mm-yyyy' || _dl === 'mm/dd/yyyy') return null; const _d1 = new Date(_dl.trim()); if (!isNaN(_d1.getTime())) return _d1; const _m = _dl.trim().match(/^(\d{2})-(\d{2})-(\d{4})$/); if (_m) { const _d2 = new Date(_m[3]+'-'+_m[2]+'-'+_m[1]); if (!isNaN(_d2.getTime())) return _d2; } return null; })(),
@@ -373,10 +373,16 @@ router.post('/projects/:id/bids', authenticate, async (req: Request, res: Respon
 
   // Deduct highlight fee AFTER bid is created
   if (isHighlighted && _highlightWallet) {
-    await db
-      .update(freelanceWalletsTable)
-      .set({ balance: Number(_highlightWallet.balance) - HIGHLIGHT_FEE, updatedAt: new Date() })
-      .where(eq(freelanceWalletsTable.id, _highlightWallet.id));
+    const deductResult = await db.execute(
+      sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${HIGHLIGHT_FEE}, updated_at = NOW() WHERE ${freelanceWalletsTable.id} = ${_highlightWallet.id} AND balance >= ${HIGHLIGHT_FEE}`
+    );
+    if (deductResult.rowCount === 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient balance for highlight (₹${HIGHLIGHT_FEE} required). Add funds to your wallet first.`,
+        _highlightFailed: true,
+      });
+    }
     await db.insert(transactionsTable).values({
       userId,
       type: 'SERVICE_PAYMENT',
@@ -569,35 +575,17 @@ router.post('/projects/bids/:bidId/highlight', authenticate, async (req: Request
   if (bid.isHighlighted) return res.status(400).json({ success: false, message: 'Bid is already highlighted' });
   if (bid.status !== 'PENDING') return res.status(400).json({ success: false, message: 'Only PENDING bids can be highlighted' });
 
-  // Truelancer rule: only ONE highlighted bid per project
-  const [existingHighlight] = await db
-    .select()
-    .from(projectBidsTable)
-    .where(and(eq(projectBidsTable.projectId, bid.projectId), eq(projectBidsTable.isHighlighted, true)))
-    .limit(1);
-  if (existingHighlight) {
-    return res.status(400).json({
-      success: false,
-      message: 'This project already has a highlighted proposal. Only one highlighted proposal is allowed per project.',
-    });
-  }
-
-  // Charge ₹50 from wallet
+  // Atomically charge ₹50 + ensure only one highlighted bid per project
   const HIGHLIGHT_FEE = 50;
-  const [wallet] = await db
-    .select()
-    .from(freelanceWalletsTable)
-    .where(eq(freelanceWalletsTable.userId, userId));
-  if (!wallet || Number(wallet.balance) < HIGHLIGHT_FEE) {
+  const deductResult = await db.execute(
+    sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${HIGHLIGHT_FEE}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${userId} AND balance >= ${HIGHLIGHT_FEE}`
+  );
+  if (deductResult.rowCount === 0) {
     return res.status(400).json({
       success: false,
       message: `Insufficient balance for highlight (₹${HIGHLIGHT_FEE} required). Add funds to your wallet first.`,
     });
   }
-  await db
-    .update(freelanceWalletsTable)
-    .set({ balance: Number(wallet.balance) - HIGHLIGHT_FEE, updatedAt: new Date() })
-    .where(eq(freelanceWalletsTable.id, wallet.id));
   await db.insert(transactionsTable).values({
     userId,
     type: 'SERVICE_PAYMENT',
@@ -609,8 +597,15 @@ router.post('/projects/bids/:bidId/highlight', authenticate, async (req: Request
   const [updated] = await db
     .update(projectBidsTable)
     .set({ isHighlighted: true, updatedAt: new Date() })
-    .where(eq(projectBidsTable.id, bid.id))
+    .where(and(eq(projectBidsTable.id, bid.id), eq(projectBidsTable.isHighlighted, false)))
     .returning();
+
+  if (!updated) {
+    return res.status(400).json({
+      success: false,
+      message: 'This project already has a highlighted proposal or this bid is already highlighted.',
+    });
+  }
 
   return res.json({ success: true, data: { bid: updated }, message: 'Bid highlighted! It will now appear at the top of the list.' });
 });
@@ -625,11 +620,18 @@ router.post('/projects/:id/mark-complete', authenticate, async (req: Request, re
   const _ab = project.acceptedBidId ? (await db.select().from(projectBidsTable).where(eq(projectBidsTable.id, project.acceptedBidId)).limit(1))[0] : null;
   if (!_ab || _ab.userId !== userId) return res.status(403).json({ success: false, message: 'Only the hired freelancer can mark this project as complete' });
 
+  // Atomically claim the delivery — only the first request succeeds
+  const claimResult = await db.execute(
+    sql`UPDATE ${projectsTable} SET ${projectsTable.status} = 'DELIVERED', ${projectsTable.updatedAt} = NOW() WHERE ${projectsTable.id} = ${project.id} AND ${projectsTable.status} IN ('IN_PROGRESS', 'REVISION_REQUESTED')`
+  );
+  if (claimResult.rowCount === 0) {
+    return res.status(400).json({ success: false, message: 'Project is not in progress' });
+  }
+
   const { description: deliveryNote, link } = req.body;
   const [lastDelivery] = await db.select().from(projectDeliveriesTable).where(eq(projectDeliveriesTable.projectId, project.id)).orderBy(desc(projectDeliveriesTable.revisionNumber)).limit(1);
   const revisionNumber = lastDelivery ? lastDelivery.revisionNumber + 1 : 0;
   await db.insert(projectDeliveriesTable).values({ projectId: project.id, deliveryNote: deliveryNote || null, link: link || null, revisionNumber });
-  await db.update(projectsTable).set({ status: 'DELIVERED', updatedAt: new Date() }).where(eq(projectsTable.id, project.id));
 
     await db.insert(notificationsTable).values({
         userId: project.userId,
@@ -674,72 +676,74 @@ router.post('/projects/:id/release-payment', authenticate, async (req: Request, 
   if (!_ab) return res.status(400).json({ success: false, message: 'No accepted bid found' });
   const _pay = _ab.amount;
 
+  // Atomically claim the transition — only the first request succeeds
+  const claimResult = await db.execute(
+    sql`UPDATE ${projectsTable} SET ${projectsTable.status} = 'COMPLETED', ${projectsTable.updatedAt} = NOW() WHERE ${projectsTable.id} = ${project.id} AND ${projectsTable.status} = 'DELIVERED'`
+  );
+  if (claimResult.rowCount === 0) {
+    return res.status(409).json({ success: false, message: 'Payment already released' });
+  }
+
   // Calculate commission based on freelancer's plan
   const plan = await getActivePlanForUser(_ab.userId);
   const commissionPct = plan.serviceFeePercent;
   const commission = Math.round(_pay * commissionPct / 100);
   const netAmount = _pay - commission;
 
-  // Deduct full amount from client's wallet FIRST
-  const [clientWallet] = await db.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, project.userId));
-  if (!clientWallet || Number(clientWallet.balance) < _pay) {
-    return res.status(400).json({ success: false, message: "You don't have enough funds in your wallet. Please add funds and try again." });
-  }
-  await db.update(freelanceWalletsTable)
-    .set({
-      balance: Number(clientWallet.balance) - _pay,
-      updatedAt: new Date(),
-    })
-    .where(eq(freelanceWalletsTable.id, clientWallet.id));
+  // Wallet operations + transaction records in a DB transaction
+  try {
+    await db.transaction(async (tx) => {
+      const deductResult = await tx.execute(
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${_pay}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${project.userId} AND balance >= ${_pay}`
+      );
+      if (deductResult.rowCount === 0) {
+        throw new Error("Insufficient funds");
+      }
 
-  // Credit freelancer's wallet with net amount (Trulancer-style)
-  const [freelancerWallet] = await db.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, _ab.userId));
-  if (freelancerWallet) {
-    await db.update(freelanceWalletsTable)
-      .set({
-        balance: Number(freelancerWallet.balance) + netAmount,
-        totalEarned: Number(freelancerWallet.totalEarned || 0) + netAmount,
-        updatedAt: new Date(),
-      })
-      .where(eq(freelanceWalletsTable.id, freelancerWallet.id));
-  } else {
-    await db.insert(freelanceWalletsTable).values({
-      userId: _ab.userId,
-      balance: netAmount,
-      totalEarned: netAmount,
-      updatedAt: new Date(),
+      const creditResult = await tx.execute(
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${netAmount}, total_earned = COALESCE(total_earned, 0) + ${netAmount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${_ab.userId}`
+      );
+      if (creditResult.rowCount === 0) {
+        await tx.insert(freelanceWalletsTable).values({
+          userId: _ab.userId,
+          balance: netAmount,
+          totalEarned: netAmount,
+          updatedAt: new Date(),
+        });
+      }
+
+      await tx.insert(transactionsTable).values({
+        userId: project.userId,
+        type: 'SERVICE_PAYMENT',
+        amount: _pay,
+        description: `Payment for project "${project.title}"`,
+        status: 'COMPLETED',
+      });
+
+      await tx.insert(transactionsTable).values({
+        userId: _ab.userId,
+        type: 'SERVICE_EARNING',
+        amount: netAmount,
+        description: `Payment received for project "${project.title}"`,
+        status: 'COMPLETED',
+      });
+      if (commission > 0) {
+        await tx.insert(transactionsTable).values({
+          userId: _ab.userId,
+          type: 'COMMISSION',
+          amount: commission,
+          description: `Platform commission (${commissionPct}%) on project "${project.title}"`,
+          status: 'COMPLETED',
+        });
+      }
     });
+  } catch (e) {
+    await db.execute(sql`UPDATE ${projectsTable} SET ${projectsTable.status} = 'DELIVERED', ${projectsTable.updatedAt} = NOW() WHERE ${projectsTable.id} = ${project.id}`);
+    if (e instanceof Error && e.message === "Insufficient funds") {
+      return res.status(400).json({ success: false, message: "You don't have enough funds in your wallet. Please add funds and try again." });
+    }
+    return res.status(500).json({ success: false, message: "Payment processing failed. Please try again." });
   }
-
-  // Record payment deduction from client
-  await db.insert(transactionsTable).values({
-    userId: project.userId,
-    type: 'SERVICE_PAYMENT',
-    amount: _pay,
-    description: `Payment for project "${project.title}"`,
-    status: 'COMPLETED',
-  });
-
-  // Record earnings and commission as transactions
-  await db.insert(transactionsTable).values({
-    userId: _ab.userId,
-    type: 'SERVICE_EARNING',
-    amount: netAmount,
-    description: `Payment received for project "${project.title}"`,
-    status: 'COMPLETED',
-  });
-  if (commission > 0) {
-    await db.insert(transactionsTable).values({
-      userId: _ab.userId,
-      type: 'COMMISSION',
-      amount: commission,
-      description: `Platform commission (${commissionPct}%) on project "${project.title}"`,
-      status: 'COMPLETED',
-    });
-  }
-
-  // Mark COMPLETED — only after all wallet operations succeed
-  await db.update(projectsTable).set({ status: 'COMPLETED', updatedAt: new Date() }).where(eq(projectsTable.id, project.id));
 
   await db.insert(notificationsTable).values({
     userId: project.userId,

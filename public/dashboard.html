@@ -2947,9 +2947,14 @@ async function markExchangeDone(matchId) {
 
 async function cancelExchange(matchId) {
   confirmModal('Cancel this exchange?', 'This will cancel the exchange before work starts. The other user will be notified.', '✕ Cancel Exchange', async () => {
-    const d = await api('/barter/matches/' + matchId + '/cancel', { method: 'PUT', body: JSON.stringify({}) });
-    showToast(d.success ? '✕ Exchange cancelled' : d.message || 'Failed', d.success ? 'ok' : 'err');
-    if (d.success) loadActiveExchanges();
+    const key = 'cancelExchange_' + matchId;
+    if (_submitting[key]) return;
+    _submitting[key] = true;
+    try {
+      const d = await api('/barter/matches/' + matchId + '/cancel', { method: 'PUT', body: JSON.stringify({}) });
+      showToast(d.success ? '✕ Exchange cancelled' : d.message || 'Failed', d.success ? 'ok' : 'err');
+      if (d.success) loadActiveExchanges();
+    } finally { _submitting[key] = false; }
   });
 }
 
@@ -2983,31 +2988,41 @@ function deliverProject(matchId) {
 }
 
 async function _doDeliverProject(matchId) {
-  const note = document.getElementById('deliveryNote')?.value || '';
-  const link = document.getElementById('deliveryLink')?.value || '';
-  closeModal();
-  const d = await api('/barter/matches/' + matchId + '/deliver', { method: 'POST', body: JSON.stringify({ deliveryNote: note, link }) });
-  if (d.success) {
-    showNotifBanner('📦 Delivered!', 'Your project has been submitted. Waiting for review.', 'ok');
-    loadActiveExchanges();
-  } else {
-    showToast(d.message || 'Could not deliver', 'err');
-  }
+  const key = 'deliverProject_' + matchId;
+  if (_submitting[key]) return;
+  _submitting[key] = true;
+  try {
+    const note = document.getElementById('deliveryNote')?.value || '';
+    const link = document.getElementById('deliveryLink')?.value || '';
+    closeModal();
+    const d = await api('/barter/matches/' + matchId + '/deliver', { method: 'POST', body: JSON.stringify({ deliveryNote: note, link }) });
+    if (d.success) {
+      showNotifBanner('📦 Delivered!', 'Your project has been submitted. Waiting for review.', 'ok');
+      loadActiveExchanges();
+    } else {
+      showToast(d.message || 'Could not deliver', 'err');
+    }
+  } finally { _submitting[key] = false; }
 }
 
 async function acceptDelivery(matchId) {
   confirmModal('Accept their deliverable?', 'You are accepting their work. If both accept, the exchange completes.', '✅ Accept', async () => {
-    const d = await api('/barter/matches/' + matchId + '/accept-delivery', { method: 'PUT' });
-    if (d.success) {
-      if (d.data.bothAccepted) {
-        showNotifBanner('✅ Exchange completed!', 'Both parties accepted. Leave a review!', 'ok');
+    const key = 'acceptDelivery_' + matchId;
+    if (_submitting[key]) return;
+    _submitting[key] = true;
+    try {
+      const d = await api('/barter/matches/' + matchId + '/accept-delivery', { method: 'PUT' });
+      if (d.success) {
+        if (d.data.bothAccepted) {
+          showNotifBanner('✅ Exchange completed!', 'Both parties accepted. Leave a review!', 'ok');
+        } else {
+          showNotifBanner('✅ Accepted!', 'You accepted their work. Waiting for them to accept yours.', 'ok');
+        }
+        loadActiveExchanges();
       } else {
-        showNotifBanner('✅ Accepted!', 'You accepted their work. Waiting for them to accept yours.', 'ok');
+        showToast(d.message || 'Could not accept', 'err');
       }
-      loadActiveExchanges();
-    } else {
-      showToast(d.message || 'Could not accept', 'err');
-    }
+    } finally { _submitting[key] = false; }
   });
 }
 
@@ -3038,17 +3053,22 @@ async function _doRequestRevision(matchId) {
   }
 }
 async function _doMarkExchangeDone(matchId) {
-  const d = await api('/barter/matches/' + matchId + '/complete', { method: 'PUT', body: JSON.stringify({}) });
-  if (d.success) {
-    if (d.data.bothDone) {
-      showNotifBanner('✅ Both sides done!', 'Time to submit your deliverable.', 'ok');
+  const key = 'markDone_' + matchId;
+  if (_submitting[key]) return;
+  _submitting[key] = true;
+  try {
+    const d = await api('/barter/matches/' + matchId + '/complete', { method: 'PUT', body: JSON.stringify({}) });
+    if (d.success) {
+      if (d.data.bothDone) {
+        showNotifBanner('✅ Both sides done!', 'Time to submit your deliverable.', 'ok');
+      } else {
+        showNotifBanner('✅ Marked as done!', 'Waiting for the other person to confirm completion.', 'ok');
+      }
+      loadActiveExchanges();
     } else {
-      showNotifBanner('✅ Marked as done!', 'Waiting for the other person to confirm completion.', 'ok');
+      showToast(d.message || 'Could not update', 'err');
     }
-    loadActiveExchanges();
-  } else {
-    showToast(d.message || 'Could not update', 'err');
-  }
+  } finally { _submitting[key] = false; }
 }
 
 async function openBarterDet(id) {
@@ -4345,16 +4365,26 @@ async function loadOrders(role) {
 }
 
 async function oAction(id, action) {
-  const d = await api('/orders/' + id + '/' + action, { method: 'PUT', body: JSON.stringify({}) });
-  showToast(d.success ? '✅ Done!' : d.message || 'Failed', d.success ? 'ok' : 'err');
-  if (d.success) loadOrders(document.getElementById('buyTab').className.includes('bp') ? 'buyer' : 'seller');
+  const key = 'oAction_' + id + '_' + action;
+  if (_submitting[key]) return;
+  _submitting[key] = true;
+  try {
+    const d = await api('/orders/' + id + '/' + action, { method: 'PUT', body: JSON.stringify({}) });
+    showToast(d.success ? '✅ Done!' : d.message || 'Failed', d.success ? 'ok' : 'err');
+    if (d.success) loadOrders(document.getElementById('buyTab').className.includes('bp') ? 'buyer' : 'seller');
+  } finally { _submitting[key] = false; }
 }
 
 function confirmCancelOrder(orderId) {
   confirmModal('Cancel this order?', 'Your payment will be refunded. This cannot be undone.', '✕ Cancel Order', async () => {
-    const d = await api('/orders/' + orderId + '/cancel', { method: 'PUT', body: JSON.stringify({ reason: 'Cancelled by buyer' }) });
-    showToast(d.success ? '✅ Order cancelled. Amount refunded.' : d.message || 'Failed', d.success ? 'ok' : 'err');
-    if (d.success) loadOrders('buyer');
+    const key = 'cancelOrder_' + orderId;
+    if (_submitting[key]) return;
+    _submitting[key] = true;
+    try {
+      const d = await api('/orders/' + orderId + '/cancel', { method: 'PUT', body: JSON.stringify({ reason: 'Cancelled by buyer' }) });
+      showToast(d.success ? '✅ Order cancelled. Amount refunded.' : d.message || 'Failed', d.success ? 'ok' : 'err');
+      if (d.success) loadOrders('buyer');
+    } finally { _submitting[key] = false; }
   });
 }
 
@@ -4609,6 +4639,7 @@ function selCreds(n, el) {
 }
 
 let _buyingCredits = false;
+const _submitting = {};
 async function buyCredits() {
   if (_buyingCredits) return;
   _buyingCredits = true;
@@ -5889,17 +5920,22 @@ async function submitBid(projectId, modalEl) {
     portfolio ? `\nPortfolio:\n${portfolio}` : '',
   ].filter(Boolean).join('\n');
   const highlight = document.getElementById('bidHighlight')?.checked === true;
-  const d = await api('/projects/' + projectId + '/bids', {
-    method: 'POST',
-    body: JSON.stringify({ amount: amt, deliveryDays: Number.isFinite(days) && days > 0 ? days : null, proposal, highlight }),
-  });
-  if (d.success) {
-    if (modalEl) { modalEl.remove(); document.body.style.overflow = ''; }
-    showNotifBanner('📨 Proposal submitted!', 'The client can now review your bid, delivery time, and milestone plan.', 'ok');
-    loadBrowseProjects();
-  } else {
-    showToast(d.message || 'Failed to submit bid', 'err');
-  }
+  const sk = 'submitBid_' + projectId;
+  if (_submitting[sk]) return;
+  _submitting[sk] = true;
+  try {
+    const d = await api('/projects/' + projectId + '/bids', {
+      method: 'POST',
+      body: JSON.stringify({ amount: amt, deliveryDays: Number.isFinite(days) && days > 0 ? days : null, proposal, highlight }),
+    });
+    if (d.success) {
+      if (modalEl) { modalEl.remove(); document.body.style.overflow = ''; }
+      showNotifBanner('📨 Proposal submitted!', 'The client can now review your bid, delivery time, and milestone plan.', 'ok');
+      loadBrowseProjects();
+    } else {
+      showToast(d.message || 'Failed to submit bid', 'err');
+    }
+  } finally { _submitting[sk] = false; }
 }
 
 function safeUrl(url) {
@@ -6167,18 +6203,23 @@ async function msgOrderUser(orderId, otherUserId) {
 }
 
 async function _doAcceptBid(bidId, projectId, modalEl) {
-  const d = await api('/projects/bids/' + bidId + '/accept', {
-    method: 'PUT',
-    body: JSON.stringify({ projectId }),
-  });
-  if (d.success) {
-    if (modalEl) { modalEl.remove(); document.body.style.overflow = ''; }
-    showNotifBanner('✅ Proposal accepted!', 'The freelancer has been notified. Opening conversation...', 'ok');
-    loadMyProjects();
-    if (d.data?.freelancer?.id) msgProjectUser(d.data.freelancer.id, bidId);
-  } else {
-    showToast(d.message || 'Failed to accept bid', 'err');
-  }
+  const sk = 'acceptBid_' + bidId;
+  if (_submitting[sk]) return;
+  _submitting[sk] = true;
+  try {
+    const d = await api('/projects/bids/' + bidId + '/accept', {
+      method: 'PUT',
+      body: JSON.stringify({ projectId }),
+    });
+    if (d.success) {
+      if (modalEl) { modalEl.remove(); document.body.style.overflow = ''; }
+      showNotifBanner('✅ Proposal accepted!', 'The freelancer has been notified. Opening conversation...', 'ok');
+      loadMyProjects();
+      if (d.data?.freelancer?.id) msgProjectUser(d.data.freelancer.id, bidId);
+    } else {
+      showToast(d.message || 'Failed to accept bid', 'err');
+    }
+  } finally { _submitting[sk] = false; }
 }
 
 let _walletInterval = null;
@@ -6490,29 +6531,33 @@ async function _confirmProjectRevision(projectId, modalEl) {
 
 async function releaseProjectPayment(projectId) {
   confirmModal('Release project payment?', 'Payment will be sent to the freelancer immediately.', '\ud83d\udcb0 Release', async () => {
-    const d = await api('/projects/' + projectId + '/release-payment', { method: 'POST', body: JSON.stringify({}) });
-    showToast(d.success ? '\u2705 Payment released!' : d.message||'Failed', d.success?'ok':'err');
-    if (d.success) {
-      // Find project-specific conversation with freelancer
-      const pRes = await api('/projects/' + projectId).catch(() => null);
-      const project = pRes?.data?.project;
-      const acceptedBid = project?.bids?.find(b => b.status === 'ACCEPTED');
-      const freelancerId = acceptedBid?.userId;
-      const bidId = acceptedBid?.id;
-      let convId = null;
-      if (freelancerId && bidId) {
-        const cvRes = await api('/messages/conversations/with/' + freelancerId, {
-          method: 'POST', body: JSON.stringify({ projectBidId: bidId })
-        }).catch(() => null);
-        convId = cvRes?.data?.conversation?.id || null;
+    const sk = 'releasePayment_' + projectId;
+    if (_submitting[sk]) return;
+    _submitting[sk] = true;
+    try {
+      const d = await api('/projects/' + projectId + '/release-payment', { method: 'POST', body: JSON.stringify({}) });
+      showToast(d.success ? '\u2705 Payment released!' : d.message||'Failed', d.success?'ok':'err');
+      if (d.success) {
+        const pRes = await api('/projects/' + projectId).catch(() => null);
+        const project = pRes?.data?.project;
+        const acceptedBid = project?.bids?.find(b => b.status === 'ACCEPTED');
+        const freelancerId = acceptedBid?.userId;
+        const bidId = acceptedBid?.id;
+        let convId = null;
+        if (freelancerId && bidId) {
+          const cvRes = await api('/messages/conversations/with/' + freelancerId, {
+            method: 'POST', body: JSON.stringify({ projectBidId: bidId })
+          }).catch(() => null);
+          convId = cvRes?.data?.conversation?.id || null;
+        }
+        if (convId) {
+          await api('/messages/conversations/' + convId + '/messages', {
+            method: 'POST', body: JSON.stringify({ messageText: '\ud83d\udcb0 Payment released! Thank you!' })
+          }).catch(()=>{});
+          openConv(convId, '', '');
+        }
       }
-      if (convId) {
-        await api('/messages/conversations/' + convId + '/messages', {
-          method: 'POST', body: JSON.stringify({ messageText: '\ud83d\udcb0 Payment released! Thank you!' })
-        }).catch(()=>{});
-        openConv(convId, '', '');
-      }
-    }
+    } finally { _submitting[sk] = false; }
   });
 }
 

@@ -232,7 +232,7 @@ router.post("/services", authenticate, upload.array("images", 5), async (req, re
 
   const [service] = await db
     .insert(servicesTable)
-    .values({ sellerId: req.user!.id, title: title.trim(), category, subcategory: subcategory ?? null, description: description.trim(), images: imageUrls, tags: parsedTags })
+    .values({ sellerId: req.user!.id, title: String(title).trim(), category, subcategory: subcategory ?? null, description: String(description).trim(), images: imageUrls, tags: parsedTags })
     .returning();
 
   await db.insert(servicePackagesTable).values(

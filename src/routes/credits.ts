@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db, freelanceWalletsTable, transactionsTable, notificationsTable } from "../db";
 import { authenticate } from "../middlewares/authenticate";
 
@@ -51,15 +51,14 @@ router.post("/credits/verify-payment", authenticate, async (req: Request, res: R
       return;
     }
   }
-  const [wallet] = await db.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, req.user!.id));
-  if (!wallet) {
+  // Atomically add funds to wallet
+  const deductResult = await db.execute(
+    sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${amtInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${req.user!.id}`
+  );
+  if (deductResult.rowCount === 0) {
     res.status(404).json({ success: false, message: "Wallet not found" });
     return;
   }
-  await db
-    .update(freelanceWalletsTable)
-    .set({ balance: wallet.balance + amtInr, updatedAt: new Date() })
-    .where(eq(freelanceWalletsTable.id, wallet.id));
   await db.insert(transactionsTable).values({
     userId: req.user!.id,
     type: "CREDIT_PURCHASE",
