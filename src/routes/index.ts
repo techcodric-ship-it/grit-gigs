@@ -45,8 +45,8 @@ router.use(barterReviewRouter);
 router.use(reportsRouter);
 router.use(creditsRouter);
 router.use(invoiceRouter);
-router.use(adminRouter);
 router.use(equityRouter);
+router.use(adminRouter);
 
 router.use((_req: any, res: any) => {
   res.status(404).json({ success: false, message: "Route not found" });
