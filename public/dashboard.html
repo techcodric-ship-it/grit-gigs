@@ -1882,8 +1882,7 @@ function userStarsHtml(avg, cnt) {
 function kycBadge(v) { return v ? `<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">✓ KYC</span>` : ''; }
 async function joinEquityWaitlist(btn){
   try {
-    const r = await api('/equity/waitlist',{method:'POST'});
-    const d = await r.json();
+    const d = await api('/equity/waitlist',{method:'POST'});
     if(d.success){
       btn.textContent = '✓ You\'re on the list';
       btn.style.background = 'rgba(255,255,255,0.05)';
