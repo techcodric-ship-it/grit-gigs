@@ -456,6 +456,11 @@ app.set("io", io);
             admin_notes TEXT,
             created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
           );
+          CREATE TABLE IF NOT EXISTS microequity_waitlist (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
         `);
       } catch (e: unknown) {
         logger.error({ err: e }, "migrate: table creation failed");

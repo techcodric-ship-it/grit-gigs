@@ -20,6 +20,7 @@ import barterReviewRouter from "./barter-review";
 import reportsRouter from "./reports";
 import invoiceRouter from "./invoice";
 import adminRouter from "./admin";
+import equityRouter from "./equity";
 
 const router: IRouter = Router();
 
@@ -45,6 +46,7 @@ router.use(reportsRouter);
 router.use(creditsRouter);
 router.use(invoiceRouter);
 router.use(adminRouter);
+router.use(equityRouter);
 
 router.use((_req: any, res: any) => {
   res.status(404).json({ success: false, message: "Route not found" });

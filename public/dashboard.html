@@ -1356,7 +1356,7 @@ textarea.fi{resize:vertical;}
           <h2 style="font-size:1.6rem;margin-bottom:10px;color:#fff;font-weight:800;">Invest in businesses you believe in</h2>
           <p style="font-size:.9rem;color:rgba(255,255,255,0.6);line-height:1.7;max-width:400px;margin:0 auto 28px;">Invest from ₹10,000 in verified local businesses and earn quarterly dividends. Coming soon.</p>
           <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-            <button class="btn" onclick="showToast('You\'re on the waitlist!','ok')" style="padding:13px 32px;font-size:.88rem;font-weight:700;background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;border-radius:12px;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px rgba(16,185,129,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 8px 24px rgba(16,185,129,0.4)';" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 16px rgba(16,185,129,0.3)';">Join the Waitlist</button>
+            <button class="btn" id="equityWaitlistBtn" onclick="joinEquityWaitlist(this)" style="padding:13px 32px;font-size:.88rem;font-weight:700;background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;border-radius:12px;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px rgba(16,185,129,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 8px 24px rgba(16,185,129,0.4)';" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 16px rgba(16,185,129,0.3)';">Join the Waitlist</button>
             <button class="btn" onclick="showToast('Learn more coming soon','ok')" style="padding:13px 28px;font-size:.88rem;font-weight:600;background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:12px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(255,255,255,0.15)';" onmouseout="this.style.background='rgba(255,255,255,0.1)';">Learn More →</button>
           </div>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:36px;max-width:400px;margin-left:auto;margin-right:auto;">
@@ -1880,6 +1880,26 @@ function userStarsHtml(avg, cnt) {
   return '<span style="color:var(--muted);font-size:.6rem;">No reviews</span>';
 }
 function kycBadge(v) { return v ? `<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">✓ KYC</span>` : ''; }
+async function joinEquityWaitlist(btn){
+  try {
+    const r = await api('/equity/waitlist',{method:'POST'});
+    const d = await r.json();
+    if(d.success){
+      btn.textContent = '✓ You\'re on the list';
+      btn.style.background = 'rgba(255,255,255,0.05)';
+      btn.style.color = '#6EE7B7';
+      btn.style.cursor = 'default';
+      btn.onclick = null;
+      btn.onmouseover = null;
+      btn.onmouseout = null;
+    } else {
+      showToast(d.message||'Failed to join','err');
+    }
+  } catch(e){
+    showToast('Something went wrong','err');
+  }
+}
+
 
 // Redirect if not logged in
 if (!gU()) window.location.href = 'index.html';
@@ -2131,6 +2151,26 @@ function connectSocket() {
 }
 
 connectSocket();
+
+// Check if user is already on equity waitlist
+(async function(){
+  try {
+    const r = await fetch(API + '/equity/waitlist/status', { headers: { 'Authorization': 'Bearer ' + gT() } });
+    const d = await r.json();
+    if (d.success && d.data?.joined) {
+      const btn = document.getElementById('equityWaitlistBtn');
+      if (btn) {
+        btn.textContent = '✓ You\'re on the list';
+        btn.style.background = 'rgba(255,255,255,0.05)';
+        btn.style.color = '#6EE7B7';
+        btn.style.cursor = 'default';
+        btn.onclick = null;
+        btn.onmouseover = null;
+        btn.onmouseout = null;
+      }
+    }
+  } catch(e) {}
+})();
 
 // ══════════════════════════════════════════════
 //  MODAL HELPERS
@@ -3821,6 +3861,8 @@ function renderMsg(m, myId) {
     }
   }
   displayText = displayText.replace(/\n/g, '<br>');
+  // Style censored contact info professionally
+  displayText = displayText.replace(/\[hidden\]/g, '<span style="display:inline-flex;align-items:center;gap:3px;background:rgba(239,68,68,0.08);color:#DC2626;font-size:.72rem;font-weight:600;padding:1px 8px;border-radius:4px;border:1px solid rgba(239,68,68,0.15);vertical-align:middle;white-space:nowrap;">⛔ Contact hidden</span>');
   let storedAtts = [];
 
   // System messages start with \u2060\u2060\u2060 (triple invisible separator)

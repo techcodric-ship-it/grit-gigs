@@ -234,6 +234,10 @@ a{text-decoration:none;color:inherit;}
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       Messages
     </button>
+    <button class="ni" data-p="equity">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 1 18"/><polyline points="16 7 22 7 22 13"/></svg>
+      Equity Waitlist
+    </button>
     <div class="ns">Session</div>
     <button class="ni danger" onclick="adminLogout()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -345,6 +349,18 @@ a{text-decoration:none;color:inherit;}
     </div>
   </div>
   <div id="msgUserResults" style="max-height:500px;overflow-y:auto;"></div>
+</div>
+
+<!-- ═══ EQUITY WAITLIST ═══ -->
+<div class="ps" id="ps-equity">
+  <div style="margin-bottom:16px;">
+    <h1 style="font-size:1.2rem;">MicroEquity Waitlist</h1>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:3px;">Users who have joined the MicroEquity waitlist.</p>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;">
+    <button class="btn bs btn-sm" onclick="loadEquityWaitlist()">⟳ Refresh</button>
+  </div>
+  <div id="equityWaitlistContent"><p style="font-size:.82rem;color:var(--muted);">Loading...</p></div>
 </div>
 
   </div>
@@ -521,6 +537,7 @@ function loadPage(n) {
   else if (n==='reports') loadReports(1);
   else if (n==='kyc') loadKyc();
   else if (n==='messages') { /* nothing to load on init */ }
+  else if (n==='equity') loadEquityWaitlist();
 }
 
 // ─── INIT ───
@@ -995,6 +1012,26 @@ async function loadKyc() {
       <td><button class="btn bp btn-xs" onclick="openUserDetail('${d.userId}')">Review</button></td>
     </tr>`).join('')}</tbody></table></div>`;
   } catch(e) { console.error(e); }
+}
+
+// ════════════════════════════════════════════
+//  EQUITY WAITLIST
+// ════════════════════════════════════════════
+async function loadEquityWaitlist() {
+  try {
+    const r = await api('/admin/equity/waitlist');
+    const entries = Array.isArray(r.data)?r.data:[];
+    const el = document.getElementById('equityWaitlistContent');
+    if (!entries.length) { el.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">No signups yet</div><div class="empty-sub">Waitlist is empty</div></div>`; return; }
+    el.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>Name</th><th>Email</th><th>GG ID</th><th>Joined</th></tr></thead><tbody>${entries.map((e,i) => `<tr>
+      <td style="font-size:.7rem;color:var(--muted);">${i+1}</td>
+      <td class="tdt">${esc(e.firstName||'')+' '+esc(e.lastName||'')}</td>
+      <td>${esc(e.email)}</td>
+      <td style="font-size:.7rem">${esc(ggId(e.userId))}</td>
+      <td style="font-size:.7rem">${e.joinedAt?new Date(e.joinedAt).toLocaleDateString():'—'}</td>
+    </tr>`).join('')}</tbody></table></div>
+    <div style="margin-top:8px;font-size:.72rem;color:var(--muted);text-align:right;">Total: ${entries.length}</div>`;
+  } catch(e) { document.getElementById('equityWaitlistContent').innerHTML = `<div class="empty"><div class="empty-sub">Failed to load waitlist</div></div>`; }
 }
 
 // ─── MESSAGE TAB SEARCH ───
