@@ -79,7 +79,7 @@ router.get("/barter/requests", optionalAuth, async (req, res): Promise<void> => 
 
   const userIds = [...new Set(requests.map(r => r.userId))];
   const users = userIds.length ? await db
-    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore })
+    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified })
     .from(usersTable)
     .where(inArray(usersTable.id, userIds)) : [];
   const userMap = new Map(users.map(u => [u.id, u]));
@@ -101,7 +101,7 @@ router.get("/barter/requests/mine", authenticate, async (req, res): Promise<void
     .orderBy(desc(barterRequestsTable.createdAt));
   const userIds = [...new Set(requests.map(r => r.userId))];
   const users = userIds.length ? await db
-    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore })
+    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified })
     .from(usersTable)
     .where(inArray(usersTable.id, userIds)) : [];
   const userMap = new Map(users.map(u => [u.id, u]));
@@ -114,7 +114,7 @@ router.get("/barter/requests/:id", optionalAuth, async (req, res): Promise<void>
   if (!request) { res.status(404).json({ success: false, message: "Request not found" }); return; }
 
   const [user] = await db
-    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore })
+    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified })
     .from(usersTable)
     .where(eq(usersTable.id, request.userId));
 
@@ -168,7 +168,7 @@ router.post("/barter/requests", authenticate, barterUpload.single("image"), asyn
     .returning();
 
   const [user] = await db
-    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore })
+    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified })
     .from(usersTable)
     .where(eq(usersTable.id, req.user!.id));
 
@@ -277,7 +277,7 @@ router.get("/barter/matches", authenticate, async (req, res): Promise<void> => {
   }
 
   const [users, reqs, convs, deliveries] = await Promise.all([
-    db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore }).from(usersTable).where(inArray(usersTable.id, [...userIds])),
+    db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified }).from(usersTable).where(inArray(usersTable.id, [...userIds])),
     db.select({ id: barterRequestsTable.id, skillOffered: barterRequestsTable.skillOffered, skillNeeded: barterRequestsTable.skillNeeded }).from(barterRequestsTable).where(inArray(barterRequestsTable.id, [...reqIds])),
     db.select({ id: conversationsTable.id, matchId: conversationsTable.matchId }).from(conversationsTable).where(inArray(conversationsTable.matchId, matchIds)),
     db.select().from(barterDeliveriesTable).where(inArray(barterDeliveriesTable.matchId, matchIds)).orderBy(desc(barterDeliveriesTable.createdAt)),
@@ -526,7 +526,7 @@ router.get("/barter/ai-suggestions", authenticate, async (req, res): Promise<voi
 
     const userIds = [...new Set(scored.map(r => r.userId))];
     const users = userIds.length ? await db
-      .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore })
+      .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified })
       .from(usersTable)
       .where(inArray(usersTable.id, userIds)) : [];
     const userMap = new Map(users.map(u => [u.id, u]));

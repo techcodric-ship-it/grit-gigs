@@ -70,7 +70,7 @@ router.get("/messages/conversations", authenticate, async (req, res): Promise<vo
   const convIds = conversations.map(c => c.id);
 
   const [users, lastMsgs, unreadCounts] = await Promise.all([
-    db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto })
+    db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, kycVerified: usersTable.kycVerified })
       .from(usersTable).where(inArray(usersTable.id, otherIds)),
     (async () => {
       const res = await pool.query(
@@ -237,7 +237,7 @@ router.get("/messages/conversations/:conversationId/messages", authenticate, asy
 
   const senderIds = [...new Set(messages.map(m => m.senderId))];
   const senders = senderIds.length ? await db
-    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto })
+    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, kycVerified: usersTable.kycVerified })
     .from(usersTable)
     .where(inArray(usersTable.id, senderIds)) : [];
   const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
@@ -258,6 +258,13 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
   const { messageText, attachments } = req.body;
 
   if (!messageText?.trim()) { res.status(400).json({ success: false, message: "Message cannot be empty" }); return; }
+
+  // Block messages containing contact info (email or phone)
+  const contactPattern = /(?:\b\d{7,}\b)|(?:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/;
+  if (contactPattern.test(messageText)) {
+    res.status(400).json({ success: false, message: "Messages cannot contain contact information (email or phone). Please keep all communication on-platform." });
+    return;
+  }
 
   const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, convId));
   if (!conv) { res.status(404).json({ success: false, message: "Conversation not found" }); return; }
@@ -284,7 +291,7 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
   const app = req.app;
   const io = app.get("io");
   if (io) {
-    const [sender] = await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto }).from(usersTable).where(eq(usersTable.id, req.user!.id));
+    const [sender] = await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, kycVerified: usersTable.kycVerified }).from(usersTable).where(eq(usersTable.id, req.user!.id));
     io.to(`conv:${convId}`).emit("message:new", { ...message, sender });
     io.to(`user:${recipientId}`).emit("notification:new", {
       type: "NEW_MESSAGE",

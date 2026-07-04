@@ -44,8 +44,8 @@ router.get("/orders", authenticate, async (req, res): Promise<void> => {
     orders.map(async (o) => {
       const [service] = await db.select({ id: servicesTable.id, title: servicesTable.title, images: servicesTable.images, category: servicesTable.category }).from(servicesTable).where(eq(servicesTable.id, o.serviceId));
       const [pkg] = await db.select().from(servicePackagesTable).where(eq(servicePackagesTable.id, o.packageId));
-      const [buyer] = await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, reputationScore: usersTable.reputationScore, emailVerified: usersTable.emailVerified, createdAt: usersTable.createdAt }).from(usersTable).where(eq(usersTable.id, o.buyerId));
-      const [seller] = await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, reputationScore: usersTable.reputationScore, emailVerified: usersTable.emailVerified, createdAt: usersTable.createdAt }).from(usersTable).where(eq(usersTable.id, o.sellerId));
+      const [buyer] = await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, reputationScore: usersTable.reputationScore, emailVerified: usersTable.emailVerified, createdAt: usersTable.createdAt, kycVerified: usersTable.kycVerified }).from(usersTable).where(eq(usersTable.id, o.buyerId));
+      const [seller] = await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, reputationScore: usersTable.reputationScore, emailVerified: usersTable.emailVerified, createdAt: usersTable.createdAt, kycVerified: usersTable.kycVerified }).from(usersTable).where(eq(usersTable.id, o.sellerId));
       const deliveries = await db.select().from(orderDeliveriesTable).where(eq(orderDeliveriesTable.orderId, o.id)).orderBy(desc(orderDeliveriesTable.createdAt)).limit(1);
       const [review] = await db.select().from(reviewsTable).where(eq(reviewsTable.orderId, o.id));
       // Flatten latest delivery message/link for frontend convenience
@@ -68,8 +68,8 @@ router.get("/orders/:id", authenticate, async (req, res): Promise<void> => {
 
   const [service] = await db.select().from(servicesTable).where(eq(servicesTable.id, order.serviceId));
   const [pkg] = await db.select().from(servicePackagesTable).where(eq(servicePackagesTable.id, order.packageId));
-  const [buyer] = await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city }).from(usersTable).where(eq(usersTable.id, order.buyerId));
-  const [seller] = await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city }).from(usersTable).where(eq(usersTable.id, order.sellerId));
+  const [buyer] = await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, kycVerified: usersTable.kycVerified }).from(usersTable).where(eq(usersTable.id, order.buyerId));
+  const [seller] = await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, kycVerified: usersTable.kycVerified }).from(usersTable).where(eq(usersTable.id, order.sellerId));
   const deliveries = await db.select().from(orderDeliveriesTable).where(eq(orderDeliveriesTable.orderId, order.id)).orderBy(desc(orderDeliveriesTable.createdAt));
   const [review] = await db.select().from(reviewsTable).where(eq(reviewsTable.orderId, order.id));
 

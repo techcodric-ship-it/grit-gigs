@@ -418,6 +418,8 @@ router.get("/users/:id", optionalAuth, async (req, res): Promise<void> => {
         emailVerified: usersTable.emailVerified,
         kycVerified: usersTable.kycVerified,
         createdAt: usersTable.createdAt,
+        email: usersTable.email,
+        phone: usersTable.phone,
       })
       .from(usersTable)
       .where(eq(usersTable.id, String(req.params.id)));
@@ -522,15 +524,25 @@ router.get("/users/:id", optionalAuth, async (req, res): Promise<void> => {
     const sub = await getOrCreateSubscription(user.id);
     const plan = getPlan(sub.planId);
 
+    // Hide contact info from non-admin viewers
+    const viewerIsAdmin = req.user?.role === "ADMIN";
+    const viewerIsOwner = req.user?.id === user.id;
+    const showContact = viewerIsAdmin || viewerIsOwner;
+    const profileUser: Record<string, unknown> = {
+      ...user,
+      planBadge: plan.badge,
+      planName: plan.name,
+      ggId: 'G&G-' + user.id.replace(/-/g, '').slice(0, 8).toUpperCase(),
+    };
+    if (!showContact) {
+      delete profileUser.email;
+      delete profileUser.phone;
+    }
+
     res.json({
       success: true,
       data: {
-        user: {
-          ...user,
-          planBadge: plan.badge,
-          planName: plan.name,
-          ggId: 'G&G-' + user.id.replace(/-/g, '').slice(0, 8).toUpperCase(),
-        },
+        user: profileUser,
         gigs,
         reviewCount: allReviews.length,
         avgRating,

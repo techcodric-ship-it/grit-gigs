@@ -102,7 +102,7 @@ router.get("/services", optionalAuth, async (req, res): Promise<void> => {
 
   for (const svc of services) {
     const [seller] = await db
-      .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore })
+      .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified })
       .from(usersTable)
       .where(eq(usersTable.id, svc.sellerId));
     if (seller) sellersMap[svc.sellerId] = seller;
@@ -131,7 +131,7 @@ router.get("/services/mine", authenticate, async (req, res): Promise<void> => {
     .orderBy(desc(servicesTable.createdAt));
 
   const [seller] = await db
-    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore })
+    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified })
     .from(usersTable)
     .where(eq(usersTable.id, req.user!.id));
   const result = await Promise.all(
@@ -152,7 +152,7 @@ router.get("/services/:id", optionalAuth, async (req, res): Promise<void> => {
   }
 
   const [seller] = await db
-    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, bio: usersTable.bio, city: usersTable.city, reputationScore: usersTable.reputationScore, createdAt: usersTable.createdAt })
+    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, bio: usersTable.bio, city: usersTable.city, reputationScore: usersTable.reputationScore, createdAt: usersTable.createdAt, kycVerified: usersTable.kycVerified })
     .from(usersTable)
     .where(eq(usersTable.id, service.sellerId));
 

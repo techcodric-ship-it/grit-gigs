@@ -452,6 +452,33 @@ textarea.fi{resize:vertical;}
 .saved-tab.active{background:#fff;color:var(--violet);box-shadow:0 1px 3px rgba(0,0,0,.08);}
 .saved-tab:hover:not(.active){color:var(--ink);}
 
+/* ── MicroEquity ── */
+.eq-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:24px;}
+.eq-stat{background:#fff;border-radius:14px;padding:20px;border:1px solid var(--bd);box-shadow:var(--sh);}
+.eq-stat-lbl{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+.eq-stat-val{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:var(--ink);line-height:1.2;}
+.eq-stat-sub{font-size:.75rem;color:var(--ok);font-weight:600;margin-top:3px;}
+.eq-card{background:#fff;border-radius:14px;border:1px solid var(--bd);overflow:hidden;box-shadow:var(--sh);transition:all .25s;cursor:pointer;}
+.eq-card:hover{box-shadow:var(--shm);transform:translateY(-2px);}
+.eq-card-img{width:100%;height:120px;object-fit:cover;background:linear-gradient(135deg,#059669,#10B981);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.8rem;font-weight:800;font-family:'Syne',sans-serif;}
+.eq-card-img.startup{background:linear-gradient(135deg,#7C3AED,#A78BFA);}
+.eq-card-img.creator{background:linear-gradient(135deg,#D97706,#F59E0B);}
+.eq-card-img.local{background:linear-gradient(135deg,#DC2626,#F87171);}
+.eq-card-img.tech{background:linear-gradient(135deg,#2563EB,#60A5FA);}
+.eq-card-body{padding:16px;}
+.eq-card-name{font-weight:700;font-size:.92rem;color:var(--ink);margin-bottom:3px;}
+.eq-card-desc{font-size:.78rem;color:var(--sec);line-height:1.5;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.eq-card-meta{display:flex;align-items:center;justify-content:space-between;font-size:.72rem;}
+.eq-card-raised{font-weight:700;color:var(--ink);}
+.eq-card-roi{color:var(--ok);font-weight:700;}
+.eq-card-bar{width:100%;height:5px;background:#f0f0f5;border-radius:99px;margin-top:10px;overflow:hidden;}
+.eq-card-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#10B981,#059669);transition:width .6s;}
+.eq-sectitle{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.eq-mock-empty{text-align:center;padding:40px 20px;background:#fff;border-radius:14px;border:1px solid var(--bd);}
+.eq-mock-empty svg{width:48px;height:48px;color:#d1d5db;margin-bottom:12px;}
+.eq-mock-empty h3{font-size:1.1rem;color:var(--ink);margin-bottom:6px;}
+.eq-mock-empty p{font-size:.84rem;color:var(--muted);max-width:360px;margin:0 auto;line-height:1.6;}
+
 /* ── Invite card ── */
 .inv-card{background:#fff;border-radius:14px;border:1px solid var(--bd);padding:18px;margin-bottom:12px;box-shadow:var(--sh);transition:box-shadow .2s;}
 .inv-card:hover{box-shadow:var(--shm);}
@@ -617,9 +644,9 @@ textarea.fi{resize:vertical;}
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
       Upgrade Plan
     </button>
-    <button class="ni" data-p="invest" style="opacity:.42;">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 1 18"/></svg>
-      MicroEquity<span class="stg">Soon</span>
+    <button class="ni" data-p="invest">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 1 18"/><polyline points="16 7 22 7 22 13"/></svg>
+      MicroEquity
     </button>
     <div class="ns">Tools</div>
     <button class="ni" data-p="saved">
@@ -1314,13 +1341,91 @@ textarea.fi{resize:vertical;}
 
     <!-- INVEST -->
     <div class="ps" id="ps-invest">
-      <div style="margin-bottom:14px;"><h2 style="font-size:1.1rem;">MicroEquity</h2></div>
-      <div class="it" style="max-width:480px;">
-        <div class="iti">
-          <span class="bdg bdg-coming" style="margin-bottom:9px;">Launching Q3 2026</span>
-          <h3>Invest in businesses you believe in</h3>
-          <p>Invest from ₹10,000 in verified local businesses and earn quarterly dividends.</p>
-          <button class="btn bp" onclick="showToast('Added to waitlist!','ok')">Join the waitlist</button>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
+        <h2 style="font-size:1.1rem;">MicroEquity</h2>
+        <div style="display:flex;gap:8px;">
+          <button class="btn bs" onclick="showToast('Portfolio statement will be available soon','ok')">Portfolio</button>
+          <button class="btn bp" onclick="showToast('Coming soon — invest in verified businesses','ok')">Invest Now</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="eq-grid">
+        <div class="eq-stat"><div class="eq-stat-lbl">Total Invested</div><div class="eq-stat-val">₹0</div><div class="eq-stat-sub">+0% this quarter</div></div>
+        <div class="eq-stat"><div class="eq-stat-lbl">Active Investments</div><div class="eq-stat-val">0</div><div class="eq-stat-sub">Diversify to grow</div></div>
+        <div class="eq-stat"><div class="eq-stat-lbl">Total Returns</div><div class="eq-stat-val">₹0</div><div class="eq-stat-sub">Start investing to earn</div></div>
+        <div class="eq-stat"><div class="eq-stat-lbl">Portfolio Health</div><div class="eq-stat-val">—</div><div class="eq-stat-sub">No active positions</div></div>
+      </div>
+
+      <!-- Available Opportunities -->
+      <div class="eq-sectitle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 1 18"/><polyline points="16 7 22 7 22 13"/></svg>Available Investments</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:32px;">
+
+        <div class="eq-card" onclick="showToast('Investment details coming soon','ok')">
+          <div class="eq-card-img startup">T</div>
+          <div class="eq-card-body">
+            <div class="eq-card-name">TechFlow Solutions</div>
+            <div class="eq-card-desc">SaaS platform for workflow automation targeting SMBs in India. MRR of ₹4.2L.</div>
+            <div class="eq-card-meta"><span class="eq-card-raised">₹12.5L raised</span><span class="eq-card-roi">18% ROI est.</span></div>
+            <div class="eq-card-bar"><div class="eq-card-bar-fill" style="width:68%"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--muted);margin-top:4px;"><span>₹8.5L / ₹12.5L</span><span>68% funded</span></div>
+          </div>
+        </div>
+
+        <div class="eq-card" onclick="showToast('Investment details coming soon','ok')">
+          <div class="eq-card-img creator">G</div>
+          <div class="eq-card-body">
+            <div class="eq-card-name">GreenLeaf Organics</div>
+            <div class="eq-card-desc">Organic farm-to-table produce delivery network expanding to 3 new cities.</div>
+            <div class="eq-card-meta"><span class="eq-card-raised">₹6.8L raised</span><span class="eq-card-roi">14% ROI est.</span></div>
+            <div class="eq-card-bar"><div class="eq-card-bar-fill" style="width:45%"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--muted);margin-top:4px;"><span>₹3.1L / ₹6.8L</span><span>45% funded</span></div>
+          </div>
+        </div>
+
+        <div class="eq-card" onclick="showToast('Investment details coming soon','ok')">
+          <div class="eq-card-img local">C</div>
+          <div class="eq-card-body">
+            <div class="eq-card-name">CraftHouse India</div>
+            <div class="eq-card-desc">Artisan marketplace connecting rural craftspeople with urban buyers via D2C.</div>
+            <div class="eq-card-meta"><span class="eq-card-raised">₹3.2L raised</span><span class="eq-card-roi">22% ROI est.</span></div>
+            <div class="eq-card-bar"><div class="eq-card-bar-fill" style="width:82%"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--muted);margin-top:4px;"><span>₹2.6L / ₹3.2L</span><span>82% funded</span></div>
+          </div>
+        </div>
+
+        <div class="eq-card" onclick="showToast('Investment details coming soon','ok')">
+          <div class="eq-card-img tech">D</div>
+          <div class="eq-card-body">
+            <div class="eq-card-name">DevForge Studio</div>
+            <div class="eq-card-desc">Dev agency building custom web solutions for US & EU clients. Team of 12.</div>
+            <div class="eq-card-meta"><span class="eq-card-raised">₹18.2L raised</span><span class="eq-card-roi">25% ROI est.</span></div>
+            <div class="eq-card-bar"><div class="eq-card-bar-fill" style="width:91%"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--muted);margin-top:4px;"><span>₹16.6L / ₹18.2L</span><span>91% funded</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- How it works -->
+      <div style="background:#fff;border-radius:14px;border:1px solid var(--bd);padding:24px;box-shadow:var(--sh);">
+        <div class="eq-sectitle" style="margin-bottom:16px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6C3FE8" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>How MicroEquity Works</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:20px;">
+          <div style="text-align:center;padding:16px;">
+            <div style="width:40px;height:40px;border-radius:50%;background:var(--vl);color:var(--violet);display:flex;align-items:center;justify-content:center;font-weight:800;font-family:'Syne',sans-serif;margin:0 auto 10px;">1</div>
+            <div style="font-weight:700;font-size:.84rem;margin-bottom:4px;">Browse Businesses</div>
+            <div style="font-size:.76rem;color:var(--sec);line-height:1.5;">Explore verified local businesses seeking micro-investments starting at ₹10,000.</div>
+          </div>
+          <div style="text-align:center;padding:16px;">
+            <div style="width:40px;height:40px;border-radius:50%;background:var(--vl);color:var(--violet);display:flex;align-items:center;justify-content:center;font-weight:800;font-family:'Syne',sans-serif;margin:0 auto 10px;">2</div>
+            <div style="font-weight:700;font-size:.84rem;margin-bottom:4px;">Invest &amp; Track</div>
+            <div style="font-size:.76rem;color:var(--sec);line-height:1.5;">Fund businesses you believe in and track your portfolio in real-time.</div>
+          </div>
+          <div style="text-align:center;padding:16px;">
+            <div style="width:40px;height:40px;border-radius:50%;background:var(--vl);color:var(--violet);display:flex;align-items:center;justify-content:center;font-weight:800;font-family:'Syne',sans-serif;margin:0 auto 10px;">3</div>
+            <div style="font-weight:700;font-size:.84rem;margin-bottom:4px;">Earn Returns</div>
+            <div style="font-size:.76rem;color:var(--sec);line-height:1.5;">Receive quarterly dividends based on business performance. Exit anytime.</div>
+          </div>
         </div>
       </div>
     </div>
@@ -1827,6 +1932,7 @@ function userStarsHtml(avg, cnt) {
   }
   return '<span style="color:var(--muted);font-size:.6rem;">No reviews</span>';
 }
+function kycBadge(v) { return v ? `<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">✓ KYC</span>` : ''; }
 
 // Redirect if not logged in
 if (!gU()) window.location.href = 'index.html';
@@ -2546,7 +2652,7 @@ function renderMatchSummary(ms) {
       <img src="${esc(avUrl(o))}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="av" style="width:24px;height:24px;font-size:8px;display:none;">${ini}</div>
       <div style="flex:1;min-width:0;">
         <div class="esk">${r1?.skillOffered || '—'} ⇄ ${r2?.skillOffered || '—'}</div>
-        <div class="ewh">${o?.firstName || '?'} ${o?.lastName || ''} ${userStarsHtml(o?.avgRating, o?.reviewCount)}</div>
+        <div class="ewh">${o?.firstName || '?'} ${o?.lastName || ''}${kycBadge(o?.kycVerified)} ${userStarsHtml(o?.avgRating, o?.reviewCount)}</div>
       </div>
       <span class="pill ${pc}">${m.status}</span>
     </div>`;
@@ -2685,7 +2791,7 @@ async function loadMyExchanges() {
               ? `<img src="${esc(m.user1.profilePhoto)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;border:2px solid var(--white);box-shadow:0 2px 8px rgba(0,0,0,.08);" onclick="event.stopPropagation();openUserProfile('${esc(m.user1?.id || '')}')"/>`
               : `<div class="av" style="width:40px;height:40px;font-size:13px;border:2px solid var(--white);box-shadow:0 2px 8px rgba(0,0,0,.08);cursor:pointer;" onclick="event.stopPropagation();openUserProfile('${esc(m.user1?.id || '')}')">${((m.user1?.firstName || '?')[0]).toUpperCase()}</div>`}
             <div style="flex:1;min-width:0;">
-              <div style="font-weight:600;font-size:.85rem;color:var(--violet);cursor:pointer;" onclick="event.stopPropagation();openUserProfile('${esc(m.user1?.id || '')}')">${m.user1?.firstName || '?'} ${m.user1?.lastName || ''}</div>
+              <div style="font-weight:600;font-size:.85rem;color:var(--violet);cursor:pointer;" onclick="event.stopPropagation();openUserProfile('${esc(m.user1?.id || '')}')">${m.user1?.firstName || '?'} ${m.user1?.lastName || ''}${kycBadge(m.user1?.kycVerified)}</div>
               <div style="font-size:.7rem;color:var(--muted);">wants to exchange skills</div>
             </div>
             <span class="pill" style="background:var(--gl);color:var(--gold);font-size:.55rem;">PENDING</span>
@@ -2793,7 +2899,7 @@ async function loadActiveExchanges() {
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-top:4px;">
         <img src="${esc(avUrl(other))}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;border:2px solid var(--white);box-shadow:0 2px 8px rgba(0,0,0,.08);" onclick="openUserProfile('${esc(other?.id || '')}')" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="av" style="width:38px;height:38px;font-size:13px;border:2px solid var(--white);box-shadow:0 2px 8px rgba(0,0,0,.08);cursor:pointer;flex-shrink:0;display:none;" onclick="openUserProfile('${esc(other?.id || '')}')">${ini}</div>
         <div style="flex:1;min-width:0;">
-          <div style="font-weight:600;font-size:.85rem;cursor:pointer;color:var(--violet);" onclick="openUserProfile('${esc(other?.id || '')}')">${other?.firstName || '?'} ${other?.lastName || ''}</div>
+          <div style="font-weight:600;font-size:.85rem;cursor:pointer;color:var(--violet);" onclick="openUserProfile('${esc(other?.id || '')}')">${other?.firstName || '?'} ${other?.lastName || ''}${kycBadge(other?.kycVerified)}</div>
           <div style="display:flex;align-items:center;gap:4px;font-size:.68rem;color:var(--muted);">${userStarsHtml(other?.avgRating, other?.reviewCount)}${other?.city ? ` · ${other.city}` : ' · India'}</div>
         </div>
         <span style="font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:4px 10px;border-radius:100px;background:${isCompleted ? 'var(--okl)' : 'var(--vl)'};color:${isCompleted ? 'var(--ok)' : 'var(--violet)'};">${isCompleted ? '✓ Completed' : '● Active'}</span>
@@ -3501,7 +3607,7 @@ async function loadInbox() {
       <span ${_isAdmin ? '' : `onclick="event.stopPropagation();if('${esc(other?.id||'')}')openUserProfile('${esc(other?.id||'')}')" title="View profile"`} style="cursor:pointer;flex-shrink:0;position:relative;"><img src="${esc(avUrl(other))}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid ${unread?'var(--violet)':'var(--bd,#e5e7eb)'};" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="av" style="width:34px;height:34px;font-size:12px;display:none;${unread ? 'background:var(--violet);color:white;' : ''}">${ini}</div></span>
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:5px;">
-          <span style="font-weight:${unread ? '700' : '500'};font-size:.82rem;color:var(--violet);${_isAdmin ? '' : 'cursor:pointer;'}" ${_isAdmin ? '' : `onclick="event.stopPropagation();openUserProfile('${esc(other?.id||'')}')"`}>${firstName} ${lastName}</span>
+          <span style="font-weight:${unread ? '700' : '500'};font-size:.82rem;color:var(--violet);${_isAdmin ? '' : 'cursor:pointer;'}" ${_isAdmin ? '' : `onclick="event.stopPropagation();openUserProfile('${esc(other?.id||'')}')"`}>${firstName} ${lastName}${kycBadge(other?.kycVerified)}</span>
           ${_isAdmin ? '<span style="font-size:.58rem;font-weight:700;color:#fff;background:var(--violet);padding:1px 6px;border-radius:4px;letter-spacing:.03em;line-height:1.4;">SUPPORT</span>' : ''}
           ${userStarsHtml(other?.avgRating, other?.reviewCount)}
           ${sourceLabel}
@@ -4040,7 +4146,7 @@ function renderGigCards(svcs, cId) {
         <div class="gig-seller">
           <img src="${esc(avUrl(seller))}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid var(--white);box-shadow:0 2px 6px rgba(0,0,0,.08);flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="gig-seller-av" style="display:none;">${ini}</div>
           <div class="gig-seller-info">
-            <div class="gig-sn">${esc(sellerName)}</div>
+            <div class="gig-sn">${esc(sellerName)}${kycBadge(seller.kycVerified)}</div>
             <div class="gig-seller-stat">${seller.city || 'India'} · Rep ${seller.reputationScore || 0}</div>
           </div>
           ${profileBtn}
@@ -4096,7 +4202,7 @@ async function openGigModal(id) {
       ${seller.profilePhoto ? `<img src="${esc(seller.profilePhoto)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;border:2px solid var(--white);box-shadow:0 2px 6px rgba(0,0,0,.08);" onclick="openUserProfile('${esc(seller.id)}')"/>` : `<div class="av" style="width:36px;height:36px;font-size:12px;flex-shrink:0;cursor:pointer;" onclick="openUserProfile('${esc(seller.id)}')">${ini}</div>`}
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-weight:600;font-size:.84rem;">${seller.firstName || '?'} ${seller.lastName || ''}</span>
+          <span style="font-weight:600;font-size:.84rem;">${seller.firstName || '?'} ${seller.lastName || ''}${kycBadge(seller.kycVerified)}</span>
           ${seller.emailVerified ? `<span style="font-size:.58rem;background:rgba(22,163,74,.1);color:#16A34A;font-weight:700;padding:1px 6px;border-radius:99px;">✓ Verified</span>` : ''}
         </div>
         <div style="font-size:.68rem;color:var(--muted);margin-top:1px;">${seller.city || 'India'} · Rep ${seller.reputationScore || 0} ${seller.hourlyRate ? '· ₹' + seller.hourlyRate + '/hr' : ''}</div>
@@ -4258,7 +4364,7 @@ async function loadOrders(role) {
           <div style="display:flex;align-items:center;gap:8px;">
             <img src="${esc(avUrl(other))}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="openUserProfile('${esc(otherId)}')" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="av" style="width:34px;height:34px;font-size:11px;cursor:pointer;flex-shrink:0;display:none;" onclick="openUserProfile('${esc(otherId)}')">${ini}</div>
             <div style="flex:1;min-width:0;">
-              <div style="font-weight:600;font-size:.82rem;">${esc(otherName)} ${userStarsHtml(other?.avgRating, other?.reviewCount)}</div>
+              <div style="font-weight:600;font-size:.82rem;">${esc(otherName)}${kycBadge(other?.kycVerified)} ${userStarsHtml(other?.avgRating, other?.reviewCount)}</div>
               <div style="font-size:.7rem;color:var(--muted);">${other.city || 'India'}${other.country ? ', ' + other.country : ''}</div>
             </div>
             <button class="btn bg2 btn-xs" onclick="event.stopPropagation();openUserProfile('${esc(otherId)}')">👤 View Profile</button>
@@ -4341,7 +4447,7 @@ async function loadOrders(role) {
         <div style="flex:1;min-width:0;">
           <div style="font-weight:600;font-size:.84rem;color:var(--ink);">${esc(o.service?.title || 'Service')}</div>
           <div style="font-size:.7rem;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
-            <span>${role === 'buyer' ? 'Seller' : 'Client'}: <b style="color:var(--ink);cursor:pointer;" onclick="openUserProfile('${esc(otherId)}')">${esc(otherName)}</b> ${userStarsHtml(other?.avgRating, other?.reviewCount)}</span>
+            <span>${role === 'buyer' ? 'Seller' : 'Client'}: <b style="color:var(--ink);cursor:pointer;" onclick="openUserProfile('${esc(otherId)}')">${esc(otherName)}${kycBadge(other?.kycVerified)}</b> ${userStarsHtml(other?.avgRating, other?.reviewCount)}</span>
             <span style="color:var(--bd2);">·</span>
             <span style="text-transform:capitalize;">${esc(pkg.packageType || 'Standard')}</span>
             <span style="color:var(--bd2);">·</span>
@@ -5556,7 +5662,7 @@ async function loadMyBids() {
         <div style="flex:1;">
           <div style="font-weight:700;font-size:.86rem;">${esc(b.project?.title || 'Project')}</div>
           <div class="project-card-meta">${esc(b.project?.category || 'Open project')} · Bid ${timeSince(b.createdAt)}${b.deliveryDays ? ' · ' + b.deliveryDays + ' days delivery' : ''}${b.project?.deadline ? ' · 📅 Due ' + new Date(b.project.deadline).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : ''}</div>
-          ${client.id ? `<div style="display:flex;align-items:center;gap:6px;margin-top:5px;">${client.profilePhoto ? `<img src="${esc(client.profilePhoto)}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation();openUserProfile('${esc(client.id)}')"/>` : `<div class="av" style="width:22px;height:22px;font-size:7px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();openUserProfile('${esc(client.id)}')">${((client.firstName||'?')[0]).toUpperCase()}</div>`}<span style="font-size:.7rem;color:var(--violet);cursor:pointer;font-weight:600;" onclick="event.stopPropagation();openUserProfile('${esc(client.id)}')">${esc(client.firstName||'?')} ${esc(client.lastName||'')}</span> ${userStarsHtml(client.avgRating, client.reviewCount)}</div>` : ''}
+          ${client.id ? `<div style="display:flex;align-items:center;gap:6px;margin-top:5px;">${client.profilePhoto ? `<img src="${esc(client.profilePhoto)}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation();openUserProfile('${esc(client.id)}')"/>` : `<div class="av" style="width:22px;height:22px;font-size:7px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();openUserProfile('${esc(client.id)}')">${((client.firstName||'?')[0]).toUpperCase()}</div>`}<span style="font-size:.7rem;color:var(--violet);cursor:pointer;font-weight:600;" onclick="event.stopPropagation();openUserProfile('${esc(client.id)}')">${esc(client.firstName||'?')} ${esc(client.lastName||'')}${kycBadge(client?.kycVerified)}</span> ${userStarsHtml(client.avgRating, client.reviewCount)}</div>` : ''}
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-weight:700;color:var(--violet);font-size:.86rem;">${moneyInr(b.amount)}</div>
@@ -5634,7 +5740,7 @@ async function loadReceivedProposals() {
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
         ${b.user?.profilePhoto ? `<img src="${esc(b.user.profilePhoto)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation();openUserProfile('${esc(b.user?.id)}')"/>` : `<div class="av" style="width:32px;height:32px;font-size:11px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();openUserProfile('${esc(b.user?.id)}')">${((b.user?.firstName||'?')[0]).toUpperCase()}</div>`}
         <div style="flex:1;">
-          <div style="font-weight:600;font-size:.82rem;cursor:pointer;color:var(--violet);" onclick="event.stopPropagation();openUserProfile('${esc(b.user?.id)}')">${esc(b.user?.firstName || 'Freelancer')} ${esc(b.user?.lastName || '')}</div>
+          <div style="font-weight:600;font-size:.82rem;cursor:pointer;color:var(--violet);" onclick="event.stopPropagation();openUserProfile('${esc(b.user?.id)}')">${esc(b.user?.firstName || 'Freelancer')} ${esc(b.user?.lastName || '')}${kycBadge(b.user?.kycVerified)}</div>
           <div style="font-size:.65rem;color:var(--muted);">${userStarsHtml(b.user?.avgRating, b.user?.reviewCount)} · Bid ${timeSince(b.createdAt)}${b.deliveryDays ? ' · ' + b.deliveryDays + ' days' : ''}</div>
         </div>
         <div style="font-weight:700;color:var(--violet);font-size:.88rem;">${moneyInr(b.amount)}</div>
@@ -5680,7 +5786,7 @@ async function loadBrowseProjects(q = '') {
         <div style="flex:1;">
           <div style="font-weight:700;font-size:.9rem;color:var(--ink);">${esc(p.title)}</div>
           <div class="project-card-meta">${esc(p.category)}${p.skills ? ' · ' + esc(p.skills) : ''} · ${timeSince(p.createdAt)}</div>
-          ${p.user?.id ? `<div style="display:flex;align-items:center;gap:6px;margin-top:5px;">${p.user?.profilePhoto ? `<img src="${esc(p.user.profilePhoto)}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')"/>` : `<div class="av" style="width:22px;height:22px;font-size:7px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')">${((p.user?.firstName||'?')[0]).toUpperCase()}</div>`}<span style="font-size:.7rem;color:var(--violet);cursor:pointer;font-weight:600;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')">${esc(p.user?.firstName||'?')} ${esc(p.user?.lastName||'')}</span><span class="gig-vpf" style="font-size:.55rem;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')">👤 View Profile</span></div>` : ''}
+          ${p.user?.id ? `<div style="display:flex;align-items:center;gap:6px;margin-top:5px;">${p.user?.profilePhoto ? `<img src="${esc(p.user.profilePhoto)}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')"/>` : `<div class="av" style="width:22px;height:22px;font-size:7px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')">${((p.user?.firstName||'?')[0]).toUpperCase()}</div>`}<span style="font-size:.7rem;color:var(--violet);cursor:pointer;font-weight:600;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')">${esc(p.user?.firstName||'?')} ${esc(p.user?.lastName||'')}${kycBadge(p.user?.kycVerified)}</span><span class="gig-vpf" style="font-size:.55rem;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')">👤 View Profile</span></div>` : ''}
         </div>
       </div>
       <div class="project-card-desc">${esc(shortText(p.description, 170))}</div>
@@ -5756,7 +5862,7 @@ async function openProjectDet(projectId, viewAs, myBidId = null) {
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
         ${b.user?.profilePhoto ? `<img src="${esc(b.user.profilePhoto)}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="openUserProfile('${esc(b.user?.id)}')"/>` : `<div class="av" style="width:26px;height:26px;font-size:9px;cursor:pointer;" onclick="openUserProfile('${esc(b.user?.id)}')">${esc(((b.user?.firstName || '?')[0]).toUpperCase())}</div>`}
         <div style="flex:1;">
-          <div style="font-weight:600;font-size:.8rem;cursor:pointer;color:var(--violet);" onclick="openUserProfile('${esc(b.user?.id)}')">${esc(b.user?.firstName || 'Freelancer')} ${esc(b.user?.lastName || '')}</div>
+          <div style="font-weight:600;font-size:.8rem;cursor:pointer;color:var(--violet);" onclick="openUserProfile('${esc(b.user?.id)}')">${esc(b.user?.firstName || 'Freelancer')} ${esc(b.user?.lastName || '')}${kycBadge(b.user?.kycVerified)}</div>
           <div style="font-size:.65rem;color:var(--muted);">${userStarsHtml(b.user?.avgRating, b.user?.reviewCount)} · ${timeSince(b.createdAt)}${b.deliveryDays ? ' · ' + b.deliveryDays + ' days' : ''}</div>
         </div>
         <div style="font-weight:700;color:var(--violet);font-size:.9rem;">${moneyInr(b.amount)}</div>
@@ -5866,7 +5972,7 @@ async function openProjectDet(projectId, viewAs, myBidId = null) {
         <div style="font-weight:700;font-size:1.05rem;line-height:1.3;">${esc(p.title)}</div>
         <span class="pill ${statusClass}" style="flex-shrink:0;">${esc(p.status)}</span>
       </div>
-      <div style="font-size:.72rem;color:var(--muted);">${p.user?.profilePhoto ? `<img src="${esc(p.user.profilePhoto)}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:3px;"/>` : ''}Posted by <span style="color:var(--violet);cursor:pointer;font-weight:600;" onclick="openUserProfile('${esc(p.userId)}')">${esc(p.user?.firstName || '?')} ${esc(p.user?.lastName || '')}</span> ${p.user?.id ? `<span class="gig-vpf" style="font-size:.6rem;display:inline-flex;margin-left:4px;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')">👤 View Profile</span>` : ''} ${userStarsHtml(p.user?.avgRating, p.user?.reviewCount)}</div>
+      <div style="font-size:.72rem;color:var(--muted);">${p.user?.profilePhoto ? `<img src="${esc(p.user.profilePhoto)}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:3px;"/>` : ''}Posted by <span style="color:var(--violet);cursor:pointer;font-weight:600;" onclick="openUserProfile('${esc(p.userId)}')">${esc(p.user?.firstName || '?')} ${esc(p.user?.lastName || '')}${kycBadge(p.user?.kycVerified)}</span> ${p.user?.id ? `<span class="gig-vpf" style="font-size:.6rem;display:inline-flex;margin-left:4px;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')">👤 View Profile</span>` : ''} ${userStarsHtml(p.user?.avgRating, p.user?.reviewCount)}</div>
     </div>
     ${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="" style="width:100%;max-height:320px;object-fit:contain;border-radius:var(--rm);margin-bottom:14px;display:block;background:var(--bg);"/>` : ''}
     <div style="font-size:.82rem;color:var(--ink);line-height:1.7;margin-bottom:14px;background:var(--bg);padding:12px;border-radius:var(--rm);white-space:pre-wrap;">${esc(p.description)}</div>
@@ -6702,7 +6808,7 @@ async function loadInvites() {
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
         ${avHtml}
         <div style="flex:1;min-width:0;">
-          <div style="font-weight:600;font-size:.82rem;cursor:pointer;color:var(--violet);" onclick="openUserProfile('${esc(inv.fromUserId)}')">${from.firstName || 'Someone'} ${from.lastName || ''}</div>
+          <div style="font-weight:600;font-size:.82rem;cursor:pointer;color:var(--violet);" onclick="openUserProfile('${esc(inv.fromUserId)}')">${from.firstName || 'Someone'} ${from.lastName || ''}${kycBadge(from.kycVerified)}</div>
           <div style="display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap;">
             <span style="font-size:.63rem;font-weight:700;padding:2px 8px;border-radius:99px;background:rgba(108,63,232,.12);color:var(--violet);text-transform:uppercase;">${inv.targetType}</span>
             <span style="font-size:.68rem;color:var(--muted);">${new Date(inv.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</span>

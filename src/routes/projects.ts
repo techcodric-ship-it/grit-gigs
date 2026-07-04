@@ -63,7 +63,7 @@ async function getProjectWithBids(projectId: string, currentUserId?: string) {
   if (!project) return null;
 
   const [owner] = await db
-    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, reputationScore: usersTable.reputationScore })
+    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified })
     .from(usersTable)
     .where(eq(usersTable.id, project.userId))
     .limit(1);
@@ -77,7 +77,7 @@ async function getProjectWithBids(projectId: string, currentUserId?: string) {
   const bidsWithUsers = await Promise.all(
     bids.map(async (b) => {
       const [u] = await db
-        .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, reputationScore: usersTable.reputationScore })
+        .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified })
         .from(usersTable)
         .where(eq(usersTable.id, b.userId))
         .limit(1);
@@ -120,7 +120,7 @@ router.get('/projects', optionalAuth, async (req: Request, res: Response) => {
   const result = await Promise.all(
     projects.map(async (p) => {
       const [owner] = await db
-        .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, reputationScore: usersTable.reputationScore })
+        .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified })
         .from(usersTable)
         .where(eq(usersTable.id, p.userId))
         .limit(1);
@@ -174,7 +174,7 @@ router.get('/projects/mine', authenticate, async (req: Request, res: Response) =
       const bidsWithUsers = await Promise.all(
         bids.map(async (b) => {
           const [u] = await db
-            .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, reputationScore: usersTable.reputationScore })
+            .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified })
             .from(usersTable)
             .where(eq(usersTable.id, b.userId))
             .limit(1);
@@ -214,7 +214,7 @@ router.get('/projects/my-bids', authenticate, async (req: Request, res: Response
         .limit(1);
       if (!project) return { ...b, project: null };
       const [client] = await db
-        .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, reputationScore: usersTable.reputationScore })
+        .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified })
         .from(usersTable)
         .where(eq(usersTable.id, project.userId))
         .limit(1);
@@ -459,7 +459,7 @@ router.put('/projects/bids/:bidId/accept', authenticate, async (req: Request, re
 
   // Fetch freelancer info for the response
   const [freelancer] = await db
-    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, reputationScore: usersTable.reputationScore })
+    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified })
     .from(usersTable)
     .where(eq(usersTable.id, bid.userId))
     .limit(1);
