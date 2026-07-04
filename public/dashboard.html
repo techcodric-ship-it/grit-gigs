@@ -2543,7 +2543,7 @@ function renderMatchSummary(ms) {
     const ini = (((o?.firstName || '?')[0] || '') + ((o?.lastName || '')[0] || '') || '?').toUpperCase();
     const pc = m.status === 'COMPLETED' ? 'pd' : m.status === 'PENDING' ? 'pp' : 'pa';
     return `<div class="ei">
-      <div class="av" style="width:24px;height:24px;font-size:8px;">${ini}</div>
+      <img src="${esc(avUrl(o))}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="av" style="width:24px;height:24px;font-size:8px;display:none;">${ini}</div>
       <div style="flex:1;min-width:0;">
         <div class="esk">${r1?.skillOffered || '—'} ⇄ ${r2?.skillOffered || '—'}</div>
         <div class="ewh">${o?.firstName || '?'} ${o?.lastName || ''} ${userStarsHtml(o?.avgRating, o?.reviewCount)}</div>
