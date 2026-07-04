@@ -7,10 +7,11 @@ import { pool } from "./db";
 import { ensureBucket } from "./lib/storage";
 
 process.on("unhandledRejection", (reason) => {
-  logger.error({ err: reason }, "Unhandled promise rejection");
+  logger.error({ err: reason }, "Unhandled promise rejection — exiting");
+  process.exit(1);
 });
 process.on("uncaughtException", (err) => {
-  logger.error({ err }, "Uncaught exception");
+  logger.error({ err }, "Uncaught exception — exiting");
   process.exit(1);
 });
 
@@ -53,405 +54,414 @@ app.set("io", io);
   try {
     const client = await pool.connect();
     try {
-      // ── ENUMs ──────────────────────────────────────────────────────────────
-      await client.query(`
-        DO $$ BEGIN CREATE TYPE user_role AS ENUM ('USER','ADMIN','MODERATOR'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-        DO $$ BEGIN CREATE TYPE transaction_type AS ENUM ('CREDIT_PURCHASE','CREDIT_WITHDRAWAL','SERVICE_PAYMENT','SERVICE_EARNING','COMMISSION','REFUND'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-        DO $$ BEGIN CREATE TYPE txn_status AS ENUM ('PENDING','COMPLETED','FAILED','REFUNDED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-        DO $$ BEGIN CREATE TYPE withdrawal_status AS ENUM ('PENDING','PROCESSING','COMPLETED','FAILED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-        DO $$ BEGIN CREATE TYPE barter_status AS ENUM ('ACTIVE','MATCHED','IN_PROGRESS','COMPLETED','CANCELLED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-        DO $$ BEGIN CREATE TYPE match_status AS ENUM ('PENDING','ACCEPTED','IN_PROGRESS','DELIVERED','COMPLETED','CANCELLED','REJECTED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-        DO $$ BEGIN CREATE TYPE service_status AS ENUM ('ACTIVE','PAUSED','DELETED','PENDING_REVIEW'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-        DO $$ BEGIN CREATE TYPE order_status AS ENUM ('PENDING','ACCEPTED','IN_PROGRESS','DELIVERED','REVISION_REQUESTED','COMPLETED','CANCELLED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-        DO $$ BEGIN CREATE TYPE project_status AS ENUM ('OPEN','IN_PROGRESS','DELIVERED','REVISION_REQUESTED','COMPLETED','CANCELLED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-        ALTER TYPE project_status ADD VALUE IF NOT EXISTS 'DELIVERED';
-        ALTER TYPE project_status ADD VALUE IF NOT EXISTS 'REVISION_REQUESTED';
-        DO $$ BEGIN CREATE TYPE bid_status AS ENUM ('PENDING','ACCEPTED','REJECTED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-        DO $$ BEGIN CREATE TYPE plan_id AS ENUM ('free','starter','pro','elite'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-        DO $$ BEGIN CREATE TYPE dispute_status AS ENUM ('OPEN','UNDER_REVIEW','RESOLVED_BUYER','RESOLVED_SELLER','CLOSED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-        DO $$ BEGIN CREATE TYPE saved_item_type AS ENUM ('SERVICE','PROJECT','BARTER'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-        DO $$ BEGIN CREATE TYPE dispute_target AS ENUM ('ORDER','PROJECT','BARTER'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-        DO $$ BEGIN CREATE TYPE invite_target_type AS ENUM ('PROJECT','SERVICE','BARTER'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-        DO $$ BEGIN CREATE TYPE invite_status AS ENUM ('PENDING','ACCEPTED','DECLINED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-        DO $$ BEGIN CREATE TYPE report_target_type AS ENUM ('USER','SERVICE','BARTER','PROJECT'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-        DO $$ BEGIN CREATE TYPE report_status AS ENUM ('OPEN','RESOLVED','DISMISSED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-        DO $$ BEGIN CREATE TYPE kyc_status AS ENUM ('PENDING','APPROVED','REJECTED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-      `);
+        // ── ENUMs ──────────────────────────────────────────────────────────────
+        logger.info("migrate: creating enums...");
+        await client.query(`
+          DO $$ BEGIN CREATE TYPE user_role AS ENUM ('USER','ADMIN','MODERATOR'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE transaction_type AS ENUM ('CREDIT_PURCHASE','CREDIT_WITHDRAWAL','SERVICE_PAYMENT','SERVICE_EARNING','COMMISSION','REFUND'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE txn_status AS ENUM ('PENDING','COMPLETED','FAILED','REFUNDED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE withdrawal_status AS ENUM ('PENDING','PROCESSING','COMPLETED','FAILED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE barter_status AS ENUM ('ACTIVE','MATCHED','IN_PROGRESS','COMPLETED','CANCELLED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE match_status AS ENUM ('PENDING','ACCEPTED','IN_PROGRESS','DELIVERED','COMPLETED','CANCELLED','REJECTED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE service_status AS ENUM ('ACTIVE','PAUSED','DELETED','PENDING_REVIEW'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE order_status AS ENUM ('PENDING','ACCEPTED','IN_PROGRESS','DELIVERED','REVISION_REQUESTED','COMPLETED','CANCELLED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE project_status AS ENUM ('OPEN','IN_PROGRESS','DELIVERED','REVISION_REQUESTED','COMPLETED','CANCELLED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          ALTER TYPE project_status ADD VALUE IF NOT EXISTS 'DELIVERED';
+          ALTER TYPE project_status ADD VALUE IF NOT EXISTS 'REVISION_REQUESTED';
+          DO $$ BEGIN CREATE TYPE bid_status AS ENUM ('PENDING','ACCEPTED','REJECTED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE plan_id AS ENUM ('free','starter','pro','elite'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE dispute_status AS ENUM ('OPEN','UNDER_REVIEW','RESOLVED_BUYER','RESOLVED_SELLER','CLOSED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE saved_item_type AS ENUM ('SERVICE','PROJECT','BARTER'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE dispute_target AS ENUM ('ORDER','PROJECT','BARTER'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE invite_target_type AS ENUM ('PROJECT','SERVICE','BARTER'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE invite_status AS ENUM ('PENDING','ACCEPTED','DECLINED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE report_target_type AS ENUM ('USER','SERVICE','BARTER','PROJECT'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE report_status AS ENUM ('OPEN','RESOLVED','DISMISSED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE kyc_status AS ENUM ('PENDING','APPROVED','REJECTED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+        `);
+        logger.info("migrate: enums ready");
 
       // ── TABLES (all IF NOT EXISTS — safe to run repeatedly) ───────────────
-      await client.query(`
-        CREATE TABLE IF NOT EXISTS users (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          first_name TEXT NOT NULL,
-          last_name TEXT NOT NULL,
-          email TEXT NOT NULL UNIQUE,
-          password_hash TEXT NOT NULL,
-          role user_role NOT NULL DEFAULT 'USER',
-          profile_photo TEXT,
-          bio TEXT,
-          tagline TEXT,
-          city TEXT,
-          country TEXT,
-          skills_offered TEXT[] DEFAULT '{}',
-          skills_needed TEXT[] DEFAULT '{}',
-          languages TEXT[] DEFAULT '{}',
-          is_available BOOLEAN DEFAULT TRUE,
-          hourly_rate NUMERIC(10,2),
-          portfolio_links TEXT[] DEFAULT '{}',
-          social_links JSONB DEFAULT '{}',
-          reputation_score NUMERIC(4,2) DEFAULT 0,
-          email_verified BOOLEAN DEFAULT FALSE,
-          kyc_verified BOOLEAN DEFAULT FALSE,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-          updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+      logger.info("migrate: creating tables...");
+      try {
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS users (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            first_name TEXT NOT NULL,
+            last_name TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            role user_role NOT NULL DEFAULT 'USER',
+            profile_photo TEXT,
+            bio TEXT,
+            tagline TEXT,
+            city TEXT,
+            country TEXT,
+            skills_offered TEXT[] DEFAULT '{}',
+            skills_needed TEXT[] DEFAULT '{}',
+            languages TEXT[] DEFAULT '{}',
+            is_available BOOLEAN DEFAULT TRUE,
+            hourly_rate NUMERIC(10,2),
+            portfolio_links TEXT[] DEFAULT '{}',
+            social_links JSONB DEFAULT '{}',
+            reputation_score NUMERIC(4,2) DEFAULT 0,
+            email_verified BOOLEAN DEFAULT FALSE,
+            kyc_verified BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS refresh_tokens (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          token TEXT NOT NULL UNIQUE,
-          expires_at TIMESTAMPTZ NOT NULL,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS refresh_tokens (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            token TEXT NOT NULL UNIQUE,
+            expires_at TIMESTAMPTZ NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS password_resets (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          token TEXT NOT NULL UNIQUE,
-          expires_at TIMESTAMPTZ NOT NULL,
-          used BOOLEAN DEFAULT FALSE,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS password_resets (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            token TEXT NOT NULL UNIQUE,
+            expires_at TIMESTAMPTZ NOT NULL,
+            used BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS notifications (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          type TEXT NOT NULL,
-          title TEXT NOT NULL,
-          message TEXT NOT NULL,
-          data JSONB DEFAULT '{}',
-          read BOOLEAN DEFAULT FALSE,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS notifications (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            type TEXT NOT NULL,
+            title TEXT NOT NULL,
+            message TEXT NOT NULL,
+            data JSONB DEFAULT '{}',
+            read BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS user_subscriptions (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-          plan_id plan_id NOT NULL DEFAULT 'free',
-          started_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-          expires_at TIMESTAMPTZ,
-          proposal_credits_remaining INTEGER NOT NULL DEFAULT 3,
-          featured_proposals_remaining INTEGER NOT NULL DEFAULT 0,
-          credits_reset_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-          updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS user_subscriptions (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+            plan_id plan_id NOT NULL DEFAULT 'free',
+            started_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            expires_at TIMESTAMPTZ,
+            proposal_credits_remaining INTEGER NOT NULL DEFAULT 3,
+            featured_proposals_remaining INTEGER NOT NULL DEFAULT 0,
+            credits_reset_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS freelance_wallets (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-          balance NUMERIC(12,2) NOT NULL DEFAULT 0,
-          total_earned NUMERIC(12,2) NOT NULL DEFAULT 0,
-          total_withdrawn NUMERIC(12,2) NOT NULL DEFAULT 0,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-          updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS freelance_wallets (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+            balance NUMERIC(12,2) NOT NULL DEFAULT 0,
+            total_earned NUMERIC(12,2) NOT NULL DEFAULT 0,
+            total_withdrawn NUMERIC(12,2) NOT NULL DEFAULT 0,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS withdrawal_requests (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          amount NUMERIC(12,2) NOT NULL,
-          status withdrawal_status NOT NULL DEFAULT 'PENDING',
-          upi_id TEXT,
-          bank_account JSONB,
-          notes TEXT,
-          processed_at TIMESTAMPTZ,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-          updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS withdrawal_requests (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            amount NUMERIC(12,2) NOT NULL,
+            status withdrawal_status NOT NULL DEFAULT 'PENDING',
+            upi_id TEXT,
+            bank_account JSONB,
+            notes TEXT,
+            processed_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS transactions (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          type transaction_type NOT NULL,
-          amount NUMERIC(12,2) NOT NULL,
-          status txn_status NOT NULL DEFAULT 'PENDING',
-          reference_id TEXT,
-          description TEXT,
-          metadata JSONB DEFAULT '{}',
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-          updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS transactions (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            type transaction_type NOT NULL,
+            amount NUMERIC(12,2) NOT NULL,
+            status txn_status NOT NULL DEFAULT 'PENDING',
+            reference_id TEXT,
+            description TEXT,
+            metadata JSONB DEFAULT '{}',
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS services (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          seller_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          title TEXT NOT NULL,
-          description TEXT NOT NULL,
-          category TEXT NOT NULL,
-          subcategory TEXT,
-          tags TEXT[] DEFAULT '{}',
-          thumbnail TEXT,
-          gallery TEXT[] DEFAULT '{}',
-          status service_status NOT NULL DEFAULT 'ACTIVE',
-          delivery_days INTEGER NOT NULL DEFAULT 3,
-          revision_count INTEGER NOT NULL DEFAULT 1,
-          starting_price NUMERIC(10,2),
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-          updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS services (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            seller_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            title TEXT NOT NULL,
+            description TEXT NOT NULL,
+            category TEXT NOT NULL,
+            subcategory TEXT,
+            tags TEXT[] DEFAULT '{}',
+            thumbnail TEXT,
+            gallery TEXT[] DEFAULT '{}',
+            status service_status NOT NULL DEFAULT 'ACTIVE',
+            delivery_days INTEGER NOT NULL DEFAULT 3,
+            revision_count INTEGER NOT NULL DEFAULT 1,
+            starting_price NUMERIC(10,2),
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS service_packages (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          service_id UUID NOT NULL REFERENCES services(id) ON DELETE CASCADE,
-          name TEXT NOT NULL,
-          description TEXT,
-          price NUMERIC(10,2) NOT NULL,
-          delivery_days INTEGER NOT NULL,
-          revision_count INTEGER NOT NULL DEFAULT 1,
-          features TEXT[] DEFAULT '{}',
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS service_packages (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            service_id UUID NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+            name TEXT NOT NULL,
+            description TEXT,
+            price NUMERIC(10,2) NOT NULL,
+            delivery_days INTEGER NOT NULL,
+            revision_count INTEGER NOT NULL DEFAULT 1,
+            features TEXT[] DEFAULT '{}',
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS orders (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          service_id UUID REFERENCES services(id) ON DELETE SET NULL,
-          package_id UUID REFERENCES service_packages(id) ON DELETE SET NULL,
-          buyer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          seller_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          status order_status NOT NULL DEFAULT 'PENDING',
-          price NUMERIC(10,2) NOT NULL,
-          requirements TEXT,
-          deadline TIMESTAMPTZ,
-          completed_at TIMESTAMPTZ,
-          cancelled_at TIMESTAMPTZ,
-          cancel_reason TEXT,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-          updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS orders (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            service_id UUID REFERENCES services(id) ON DELETE SET NULL,
+            package_id UUID REFERENCES service_packages(id) ON DELETE SET NULL,
+            buyer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            seller_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            status order_status NOT NULL DEFAULT 'PENDING',
+            price NUMERIC(10,2) NOT NULL,
+            requirements TEXT,
+            deadline TIMESTAMPTZ,
+            completed_at TIMESTAMPTZ,
+            cancelled_at TIMESTAMPTZ,
+            cancel_reason TEXT,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS order_deliveries (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-          message TEXT,
-          files TEXT[] DEFAULT '{}',
-          is_final BOOLEAN DEFAULT FALSE,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS order_deliveries (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+            message TEXT,
+            files TEXT[] DEFAULT '{}',
+            is_final BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS reviews (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
-          reviewer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          reviewee_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
-          comment TEXT,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS reviews (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
+            reviewer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            reviewee_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+            comment TEXT,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS barter_reviews (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          match_id UUID NOT NULL REFERENCES barter_matches(id) ON DELETE CASCADE,
-          reviewer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          reviewee_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
-          comment TEXT,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS barter_reviews (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            match_id UUID NOT NULL REFERENCES barter_matches(id) ON DELETE CASCADE,
+            reviewer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            reviewee_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+            comment TEXT,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS client_reviews (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
-          reviewer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          reviewee_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
-          comment TEXT,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS client_reviews (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
+            reviewer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            reviewee_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+            comment TEXT,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS projects (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          client_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          title TEXT NOT NULL,
-          description TEXT NOT NULL,
-          category TEXT NOT NULL,
-          skills_required TEXT[] DEFAULT '{}',
-          budget_min NUMERIC(10,2),
-          budget_max NUMERIC(10,2),
-          deadline TIMESTAMPTZ,
-          status project_status NOT NULL DEFAULT 'OPEN',
-          hired_freelancer_id UUID REFERENCES users(id) ON DELETE SET NULL,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-          updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS projects (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            client_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            title TEXT NOT NULL,
+            description TEXT NOT NULL,
+            category TEXT NOT NULL,
+            skills_required TEXT[] DEFAULT '{}',
+            budget_min NUMERIC(10,2),
+            budget_max NUMERIC(10,2),
+            deadline TIMESTAMPTZ,
+            status project_status NOT NULL DEFAULT 'OPEN',
+            hired_freelancer_id UUID REFERENCES users(id) ON DELETE SET NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS project_bids (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-          freelancer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          amount NUMERIC(10,2) NOT NULL,
-          delivery_days INTEGER NOT NULL,
-          proposal TEXT NOT NULL,
-          status bid_status NOT NULL DEFAULT 'PENDING',
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-          updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS project_bids (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            freelancer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            amount NUMERIC(10,2) NOT NULL,
+            delivery_days INTEGER NOT NULL,
+            proposal TEXT NOT NULL,
+            status bid_status NOT NULL DEFAULT 'PENDING',
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS barter_requests (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          skill_offered TEXT NOT NULL,
-          skill_needed TEXT NOT NULL,
-          offer_category TEXT,
-          need_category TEXT,
-          description TEXT,
-          timeline TEXT NOT NULL DEFAULT 'Flexible',
-          city TEXT,
-          is_remote BOOLEAN NOT NULL DEFAULT TRUE,
-          image_url TEXT,
-          status barter_status NOT NULL DEFAULT 'ACTIVE',
-          view_count INTEGER NOT NULL DEFAULT 0,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-          updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS barter_requests (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            skill_offered TEXT NOT NULL,
+            skill_needed TEXT NOT NULL,
+            offer_category TEXT,
+            need_category TEXT,
+            description TEXT,
+            timeline TEXT NOT NULL DEFAULT 'Flexible',
+            city TEXT,
+            is_remote BOOLEAN NOT NULL DEFAULT TRUE,
+            image_url TEXT,
+            status barter_status NOT NULL DEFAULT 'ACTIVE',
+            view_count INTEGER NOT NULL DEFAULT 0,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS barter_matches (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          request1_id UUID NOT NULL REFERENCES barter_requests(id) ON DELETE CASCADE,
-          request2_id UUID NOT NULL REFERENCES barter_requests(id) ON DELETE CASCADE,
-          user1_id UUID NOT NULL REFERENCES users(id),
-          user2_id UUID NOT NULL REFERENCES users(id),
-          status match_status NOT NULL DEFAULT 'PENDING',
-          confirmed_by_user1 BOOLEAN NOT NULL DEFAULT FALSE,
-          confirmed_by_user2 BOOLEAN NOT NULL DEFAULT FALSE,
-          delivered_by_user1 BOOLEAN NOT NULL DEFAULT FALSE,
-          delivered_by_user2 BOOLEAN NOT NULL DEFAULT FALSE,
-          accepted_by_user1 BOOLEAN NOT NULL DEFAULT FALSE,
-          accepted_by_user2 BOOLEAN NOT NULL DEFAULT FALSE,
-          revised_by_user1 BOOLEAN NOT NULL DEFAULT FALSE,
-          revised_by_user2 BOOLEAN NOT NULL DEFAULT FALSE,
-          completed_at TIMESTAMPTZ,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-          updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS barter_matches (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            request1_id UUID NOT NULL REFERENCES barter_requests(id) ON DELETE CASCADE,
+            request2_id UUID NOT NULL REFERENCES barter_requests(id) ON DELETE CASCADE,
+            user1_id UUID NOT NULL REFERENCES users(id),
+            user2_id UUID NOT NULL REFERENCES users(id),
+            status match_status NOT NULL DEFAULT 'PENDING',
+            confirmed_by_user1 BOOLEAN NOT NULL DEFAULT FALSE,
+            confirmed_by_user2 BOOLEAN NOT NULL DEFAULT FALSE,
+            delivered_by_user1 BOOLEAN NOT NULL DEFAULT FALSE,
+            delivered_by_user2 BOOLEAN NOT NULL DEFAULT FALSE,
+            accepted_by_user1 BOOLEAN NOT NULL DEFAULT FALSE,
+            accepted_by_user2 BOOLEAN NOT NULL DEFAULT FALSE,
+            revised_by_user1 BOOLEAN NOT NULL DEFAULT FALSE,
+            revised_by_user2 BOOLEAN NOT NULL DEFAULT FALSE,
+            completed_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS barter_deliveries (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          match_id UUID NOT NULL REFERENCES barter_matches(id) ON DELETE CASCADE,
-          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          delivery_note TEXT,
-          link TEXT,
-          revision_number INTEGER NOT NULL DEFAULT 0,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS barter_deliveries (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            match_id UUID NOT NULL REFERENCES barter_matches(id) ON DELETE CASCADE,
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            delivery_note TEXT,
+            link TEXT,
+            revision_number INTEGER NOT NULL DEFAULT 0,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS conversations (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user1_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          user2_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
-          match_id UUID REFERENCES barter_matches(id) ON DELETE SET NULL,
-          project_bid_id UUID REFERENCES project_bids(id) ON DELETE SET NULL,
-          last_message_at TIMESTAMPTZ DEFAULT NOW(),
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-          UNIQUE(user1_id, user2_id)
-        );
+          CREATE TABLE IF NOT EXISTS conversations (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user1_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            user2_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
+            match_id UUID REFERENCES barter_matches(id) ON DELETE SET NULL,
+            project_bid_id UUID REFERENCES project_bids(id) ON DELETE SET NULL,
+            last_message_at TIMESTAMPTZ DEFAULT NOW(),
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            UNIQUE(user1_id, user2_id)
+          );
 
-        CREATE TABLE IF NOT EXISTS messages (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-          sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          message_text TEXT,
-          file_url TEXT,
-          file_name TEXT,
-          read BOOLEAN DEFAULT FALSE,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS messages (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+            sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            message_text TEXT,
+            file_url TEXT,
+            file_name TEXT,
+            read BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS saved_items (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          service_id UUID REFERENCES services(id) ON DELETE CASCADE,
-          project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS saved_items (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            service_id UUID REFERENCES services(id) ON DELETE CASCADE,
+            project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS project_invites (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-          client_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          freelancer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          message TEXT,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS project_invites (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            client_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            freelancer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            message TEXT,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS project_milestones (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-          order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
-          title TEXT NOT NULL,
-          description TEXT,
-          amount NUMERIC(10,2),
-          due_date TIMESTAMPTZ,
-          completed BOOLEAN DEFAULT FALSE,
-          completed_at TIMESTAMPTZ,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-          updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS project_milestones (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            amount NUMERIC(10,2),
+            due_date TIMESTAMPTZ,
+            completed BOOLEAN DEFAULT FALSE,
+            completed_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS disputes (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
-          raised_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          against UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          reason TEXT NOT NULL,
-          status dispute_status NOT NULL DEFAULT 'OPEN',
-          resolution TEXT,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-          updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS disputes (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
+            raised_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            against UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            reason TEXT NOT NULL,
+            status dispute_status NOT NULL DEFAULT 'OPEN',
+            resolution TEXT,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS kyc_documents (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          document_type TEXT NOT NULL,
-          document_url TEXT NOT NULL,
-          status kyc_status NOT NULL DEFAULT 'PENDING',
-          reviewed_at TIMESTAMPTZ,
-          notes TEXT,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-          updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS kyc_documents (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            document_type TEXT NOT NULL,
+            document_url TEXT NOT NULL,
+            status kyc_status NOT NULL DEFAULT 'PENDING',
+            reviewed_at TIMESTAMPTZ,
+            notes TEXT,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS saved_searches (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          query TEXT NOT NULL,
-          filters JSONB DEFAULT '{}',
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS saved_searches (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            query TEXT NOT NULL,
+            filters JSONB DEFAULT '{}',
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS invites (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          target_type invite_target_type NOT NULL,
-          target_id UUID NOT NULL,
-          from_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          to_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          message TEXT,
-          status invite_status DEFAULT 'PENDING' NOT NULL,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
+          CREATE TABLE IF NOT EXISTS invites (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            target_type invite_target_type NOT NULL,
+            target_id UUID NOT NULL,
+            from_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            to_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            message TEXT,
+            status invite_status DEFAULT 'PENDING' NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
 
-        CREATE TABLE IF NOT EXISTS reports (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          target_type report_target_type NOT NULL,
-          target_id UUID NOT NULL,
-          reported_by_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          reason TEXT NOT NULL,
-          status report_status DEFAULT 'OPEN' NOT NULL,
-          admin_notes TEXT,
-          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-        );
-      `);
+          CREATE TABLE IF NOT EXISTS reports (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            target_type report_target_type NOT NULL,
+            target_id UUID NOT NULL,
+            reported_by_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            reason TEXT NOT NULL,
+            status report_status DEFAULT 'OPEN' NOT NULL,
+            admin_notes TEXT,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
+        `);
+      } catch (e: unknown) {
+        logger.error({ err: e }, "migrate: table creation failed");
+        throw e;
+      }
+      logger.info("migrate: tables ready");
 
       // ── Column additions for old table versions (safe to run repeatedly) ──
       await client.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS read BOOLEAN DEFAULT FALSE`);
@@ -565,16 +575,12 @@ app.set("io", io);
 
       logger.info("DB auto-migration: all tables ready");
     } catch (_me: unknown) {
-      const msg = _me instanceof Error ? _me.message : String(_me);
-      logger.error({ err: _me instanceof Error ? _me : new Error(msg) }, "DB migration error");
-      throw new Error("DB migration failed: " + msg);
+      logger.error({ err: _me instanceof Error ? _me : new Error(String(_me)) }, "DB migration error (continuing)");
     } finally {
       client.release();
     }
   } catch (_ce: unknown) {
-    const msg = _ce instanceof Error ? _ce.message : String(_ce);
-    logger.error({ err: _ce instanceof Error ? _ce : new Error(msg) }, "DB connect error during migration");
-    throw new Error("DB connect failed: " + msg);
+    logger.error({ err: _ce instanceof Error ? _ce : new Error(String(_ce)) }, "DB connection/migration error (continuing)");
   }
 
   await ensureBucket();
