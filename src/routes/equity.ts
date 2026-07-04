@@ -4,7 +4,7 @@ import { pgTable, uuid, timestamp } from "drizzle-orm/pg-core";
 import { usersTable } from "../db/schema/users";
 import { eq, desc } from "drizzle-orm";
 import { authenticate } from "../middlewares/authenticate";
-import { adminAuth } from "../middlewares/adminAuth";
+import jwt from "jsonwebtoken";
 
 const router: ReturnType<typeof Router> = Router();
 
@@ -41,7 +41,42 @@ router.get("/equity/waitlist/status", authenticate, async (req: Request, res: Re
 });
 
 // Admin: get all waitlist entries with user details
-router.get("/admin/equity/waitlist", adminAuth, async (req: Request, res: Response): Promise<void> => {
+// Accepts x-admin-key header (ADMIN_API_KEY or admin JWT) OR Authorization Bearer (admin user)
+router.get("/admin/equity/waitlist", async (req: Request, res: Response): Promise<void> => {
+  let authorized = false;
+  // Check X-Admin-Key header (used by admin panel)
+  const key = req.headers["x-admin-key"] as string | undefined;
+  if (key) {
+    if (key === process.env.ADMIN_API_KEY) {
+      authorized = true;
+    } else {
+      try {
+        const rawSecret = process.env["JWT_SECRET"];
+        if (rawSecret) {
+          const payload = jwt.verify(key, rawSecret) as { role?: string };
+          if (payload.role === "admin") authorized = true;
+        }
+      } catch {}
+    }
+  }
+  // Fallback: check Authorization Bearer token (for browsers with cached JS)
+  if (!authorized) {
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      try {
+        const rawSecret = process.env["JWT_SECRET"];
+        if (rawSecret) {
+          const payload = jwt.verify(token, rawSecret) as { role?: string };
+          if (payload.role === "admin") authorized = true;
+        }
+      } catch {}
+    }
+  }
+  if (!authorized) {
+    res.status(401).json({ success: false, message: "Invalid or missing admin key" });
+    return;
+  }
   try {
     const entries = await db
       .select({

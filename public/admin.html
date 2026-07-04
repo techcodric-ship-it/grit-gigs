@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Admin Panel — Grit&amp;Gigs</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
@@ -451,7 +454,11 @@ function notify(msg, type = 'ok') {
 let currentUserPage = 1, currentReportPage = 1;
 let userSearchTimeout = null;
 
-function getKey() { return localStorage.getItem(KEY_STORE); }
+function getKey() {
+  const k = localStorage.getItem(KEY_STORE);
+  if (!k || k === 'undefined') { localStorage.removeItem(KEY_STORE); showLogin(); return null; }
+  return k;
+}
 
 async function api(path, opts = {}) {
   const key = getKey();
