@@ -119,14 +119,7 @@ router.post("/auth/verify-signup", async (req, res): Promise<void> => {
 
   const sb = getSupabase();
   if (!sb) {
-    // No Supabase — bypass OTP verification and mark as verified
-    await db.update(usersTable).set({ emailVerified: true }).where(eq(usersTable.id, reset.userId));
-    await db.update(passwordResetsTable).set({ used: true }).where(eq(passwordResetsTable.id, reset.id));
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, reset.userId));
-    if (!user) { res.status(500).json({ success: false, message: "User not found" }); return; }
-    const accessToken = generateAccessToken(user.id);
-    const refreshToken = await generateRefreshToken(user.id);
-    res.json({ success: true, message: "Account verified", data: { accessToken, refreshToken, user: { id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, profilePhoto: user.profilePhoto, city: user.city, role: user.role, reputationScore: user.reputationScore, emailVerified: true, ggId: 'G&G-' + user.id.replace(/-/g, '').slice(0, 8).toUpperCase() } } });
+    res.status(503).json({ success: false, message: "Email verification service unavailable. Please try again later." });
     return;
   }
 
@@ -199,17 +192,10 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
-  // Enforce email verification — auto-verify existing users for backward compat
+  // Enforce email verification
   if (!user.emailVerified) {
-    const accountAge = Date.now() - new Date(user.createdAt).getTime();
-    const isExistingUser = accountAge > 10 * 60 * 1000; // created more than 10 min ago = existing account
-    if (isExistingUser) {
-      await db.update(usersTable).set({ emailVerified: true }).where(eq(usersTable.id, user.id));
-      user.emailVerified = true;
-    } else {
-      res.status(403).json({ success: false, message: "Please verify your email first. Check your inbox for the verification code." });
-      return;
-    }
+    res.status(403).json({ success: false, message: "Please verify your email first. Check your inbox for the verification code." });
+    return;
   }
 
   await db
@@ -682,7 +668,7 @@ function googleCallbackHtml(data: { accessToken: string; refreshToken: string; u
   return `<!DOCTYPE html><html><body><script>
     try {
       if (window.opener) {
-        window.opener.postMessage(${messageJson}, '*');
+        window.opener.postMessage(${messageJson}, window.location.origin);
       } else {
         // No opener — redirect-based flow fallback
         var params = new URLSearchParams();

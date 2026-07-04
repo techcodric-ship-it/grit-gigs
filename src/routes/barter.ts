@@ -117,7 +117,7 @@ router.get("/barter/requests/:id", optionalAuth, async (req, res): Promise<void>
     .from(usersTable)
     .where(eq(usersTable.id, request.userId));
 
-  db.update(barterRequestsTable).set({ viewCount: request.viewCount + 1 }).where(eq(barterRequestsTable.id, request.id)).catch(() => {});
+  db.execute(sql`UPDATE ${barterRequestsTable} SET view_count = view_count + 1 WHERE ${barterRequestsTable.id} = ${request.id}`).catch(() => {});
   res.json({ success: true, data: { request: { ...request, user } } });
 });
 

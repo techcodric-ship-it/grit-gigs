@@ -19,11 +19,12 @@ import {
   messagesTable,
   clientReviewsTable,
 } from "../db";
-import { uploadToSupabase } from "../lib/storage";
+import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { uploadToSupabase } from "../lib/storage";
 import { adminAuth } from "../middlewares/adminAuth";
 
 const uploadsDir = path.join(process.cwd(), "uploads", "messages");
@@ -57,7 +58,12 @@ router.post("/admin/login", async (req: Request, res: Response) => {
   if (!valid) {
     return res.status(401).json({ success: false, message: "Invalid credentials" });
   }
-  res.json({ success: true, data: { adminKey: process.env.ADMIN_API_KEY } });
+  const rawSecret = process.env["JWT_SECRET"];
+  if (!rawSecret) {
+    return res.status(500).json({ success: false, message: "JWT_SECRET not configured" });
+  }
+  const adminToken = jwt.sign({ userId: user.id, role: "admin" }, rawSecret, { expiresIn: "2h" });
+  res.json({ success: true, data: { adminToken } });
 });
 
 // All subsequent routes require the admin API key
@@ -298,14 +304,24 @@ router.delete("/admin/barters/:id", async (req: Request, res: Response) => {
 });
 
 // ── Edit any service ──
+const ALLOWED_SERVICE_FIELDS = ["title", "description", "category", "subcategory", "tags", "status", "startingPrice", "deliveryDays", "revisionCount", "images", "thumbnail", "gallery"];
 router.put("/admin/services/:id", async (req: Request, res: Response) => {
-  const [updated] = await db.update(servicesTable).set({ ...req.body, updatedAt: new Date() }).where(eq(servicesTable.id, req.params.id as string)).returning();
+  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  for (const key of ALLOWED_SERVICE_FIELDS) {
+    if (key in req.body) updates[key] = req.body[key];
+  }
+  const [updated] = await db.update(servicesTable).set(updates).where(eq(servicesTable.id, req.params.id as string)).returning();
   res.json({ success: true, data: updated });
 });
 
 // ── Edit any project ──
+const ALLOWED_PROJECT_FIELDS = ["title", "description", "category", "skills", "budgetMin", "budgetMax", "status", "deadline", "imageUrl"];
 router.put("/admin/projects/:id", async (req: Request, res: Response) => {
-  const [updated] = await db.update(projectsTable).set({ ...req.body, updatedAt: new Date() }).where(eq(projectsTable.id, req.params.id as string)).returning();
+  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  for (const key of ALLOWED_PROJECT_FIELDS) {
+    if (key in req.body) updates[key] = req.body[key];
+  }
+  const [updated] = await db.update(projectsTable).set(updates).where(eq(projectsTable.id, req.params.id as string)).returning();
   res.json({ success: true, data: updated });
 });
 

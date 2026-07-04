@@ -5,7 +5,11 @@ import { refreshTokensTable, usersTable } from "../db";
 import { eq, and, gt } from "drizzle-orm";
 import { logger } from "./logger";
 
-const JWT_SECRET = process.env["JWT_SECRET"] ?? "fallback-secret-change-me";
+const rawSecret = process.env["JWT_SECRET"];
+if (!rawSecret) {
+  throw new Error("JWT_SECRET environment variable is required but was not provided. Set it to a long random string (min 32 characters).");
+}
+const JWT_SECRET = rawSecret;
 const JWT_EXPIRES_IN = process.env["JWT_EXPIRES_IN"] ?? "15m";
 
 export function generateAccessToken(userId: string): string {

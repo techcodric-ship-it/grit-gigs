@@ -365,6 +365,32 @@ router.get('/users/me/notifications/stream', async (req, res): Promise<void> => 
   req.on('close', () => { clearInterval(interval); res.end(); });
 });
 
+// GET /users/by-ggid/:ggid — look up user by platform ID (G&G-XXXXXXXX or just XXXXXXXX)
+router.get("/users/by-ggid/:ggid", optionalAuth, async (req, res): Promise<void> => {
+  try {
+    let raw = req.params.ggid as string;
+    // Strip "G&G-" prefix if present
+    const prefix = raw.toUpperCase().startsWith("G&G-") ? raw.slice(4) : raw;
+    // The ggId is first 8 hex chars of the UUID (uppercased, no dashes)
+    if (!/^[0-9A-Fa-f]{8}$/.test(prefix)) {
+      res.status(400).json({ success: false, message: "Invalid ggId format. Use G&G-XXXXXXXX or just XXXXXXXX" }); return;
+    }
+    const hexLower = prefix.toLowerCase();
+    // Find users whose UUID starts with those 8 hex chars
+    const users = await db
+      .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto })
+      .from(usersTable)
+      .where(sql`LOWER(REPLACE(id::text, '-', '')) LIKE ${hexLower + '%'}`)
+      .limit(5);
+
+    if (!users.length) { res.status(404).json({ success: false, message: "No user found with that ggId" }); return; }
+    res.json({ success: true, data: { users } });
+  } catch (err) {
+    console.error("GET /users/by-ggid error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 // -- GET /users/:id -- public profile (must come AFTER all /users/me/* routes)
 router.get("/users/:id", optionalAuth, async (req, res): Promise<void> => {
   try {
@@ -511,32 +537,6 @@ router.get("/users/:id", optionalAuth, async (req, res): Promise<void> => {
   } catch (err) {
     console.error("GET /users/:id error:", err);
     res.status(500).json({ success: false, message: "Failed to load user profile" });
-  }
-});
-
-// GET /users/by-ggid/:ggid — look up user by platform ID (G&G-XXXXXXXX or just XXXXXXXX)
-router.get("/users/by-ggid/:ggid", optionalAuth, async (req, res): Promise<void> => {
-  try {
-    let raw = req.params.ggid as string;
-    // Strip "G&G-" prefix if present
-    const prefix = raw.toUpperCase().startsWith("G&G-") ? raw.slice(4) : raw;
-    // The ggId is first 8 hex chars of the UUID (uppercased, no dashes)
-    if (!/^[0-9A-Fa-f]{8}$/.test(prefix)) {
-      res.status(400).json({ success: false, message: "Invalid ggId format. Use G&G-XXXXXXXX or just XXXXXXXX" }); return;
-    }
-    const hexLower = prefix.toLowerCase();
-    // Find users whose UUID starts with those 8 hex chars
-    const users = await db
-      .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto })
-      .from(usersTable)
-      .where(sql`LOWER(REPLACE(id::text, '-', '')) LIKE ${hexLower + '%'}`)
-      .limit(5);
-
-    if (!users.length) { res.status(404).json({ success: false, message: "No user found with that ggId" }); return; }
-    res.json({ success: true, data: { users } });
-  } catch (err) {
-    console.error("GET /users/by-ggid error:", err);
-    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 

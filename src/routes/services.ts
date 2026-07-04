@@ -171,7 +171,7 @@ router.get("/services/:id", optionalAuth, async (req, res): Promise<void> => {
   const reviewerMap = Object.fromEntries(reviewers.map(r => [r.id, { firstName: r.firstName, lastName: r.lastName, profilePhoto: r.profilePhoto }]));
   const reviewsWithUsers = reviews.map(r => ({ ...r, reviewer: reviewerMap[r.reviewerId] || null }));
 
-  db.update(servicesTable).set({ viewCount: service.viewCount + 1 }).where(eq(servicesTable.id, service.id)).catch(() => {});
+  db.execute(sql`UPDATE ${servicesTable} SET view_count = view_count + 1 WHERE ${servicesTable.id} = ${service.id}`).catch(() => {});
 
   res.json({ success: true, data: { service: { ...service, seller, packages, reviews: reviewsWithUsers } } });
 });
