@@ -259,12 +259,9 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
 
   if (!messageText?.trim()) { res.status(400).json({ success: false, message: "Message cannot be empty" }); return; }
 
-  // Block messages containing contact info (email or phone)
-  const contactPattern = /(?:\b\d{7,}\b)|(?:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/;
-  if (contactPattern.test(messageText)) {
-    res.status(400).json({ success: false, message: "Messages cannot contain contact information (email or phone). Please keep all communication on-platform." });
-    return;
-  }
+  // Auto-censor contact info (email, phone) before saving
+  const contactPattern = /(?:\b\d{7,}\b)|(?:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+  const censoredText = messageText.trim().replace(contactPattern, '[hidden]');
 
   const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, convId));
   if (!conv) { res.status(404).json({ success: false, message: "Conversation not found" }); return; }
@@ -273,7 +270,7 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
   const [message] = await db.insert(messagesTable).values({
     conversationId: convId,
     senderId: req.user!.id,
-    messageText: messageText.trim(),
+    messageText: censoredText,
     attachments: attachments ?? [],
   }).returning();
 
@@ -284,7 +281,7 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
     userId: recipientId,
     type: "NEW_MESSAGE",
     title: `New message from ${req.user!.firstName}`,
-    message: messageText.slice(0, 80),
+    message: censoredText.slice(0, 80),
     linkUrl: "/dashboard#inbox",
   });
 
@@ -296,7 +293,7 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
     io.to(`user:${recipientId}`).emit("notification:new", {
       type: "NEW_MESSAGE",
       title: req.user!.firstName,
-      message: messageText.slice(0, 60),
+      message: censoredText.slice(0, 60),
       conversationId: convId,
     });
   }
