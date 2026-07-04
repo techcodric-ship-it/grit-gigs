@@ -28,6 +28,7 @@ import fs from "fs";
 import { uploadToSupabase } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
 import { adminAuth } from "../middlewares/adminAuth";
+import { waitlistTable } from "./equity";
 
 const uploadsDir = path.join(PROJECT_ROOT, "uploads", "messages");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
@@ -540,5 +541,27 @@ async function _adminSendMessage(adminId: string, userId: string, text: string, 
   } catch {}
   return message;
 }
+
+// ── MicroEquity Waitlist ──
+router.get("/admin/equity/waitlist", async (req: Request, res: Response) => {
+  try {
+    const entries = await db
+      .select({
+        id: waitlistTable.id,
+        userId: waitlistTable.userId,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+        email: usersTable.email,
+        joinedAt: waitlistTable.createdAt,
+      })
+      .from(waitlistTable)
+      .leftJoin(usersTable, eq(waitlistTable.userId, usersTable.id))
+      .orderBy(desc(waitlistTable.createdAt));
+    res.json({ success: true, data: entries });
+  } catch (err) {
+    console.error("admin equity waitlist error:", err);
+    res.status(500).json({ success: false, message: "Failed to fetch waitlist" });
+  }
+});
 
 export default router;
