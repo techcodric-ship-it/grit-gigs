@@ -4608,47 +4608,57 @@ function selCreds(n, el) {
   el.style.borderColor = 'var(--violet)';
 }
 
+let _buyingCredits = false;
 async function buyCredits() {
-  const amtInr = parseInt(document.getElementById('customCreds').value) || selCr;
-  if (!amtInr || amtInr < 100) { showToast('Minimum amount is ₹100', 'err'); return; }
+  if (_buyingCredits) return;
+  _buyingCredits = true;
+  const btn = document.querySelector('#buyCredMod .btn.bp');
+  if (btn) btn.disabled = true;
+  try {
+    const amtInr = parseInt(document.getElementById('customCreds').value) || selCr;
+    if (!amtInr || amtInr < 100) { showToast('Minimum amount is ₹100', 'err'); return; }
 
-  const d = await api('/credits/create-order', { method: 'POST', body: JSON.stringify({ amount: amtInr }) });
-  if (!d.success) { showToast(d.message || 'Payment error', 'err'); return; }
+    const d = await api('/credits/create-order', { method: 'POST', body: JSON.stringify({ amount: amtInr }) });
+    if (!d.success) { showToast(d.message || 'Payment error', 'err'); return; }
 
-  const verify = async (orderId, paymentId, sig, sandbox) => {
-    const v = await api('/credits/verify-payment', {
-      method: 'POST',
-      body: JSON.stringify({ razorpayOrderId: orderId, razorpayPaymentId: paymentId, razorpaySignature: sig || '', amount: amtInr, sandbox: !!sandbox })
-    });
-    closeMod('buyCredMod');
-    if (v.success) {
-      showNotifBanner('✅ Amount added!', 'Your wallet has been topped up.', 'ok');
-      loadOverview();
-    } else {
-      showToast(v.message || 'Failed', 'err');
-    }
-  };
-
-  if (d.data.sandbox) {
-    await verify(d.data.order.id, 'sandbox_' + Date.now(), '', true);
-  } else {
-    const opts = {
-      key: d.data.razorpayKeyId,
-      amount: d.data.order.amount,
-      currency: 'INR',
-      name: 'Grit&Gigs',
-      description: '₹' + amtInr.toLocaleString('en-IN') + ' wallet top-up',
-      order_id: d.data.order.id,
-      handler: r => verify(r.razorpay_order_id, r.razorpay_payment_id, r.razorpay_signature, false)
+    const verify = async (orderId, paymentId, sig, sandbox) => {
+      const v = await api('/credits/verify-payment', {
+        method: 'POST',
+        body: JSON.stringify({ razorpayOrderId: orderId, razorpayPaymentId: paymentId, razorpaySignature: sig || '', amount: amtInr, sandbox: !!sandbox })
+      });
+      closeMod('buyCredMod');
+      if (v.success) {
+        showNotifBanner('✅ Amount added!', 'Your wallet has been topped up.', 'ok');
+        loadOverview();
+      } else {
+        showToast(v.message || 'Failed', 'err');
+      }
     };
-    if (window.Razorpay) {
-      new window.Razorpay(opts).open();
+
+    if (d.data.sandbox) {
+      await verify(d.data.order.id, 'sandbox_' + Date.now(), '', true);
     } else {
-      const s = document.createElement('script');
-      s.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      s.onload = () => new window.Razorpay(opts).open();
-      document.body.appendChild(s);
+      const opts = {
+        key: d.data.razorpayKeyId,
+        amount: d.data.order.amount,
+        currency: 'INR',
+        name: 'Grit&Gigs',
+        description: '₹' + amtInr.toLocaleString('en-IN') + ' wallet top-up',
+        order_id: d.data.order.id,
+        handler: r => verify(r.razorpay_order_id, r.razorpay_payment_id, r.razorpay_signature, false)
+      };
+      if (window.Razorpay) {
+        new window.Razorpay(opts).open();
+      } else {
+        const s = document.createElement('script');
+        s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        s.onload = () => new window.Razorpay(opts).open();
+        document.body.appendChild(s);
+      }
     }
+  } finally {
+    _buyingCredits = false;
+    if (btn) btn.disabled = false;
   }
 }
 

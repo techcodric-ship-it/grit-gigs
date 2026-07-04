@@ -29,7 +29,7 @@ router.post("/credits/create-order", authenticate, async (req: Request, res: Res
 });
 
 router.post("/credits/verify-payment", authenticate, async (req: Request, res: Response): Promise<void> => {
-  const { razorpayPaymentId, amount, sandbox } = req.body;
+  const { razorpayOrderId, razorpayPaymentId, amount, sandbox } = req.body;
   if (!sandbox) {
     res.status(400).json({ success: false, message: "Live payment verification requires Razorpay configuration" });
     return;
@@ -38,6 +38,18 @@ router.post("/credits/verify-payment", authenticate, async (req: Request, res: R
   if (!amtInr || amtInr < 1) {
     res.status(400).json({ success: false, message: "Invalid amount" });
     return;
+  }
+  // Idempotency: skip if this order was already processed
+  if (razorpayOrderId) {
+    const [existing] = await db
+      .select({ id: transactionsTable.id })
+      .from(transactionsTable)
+      .where(eq(transactionsTable.gatewayTxnId, razorpayOrderId))
+      .limit(1);
+    if (existing) {
+      res.json({ success: true, message: "Already processed" });
+      return;
+    }
   }
   const [wallet] = await db.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, req.user!.id));
   if (!wallet) {
@@ -54,7 +66,7 @@ router.post("/credits/verify-payment", authenticate, async (req: Request, res: R
     amount: amtInr,
     status: "COMPLETED",
     paymentMethod: "razorpay",
-    gatewayTxnId: razorpayPaymentId ?? "sandbox",
+    gatewayTxnId: razorpayOrderId ?? razorpayPaymentId ?? "sandbox",
     description: `Added ₹${amtInr.toLocaleString("en-IN")} to wallet`,
   });
   await db.insert(notificationsTable).values({
