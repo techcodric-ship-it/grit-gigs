@@ -464,69 +464,65 @@ app.set("io", io);
       logger.info("migrate: tables ready");
 
       // ── Column additions for old table versions (safe to run repeatedly) ──
-      await client.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS read BOOLEAN DEFAULT FALSE`);
-      await client.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ`);
-      await client.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb NOT NULL`);
-      // Migrate legacy file_url/file_name into new attachments JSONB (one-time)
-      await client.query(`UPDATE messages SET attachments = COALESCE(attachments, '[]'::jsonb) || jsonb_build_array(jsonb_build_object('url', file_url, 'name', file_name)) WHERE file_url IS NOT NULL AND (attachments IS NULL OR attachments = '[]'::jsonb OR attachments = '[{}]'::jsonb)`);
-      await client.query(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS skill_needed TEXT`);
-      await client.query(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS offer_category TEXT`);
-      await client.query(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS need_category TEXT`);
-      await client.query(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS timeline TEXT DEFAULT 'Flexible'`);
-      await client.query(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS city TEXT`);
-      await client.query(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS is_remote BOOLEAN DEFAULT TRUE`);
-      await client.query(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS image_url TEXT`);
-      await client.query(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS view_count INTEGER DEFAULT 0`);
-      await client.query(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS user1_id UUID REFERENCES users(id)`);
-      await client.query(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS user2_id UUID REFERENCES users(id)`);
-      await client.query(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS confirmed_by_user1 BOOLEAN DEFAULT FALSE`);
-      await client.query(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS confirmed_by_user2 BOOLEAN DEFAULT FALSE`);
-      await client.query(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS delivered_by_user1 BOOLEAN DEFAULT FALSE`);
-      await client.query(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS delivered_by_user2 BOOLEAN DEFAULT FALSE`);
-      await client.query(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS accepted_by_user1 BOOLEAN DEFAULT FALSE`);
-      await client.query(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS accepted_by_user2 BOOLEAN DEFAULT FALSE`);
-      await client.query(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ`);
-      await client.query(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS revised_by_user1 BOOLEAN DEFAULT FALSE`);
-      await client.query(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS revised_by_user2 BOOLEAN DEFAULT FALSE`);
-      await client.query(`ALTER TABLE project_bids ADD COLUMN IF NOT EXISTS is_highlighted BOOLEAN DEFAULT FALSE NOT NULL`);
-      await client.query(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS is_paused BOOLEAN DEFAULT FALSE NOT NULL`);
+      async function col(sql: string) { try { await client.query(sql) } catch (e: unknown) { logger.warn({ err: (e as Error).message, sql: sql.slice(0, 80) }, "migrate: column addition skipped") } }
+      await col(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS read BOOLEAN DEFAULT FALSE`);
+      await col(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ`);
+      await col(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb NOT NULL`);
+      await col(`UPDATE messages SET attachments = COALESCE(attachments, '[]'::jsonb) || jsonb_build_array(jsonb_build_object('url', file_url, 'name', file_name)) WHERE file_url IS NOT NULL AND (attachments IS NULL OR attachments = '[]'::jsonb OR attachments = '[{}]'::jsonb)`);
+      await col(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS skill_needed TEXT`);
+      await col(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS offer_category TEXT`);
+      await col(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS need_category TEXT`);
+      await col(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS timeline TEXT DEFAULT 'Flexible'`);
+      await col(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS city TEXT`);
+      await col(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS is_remote BOOLEAN DEFAULT TRUE`);
+      await col(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS image_url TEXT`);
+      await col(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS view_count INTEGER DEFAULT 0`);
+      await col(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS user1_id UUID REFERENCES users(id)`);
+      await col(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS user2_id UUID REFERENCES users(id)`);
+      await col(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS confirmed_by_user1 BOOLEAN DEFAULT FALSE`);
+      await col(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS confirmed_by_user2 BOOLEAN DEFAULT FALSE`);
+      await col(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS delivered_by_user1 BOOLEAN DEFAULT FALSE`);
+      await col(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS delivered_by_user2 BOOLEAN DEFAULT FALSE`);
+      await col(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS accepted_by_user1 BOOLEAN DEFAULT FALSE`);
+      await col(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS accepted_by_user2 BOOLEAN DEFAULT FALSE`);
+      await col(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ`);
+      await col(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS revised_by_user1 BOOLEAN DEFAULT FALSE`);
+      await col(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS revised_by_user2 BOOLEAN DEFAULT FALSE`);
+      await col(`ALTER TABLE project_bids ADD COLUMN IF NOT EXISTS is_highlighted BOOLEAN DEFAULT FALSE NOT NULL`);
+      await col(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS is_paused BOOLEAN DEFAULT FALSE NOT NULL`);
 
       // ── Table column fixes (Drizzle schema vs raw migration mismatches) ───
-      await client.query(`ALTER TABLE freelance_wallets ADD COLUMN IF NOT EXISTS total_spent NUMERIC(12,2) DEFAULT 0 NOT NULL`);
-      await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'INR' NOT NULL`);
-      await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50)`);
-      await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS gateway_txn_id TEXT`);
-      await client.query(`ALTER TABLE notifications ADD COLUMN IF NOT EXISTS link_url TEXT`);
-      try { await client.query(`DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='read') THEN ALTER TABLE notifications RENAME COLUMN "read" TO is_read; ELSE ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE; END IF; END $$`); logger.info("migrate: notifications read->is_read ok"); } catch (e: unknown) { logger.warn({ err: (e as Error).message }, "migrate: notifications read->is_read skipped"); }
+      await col(`ALTER TABLE freelance_wallets ADD COLUMN IF NOT EXISTS total_spent NUMERIC(12,2) DEFAULT 0 NOT NULL`);
+      await col(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'INR' NOT NULL`);
+      await col(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50)`);
+      await col(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS gateway_txn_id TEXT`);
+      await col(`ALTER TABLE notifications ADD COLUMN IF NOT EXISTS link_url TEXT`);
+      await col(`DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='read') THEN ALTER TABLE notifications RENAME COLUMN "read" TO is_read; ELSE ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE; END IF; END $$`);
 
       // ── Service images column (Drizzle uses `images` not `thumbnail`/`gallery`) ──
-      await client.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT '{}' NOT NULL`);
+      await col(`ALTER TABLE services ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT '{}' NOT NULL`);
       // ── Service packages columns (Drizzle uses `package_type`, `price_inr`, `revisions`) ──
-      await client.query(`ALTER TABLE service_packages ADD COLUMN IF NOT EXISTS package_type TEXT NOT NULL DEFAULT 'basic'`);
-      await client.query(`ALTER TABLE service_packages ADD COLUMN IF NOT EXISTS price_inr REAL NOT NULL DEFAULT 0`);
-      await client.query(`ALTER TABLE service_packages ADD COLUMN IF NOT EXISTS revisions INTEGER NOT NULL DEFAULT 2`);
+      await col(`ALTER TABLE service_packages ADD COLUMN IF NOT EXISTS package_type TEXT NOT NULL DEFAULT 'basic'`);
+      await col(`ALTER TABLE service_packages ADD COLUMN IF NOT EXISTS price_inr REAL NOT NULL DEFAULT 0`);
+      await col(`ALTER TABLE service_packages ADD COLUMN IF NOT EXISTS revisions INTEGER NOT NULL DEFAULT 2`);
       // ── Client reviews: Drizzle uses `review_text`, migration had `comment` ──
-      await client.query(`ALTER TABLE client_reviews ADD COLUMN IF NOT EXISTS review_text TEXT DEFAULT ''`);
+      await col(`ALTER TABLE client_reviews ADD COLUMN IF NOT EXISTS review_text TEXT DEFAULT ''`);
       // ── Saved items: Drizzle uses generic `item_type`+`item_id`, migration had per-type columns ──
-      await client.query(`ALTER TABLE saved_items ADD COLUMN IF NOT EXISTS item_type saved_item_type`);
-
-      await client.query(`ALTER TABLE saved_items ADD COLUMN IF NOT EXISTS item_id UUID`);
-
+      await col(`ALTER TABLE saved_items ADD COLUMN IF NOT EXISTS item_type saved_item_type`);
+      await col(`ALTER TABLE saved_items ADD COLUMN IF NOT EXISTS item_id UUID`);
       // ── Admin: is_active column on users (used for ban/unban) ──
-
-      await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE NOT NULL`);
+      await col(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE NOT NULL`);
       // ── Unique DiceBear avatar for every user (based on UUID id) ─────────
       // Replaces old name-based DiceBear avatars and fills missing ones.
       // Custom uploaded photos (non-DiceBear URLs) are left untouched.
-      await client.query(`
-        UPDATE users SET profile_photo = 'https://api.dicebear.com/7.x/adventurer/svg?seed=' || REPLACE(id::text, '-', '')
+      await col(`UPDATE users SET profile_photo = 'https://api.dicebear.com/7.x/adventurer/svg?seed=' || REPLACE(id::text, '-', '')
         WHERE profile_photo IS NULL
            OR profile_photo = ''
            OR profile_photo LIKE 'https://api.dicebear.com/%'
       `);
 
       // ── INDEXES ──────────────────────────────────────────────────────────
-      await client.query(`
+      await col(`
         CREATE INDEX IF NOT EXISTS idx_barter_requests_user_id ON barter_requests(user_id);
         CREATE INDEX IF NOT EXISTS idx_barter_requests_status ON barter_requests(status);
         CREATE INDEX IF NOT EXISTS idx_barter_requests_status_created ON barter_requests(status, created_at DESC);
@@ -568,7 +564,7 @@ app.set("io", io);
       `);
 
       // ── ENUM additions for old versions ──
-      await client.query(`ALTER TYPE order_status ADD VALUE IF NOT EXISTS 'DISPUTED'`);
+      await col(`ALTER TYPE order_status ADD VALUE IF NOT EXISTS 'DISPUTED'`);
 
       // ── UNIQUE constraints (safe to run repeatedly) ──
       try { await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_saved_items_user_item ON saved_items(user_id, COALESCE(item_type, ''), COALESCE(item_id, ''))`); } catch {}
