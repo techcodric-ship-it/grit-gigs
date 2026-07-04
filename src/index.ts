@@ -456,9 +456,9 @@ app.set("io", io);
       // ── Column additions for old table versions (safe to run repeatedly) ──
       await client.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS read BOOLEAN DEFAULT FALSE`);
       await client.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ`);
+      await client.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb NOT NULL`);
       // Migrate legacy file_url/file_name into new attachments JSONB (one-time)
       await client.query(`UPDATE messages SET attachments = COALESCE(attachments, '[]'::jsonb) || jsonb_build_array(jsonb_build_object('url', file_url, 'name', file_name)) WHERE file_url IS NOT NULL AND (attachments IS NULL OR attachments = '[]'::jsonb OR attachments = '[{}]'::jsonb)`);
-      await client.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb NOT NULL`);
       await client.query(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS skill_needed TEXT`);
       await client.query(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS offer_category TEXT`);
       await client.query(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS need_category TEXT`);
