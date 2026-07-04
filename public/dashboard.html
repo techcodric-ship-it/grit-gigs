@@ -764,7 +764,7 @@ textarea.fi{resize:vertical;}
           <span class="bdg bdg-coming" style="margin-bottom:9px;">Coming Q3 2026</span>
           <h3>MicroEquity — Invest in local businesses</h3>
           <p>Invest from ₹10,000 in verified local businesses and earn quarterly dividends.</p>
-          <button class="btn bp" onclick="showToast('Added to MicroEquity waitlist!','ok')">Join the waitlist</button>
+          <button class="btn bp" id="overviewEquityBtn" onclick="joinEquityWaitlist(this)">Join the Waitlist</button>
         </div>
       </div>
     </div>
@@ -1884,6 +1884,18 @@ async function joinEquityWaitlist(btn){
   try {
     const d = await api('/equity/waitlist',{method:'POST'});
     if(d.success){
+      setEquityJoined();
+    } else {
+      showToast(d.message||'Failed to join','err');
+    }
+  } catch(e){
+    showToast('Something went wrong','err');
+  }
+}
+function setEquityJoined(){
+  ['equityWaitlistBtn','overviewEquityBtn'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) {
       btn.textContent = '✓ You\'re on the list';
       btn.style.background = 'rgba(255,255,255,0.05)';
       btn.style.color = '#6EE7B7';
@@ -1891,12 +1903,8 @@ async function joinEquityWaitlist(btn){
       btn.onclick = null;
       btn.onmouseover = null;
       btn.onmouseout = null;
-    } else {
-      showToast(d.message||'Failed to join','err');
     }
-  } catch(e){
-    showToast('Something went wrong','err');
-  }
+  });
 }
 
 
@@ -2157,16 +2165,7 @@ connectSocket();
     const r = await fetch(API + '/equity/waitlist/status', { headers: { 'Authorization': 'Bearer ' + gT() } });
     const d = await r.json();
     if (d.success && d.data?.joined) {
-      const btn = document.getElementById('equityWaitlistBtn');
-      if (btn) {
-        btn.textContent = '✓ You\'re on the list';
-        btn.style.background = 'rgba(255,255,255,0.05)';
-        btn.style.color = '#6EE7B7';
-        btn.style.cursor = 'default';
-        btn.onclick = null;
-        btn.onmouseover = null;
-        btn.onmouseout = null;
-      }
+      setEquityJoined();
     }
   } catch(e) {}
 })();

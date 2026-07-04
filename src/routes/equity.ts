@@ -4,6 +4,7 @@ import { pgTable, uuid, timestamp } from "drizzle-orm/pg-core";
 import { usersTable } from "../db/schema/users";
 import { eq, desc } from "drizzle-orm";
 import { authenticate } from "../middlewares/authenticate";
+import { adminAuth } from "../middlewares/adminAuth";
 
 const router: ReturnType<typeof Router> = Router();
 
@@ -40,14 +41,8 @@ router.get("/equity/waitlist/status", authenticate, async (req: Request, res: Re
 });
 
 // Admin: get all waitlist entries with user details
-router.get("/admin/equity/waitlist", async (req: Request, res: Response): Promise<void> => {
+router.get("/admin/equity/waitlist", adminAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const key = req.headers["x-admin-key"] as string | undefined;
-    const isAdmin = key === process.env.ADMIN_API_KEY;
-    if (!isAdmin) {
-      res.status(401).json({ success: false, message: "Admin access required" });
-      return;
-    }
     const entries = await db
       .select({
         id: waitlistTable.id,

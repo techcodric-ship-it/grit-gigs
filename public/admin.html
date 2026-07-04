@@ -481,7 +481,7 @@ async function adminLogin() {
     const res = await fetch(`${API}/admin/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,password:pass}) });
     const d = await res.json();
     if (!d.success) { err.textContent = d.message||'Login failed'; err.style.display='block'; btn.disabled=false; btn.textContent='Sign In'; return; }
-    localStorage.setItem(KEY_STORE, d.data.adminKey);
+    localStorage.setItem(KEY_STORE, d.data.adminToken);
     showApp(); initAdmin();
   } catch(e) { err.textContent=e.message; err.style.display='block'; btn.disabled=false; btn.textContent='Sign In'; }
 }
