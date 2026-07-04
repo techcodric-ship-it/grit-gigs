@@ -11,13 +11,14 @@ import { eq, ilike, or, and, desc, ne, sql, asc, count, inArray } from "drizzle-
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { getActivePlanForUser } from "../lib/subscriptions";
 import { uploadToSupabase } from "../lib/storage";
+import { PROJECT_ROOT } from "../lib/root";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
 
 const router: IRouter = Router();
 
-const uploadDir = path.join(process.cwd(), "uploads", "services");
+const uploadDir = path.join(PROJECT_ROOT, "uploads", "services");
 fs.mkdirSync(uploadDir, { recursive: true });
 const storage = multer.diskStorage({
   destination: uploadDir,

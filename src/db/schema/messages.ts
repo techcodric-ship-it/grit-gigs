@@ -29,10 +29,10 @@ export const messagesTable = pgTable("messages", {
   id: uuid("id").primaryKey().defaultRandom(),
   conversationId: uuid("conversation_id")
     .notNull()
-    .references(() => conversationsTable.id),
+    .references(() => conversationsTable.id, { onDelete: "cascade" }),
   senderId: uuid("sender_id")
     .notNull()
-    .references(() => usersTable.id),
+    .references(() => usersTable.id, { onDelete: "cascade" }),
   messageText: text("message_text").notNull(),
   attachments: jsonb("attachments").default([]).notNull(),
   readAt: timestamp("read_at"),

@@ -39,23 +39,31 @@ router.put("/barter/matches/:id/complete", authenticate, async (req: Request, re
     return;
   }
 
-  const updates: Record<string, unknown> = {
-    ...((isUser1 ? { confirmedByUser1: true } : { confirmedByUser2: true }) as Record<string, unknown>),
-    updatedAt: new Date(),
-  };
-
-  const newConfirmed1 = isUser1 ? true : match.confirmedByUser1;
-  const newConfirmed2 = isUser1 ? match.confirmedByUser2 : true;
-
-  if (newConfirmed1 && newConfirmed2) {
-    updates.status = "IN_PROGRESS";
+  // Atomically claim this user's confirmation — only succeeds if not already confirmed
+  const col = isUser1 ? barterMatchesTable.confirmedByUser1 : barterMatchesTable.confirmedByUser2;
+  const claimResult = await db.execute(
+    sql`UPDATE ${barterMatchesTable} SET ${col} = TRUE, ${barterMatchesTable.updatedAt} = NOW() WHERE ${barterMatchesTable.id} = ${matchId} AND ${col} = FALSE`
+  );
+  if (claimResult.rowCount === 0) {
+    res.status(409).json({ success: false, message: "Already confirmed completion" });
+    return;
   }
 
-  const [updated] = await db
-    .update(barterMatchesTable)
-    .set(updates)
+  // Check if both parties have now confirmed → promote to IN_PROGRESS
+  const [updatedMatch] = await db
+    .select()
+    .from(barterMatchesTable)
     .where(eq(barterMatchesTable.id, matchId))
-    .returning();
+    .limit(1);
+
+  const bothConfirmed = updatedMatch.confirmedByUser1 && updatedMatch.confirmedByUser2;
+  if (bothConfirmed && updatedMatch.status !== "IN_PROGRESS") {
+    await db.execute(
+      sql`UPDATE ${barterMatchesTable} SET ${barterMatchesTable.status} = 'IN_PROGRESS', ${barterMatchesTable.updatedAt} = NOW() WHERE ${barterMatchesTable.id} = ${matchId} AND ${barterMatchesTable.status} = 'ACCEPTED'`
+    );
+  }
+
+  const waiting = !updatedMatch.confirmedByUser1 || !updatedMatch.confirmedByUser2;
 
   // Send a message to the conversation
   const [conv] = await db
@@ -65,7 +73,6 @@ router.put("/barter/matches/:id/complete", authenticate, async (req: Request, re
     .limit(1);
 
   const partnerId = isUser1 ? match.user2Id : match.user1Id;
-  const waiting = !newConfirmed1 || !newConfirmed2;
 
   const app = req.app;
   const io = app.get("io");
@@ -134,7 +141,7 @@ router.put("/barter/matches/:id/complete", authenticate, async (req: Request, re
     message: waiting
       ? "Marked as done. Waiting for your partner to confirm."
       : "Both sides confirmed! Time to deliver the project.",
-    data: { match: updated, bothDone: !waiting },
+    data: { match: updatedMatch, bothDone: !waiting },
   });
 });
 

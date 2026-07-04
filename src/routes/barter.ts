@@ -13,11 +13,12 @@ import { eq, ilike, or, and, desc, ne, inArray, sql } from "drizzle-orm";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { getActivePlanForUser, getOrCreateSubscription } from "../lib/subscriptions";
 import { uploadToSupabase } from "../lib/storage";
+import { PROJECT_ROOT } from "../lib/root";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-const uploadDir = path.join(process.cwd(), "uploads");
+const uploadDir = path.join(PROJECT_ROOT, "uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 const barterUpload = multer({

@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { uploadToSupabase } from "../lib/storage";
+import { PROJECT_ROOT } from "../lib/root";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -18,7 +19,7 @@ import {
 import { eq, or, and, desc, ne, inArray, sql } from "drizzle-orm";
 import { authenticate } from "../middlewares/authenticate";
 
-const uploadsDir = path.join(process.cwd(), "uploads", "messages");
+const uploadsDir = path.join(PROJECT_ROOT, "uploads", "messages");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 const storage = multer.diskStorage({

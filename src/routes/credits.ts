@@ -3,6 +3,13 @@ import { eq, sql } from "drizzle-orm";
 import { db, freelanceWalletsTable, transactionsTable, notificationsTable } from "../db";
 import { authenticate } from "../middlewares/authenticate";
 
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
+const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
+
+function razorpayConfigured(): boolean {
+  return !!(RAZORPAY_KEY_ID && RAZORPAY_KEY_SECRET && !RAZORPAY_KEY_ID.includes("test_xx"));
+}
+
 const router: IRouter = Router();
 
 router.post("/credits/create-order", authenticate, async (req: Request, res: Response): Promise<void> => {
@@ -11,20 +18,38 @@ router.post("/credits/create-order", authenticate, async (req: Request, res: Res
     res.status(400).json({ success: false, message: "Invalid amount. Minimum ₹1." });
     return;
   }
-  const amtInr = Number(amount);
-  const amountInPaise = Math.round(amtInr * 100);
-  const razorpayKeyId = process.env["RAZORPAY_KEY_ID"] ?? "";
-  if (!razorpayKeyId || razorpayKeyId === "rzp_test_sandbox" || razorpayKeyId.includes("test_xx")) {
+  if (!razorpayConfigured()) {
     res.status(503).json({ success: false, message: "Payment gateway not configured" });
     return;
   }
-  res.status(503).json({ success: false, message: "Payment gateway not configured" });
+  const amtInr = Number(amount);
+  const amountInPaise = Math.round(amtInr * 100);
+
+  try {
+    const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
+    const rzResp = await fetch("https://api.razorpay.com/v1/orders", {
+      method: "POST",
+      headers: {
+        "Authorization": `Basic ${auth}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ amount: amountInPaise, currency: "INR", receipt: `credits_${Date.now()}` }),
+    });
+    if (!rzResp.ok) {
+      const errBody = await rzResp.text();
+      res.status(502).json({ success: false, message: `Razorpay error: ${errBody}` });
+      return;
+    }
+    const order = await rzResp.json();
+    res.json({ success: true, data: { order, key: RAZORPAY_KEY_ID } });
+  } catch (err) {
+    res.status(502).json({ success: false, message: "Failed to create payment order" });
+  }
 });
 
 router.post("/credits/verify-payment", authenticate, async (req: Request, res: Response): Promise<void> => {
   const { razorpayOrderId, razorpayPaymentId, amount } = req.body;
-  const razorpayKeyId = process.env["RAZORPAY_KEY_ID"] ?? "";
-  if (!razorpayKeyId || razorpayKeyId === "rzp_test_sandbox" || razorpayKeyId.includes("test_xx")) {
+  if (!razorpayConfigured()) {
     res.status(503).json({ success: false, message: "Payment gateway not configured" });
     return;
   }
@@ -45,13 +70,17 @@ router.post("/credits/verify-payment", authenticate, async (req: Request, res: R
       return;
     }
   }
-  // Atomically add funds to wallet
-  const deductResult = await db.execute(
+  // Atomically add funds to wallet (INSERT if wallet doesn't exist)
+  const addResult = await db.execute(
     sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${amtInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${req.user!.id}`
   );
-  if (deductResult.rowCount === 0) {
-    res.status(404).json({ success: false, message: "Wallet not found" });
-    return;
+  if (addResult.rowCount === 0) {
+    await db.insert(freelanceWalletsTable).values({
+      userId: req.user!.id,
+      balance: amtInr,
+      totalEarned: 0,
+      updatedAt: new Date(),
+    });
   }
   await db.insert(transactionsTable).values({
     userId: req.user!.id,

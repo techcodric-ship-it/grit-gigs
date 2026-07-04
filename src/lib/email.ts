@@ -1,5 +1,14 @@
 import { logger } from "./logger";
 
+function htmlEscape(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM_EMAIL = process.env.EMAIL_FROM || "noreply@gritandgigs.com";
 
@@ -44,7 +53,7 @@ export async function sendWelcomeEmail(to: string, firstName: string): Promise<b
     to,
     subject: "Welcome to Grit&Gigs!",
     html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
-      <h1>Welcome, ${firstName}!</h1>
+      <h1>Welcome, ${htmlEscape(firstName)}!</h1>
       <p>You've joined Grit&Gigs — the freelance marketplace where skills meet opportunity.</p>
       <p>Get started by setting up your profile and exploring services, projects, and skill exchanges.</p>
       <p><a href="${process.env.APP_URL || 'http://localhost:5000'}/dashboard" style="background:#6C63FF;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;">Go to Dashboard</a></p>
@@ -84,9 +93,9 @@ export async function sendNotificationEmail(to: string, title: string, message: 
     to,
     subject: title,
     html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
-      <h2>${title}</h2>
-      <p>${message}</p>
-      ${linkUrl ? `<p><a href="${linkUrl}" style="background:#6C63FF;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;">View</a></p>` : ''}
+      <h2>${htmlEscape(title)}</h2>
+      <p>${htmlEscape(message)}</p>
+      ${linkUrl ? `<p><a href="${htmlEscape(linkUrl)}" style="background:#6C63FF;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;">View</a></p>` : ''}
     </div>`,
   });
 }

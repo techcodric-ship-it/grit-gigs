@@ -34,7 +34,7 @@ app.use(
 
 app.use(
   cors({
-    origin: "*",
+    origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : true,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   }),
@@ -43,20 +43,22 @@ app.use(compression());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// Rate limiting — 200 requests/min per IP, 500 for API routes
+// Rate limiting — 500 requests/min for API, 200 for everything else
+// Register the general limiter first with a skip function for /api routes
+app.use(rateLimit({ windowMs: 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false, skip: (req) => req.path.startsWith("/api") }));
 app.use("/api", rateLimit({ windowMs: 60 * 1000, max: 500, standardHeaders: true, legacyHeaders: false }));
-app.use(rateLimit({ windowMs: 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false }));
 
 // Request timeout — 30s for API, 2min for static files
 app.use("/api", (_req, _res, next) => { _req.setTimeout(30000); next(); });
 
 // Serve uploaded files
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+const rootDir = path.resolve(__dirname, "..");
+app.use("/uploads", express.static(path.join(rootDir, "uploads")));
 
 app.use("/api", router);
 
 // Serve frontend static files (public/ folder next to server)
-const publicPath = path.join(process.cwd(), "public");
+const publicPath = path.join(rootDir, "public");
 app.use(express.static(publicPath));
 
 // SPA fallback — send index.html for any non-API route

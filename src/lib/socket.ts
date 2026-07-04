@@ -7,7 +7,7 @@ import { logger } from "./logger";
 
 export function setupSocket(httpServer: HttpServer): SocketServer {
   const io = new SocketServer(httpServer, {
-    cors: { origin: "*", methods: ["GET", "POST"], credentials: true },
+    cors: { origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : true, methods: ["GET", "POST"], credentials: true },
   });
 
   io.use(async (socket, next) => {
@@ -65,34 +65,39 @@ export function setupSocket(httpServer: HttpServer): SocketServer {
 
     socket.on("message:send", async ({ conversationId, messageText }: { conversationId: string; messageText: string }) => {
       if (!messageText?.trim()) return;
+      try {
+        const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, conversationId));
+        if (!conv || (conv.user1Id !== userId && conv.user2Id !== userId)) return;
 
-      const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, conversationId));
-      if (!conv || (conv.user1Id !== userId && conv.user2Id !== userId)) return;
+        const [message] = await db
+          .insert(messagesTable)
+          .values({ conversationId, senderId: userId, messageText: messageText.trim() })
+          .returning();
 
-      const [message] = await db
-        .insert(messagesTable)
-        .values({ conversationId, senderId: userId, messageText: messageText.trim() })
-        .returning();
+        await db.update(conversationsTable).set({ lastMessageAt: new Date() }).where(eq(conversationsTable.id, conversationId));
 
-      await db.update(conversationsTable).set({ lastMessageAt: new Date() }).where(eq(conversationsTable.id, conversationId));
+        const recipientId = conv.user1Id === userId ? conv.user2Id : conv.user1Id;
+        await db.insert(notificationsTable).values({
+          userId: recipientId,
+          type: "NEW_MESSAGE",
+          title: `New message from ${sockWithUser.user.firstName}`,
+          message: messageText.slice(0, 80),
+          linkUrl: "/dashboard#inbox",
+        });
 
-      const recipientId = conv.user1Id === userId ? conv.user2Id : conv.user1Id;
-      await db.insert(notificationsTable).values({
-        userId: recipientId,
-        type: "NEW_MESSAGE",
-        title: `New message from ${sockWithUser.user.firstName}`,
-        message: messageText.slice(0, 80),
-        linkUrl: "/dashboard#inbox",
-      });
-
-      const [sender] = await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto }).from(usersTable).where(eq(usersTable.id, userId));
-      io.to(`conv:${conversationId}`).emit("message:new", { ...message, sender });
-      io.to(`user:${recipientId}`).emit("notification:new", {
-        type: "NEW_MESSAGE",
-        title: sockWithUser.user.firstName,
-        message: messageText.slice(0, 60),
-        conversationId,
-      });
+        const [sender] = await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+        if (sender) {
+          io.to(`conv:${conversationId}`).emit("message:new", { ...message, sender });
+          io.to(`user:${recipientId}`).emit("notification:new", {
+            type: "NEW_MESSAGE",
+            title: sockWithUser.user.firstName,
+            message: messageText.slice(0, 60),
+            conversationId,
+          });
+        }
+      } catch (err) {
+        logger.error({ err, conversationId }, "Socket message:send error");
+      }
     });
 
     socket.on("disconnect", () => {

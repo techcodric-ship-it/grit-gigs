@@ -15,6 +15,7 @@ import { eq, ilike, or, desc, sql, and, gt, inArray } from "drizzle-orm";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { getActivePlanForUser, getOrCreateSubscription, getPlan } from "../lib/subscriptions";
 import { uploadToSupabase } from "../lib/storage";
+import { PROJECT_ROOT } from "../lib/root";
 import { logger } from "../lib/logger";
 import multer from "multer";
 import path from "path";
@@ -22,7 +23,7 @@ import fs from "fs";
 
 const router: IRouter = Router();
 
-const uploadDir = path.join(process.cwd(), "uploads", "profiles");
+const uploadDir = path.join(PROJECT_ROOT, "uploads", "profiles");
 fs.mkdirSync(uploadDir, { recursive: true });
 const storage = multer.diskStorage({
   destination: uploadDir,
@@ -128,7 +129,7 @@ router.post("/users/me/wallet/withdraw", authenticate, async (req: Request, res:
   }
   const [wallet] = await db.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, req.user!.id));
   if (!wallet) {
-    res.status(400).json({ success: false, message: "You don't have enough funds in your wallet to withdraw. Please check your balance and try again." });
+    res.status(400).json({ success: false, message: "No wallet found. Please add funds to your wallet first." });
     return;
   }
 
@@ -347,6 +348,7 @@ router.get('/users/me/notifications/stream', async (req, res): Promise<void> => 
   let lastSeen = new Date();
   // Send keep-alive heartbeat every 20s, check for new notifications
   const interval = setInterval(async () => {
+    if (res.writableEnded) { clearInterval(interval); return; }
     try {
       const newNotifs = await db
         .select()
@@ -356,9 +358,10 @@ router.get('/users/me/notifications/stream', async (req, res): Promise<void> => 
         .limit(5);
       lastSeen = new Date();
       for (const n of newNotifs) {
+        if (res.writableEnded) { clearInterval(interval); break; }
         res.write(`event: notification\ndata: ${JSON.stringify({ title: n.title, message: n.message })}\n\n`);
       }
-      res.write(': heartbeat\n\n');
+      if (!res.writableEnded) res.write(': heartbeat\n\n');
     } catch (e) { /* DB error — keep alive */ }
   }, 20000);
 

@@ -90,29 +90,34 @@ router.post("/orders", authenticate, async (req, res): Promise<void> => {
   if (!service || service.status !== "ACTIVE") { res.status(400).json({ success: false, message: "Service is not available" }); return; }
   if (service.sellerId === req.user!.id) { res.status(400).json({ success: false, message: "Cannot buy your own service" }); return; }
 
-  // Prevent duplicate orders for the same service
-  const [existingOrder] = await db.select().from(ordersTable).where(and(
-    eq(ordersTable.buyerId, req.user!.id),
-    eq(ordersTable.serviceId, serviceId),
-    or(eq(ordersTable.status, 'PENDING'), eq(ordersTable.status, 'ACCEPTED'))
-  )).limit(1);
-  if (existingOrder) {
-    res.status(400).json({ success: false, message: "You already have a pending order for this service" });
-    return;
-  }
-
   const deliveryDate = new Date();
   deliveryDate.setDate(deliveryDate.getDate() + pkg.deliveryDays);
 
-  const [order] = await db.insert(ordersTable).values({
-    serviceId,
-    packageId,
-    buyerId: req.user!.id,
-    sellerId: service.sellerId,
-    priceInr: pkg.priceInr,
-    requirements: requirements ?? null,
-    deliveryDate,
-  }).returning();
+  let order;
+  try {
+    [order] = await db.transaction(async (tx) => {
+      const [existing] = await tx.select().from(ordersTable).where(and(
+        eq(ordersTable.buyerId, req.user!.id),
+        eq(ordersTable.serviceId, serviceId),
+        or(eq(ordersTable.status, 'PENDING'), eq(ordersTable.status, 'ACCEPTED'))
+      )).limit(1);
+      if (existing) throw new Error("DUPLICATE_ORDER");
+      return tx.insert(ordersTable).values({
+        serviceId,
+        packageId,
+        buyerId: req.user!.id,
+        sellerId: service.sellerId,
+        priceInr: pkg.priceInr,
+        deliveryDate,
+      }).returning();
+    });
+  } catch (err: any) {
+    if (err.message === "DUPLICATE_ORDER") {
+      res.status(400).json({ success: false, message: "You already have a pending order for this service" });
+      return;
+    }
+    throw err;
+  }
 
   await db.update(servicesTable).set({ orderCount: service.orderCount + 1 }).where(eq(servicesTable.id, serviceId));
 

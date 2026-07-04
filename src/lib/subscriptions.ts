@@ -145,7 +145,8 @@ export async function getOrCreateSubscription(userId: string): Promise<UserSubsc
   }
 
   // Monthly credit refresh.
-  if (now - sub.creditsResetAt.getTime() >= THIRTY_DAYS_MS) {
+  const creditsResetAt = sub.creditsResetAt;
+  if (creditsResetAt && now - creditsResetAt.getTime() >= THIRTY_DAYS_MS) {
     const effectivePlan = getPlan((patch.planId as PlanId) ?? sub.planId);
     patch.proposalCreditsRemaining = effectivePlan.monthlyProposalCredits;
     patch.featuredProposalsRemaining = effectivePlan.featuredProposalsPerMonth;

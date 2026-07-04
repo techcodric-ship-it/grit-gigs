@@ -1,6 +1,7 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { eq } from "drizzle-orm";
 import { uploadToSupabase } from "../lib/storage";
+import { PROJECT_ROOT } from "../lib/root";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -9,7 +10,7 @@ import { authenticate } from "../middlewares/authenticate";
 
 const router: IRouter = Router();
 
-const kycDir = path.join(process.cwd(), "uploads", "kyc");
+const kycDir = path.join(PROJECT_ROOT, "uploads", "kyc");
 fs.mkdirSync(kycDir, { recursive: true });
 
 const kycUpload = multer({

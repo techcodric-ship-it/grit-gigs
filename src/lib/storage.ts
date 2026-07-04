@@ -3,6 +3,11 @@ import path from "path";
 import { v4 as uuid } from "uuid";
 import { logger } from "./logger";
 
+function sanitizeSubfolder(input: string): string {
+  // Allow only alphanumeric characters, underscores, and hyphens
+  return input.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64);
+}
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
@@ -46,7 +51,7 @@ export async function uploadToSupabase(
 
   try {
     const ext = path.extname(originalName) || ".bin";
-    const fileName = `${subfolder}/${Date.now()}-${uuid().slice(0, 8)}${ext}`;
+    const fileName = `${sanitizeSubfolder(subfolder)}/${Date.now()}-${uuid().slice(0, 8)}${ext}`;
 
     const { error } = await supabase.storage
       .from(UPLOADS_BUCKET)

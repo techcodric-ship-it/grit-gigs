@@ -3,10 +3,10 @@ import { eq, like, desc, or, and, sql, isNull, inArray } from "drizzle-orm";
 import {
   db,
   usersTable, notificationsTable,
-  freelanceWalletsTable, transactionsTable,
+  freelanceWalletsTable, transactionsTable, withdrawalRequestsTable,
   servicesTable, servicePackagesTable,
   projectsTable, projectBidsTable,
-  barterRequestsTable, barterMatchesTable,
+  barterRequestsTable, barterMatchesTable, barterDeliveriesTable,
   ordersTable, orderDeliveriesTable, reviewsTable,
   savedItemsTable,
   reportsTable,
@@ -18,6 +18,7 @@ import {
   conversationsTable,
   messagesTable,
   clientReviewsTable,
+  refreshTokensTable, passwordResetsTable,
 } from "../db";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -25,9 +26,10 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { uploadToSupabase } from "../lib/storage";
+import { PROJECT_ROOT } from "../lib/root";
 import { adminAuth } from "../middlewares/adminAuth";
 
-const uploadsDir = path.join(process.cwd(), "uploads", "messages");
+const uploadsDir = path.join(PROJECT_ROOT, "uploads", "messages");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 const storage = multer.diskStorage({
@@ -156,13 +158,19 @@ router.delete("/admin/users/:id", async (req: Request, res: Response) => {
   const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
-  // Get user's orders, conversations, barter matches
-  const [userOrders, userConvs] = await Promise.all([
+  // Get user's orders, conversations, barter matches, projects
+  const [userOrders, userConvs, userProjects] = await Promise.all([
     db.select({ id: ordersTable.id }).from(ordersTable).where(or(eq(ordersTable.buyerId, userId), eq(ordersTable.sellerId, userId))),
     db.select({ id: conversationsTable.id }).from(conversationsTable).where(or(eq(conversationsTable.user1Id, userId), eq(conversationsTable.user2Id, userId))),
+    db.select({ id: projectsTable.id }).from(projectsTable).where(eq(projectsTable.userId, userId)),
   ]);
   const orderIds = userOrders.map(o => o.id);
   const convIds = userConvs.map(c => c.id);
+  const projectIds = userProjects.map(p => p.id);
+  const [userBarterMatches] = await Promise.all([
+    db.select({ id: barterMatchesTable.id }).from(barterMatchesTable).where(or(eq(barterMatchesTable.user1Id, userId), eq(barterMatchesTable.user2Id, userId))),
+  ]);
+  const barterMatchIds = userBarterMatches.map(b => b.id);
 
   // Clean up FK constraints in reverse dependency order
   if (convIds.length) {
@@ -174,9 +182,30 @@ router.delete("/admin/users/:id", async (req: Request, res: Response) => {
     await db.delete(reviewsTable).where(or(inArray(reviewsTable.orderId, orderIds), eq(reviewsTable.reviewerId, userId), eq(reviewsTable.revieweeId, userId)));
     await db.delete(ordersTable).where(inArray(ordersTable.id, orderIds));
   }
+  if (projectIds.length) {
+    await db.delete(projectBidsTable).where(inArray(projectBidsTable.projectId, projectIds));
+    await db.delete(projectsTable).where(inArray(projectsTable.id, projectIds));
+  }
+  if (barterMatchIds.length) {
+    await db.delete(barterDeliveriesTable).where(inArray(barterDeliveriesTable.matchId, barterMatchIds));
+    await db.delete(barterMatchesTable).where(inArray(barterMatchesTable.id, barterMatchIds));
+  }
+  await db.delete(projectBidsTable).where(eq(projectBidsTable.userId, userId));
+  await db.delete(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, userId));
+  await db.delete(withdrawalRequestsTable).where(eq(withdrawalRequestsTable.userId, userId));
+  await db.delete(kycDocumentsTable).where(eq(kycDocumentsTable.userId, userId));
+  await db.delete(notificationsTable).where(eq(notificationsTable.userId, userId));
+  await db.delete(userSubscriptionsTable).where(eq(userSubscriptionsTable.userId, userId));
+  await db.delete(refreshTokensTable).where(eq(refreshTokensTable.userId, userId));
+  await db.delete(passwordResetsTable).where(eq(passwordResetsTable.userId, userId));
   await db.delete(transactionsTable).where(eq(transactionsTable.userId, userId));
-  await db.delete(barterMatchesTable).where(or(eq(barterMatchesTable.user1Id, userId), eq(barterMatchesTable.user2Id, userId)));
   await db.delete(clientReviewsTable).where(or(eq(clientReviewsTable.reviewerId, userId), eq(clientReviewsTable.revieweeId, userId)));
+  await db.delete(barterDeliveriesTable).where(eq(barterDeliveriesTable.userId, userId));
+  await db.delete(savedItemsTable).where(eq(savedItemsTable.userId, userId));
+  await db.delete(reportsTable).where(or(eq(reportsTable.reportedById, userId), and(eq(reportsTable.targetType, 'USER'), eq(reportsTable.targetId, userId))));
+  await db.delete(invitesTable).where(or(eq(invitesTable.fromUserId, userId), eq(invitesTable.toUserId, userId)));
+  await db.delete(projectMilestonesTable).where(inArray(projectMilestonesTable.projectId, projectIds));
+  await db.delete(servicesTable).where(eq(servicesTable.sellerId, userId));
 
   await db.delete(usersTable).where(eq(usersTable.id, userId));
   res.json({ success: true, message: "User deleted" });
@@ -422,7 +451,7 @@ router.put("/admin/reports/:id/action", async (req: Request, res: Response) => {
 });
 
 // ── Upload files (admin) ──
-const profileUploadsDir = path.join(process.cwd(), "uploads", "profiles");
+const profileUploadsDir = path.join(PROJECT_ROOT, "uploads", "profiles");
 if (!fs.existsSync(profileUploadsDir)) fs.mkdirSync(profileUploadsDir, { recursive: true });
 
 const profileStorage = multer.diskStorage({

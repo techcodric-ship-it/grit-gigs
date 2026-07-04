@@ -9,13 +9,14 @@ import { clientReviewsTable } from '../db/schema/client-reviews';
 import { authenticate, optionalAuth } from '../middlewares/authenticate';
 import { getActivePlanForUser, getOrCreateSubscription } from '../lib/subscriptions';
 import { uploadToSupabase } from '../lib/storage';
+import { PROJECT_ROOT } from '../lib/root';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
 const router = Router();
 
-const _projUploadDir = path.join(process.cwd(), 'uploads', 'projects');
+const _projUploadDir = path.join(PROJECT_ROOT, 'uploads', 'projects');
 fs.mkdirSync(_projUploadDir, { recursive: true });
 const _projUpload = multer({
   storage: multer.diskStorage({
@@ -438,22 +439,23 @@ router.put('/projects/bids/:bidId/accept', authenticate, async (req: Request, re
   if (project.status !== 'OPEN') return res.status(400).json({ success: false, message: 'Project is not open' });
   if (bid.userId === userId) return res.status(400).json({ success: false, message: 'Cannot accept your own bid' });
 
-  // Accept this bid, reject others
-  await db
-    .update(projectBidsTable)
-    .set({ status: 'ACCEPTED' })
-    .where(eq(projectBidsTable.id, bid.id));
+  // Accept this bid, reject others, close project — atomically
+  await db.transaction(async (tx) => {
+    await tx
+      .update(projectBidsTable)
+      .set({ status: 'ACCEPTED' })
+      .where(eq(projectBidsTable.id, bid.id));
 
-  await db
-    .update(projectBidsTable)
-    .set({ status: 'REJECTED' })
-    .where(and(eq(projectBidsTable.projectId, project.id), not(eq(projectBidsTable.id, bid.id))));
+    await tx
+      .update(projectBidsTable)
+      .set({ status: 'REJECTED' })
+      .where(and(eq(projectBidsTable.projectId, project.id), not(eq(projectBidsTable.id, bid.id))));
 
-  // Close the project
-  await db
-    .update(projectsTable)
-    .set({ status: 'IN_PROGRESS', acceptedBidId: bid.id })
-    .where(eq(projectsTable.id, project.id));
+    await tx
+      .update(projectsTable)
+      .set({ status: 'IN_PROGRESS', acceptedBidId: bid.id })
+      .where(eq(projectsTable.id, project.id));
+  });
 
   // Fetch freelancer info for the response
   const [freelancer] = await db
