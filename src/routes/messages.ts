@@ -260,7 +260,7 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
   if (!messageText?.trim()) { res.status(400).json({ success: false, message: "Message cannot be empty" }); return; }
 
   // Auto-censor contact info (email, phone) before saving
-  const contactPattern = /(?:\b\d{7,}\b)|(?:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+  const contactPattern = /(?:\b\d{7,}\b)|(?:\+?\d{1,3}[-.\s]?\d{7,})|(?:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
   const censoredText = messageText.trim().replace(contactPattern, '[hidden]');
 
   const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, convId));

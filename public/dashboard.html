@@ -445,6 +445,7 @@ textarea.fi{resize:vertical;}
 
 /* ── KYC pulse animation ── */
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.5; } }
+@keyframes eqPulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
 .kyc-doc-card:hover{box-shadow:var(--shm);}
 
 /* ── Saved tab pills ── */
@@ -1341,24 +1342,37 @@ textarea.fi{resize:vertical;}
 
     <!-- INVEST -->
     <div class="ps" id="ps-invest">
-      <div style="max-width:520px;margin:0 auto;text-align:center;padding:40px 20px;">
-        <div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,#059669,#10B981);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 8px 24px rgba(5,150,105,0.2);">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 1 18"/><polyline points="16 7 22 7 22 13"/></svg>
-        </div>
-        <span style="display:inline-flex;align-items:center;gap:6px;background:#d1fae5;color:#065f46;font-size:.7rem;font-weight:700;padding:4px 12px;border-radius:99px;margin-bottom:14px;">
-          <span style="width:6px;height:6px;border-radius:50%;background:#059669;display:inline-block;"></span>
-          Launching Q3 2026
-        </span>
-        <h2 style="font-size:1.4rem;margin-bottom:10px;color:var(--ink);">Invest in businesses you believe in</h2>
-        <p style="font-size:.88rem;color:var(--sec);line-height:1.7;max-width:380px;margin:0 auto 24px;">Invest from ₹10,000 in verified local businesses and earn quarterly dividends. Coming soon.</p>
-        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-          <button class="btn bp" onclick="showToast('You\'re on the waitlist!','ok')" style="padding:12px 28px;font-size:.88rem;">Join the Waitlist</button>
-          <button class="btn bs" onclick="showToast('Learn more coming soon','ok')" style="padding:12px 24px;font-size:.88rem;">Learn More</button>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:36px;max-width:400px;margin-left:auto;margin-right:auto;">
-          <div style="text-align:center;padding:12px;"><div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:#059669;">₹10K</div><div style="font-size:.7rem;color:var(--muted);margin-top:3px;">Min Investment</div></div>
-          <div style="text-align:center;padding:12px;"><div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:#059669;">Quarterly</div><div style="font-size:.7rem;color:var(--muted);margin-top:3px;">Dividends</div></div>
-          <div style="text-align:center;padding:12px;"><div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:#059669;">12-25%</div><div style="font-size:.7rem;color:var(--muted);margin-top:3px;">Est. Returns</div></div>
+      <div style="background:linear-gradient(135deg,#0F172A 0%,#1E293B 50%,#0F766E 100%);border-radius:20px;padding:48px 32px 40px;text-align:center;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(15,23,42,0.3);">
+        <div style="position:absolute;top:-60px;right:-60px;width:200px;height:200px;border-radius:50%;background:rgba(16,185,129,0.08);"></div>
+        <div style="position:absolute;bottom:-80px;left:-40px;width:240px;height:240px;border-radius:50%;background:rgba(99,102,241,0.06);"></div>
+        <div style="position:relative;z-index:1;max-width:520px;margin:0 auto;">
+          <div style="width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,#10B981,#34D399);display:flex;align-items:center;justify-content:center;margin:0 auto 22px;box-shadow:0 12px 32px rgba(16,185,129,0.3);">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 1 18"/><polyline points="16 7 22 7 22 13"/></svg>
+          </div>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(16,185,129,0.15);color:#6EE7B7;font-size:.7rem;font-weight:700;padding:5px 14px;border-radius:99px;margin-bottom:16px;border:1px solid rgba(16,185,129,0.2);">
+            <span style="width:6px;height:6px;border-radius:50%;background:#34D399;display:inline-block;animation:eqPulse 1.5s infinite;"></span>
+            Launching Q3 2026
+          </span>
+          <h2 style="font-size:1.6rem;margin-bottom:10px;color:#fff;font-weight:800;">Invest in businesses you believe in</h2>
+          <p style="font-size:.9rem;color:rgba(255,255,255,0.6);line-height:1.7;max-width:400px;margin:0 auto 28px;">Invest from ₹10,000 in verified local businesses and earn quarterly dividends. Coming soon.</p>
+          <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+            <button class="btn" onclick="showToast('You\'re on the waitlist!','ok')" style="padding:13px 32px;font-size:.88rem;font-weight:700;background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;border-radius:12px;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px rgba(16,185,129,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 8px 24px rgba(16,185,129,0.4)';" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 16px rgba(16,185,129,0.3)';">Join the Waitlist</button>
+            <button class="btn" onclick="showToast('Learn more coming soon','ok')" style="padding:13px 28px;font-size:.88rem;font-weight:600;background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:12px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(255,255,255,0.15)';" onmouseout="this.style.background='rgba(255,255,255,0.1)';">Learn More →</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:36px;max-width:400px;margin-left:auto;margin-right:auto;">
+            <div style="text-align:center;padding:14px 10px;background:rgba(255,255,255,0.05);border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+              <div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:#6EE7B7;">₹10K</div>
+              <div style="font-size:.68rem;color:rgba(255,255,255,0.45);margin-top:4px;">Min Investment</div>
+            </div>
+            <div style="text-align:center;padding:14px 10px;background:rgba(255,255,255,0.05);border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+              <div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:#6EE7B7;">Quarterly</div>
+              <div style="font-size:.68rem;color:rgba(255,255,255,0.45);margin-top:4px;">Dividend Payout</div>
+            </div>
+            <div style="text-align:center;padding:14px 10px;background:rgba(255,255,255,0.05);border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+              <div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:#6EE7B7;">12-25%</div>
+              <div style="font-size:.68rem;color:rgba(255,255,255,0.45);margin-top:4px;">Est. Annual Returns</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

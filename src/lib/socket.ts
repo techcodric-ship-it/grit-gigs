@@ -66,12 +66,15 @@ export function setupSocket(httpServer: HttpServer): SocketServer {
     socket.on("message:send", async ({ conversationId, messageText }: { conversationId: string; messageText: string }) => {
       if (!messageText?.trim()) return;
       try {
+        const contactPattern = /(?:\b\d{7,}\b)|(?:\+?\d{1,3}[-.\s]?\d{7,})|(?:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+        const censoredText = messageText.trim().replace(contactPattern, "[hidden]");
+
         const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, conversationId));
         if (!conv || (conv.user1Id !== userId && conv.user2Id !== userId)) return;
 
         const [message] = await db
           .insert(messagesTable)
-          .values({ conversationId, senderId: userId, messageText: messageText.trim() })
+          .values({ conversationId, senderId: userId, messageText: censoredText })
           .returning();
 
         await db.update(conversationsTable).set({ lastMessageAt: new Date() }).where(eq(conversationsTable.id, conversationId));
@@ -81,7 +84,7 @@ export function setupSocket(httpServer: HttpServer): SocketServer {
           userId: recipientId,
           type: "NEW_MESSAGE",
           title: `New message from ${sockWithUser.user.firstName}`,
-          message: messageText.slice(0, 80),
+          message: censoredText.slice(0, 80),
           linkUrl: "/dashboard#inbox",
         });
 
@@ -91,7 +94,7 @@ export function setupSocket(httpServer: HttpServer): SocketServer {
           io.to(`user:${recipientId}`).emit("notification:new", {
             type: "NEW_MESSAGE",
             title: sockWithUser.user.firstName,
-            message: messageText.slice(0, 60),
+            message: censoredText.slice(0, 60),
             conversationId,
           });
         }
