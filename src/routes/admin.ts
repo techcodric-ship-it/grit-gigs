@@ -184,6 +184,7 @@ router.delete("/admin/users/:id", async (req: Request, res: Response) => {
   }
   if (projectIds.length) {
     await db.delete(projectBidsTable).where(inArray(projectBidsTable.projectId, projectIds));
+    await db.delete(projectMilestonesTable).where(inArray(projectMilestonesTable.projectId, projectIds));
     await db.delete(projectsTable).where(inArray(projectsTable.id, projectIds));
   }
   if (barterMatchIds.length) {
