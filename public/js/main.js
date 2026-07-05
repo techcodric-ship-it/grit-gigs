@@ -171,7 +171,7 @@ window.doLogout = function() {
           var planBadgeHtml = '';
           try {
             var pr2 = JSON.parse(localStorage.getItem('se_plan_cache') || 'null');
-            if (pr2 && pr2.badge) {
+            if (pr2 && pr2.badge && pr2.badge !== 'Free') {
               planBadgeHtml = '<span style="background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">' + pr2.badge + '</span>';
             } else if (pr2) {
               planBadgeHtml = '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Free</span>';

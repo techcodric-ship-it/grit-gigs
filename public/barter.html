@@ -250,7 +250,7 @@
         x.open('GET', '/api/subscriptions/my-plan', false);
         x.setRequestHeader('Authorization', 'Bearer ' + t);
         x.setRequestHeader('Content-Type', 'application/json');
-        try { x.send(); var pr = JSON.parse(x.responseText); if (pr.success && pr.data.plan) { var b = pr.data.plan.badge; planBadge = b ? '<span style="background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">' + b + '</span>' : '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Free</span>'; try{localStorage.setItem('se_plan_cache',JSON.stringify({badge:b||'Free'}));}catch(e){} } } catch(e) {}
+        try { x.send(); var pr = JSON.parse(x.responseText); if (pr.success && pr.data.plan) { var b = pr.data.plan.badge; planBadge = b ? '<span style="background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">' + b + '</span>' : '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Free</span>'; try{localStorage.setItem('se_plan_cache',JSON.stringify({badge:b||null}));}catch(e){} } } catch(e) {}
         el.innerHTML = planBadge + '<a href="dashboard.html" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
           '<button class="btn btn-primary btn-sm" onclick="window.doLogout();">Sign out</button>';
       }
