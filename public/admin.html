@@ -180,8 +180,13 @@ a{text-decoration:none;color:inherit;}
 .wallet-card-mini .wlbl{font-size:.6rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;position:relative;z-index:1;}
 .wallet-card-mini .wval{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;position:relative;z-index:1;}
 
+/* ── MOBILE TOGGLE ── */
+.mob-toggle{display:none;position:fixed;top:11px;left:11px;z-index:200;width:34px;height:34px;border-radius:var(--r);background:var(--ink2);border:none;cursor:pointer;flex-direction:column;align-items:center;justify-content:center;gap:4px;}
+.mob-toggle span{width:15px;height:2px;background:#fff;border-radius:1px;}
+.sb-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;}
+
 @media(max-width:1100px){.sg{grid-template-columns:repeat(2,1fr);}.info-grid{grid-template-columns:1fr 1fr;}}
-@media(max-width:768px){.sb{transform:translateX(-100%);}.sb.open{transform:translateX(0);}.main{margin-left:0;}.pb{padding:14px;}.topbar{padding:0 14px;}.sg{grid-template-columns:1fr 1fr;}.info-grid{grid-template-columns:1fr;}.md{padding:18px;}}
+@media(max-width:768px){.sb{transform:translateX(-100%);transition:transform .3s ease;}.sb.open{transform:translateX(0);}.sb-ov.open{display:block;}.mob-toggle{display:flex;}.main{margin-left:0;}.pb{padding:14px;}.topbar{padding:0 14px;}.sg{grid-template-columns:1fr 1fr;}.info-grid{grid-template-columns:1fr;}.md{padding:18px;}}
 @media(max-width:480px){.sg{grid-template-columns:1fr;}}
 </style>
 </head>
@@ -208,6 +213,9 @@ a{text-decoration:none;color:inherit;}
 <!-- ══════════ ADMIN APP ══════════ -->
 <div id="adminApp">
 <div class="app">
+
+<button class="mob-toggle" id="mobT"><span></span><span></span><span></span></button>
+<div class="sb-ov" id="sbOv"></div>
 
 <!-- SIDEBAR -->
 <aside class="sb" id="sb">
@@ -526,6 +534,25 @@ async function uploadAdminPhoto(input) {
   } catch(e) { showToast(e.message, 'err'); }
   input.value = '';
 }
+
+// ─── MOBILE SIDEBAR TOGGLE ───
+document.getElementById('mobT').addEventListener('click', () => {
+  document.getElementById('sb').classList.toggle('open');
+  document.getElementById('sbOv').classList.toggle('open');
+});
+document.getElementById('sbOv').addEventListener('click', () => {
+  document.getElementById('sb').classList.remove('open');
+  document.getElementById('sbOv').classList.remove('open');
+});
+// Close sidebar on nav click (mobile)
+document.querySelectorAll('.ni[data-p]').forEach(el => {
+  el.addEventListener('click', () => {
+    if (window.innerWidth < 768) {
+      document.getElementById('sb').classList.remove('open');
+      document.getElementById('sbOv').classList.remove('open');
+    }
+  });
+});
 
 // ─── SIDEBAR ───
 document.querySelectorAll('.ni[data-p]').forEach(el => {
