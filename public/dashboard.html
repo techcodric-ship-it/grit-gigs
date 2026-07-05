@@ -2672,7 +2672,7 @@ function renderBarterCards(reqs, c, sentMatchIds = new Set()) {
       <div class="bc-user">
         <img src="${esc(avUrl(r.user))}" class="bc-av-img" onclick="event.stopPropagation();openUserProfile('${esc(r.userId)}')" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="bc-av" onclick="event.stopPropagation();openUserProfile('${esc(r.userId)}')" style="display:none;">${ini}</div>
         <div style="flex:1;min-width:0;">
-          <div class="bc-name" onclick="event.stopPropagation();openUserProfile('${esc(r.userId)}')">${r.user?.firstName || '?'} ${r.user?.lastName || ''}</div>
+          <div class="bc-name" onclick="event.stopPropagation();openUserProfile('${esc(r.userId)}')">${r.user?.firstName || '?'} ${r.user?.lastName || ''}${kycBadge(r.user?.kycVerified)}</div>
           <div class="bc-meta">${userStarsHtml(r.user?.avgRating, r.user?.reviewCount)} · ${r.city || 'India'} · ⭐ Rep ${r.user?.reputationScore || 0}</div>
         </div>
         ${r.userId ? `<span class="bc-vpf" onclick="event.stopPropagation();openUserProfile('${esc(r.userId)}')">👤 Profile</span>` : ''}
