@@ -470,6 +470,12 @@ app.set("io", io);
 
       // ── Column additions for old table versions (safe to run repeatedly) ──
       async function col(sql: string) { try { await client.query(sql) } catch (e: unknown) { logger.warn({ err: (e as Error).message, sql: sql.slice(0, 80) }, "migrate: column addition skipped") } }
+      await col(`ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS upi_id TEXT`);
+      await col(`ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS gateway_txn_id TEXT`);
+      await col(`ALTER TABLE withdrawal_requests ALTER COLUMN bank_name DROP NOT NULL`);
+      await col(`ALTER TABLE withdrawal_requests ALTER COLUMN account_number DROP NOT NULL`);
+      await col(`ALTER TABLE withdrawal_requests ALTER COLUMN ifsc_code DROP NOT NULL`);
+      await col(`ALTER TABLE withdrawal_requests ALTER COLUMN account_name DROP NOT NULL`);
       await col(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS read BOOLEAN DEFAULT FALSE`);
       await col(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ`);
       await col(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb NOT NULL`);

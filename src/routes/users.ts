@@ -16,6 +16,7 @@ import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { getActivePlanForUser, getOrCreateSubscription, getPlan } from "../lib/subscriptions";
 import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
 import { uploadToSupabase } from "../lib/storage";
+import { createUpiPayout, createBankPayout } from "../lib/razorpay";
 import { PROJECT_ROOT } from "../lib/root";
 import { logger } from "../lib/logger";
 import multer from "multer";
@@ -119,13 +120,15 @@ router.get("/users/me/wallet", authenticate, async (req: Request, res: Response)
 });
 
 router.post("/users/me/wallet/withdraw", authenticate, async (req: Request, res: Response): Promise<void> => {
-  const { amount, bankName, accountNumber, ifscCode, accountName } = req.body;
+  const { amount, bankName, accountNumber, ifscCode, accountName, upiId } = req.body;
   if (!amount || amount < 100) {
     res.status(400).json({ success: false, message: "Minimum withdrawal is ₹100" });
     return;
   }
-  if (!bankName || !accountNumber || !ifscCode || !accountName) {
-    res.status(400).json({ success: false, message: "All bank details are required" });
+  const hasBank = bankName && accountNumber && ifscCode && accountName;
+  const hasUpi = upiId && upiId.includes("@");
+  if (!hasBank && !hasUpi) {
+    res.status(400).json({ success: false, message: "Provide bank details or UPI ID" });
     return;
   }
   const [wallet] = await db.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, req.user!.id));
@@ -140,7 +143,9 @@ router.post("/users/me/wallet/withdraw", authenticate, async (req: Request, res:
   const withdrawalFee = Math.round(amount * commissionPct / 100);
   const netAmount = amount - withdrawalFee;
 
-  // Atomically deduct from wallet and record in a transaction
+  let withdrawalId: string | null = null;
+
+  // Atomically deduct from wallet and record withdrawal request
   try {
     await db.transaction(async (tx) => {
       const deductResult = await tx.execute(
@@ -160,15 +165,17 @@ router.post("/users/me/wallet/withdraw", authenticate, async (req: Request, res:
         });
       }
 
-      await tx.insert(withdrawalRequestsTable).values({
+      const [wd] = await tx.insert(withdrawalRequestsTable).values({
         walletId: wallet.id,
         userId: req.user!.id,
         amount: netAmount,
-        bankName,
-        accountNumber,
-        ifscCode,
-        accountName,
-      });
+        bankName: hasBank ? bankName : null,
+        accountNumber: hasBank ? accountNumber : null,
+        ifscCode: hasBank ? ifscCode : null,
+        accountName: hasBank ? accountName : null,
+        upiId: hasUpi ? upiId : null,
+      }).returning();
+      withdrawalId = wd.id;
     });
   } catch (e) {
     if (e instanceof Error && e.message === "Insufficient balance") {
@@ -178,14 +185,45 @@ router.post("/users/me/wallet/withdraw", authenticate, async (req: Request, res:
     }
     return;
   }
-  await db.insert(notificationsTable).values({
-    userId: req.user!.id,
-    type: "WITHDRAWAL_REQUESTED",
-    title: "Withdrawal requested",
-    message: `Withdrawal of ₹${netAmount} requested (${commissionPct}% fee: ₹${withdrawalFee}). Bank transfer in 3–5 business days.`,
-    linkUrl: "/dashboard.html",
-  });
-  res.json({ success: true, message: `Withdrawal of ₹${netAmount} requested (${commissionPct}% fee: ₹${withdrawalFee}). Bank transfer in 3–5 business days.` });
+
+  // Auto-payout via Razorpay
+  let payoutResult;
+  if (hasUpi) {
+    payoutResult = await createUpiPayout(netAmount, upiId, withdrawalId!, { name: req.user!.firstName + " " + req.user!.lastName });
+  } else {
+    payoutResult = await createBankPayout(netAmount, { name: req.user!.firstName + " " + req.user!.lastName, accountNumber, ifsc: ifscCode, accountName }, withdrawalId!);
+  }
+
+  if (payoutResult.success) {
+    await db.update(withdrawalRequestsTable).set({
+      status: "PROCESSING",
+      gatewayTxnId: payoutResult.gatewayTxnId,
+    }).where(eq(withdrawalRequestsTable.id, withdrawalId!));
+
+    await db.insert(notificationsTable).values({
+      userId: req.user!.id,
+      type: "WITHDRAWAL_REQUESTED",
+      title: "Withdrawal processing",
+      message: `Withdrawal of ₹${netAmount} is being processed via Razorpay.`,
+      linkUrl: "/dashboard.html",
+    });
+
+    res.json({ success: true, message: `Withdrawal of ₹${netAmount} is being processed. It should arrive in a few minutes.` });
+  } else {
+    // Payout failed — mark as failed and refund
+    await db.update(withdrawalRequestsTable).set({ status: "FAILED" }).where(eq(withdrawalRequestsTable.id, withdrawalId!));
+    await db.execute(sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${amount}, total_withdrawn = COALESCE(total_withdrawn, 0) - ${amount}, updated_at = NOW() WHERE id = ${wallet.id}`);
+
+    await db.insert(notificationsTable).values({
+      userId: req.user!.id,
+      type: "WITHDRAWAL_FAILED",
+      title: "Withdrawal failed",
+      message: `Your withdrawal of ₹${netAmount} failed: ${payoutResult.error}. Amount has been refunded to your wallet.`,
+      linkUrl: "/dashboard.html",
+    });
+
+    res.status(502).json({ success: false, message: `Payout failed: ${payoutResult.error}. Amount refunded.` });
+  }
 });
 
 router.post(

@@ -1819,25 +1819,49 @@ textarea.fi{resize:vertical;}
         <input id="wAmt" type="number" min="100" required style="width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" placeholder="Enter amount">
       </div>
       <div style="margin-bottom:10px;">
-        <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px;">Bank Name</label>
-        <input id="wBank" type="text" required style="width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" placeholder="e.g. State Bank of India">
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <button type="button" id="wBankTab" class="btn btn-sm" style="flex:1;justify-content:center;background:var(--violet);color:#fff;" onclick="switchWithdrawMethod('bank')">Bank</button>
+          <button type="button" id="wUpiTab" class="btn btn-sm" style="flex:1;justify-content:center;" onclick="switchWithdrawMethod('upi')">UPI</button>
+        </div>
       </div>
-      <div style="margin-bottom:10px;">
-        <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px;">Account Number</label>
-        <input id="wAccN" type="text" required style="width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" placeholder="Enter account number">
+      <div id="wBankFields">
+        <div style="margin-bottom:10px;">
+          <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px;">Bank Name</label>
+          <input id="wBank" type="text" style="width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" placeholder="e.g. State Bank of India">
+        </div>
+        <div style="margin-bottom:10px;">
+          <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px;">Account Number</label>
+          <input id="wAccN" type="text" style="width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" placeholder="Enter account number">
+        </div>
+        <div style="margin-bottom:10px;">
+          <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px;">IFSC Code</label>
+          <input id="wIfsc" type="text" style="width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" placeholder="e.g. SBIN0001234">
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px;">Account Holder Name</label>
+          <input id="wAccNm" type="text" style="width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" placeholder="As on bank account">
+        </div>
       </div>
-      <div style="margin-bottom:10px;">
-        <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px;">IFSC Code</label>
-        <input id="wIfsc" type="text" required style="width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" placeholder="e.g. SBIN0001234">
-      </div>
-      <div style="margin-bottom:14px;">
-        <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px;">Account Holder Name</label>
-        <input id="wAccNm" type="text" required style="width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" placeholder="As on bank account">
+      <div id="wUpiFields" style="display:none;margin-bottom:14px;">
+        <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px;">UPI ID</label>
+        <input id="wUpi" type="text" style="width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" placeholder="e.g. user@paytm">
       </div>
       <button type="submit" class="btn bp" style="width:100%;justify-content:center;">Request Withdrawal</button>
     </form>
   </div>
 </div>
+<script>
+let _withdrawMethod = 'bank';
+function switchWithdrawMethod(m) {
+  _withdrawMethod = m;
+  document.getElementById('wBankFields').style.display = m === 'bank' ? '' : 'none';
+  document.getElementById('wUpiFields').style.display = m === 'upi' ? '' : 'none';
+  document.getElementById('wBankTab').style.background = m === 'bank' ? 'var(--violet)' : '';
+  document.getElementById('wBankTab').style.color = m === 'bank' ? '#fff' : '';
+  document.getElementById('wUpiTab').style.background = m === 'upi' ? 'var(--violet)' : '';
+  document.getElementById('wUpiTab').style.color = m === 'upi' ? '#fff' : '';
+}
+</script>
 
 <div class="mo" id="serviceModal"><div class="md" style="max-width:540px;"></div></div>
 
@@ -2511,7 +2535,9 @@ async function loadOverview() {
     popUser({ ...gU(), ...u });
     document.getElementById('stRp').textContent = u.reputationScore || 0;
   }
+  let feePct = 5;
   if (myPlan.success) {
+    feePct = myPlan.data.serviceFeePercent || 5;
     sU({ ...gU(), planId: myPlan.data.planId, planExpiresAt: myPlan.data.planExpiresAt });
     updateSidebarPlanBadge(myPlan.data.planId);
   }
@@ -2520,10 +2546,11 @@ async function loadOverview() {
     const w = wal.data.wallet || {};
     const b = Math.floor(w.balance || 0);
     const ea = Math.floor(w.totalEarned || 0);
+    const withdrawable = Math.floor(b * (1 - feePct / 100));
     document.getElementById('stCr').textContent = '\u20B9' + b.toLocaleString('en-IN');
     document.getElementById('stEa').textContent = '\u20B9' + ea.toLocaleString('en-IN');
     ['wBal'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '\u20B9' + b.toLocaleString('en-IN'); });
-    ['wSub'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '\u20B9' + Math.floor(b * 0.95).toLocaleString('en-IN') + ' withdrawable'; });
+    ['wSub'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '\u20B9' + withdrawable.toLocaleString('en-IN') + ' withdrawable <span style="font-size:.65rem;color:var(--muted);">(' + feePct + '% fee)</span>'; });
     renderTxns(wal.data.recentTransactions || [], 'txnL');
   }
 
@@ -2594,7 +2621,9 @@ async function loadWallet() {
     wc.innerHTML = withdrawals.map(wd => {
       const sc = wd.status === 'COMPLETED' ? 'var(--ok)' : wd.status === 'FAILED' ? 'var(--err)' : 'var(--gold)';
       const sb = wd.status === 'COMPLETED' ? 'var(--okl)' : wd.status === 'FAILED' ? 'var(--errl)' : 'var(--gl)';
-      return '<div class="ti"><div class="tic" style="background:var(--errl);">\u2193</div><div><div class="tit">\u20B9' + (wd.amount||0).toLocaleString('en-IN') + ' \u2192 ' + (wd.bankName||'Bank') + '</div><div class="tis">' + new Date(wd.createdAt).toLocaleDateString('en-IN') + '</div></div><span class="pill" style="background:' + sb + ';color:' + sc + ';">' + wd.status + '</span></div>';
+      const dest = wd.upiId ? wd.upiId : (wd.bankName || 'Bank');
+      const statusLabel = wd.status === 'PROCESSING' ? 'Processing' : wd.status.charAt(0) + wd.status.slice(1).toLowerCase();
+      return '<div class="ti"><div class="tic" style="background:var(--errl);">\u2193</div><div><div class="tit">\u20B9' + (wd.amount||0).toLocaleString('en-IN') + ' \u2192 ' + dest + '</div><div class="tis">' + new Date(wd.createdAt).toLocaleDateString('en-IN') + '</div></div><span class="pill" style="background:' + sb + ';color:' + sc + ';">' + statusLabel + '</span></div>';
     }).join('');
   }
 }
@@ -4969,15 +4998,18 @@ document.getElementById('withdrawF').addEventListener('submit', async e => {
   btn.disabled = true;
 
   const amtInr = parseInt(document.getElementById('wAmt').value);
+  const body = _withdrawMethod === 'upi'
+    ? { amount: amtInr, upiId: document.getElementById('wUpi').value }
+    : {
+        amount: amtInr,
+        bankName: document.getElementById('wBank').value,
+        accountNumber: document.getElementById('wAccN').value,
+        ifscCode: document.getElementById('wIfsc').value,
+        accountName: document.getElementById('wAccNm').value,
+      };
   const d = await api('/users/me/wallet/withdraw', {
     method: 'POST',
-    body: JSON.stringify({
-      amount: amtInr,
-      bankName: document.getElementById('wBank').value,
-      accountNumber: document.getElementById('wAccN').value,
-      ifscCode: document.getElementById('wIfsc').value,
-      accountName: document.getElementById('wAccNm').value,
-    })
+    body: JSON.stringify(body),
   });
 
   btn.textContent = orig;
@@ -4985,8 +5017,9 @@ document.getElementById('withdrawF').addEventListener('submit', async e => {
   closeMod('withdrawMod');
 
   if (d.success) {
-    showNotifBanner('✅ Withdrawal requested!', '3–5 business days.', 'ok');
+    showNotifBanner('✅ Withdrawal processing!', 'Arrives in a few minutes via UPI/bank.', 'ok');
     loadOverview();
+    loadWallet();
   } else {
     showToast(d.message || 'Failed', 'err');
   }
