@@ -872,6 +872,7 @@
 (function() {
   var _allServices = null; // cached after first fetch
   function kycBadge(v) { return v ? '<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">✓ KYC</span>' : ''; }
+  function planBadge(v) { return v ? '<span style="display:inline-flex;align-items:center;gap:2px;background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>' : ''; }
 
   function buildCard(s) {
     var fn = (s.seller && s.seller.firstName) || '?';
@@ -893,7 +894,7 @@
       + '<div class="service-card-body">'
       + '<div class="service-card-seller">'
       + sellerAv
-      + '<span class="service-card-seller-name">' + fn + ' ' + ln + kycBadge(s.seller?.kycVerified) + '</span>'
+      + '<span class="service-card-seller-name">' + fn + ' ' + ln + kycBadge(s.seller?.kycVerified) + planBadge(s.seller?.planBadge) + '</span>'
       + '<span class="badge ' + lc + '" style="font-size:0.68rem;padding:2px 7px;">' + lb + '</span>'
       + '</div>'
       + '<div class="service-card-title">' + s.title + '</div>'

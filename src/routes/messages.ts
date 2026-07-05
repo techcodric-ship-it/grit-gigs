@@ -18,6 +18,7 @@ import {
 } from "../db";
 import { eq, or, and, desc, ne, inArray, sql } from "drizzle-orm";
 import { authenticate } from "../middlewares/authenticate";
+import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
 
 const uploadsDir = path.join(PROJECT_ROOT, "uploads", "messages");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
@@ -104,6 +105,9 @@ router.get("/messages/conversations", authenticate, async (req, res): Promise<vo
     if (other && adminId2 && (other as any).id === adminId2) other = { ...(other as any), firstName: "Grit&Gigs", lastName: "Admin" };
     return { ...c, otherUser: other, lastMessage: lastMsgMap.get(c.id) ?? null, unreadCount: unreadMap.get(c.id) ?? 0 };
   });
+
+  const convUsers = result.map(c => c.otherUser).filter(Boolean);
+  await attachPlanBadges(convUsers);
 
   res.json({ success: true, data: { conversations: result } });
 });
@@ -289,6 +293,7 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
   const io = app.get("io");
   if (io) {
     const [sender] = await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, kycVerified: usersTable.kycVerified }).from(usersTable).where(eq(usersTable.id, req.user!.id));
+    await attachPlanBadge(sender);
     io.to(`conv:${convId}`).emit("message:new", { ...message, sender });
     io.to(`user:${recipientId}`).emit("notification:new", {
       type: "NEW_MESSAGE",

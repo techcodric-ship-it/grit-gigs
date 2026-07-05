@@ -12,6 +12,7 @@ const gT = () => localStorage.getItem('se_token');
 const gU = () => { try { return JSON.parse(localStorage.getItem('se_user') || 'null'); } catch(e) { return null; } };
 const sU = u  => localStorage.setItem('se_user', JSON.stringify(u));
 function kycBadge(v) { return v ? '<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">\u2713 KYC</span>' : ''; }
+function planBadge(v) { return v ? '<span style="display:inline-flex;align-items:center;gap:2px;background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>' : ''; }
 
 async function api(endpoint, opts = {}) {
   try {
@@ -481,7 +482,7 @@ window.openServiceModal = async function(serviceId, title, price, profilePhoto, 
     <img src="${img}" alt="${s.title}" style="width:100%;height:200px;object-fit:cover;border-radius:14px;margin-bottom:18px;"/>
     <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;">
       ${sellerAv}
-      <div><div style="font-weight:600;font-size:0.9rem;cursor:pointer;" onclick="closeModal('serviceModal');location.href='${profileUrl}'">${sellerName}${kycBadge(s.seller?.kycVerified)}</div><div style="font-size:0.75rem;color:var(--text-muted);">${s.seller?.city||'India'} · Rep ${s.seller?.reputationScore||0}</div></div>
+      <div><div style="font-weight:600;font-size:0.9rem;cursor:pointer;" onclick="closeModal('serviceModal');location.href='${profileUrl}'">${sellerName}${kycBadge(s.seller?.kycVerified)}${planBadge(s.seller?.planBadge)}</div><div style="font-size:0.75rem;color:var(--text-muted);">${s.seller?.city||'India'} · Rep ${s.seller?.reputationScore||0}</div></div>
       <div style="margin-left:auto;"><span style="color:#F59E0B;font-weight:700;">${s.ratingAvg?.toFixed(1)||'New'}</span> <span style="color:var(--text-muted);font-size:0.8rem;">(${s.reviewCount||0})</span></div>
     </div>
     <h3 style="font-size:1.05rem;margin-bottom:8px;line-height:1.4;">${s.title}</h3>

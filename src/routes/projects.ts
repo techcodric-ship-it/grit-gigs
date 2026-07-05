@@ -8,6 +8,7 @@ import { reviewsTable } from '../db/schema/orders';
 import { clientReviewsTable } from '../db/schema/client-reviews';
 import { authenticate, optionalAuth } from '../middlewares/authenticate';
 import { getActivePlanForUser, getOrCreateSubscription } from '../lib/subscriptions';
+import { attachPlanBadge, attachPlanBadges } from '../lib/planBadge';
 import { uploadToSupabase } from '../lib/storage';
 import { PROJECT_ROOT } from '../lib/root';
 import multer from 'multer';
@@ -87,6 +88,7 @@ async function getProjectWithBids(projectId: string, currentUserId?: string) {
 
   const allUsers = [owner, ...bidsWithUsers.map(b => b.user)].filter(Boolean);
   await attachReviewStats(allUsers);
+  await attachPlanBadges(allUsers);
 
   return {
     ...project,
@@ -148,6 +150,7 @@ router.get('/projects', optionalAuth, async (req: Request, res: Response) => {
   // Attach review stats for all owners
   const allOwners = filtered.map(p => p.user).filter(Boolean);
   await attachReviewStats(allOwners);
+  await attachPlanBadges(allOwners);
 
   return res.json({ success: true, data: { projects: filtered, page: safePage, totalPages, total } });
 });
@@ -190,6 +193,7 @@ router.get('/projects/mine', authenticate, async (req: Request, res: Response) =
   const allBidders: { id: string }[] = [];
   for (const p of result) { for (const b of p.bids || []) { if (b.user) allBidders.push(b.user); } }
   await attachReviewStats(allBidders);
+  await attachPlanBadges(allBidders);
 
   return res.json({ success: true, data: { projects: result } });
 });
@@ -224,6 +228,7 @@ router.get('/projects/my-bids', authenticate, async (req: Request, res: Response
 
   const allClients = result.map(r => r.project?.user).filter(Boolean);
   await attachReviewStats(allClients);
+  await attachPlanBadges(allClients);
 
   return res.json({ success: true, data: { bids: result } });
 });
@@ -463,6 +468,8 @@ router.put('/projects/bids/:bidId/accept', authenticate, async (req: Request, re
     .from(usersTable)
     .where(eq(usersTable.id, bid.userId))
     .limit(1);
+
+  await attachPlanBadge(freelancer);
 
   await db.insert(notificationsTable).values({
     userId: bid.userId,

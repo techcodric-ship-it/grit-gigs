@@ -466,6 +466,7 @@ function _toast(msg, type = 'info') {
 
 function _starsHtml(avg, cnt) { if (cnt === undefined || cnt === null) return ''; return cnt > 0 ? '<span style="color:#F59E0B;letter-spacing:1px;font-size:.6rem;">★★★★★</span> ' + (+avg||0).toFixed(1) + ' <span style="color:var(--text-muted);font-weight:400;font-size:.6rem;">(' + cnt + ')</span>' : '<span style="color:var(--text-muted);font-size:.6rem;">No reviews</span>'; }
 function kycBadge(v) { return v ? '<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">✓ KYC</span>' : ''; }
+function planBadge(v) { return v ? '<span style="display:inline-flex;align-items:center;gap:2px;background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>' : ''; }
 function _timeAgo(d) {
   if (!d) return '';
   const diff = Date.now() - new Date(d).getTime();
@@ -588,7 +589,7 @@ async function openProjectDetail(projectId) {
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
           <span class="proj-card-cat">${p.category||'General'}</span>
           ${skills.map(s => `<span class="proj-card-skill-tag">${s}</span>`).join('')}
-          <span style="font-size:.72rem;color:#6B6880;margin-left:auto;">${_timeAgo(p.createdAt)} · ${p.user?.profilePhoto ? `<img src="${p.user.profilePhoto}" style="width:16px;height:16px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:2px;"/>` : ''}${p.user?.firstName||'Client'}${kycBadge(p.user?.kycVerified)} ${_starsHtml(p.user?.avgRating, p.user?.reviewCount)}</span>
+          <span style="font-size:.72rem;color:#6B6880;margin-left:auto;">${_timeAgo(p.createdAt)} · ${p.user?.profilePhoto ? `<img src="${p.user.profilePhoto}" style="width:16px;height:16px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:2px;"/>` : ''}${p.user?.firstName||'Client'}${kycBadge(p.user?.kycVerified)}${planBadge(p.user?.planBadge)} ${_starsHtml(p.user?.avgRating, p.user?.reviewCount)}</span>
         </div>
         <div style="font-size:.84rem;color:#3D3A50;line-height:1.72;background:rgba(10,10,15,.03);padding:14px;border-radius:10px;margin-bottom:16px;">${p.description}</div>
         <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
@@ -886,7 +887,7 @@ renderProjects = function() {
         </div>
         <div class="proj-card-client">
           ${p.user?.profilePhoto ? `<img src="${p.user.profilePhoto}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;"/>` : `<div class="proj-client-av">${clientInitials}</div>`}
-          <span class="proj-client-name">${p.user?.firstName||'Client'}${kycBadge(p.user?.kycVerified)} ${_starsHtml(p.user?.avgRating, p.user?.reviewCount)}</span>
+          <span class="proj-client-name">${p.user?.firstName||'Client'}${kycBadge(p.user?.kycVerified)}${planBadge(p.user?.planBadge)} ${_starsHtml(p.user?.avgRating, p.user?.reviewCount)}</span>
         </div>
         <div class="proj-card-actions" onclick="event.stopPropagation()">
           ${isOwn

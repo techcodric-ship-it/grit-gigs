@@ -12,6 +12,7 @@ import {
 import { authenticate } from "../middlewares/authenticate";
 import { sendWelcomeEmail, sendPasswordResetEmail, sendEmailVerificationEmail } from "../lib/email";
 import { verifySupabaseToken, getSupabase } from "../lib/supabase";
+import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
 
 const router: IRouter = Router();
 
@@ -293,6 +294,7 @@ router.get("/auth/me", authenticate, async (req, res): Promise<void> => {
     .from(usersTable)
     .where(eq(usersTable.id, req.user!.id));
 
+  await attachPlanBadge(user);
   res.json({
     success: true,
     data: { user },

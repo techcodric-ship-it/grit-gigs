@@ -632,6 +632,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function escAttr(s) { return escHtml(String(s ?? '')).replace(/'/g, '&#39;'); }
   function escJsStr(s) { return String(s ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r'); }
   function kycBadge(v) { return v ? '<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">✓ KYC</span>' : ''; }
+  function planBadge(v) { return v ? '<span style="display:inline-flex;align-items:center;gap:2px;background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>' : ''; }
 
   var gigPage = 1;
 
@@ -695,7 +696,7 @@ document.addEventListener('DOMContentLoaded', function() {
         '<div class="slc-body">' +
           '<div class="slc-seller">' +
             sellerAv +
-            '<span class="slc-seller-name">' + escHtml(sellerName) + kycBadge(s.seller?.kycVerified) + '</span>' +
+            '<span class="slc-seller-name">' + escHtml(sellerName) + kycBadge(s.seller?.kycVerified) + planBadge(s.seller?.planBadge) + '</span>' +
             '<span class="badge ' + levelClass + '" style="font-size:0.68rem;padding:2px 8px;">' + levelBadge + '</span>' +
           '</div>' +
           '<div class="slc-title">' + escHtml(s.title) + '</div>' +

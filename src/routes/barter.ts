@@ -12,6 +12,7 @@ import {
 import { eq, ilike, or, and, desc, ne, inArray, sql } from "drizzle-orm";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { getActivePlanForUser, getOrCreateSubscription } from "../lib/subscriptions";
+import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
 import { uploadToSupabase } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
 import multer from "multer";
@@ -90,6 +91,7 @@ router.get("/barter/requests", optionalAuth, async (req, res): Promise<void> => 
   const activeUsers = activeUsersResult[0]?.count ?? 0;
   const limitNum = parseInt(limit);
   const totalPages = Math.ceil(total / limitNum) || 1;
+  if (users.length) await attachPlanBadges(users);
   res.json({ success: true, data: { requests: result, page: parseInt(page), total, totalPages, remoteCount, activeUsers } });
 });
 
@@ -106,6 +108,7 @@ router.get("/barter/requests/mine", authenticate, async (req, res): Promise<void
     .where(inArray(usersTable.id, userIds)) : [];
   const userMap = new Map(users.map(u => [u.id, u]));
   const result = requests.map(r => ({ ...r, user: userMap.get(r.userId) ?? null }));
+  if (users.length) await attachPlanBadges(users);
   res.json({ success: true, data: { requests: result } });
 });
 
@@ -119,6 +122,7 @@ router.get("/barter/requests/:id", optionalAuth, async (req, res): Promise<void>
     .where(eq(usersTable.id, request.userId));
 
   db.execute(sql`UPDATE ${barterRequestsTable} SET view_count = view_count + 1 WHERE ${barterRequestsTable.id} = ${request.id}`).catch(() => {});
+  if (user) await attachPlanBadge(user);
   res.json({ success: true, data: { request: { ...request, user } } });
 });
 
@@ -172,6 +176,7 @@ router.post("/barter/requests", authenticate, barterUpload.single("image"), asyn
     .from(usersTable)
     .where(eq(usersTable.id, req.user!.id));
 
+  if (user) await attachPlanBadge(user);
   res.status(201).json({ success: true, message: "Exchange request posted!", data: { request: { ...request, user } } });
 });
 
@@ -318,6 +323,7 @@ router.get("/barter/matches", authenticate, async (req, res): Promise<void> => {
     hasReviewed: reviewedMatchIds.has(m.id),
   }));
 
+  if (users.length) await attachPlanBadges(users);
   res.json({ success: true, data: { matches: result } });
 });
 
@@ -532,6 +538,7 @@ router.get("/barter/ai-suggestions", authenticate, async (req, res): Promise<voi
     const userMap = new Map(users.map(u => [u.id, u]));
     const suggestions = scored.map(r => ({ ...r, user: userMap.get(r.userId) ?? null }));
 
+    if (users.length) await attachPlanBadges(users);
     res.json({ success: true, data: { suggestions, myRequest: myReq } });
   } catch (e) {
     res.status(500).json({ success: false, message: "Failed to generate AI suggestions" });

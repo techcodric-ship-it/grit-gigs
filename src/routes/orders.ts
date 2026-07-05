@@ -17,6 +17,7 @@ import {
 import { eq, or, and, desc, count, sql } from "drizzle-orm";
 import { authenticate } from "../middlewares/authenticate";
 import { getActivePlanForUser } from "../lib/subscriptions";
+import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
 
 
 const router: IRouter = Router();
@@ -58,6 +59,9 @@ router.get("/orders", authenticate, async (req, res): Promise<void> => {
     }),
   );
 
+  const allUsers = result.map(o => o.buyer).concat(result.map(o => o.seller)).filter(Boolean);
+  await attachPlanBadges(allUsers);
+
   res.json({ success: true, data: { orders: result, page: parseInt(page) } });
 });
 
@@ -72,6 +76,8 @@ router.get("/orders/:id", authenticate, async (req, res): Promise<void> => {
   const [seller] = await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, kycVerified: usersTable.kycVerified }).from(usersTable).where(eq(usersTable.id, order.sellerId));
   const deliveries = await db.select().from(orderDeliveriesTable).where(eq(orderDeliveriesTable.orderId, order.id)).orderBy(desc(orderDeliveriesTable.createdAt));
   const [review] = await db.select().from(reviewsTable).where(eq(reviewsTable.orderId, order.id));
+
+  await attachPlanBadges([buyer, seller].filter(Boolean));
 
   res.json({ success: true, data: { order: { ...order, service, package: pkg, buyer, seller, deliveries, review: review ?? null } } });
 });

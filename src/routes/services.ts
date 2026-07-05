@@ -10,6 +10,7 @@ import {
 import { eq, ilike, or, and, desc, ne, sql, asc, count, inArray } from "drizzle-orm";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { getActivePlanForUser } from "../lib/subscriptions";
+import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
 import { uploadToSupabase } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
 import multer from "multer";
@@ -120,6 +121,7 @@ router.get("/services", optionalAuth, async (req, res): Promise<void> => {
     packages: packagesMap[s.id] ?? [],
   }));
 
+  await attachPlanBadges(Object.values(sellersMap));
   res.json({ success: true, data: { services: result, total, page: parseInt(page) } });
 });
 
@@ -141,6 +143,7 @@ router.get("/services/mine", authenticate, async (req, res): Promise<void> => {
     }),
   );
 
+  if (seller) await attachPlanBadge(seller);
   res.json({ success: true, data: { services: result } });
 });
 
@@ -174,6 +177,9 @@ router.get("/services/:id", optionalAuth, async (req, res): Promise<void> => {
 
   db.execute(sql`UPDATE ${servicesTable} SET view_count = view_count + 1 WHERE ${servicesTable.id} = ${service.id}`).catch(() => {});
 
+  if (seller) await attachPlanBadge(seller);
+  const reviewersList = Object.values(reviewerMap);
+  if (reviewersList.length) await attachPlanBadges(reviewersList);
   res.json({ success: true, data: { service: { ...service, seller, packages, reviews: reviewsWithUsers } } });
 });
 

@@ -1896,6 +1896,7 @@ function userStarsHtml(avg, cnt) {
   return '<span style="color:var(--muted);font-size:.6rem;">No reviews</span>';
 }
 function kycBadge(v) { return v ? `<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">✓ KYC</span>` : ''; }
+function planBadge(v) { return v ? `<span style="display:inline-flex;align-items:center;gap:2px;background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">${v}</span>` : ''; }
 async function joinEquityWaitlist(btn){
   try {
     const d = await api('/equity/waitlist',{method:'POST'});
@@ -2653,7 +2654,7 @@ function renderMatchSummary(ms) {
       <img src="${esc(avUrl(o))}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="av" style="width:24px;height:24px;font-size:8px;display:none;">${ini}</div>
       <div style="flex:1;min-width:0;">
         <div class="esk">${r1?.skillOffered || '—'} ⇄ ${r2?.skillOffered || '—'}</div>
-        <div class="ewh">${o?.firstName || '?'} ${o?.lastName || ''}${kycBadge(o?.kycVerified)} ${userStarsHtml(o?.avgRating, o?.reviewCount)}</div>
+        <div class="ewh">${o?.firstName || '?'} ${o?.lastName || ''}${kycBadge(o?.kycVerified)}${planBadge(o?.planBadge)} ${userStarsHtml(o?.avgRating, o?.reviewCount)}</div>
       </div>
       <span class="pill ${pc}">${m.status}</span>
     </div>`;
@@ -2678,7 +2679,7 @@ function renderBarterCards(reqs, c, sentMatchIds = new Set()) {
       <div class="bc-user">
         <img src="${esc(avUrl(r.user))}" class="bc-av-img" onclick="event.stopPropagation();openUserProfile('${esc(r.userId)}')" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="bc-av" onclick="event.stopPropagation();openUserProfile('${esc(r.userId)}')" style="display:none;">${ini}</div>
         <div style="flex:1;min-width:0;">
-          <div class="bc-name" onclick="event.stopPropagation();openUserProfile('${esc(r.userId)}')">${r.user?.firstName || '?'} ${r.user?.lastName || ''}${kycBadge(r.user?.kycVerified)}</div>
+          <div class="bc-name" onclick="event.stopPropagation();openUserProfile('${esc(r.userId)}')">${r.user?.firstName || '?'} ${r.user?.lastName || ''}${kycBadge(r.user?.kycVerified)}${planBadge(r.user?.planBadge)}</div>
           <div class="bc-meta">${userStarsHtml(r.user?.avgRating, r.user?.reviewCount)} · ${r.city || 'India'} · ⭐ Rep ${r.user?.reputationScore || 0}</div>
         </div>
         ${r.userId ? `<span class="bc-vpf" onclick="event.stopPropagation();openUserProfile('${esc(r.userId)}')">👤 Profile</span>` : ''}
@@ -2792,7 +2793,7 @@ async function loadMyExchanges() {
               ? `<img src="${esc(m.user1.profilePhoto)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;border:2px solid var(--white);box-shadow:0 2px 8px rgba(0,0,0,.08);" onclick="event.stopPropagation();openUserProfile('${esc(m.user1?.id || '')}')"/>`
               : `<div class="av" style="width:40px;height:40px;font-size:13px;border:2px solid var(--white);box-shadow:0 2px 8px rgba(0,0,0,.08);cursor:pointer;" onclick="event.stopPropagation();openUserProfile('${esc(m.user1?.id || '')}')">${((m.user1?.firstName || '?')[0]).toUpperCase()}</div>`}
             <div style="flex:1;min-width:0;">
-              <div style="font-weight:600;font-size:.85rem;color:var(--violet);cursor:pointer;" onclick="event.stopPropagation();openUserProfile('${esc(m.user1?.id || '')}')">${m.user1?.firstName || '?'} ${m.user1?.lastName || ''}${kycBadge(m.user1?.kycVerified)}</div>
+              <div style="font-weight:600;font-size:.85rem;color:var(--violet);cursor:pointer;" onclick="event.stopPropagation();openUserProfile('${esc(m.user1?.id || '')}')">${m.user1?.firstName || '?'} ${m.user1?.lastName || ''}${kycBadge(m.user1?.kycVerified)}${planBadge(m.user1?.planBadge)}</div>
               <div style="font-size:.7rem;color:var(--muted);">wants to exchange skills</div>
             </div>
             <span class="pill" style="background:var(--gl);color:var(--gold);font-size:.55rem;">PENDING</span>
@@ -2900,7 +2901,7 @@ async function loadActiveExchanges() {
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-top:4px;">
         <img src="${esc(avUrl(other))}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;border:2px solid var(--white);box-shadow:0 2px 8px rgba(0,0,0,.08);" onclick="openUserProfile('${esc(other?.id || '')}')" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="av" style="width:38px;height:38px;font-size:13px;border:2px solid var(--white);box-shadow:0 2px 8px rgba(0,0,0,.08);cursor:pointer;flex-shrink:0;display:none;" onclick="openUserProfile('${esc(other?.id || '')}')">${ini}</div>
         <div style="flex:1;min-width:0;">
-          <div style="font-weight:600;font-size:.85rem;cursor:pointer;color:var(--violet);" onclick="openUserProfile('${esc(other?.id || '')}')">${other?.firstName || '?'} ${other?.lastName || ''}${kycBadge(other?.kycVerified)}</div>
+          <div style="font-weight:600;font-size:.85rem;cursor:pointer;color:var(--violet);" onclick="openUserProfile('${esc(other?.id || '')}')">${other?.firstName || '?'} ${other?.lastName || ''}${kycBadge(other?.kycVerified)}${planBadge(other?.planBadge)}</div>
           <div style="display:flex;align-items:center;gap:4px;font-size:.68rem;color:var(--muted);">${userStarsHtml(other?.avgRating, other?.reviewCount)}${other?.city ? ` · ${other.city}` : ' · India'}</div>
         </div>
         <span style="font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:4px 10px;border-radius:100px;background:${isCompleted ? 'var(--okl)' : 'var(--vl)'};color:${isCompleted ? 'var(--ok)' : 'var(--violet)'};">${isCompleted ? '✓ Completed' : '● Active'}</span>
@@ -3603,12 +3604,12 @@ async function loadInbox() {
         : '';
     const _isAdmin = other?.id === adminUserId;
     const _avEnc = encodeURIComponent(other ? avUrl(other) : '');
-    return `<div onclick="openConv('${conv.id}','${firstName + ' ' + lastName}','${ini}','${_avEnc}','${other?.id||''}',${other?.kycVerified||false})"
+    return `<div onclick="openConv('${conv.id}','${firstName + ' ' + lastName}','${ini}','${_avEnc}','${other?.id||''}',${other?.kycVerified||false},'${esc(other?.planBadge||'')}')"
       style="display:flex;gap:10px;align-items:center;padding:13px 16px;cursor:pointer;border-bottom:1px solid var(--bd);transition:background .15s;${activeCovId === conv.id ? 'background:var(--vl);' : ''}">
       <span ${_isAdmin ? '' : `onclick="event.stopPropagation();if('${esc(other?.id||'')}')openUserProfile('${esc(other?.id||'')}')" title="View profile"`} style="cursor:pointer;flex-shrink:0;position:relative;"><img src="${esc(avUrl(other))}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid ${unread?'var(--violet)':'var(--bd,#e5e7eb)'};" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="av" style="width:34px;height:34px;font-size:12px;display:none;${unread ? 'background:var(--violet);color:white;' : ''}">${ini}</div></span>
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:5px;">
-          <span style="font-weight:${unread ? '700' : '500'};font-size:.82rem;color:var(--violet);${_isAdmin ? '' : 'cursor:pointer;'}" ${_isAdmin ? '' : `onclick="event.stopPropagation();openUserProfile('${esc(other?.id||'')}')"`}>${firstName} ${lastName}${kycBadge(other?.kycVerified)}</span>
+          <span style="font-weight:${unread ? '700' : '500'};font-size:.82rem;color:var(--violet);${_isAdmin ? '' : 'cursor:pointer;'}" ${_isAdmin ? '' : `onclick="event.stopPropagation();openUserProfile('${esc(other?.id||'')}')"`}>${firstName} ${lastName}${kycBadge(other?.kycVerified)}${planBadge(other?.planBadge)}</span>
           ${_isAdmin ? '<span style="font-size:.58rem;font-weight:700;color:#fff;background:var(--violet);padding:1px 6px;border-radius:4px;letter-spacing:.03em;line-height:1.4;">SUPPORT</span>' : ''}
           ${userStarsHtml(other?.avgRating, other?.reviewCount)}
           ${sourceLabel}
@@ -3620,7 +3621,7 @@ async function loadInbox() {
   }).join('');
 }
 
-async function openConv(convId, name, ini, _photoEnc, userId, kycVerified) { const photo = _photoEnc ? decodeURIComponent(_photoEnc) : '';
+async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planBadgeVal) { const photo = _photoEnc ? decodeURIComponent(_photoEnc) : '';
   // }
   activeCovId = convId;
 
@@ -3640,7 +3641,7 @@ async function openConv(convId, name, ini, _photoEnc, userId, kycVerified) { con
     <div style="display:flex;align-items:center;gap:9px;">
       <button class="mb-back" onclick="closeMobileChat()" title="Back to conversations">←</button>
       ${photo ? `<img src="${photo}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">` : `<div class="av" style="width:28px;height:28px;font-size:10px;">${ini}</div>`}
-      <span style="font-weight:600;">${name.trim()}${kycVerified ? '<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.56rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:5px;">✓ KYC</span>' : ''}</span>
+      <span style="font-weight:600;">${name.trim()}${kycVerified ? '<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.56rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:5px;">✓ KYC</span>' : ''}${planBadgeVal ? '<span style="display:inline-flex;align-items:center;gap:2px;background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.56rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;">' + planBadgeVal + '</span>' : ''}</span>
       ${!isAdminConv ? `<button data-vp="1" data-uid="${userId||''}" onclick="viewActiveConvProfile()" title="View profile" style="margin-left:auto;background:none;border:1px solid var(--bd);border-radius:99px;padding:2px 10px;font-size:.68rem;color:var(--violet);cursor:pointer;font-weight:600;transition:background .15s;" onmouseover="this.style.background='var(--vl)'" onmouseout="this.style.background='var(--vl)'">View Profile</button>` : ''}
     </div>`;
   document.getElementById('ps-inbox').classList.add('show-chat');
@@ -4156,7 +4157,7 @@ function renderGigCards(svcs, cId) {
         <div class="gig-seller">
           <img src="${esc(avUrl(seller))}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid var(--white);box-shadow:0 2px 6px rgba(0,0,0,.08);flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="gig-seller-av" style="display:none;">${ini}</div>
           <div class="gig-seller-info">
-            <div class="gig-sn">${esc(sellerName)}${kycBadge(seller.kycVerified)}</div>
+            <div class="gig-sn">${esc(sellerName)}${kycBadge(seller.kycVerified)}${planBadge(seller.planBadge)}</div>
             <div class="gig-seller-stat">${seller.city || 'India'} · Rep ${seller.reputationScore || 0}</div>
           </div>
           ${profileBtn}
@@ -4212,7 +4213,7 @@ async function openGigModal(id) {
       ${seller.profilePhoto ? `<img src="${esc(seller.profilePhoto)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;border:2px solid var(--white);box-shadow:0 2px 6px rgba(0,0,0,.08);" onclick="openUserProfile('${esc(seller.id)}')"/>` : `<div class="av" style="width:36px;height:36px;font-size:12px;flex-shrink:0;cursor:pointer;" onclick="openUserProfile('${esc(seller.id)}')">${ini}</div>`}
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-weight:600;font-size:.84rem;">${seller.firstName || '?'} ${seller.lastName || ''}${kycBadge(seller.kycVerified)}</span>
+          <span style="font-weight:600;font-size:.84rem;">${seller.firstName || '?'} ${seller.lastName || ''}${kycBadge(seller.kycVerified)}${planBadge(seller.planBadge)}</span>
           ${seller.emailVerified ? `<span style="font-size:.58rem;background:rgba(22,163,74,.1);color:#16A34A;font-weight:700;padding:1px 6px;border-radius:99px;">✓ Verified</span>` : ''}
         </div>
         <div style="font-size:.68rem;color:var(--muted);margin-top:1px;">${seller.city || 'India'} · Rep ${seller.reputationScore || 0} ${seller.hourlyRate ? '· ₹' + seller.hourlyRate + '/hr' : ''}</div>
@@ -4374,7 +4375,7 @@ async function loadOrders(role) {
           <div style="display:flex;align-items:center;gap:8px;">
             <img src="${esc(avUrl(other))}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="openUserProfile('${esc(otherId)}')" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="av" style="width:34px;height:34px;font-size:11px;cursor:pointer;flex-shrink:0;display:none;" onclick="openUserProfile('${esc(otherId)}')">${ini}</div>
             <div style="flex:1;min-width:0;">
-              <div style="font-weight:600;font-size:.82rem;">${esc(otherName)}${kycBadge(other?.kycVerified)} ${userStarsHtml(other?.avgRating, other?.reviewCount)}</div>
+              <div style="font-weight:600;font-size:.82rem;">${esc(otherName)}${kycBadge(other?.kycVerified)}${planBadge(other?.planBadge)} ${userStarsHtml(other?.avgRating, other?.reviewCount)}</div>
               <div style="font-size:.7rem;color:var(--muted);">${other.city || 'India'}${other.country ? ', ' + other.country : ''}</div>
             </div>
             <button class="btn bg2 btn-xs" onclick="event.stopPropagation();openUserProfile('${esc(otherId)}')">👤 View Profile</button>
@@ -4457,7 +4458,7 @@ async function loadOrders(role) {
         <div style="flex:1;min-width:0;">
           <div style="font-weight:600;font-size:.84rem;color:var(--ink);">${esc(o.service?.title || 'Service')}</div>
           <div style="font-size:.7rem;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
-            <span>${role === 'buyer' ? 'Seller' : 'Client'}: <b style="color:var(--ink);cursor:pointer;" onclick="openUserProfile('${esc(otherId)}')">${esc(otherName)}${kycBadge(other?.kycVerified)}</b> ${userStarsHtml(other?.avgRating, other?.reviewCount)}</span>
+            <span>${role === 'buyer' ? 'Seller' : 'Client'}: <b style="color:var(--ink);cursor:pointer;" onclick="openUserProfile('${esc(otherId)}')">${esc(otherName)}${kycBadge(other?.kycVerified)}${planBadge(other?.planBadge)}</b> ${userStarsHtml(other?.avgRating, other?.reviewCount)}</span>
             <span style="color:var(--bd2);">·</span>
             <span style="text-transform:capitalize;">${esc(pkg.packageType || 'Standard')}</span>
             <span style="color:var(--bd2);">·</span>
@@ -5672,7 +5673,7 @@ async function loadMyBids() {
         <div style="flex:1;">
           <div style="font-weight:700;font-size:.86rem;">${esc(b.project?.title || 'Project')}</div>
           <div class="project-card-meta">${esc(b.project?.category || 'Open project')} · Bid ${timeSince(b.createdAt)}${b.deliveryDays ? ' · ' + b.deliveryDays + ' days delivery' : ''}${b.project?.deadline ? ' · 📅 Due ' + new Date(b.project.deadline).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : ''}</div>
-          ${client.id ? `<div style="display:flex;align-items:center;gap:6px;margin-top:5px;">${client.profilePhoto ? `<img src="${esc(client.profilePhoto)}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation();openUserProfile('${esc(client.id)}')"/>` : `<div class="av" style="width:22px;height:22px;font-size:7px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();openUserProfile('${esc(client.id)}')">${((client.firstName||'?')[0]).toUpperCase()}</div>`}<span style="font-size:.7rem;color:var(--violet);cursor:pointer;font-weight:600;" onclick="event.stopPropagation();openUserProfile('${esc(client.id)}')">${esc(client.firstName||'?')} ${esc(client.lastName||'')}${kycBadge(client?.kycVerified)}</span> ${userStarsHtml(client.avgRating, client.reviewCount)}</div>` : ''}
+          ${client.id ? `<div style="display:flex;align-items:center;gap:6px;margin-top:5px;">${client.profilePhoto ? `<img src="${esc(client.profilePhoto)}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation();openUserProfile('${esc(client.id)}')"/>` : `<div class="av" style="width:22px;height:22px;font-size:7px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();openUserProfile('${esc(client.id)}')">${((client.firstName||'?')[0]).toUpperCase()}</div>`}<span style="font-size:.7rem;color:var(--violet);cursor:pointer;font-weight:600;" onclick="event.stopPropagation();openUserProfile('${esc(client.id)}')">${esc(client.firstName||'?')} ${esc(client.lastName||'')}${kycBadge(client?.kycVerified)}${planBadge(client?.planBadge)}</span> ${userStarsHtml(client.avgRating, client.reviewCount)}</div>` : ''}
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-weight:700;color:var(--violet);font-size:.86rem;">${moneyInr(b.amount)}</div>
@@ -5750,7 +5751,7 @@ async function loadReceivedProposals() {
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
         ${b.user?.profilePhoto ? `<img src="${esc(b.user.profilePhoto)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation();openUserProfile('${esc(b.user?.id)}')"/>` : `<div class="av" style="width:32px;height:32px;font-size:11px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();openUserProfile('${esc(b.user?.id)}')">${((b.user?.firstName||'?')[0]).toUpperCase()}</div>`}
         <div style="flex:1;">
-          <div style="font-weight:600;font-size:.82rem;cursor:pointer;color:var(--violet);" onclick="event.stopPropagation();openUserProfile('${esc(b.user?.id)}')">${esc(b.user?.firstName || 'Freelancer')} ${esc(b.user?.lastName || '')}${kycBadge(b.user?.kycVerified)}</div>
+          <div style="font-weight:600;font-size:.82rem;cursor:pointer;color:var(--violet);" onclick="event.stopPropagation();openUserProfile('${esc(b.user?.id)}')">${esc(b.user?.firstName || 'Freelancer')} ${esc(b.user?.lastName || '')}${kycBadge(b.user?.kycVerified)}${planBadge(b.user?.planBadge)}</div>
           <div style="font-size:.65rem;color:var(--muted);">${userStarsHtml(b.user?.avgRating, b.user?.reviewCount)} · Bid ${timeSince(b.createdAt)}${b.deliveryDays ? ' · ' + b.deliveryDays + ' days' : ''}</div>
         </div>
         <div style="font-weight:700;color:var(--violet);font-size:.88rem;">${moneyInr(b.amount)}</div>
@@ -5796,7 +5797,7 @@ async function loadBrowseProjects(q = '') {
         <div style="flex:1;">
           <div style="font-weight:700;font-size:.9rem;color:var(--ink);">${esc(p.title)}</div>
           <div class="project-card-meta">${esc(p.category)}${p.skills ? ' · ' + esc(p.skills) : ''} · ${timeSince(p.createdAt)}</div>
-          ${p.user?.id ? `<div style="display:flex;align-items:center;gap:6px;margin-top:5px;">${p.user?.profilePhoto ? `<img src="${esc(p.user.profilePhoto)}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')"/>` : `<div class="av" style="width:22px;height:22px;font-size:7px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')">${((p.user?.firstName||'?')[0]).toUpperCase()}</div>`}<span style="font-size:.7rem;color:var(--violet);cursor:pointer;font-weight:600;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')">${esc(p.user?.firstName||'?')} ${esc(p.user?.lastName||'')}${kycBadge(p.user?.kycVerified)}</span><span class="gig-vpf" style="font-size:.55rem;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')">👤 View Profile</span></div>` : ''}
+          ${p.user?.id ? `<div style="display:flex;align-items:center;gap:6px;margin-top:5px;">${p.user?.profilePhoto ? `<img src="${esc(p.user.profilePhoto)}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')"/>` : `<div class="av" style="width:22px;height:22px;font-size:7px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')">${((p.user?.firstName||'?')[0]).toUpperCase()}</div>`}<span style="font-size:.7rem;color:var(--violet);cursor:pointer;font-weight:600;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')">${esc(p.user?.firstName||'?')} ${esc(p.user?.lastName||'')}${kycBadge(p.user?.kycVerified)}${planBadge(p.user?.planBadge)}</span><span class="gig-vpf" style="font-size:.55rem;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')">👤 View Profile</span></div>` : ''}
         </div>
       </div>
       <div class="project-card-desc">${esc(shortText(p.description, 170))}</div>
@@ -5872,7 +5873,7 @@ async function openProjectDet(projectId, viewAs, myBidId = null) {
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
         ${b.user?.profilePhoto ? `<img src="${esc(b.user.profilePhoto)}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="openUserProfile('${esc(b.user?.id)}')"/>` : `<div class="av" style="width:26px;height:26px;font-size:9px;cursor:pointer;" onclick="openUserProfile('${esc(b.user?.id)}')">${esc(((b.user?.firstName || '?')[0]).toUpperCase())}</div>`}
         <div style="flex:1;">
-          <div style="font-weight:600;font-size:.8rem;cursor:pointer;color:var(--violet);" onclick="openUserProfile('${esc(b.user?.id)}')">${esc(b.user?.firstName || 'Freelancer')} ${esc(b.user?.lastName || '')}${kycBadge(b.user?.kycVerified)}</div>
+          <div style="font-weight:600;font-size:.8rem;cursor:pointer;color:var(--violet);" onclick="openUserProfile('${esc(b.user?.id)}')">${esc(b.user?.firstName || 'Freelancer')} ${esc(b.user?.lastName || '')}${kycBadge(b.user?.kycVerified)}${planBadge(b.user?.planBadge)}</div>
           <div style="font-size:.65rem;color:var(--muted);">${userStarsHtml(b.user?.avgRating, b.user?.reviewCount)} · ${timeSince(b.createdAt)}${b.deliveryDays ? ' · ' + b.deliveryDays + ' days' : ''}</div>
         </div>
         <div style="font-weight:700;color:var(--violet);font-size:.9rem;">${moneyInr(b.amount)}</div>
@@ -5982,7 +5983,7 @@ async function openProjectDet(projectId, viewAs, myBidId = null) {
         <div style="font-weight:700;font-size:1.05rem;line-height:1.3;">${esc(p.title)}</div>
         <span class="pill ${statusClass}" style="flex-shrink:0;">${esc(p.status)}</span>
       </div>
-      <div style="font-size:.72rem;color:var(--muted);">${p.user?.profilePhoto ? `<img src="${esc(p.user.profilePhoto)}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:3px;"/>` : ''}Posted by <span style="color:var(--violet);cursor:pointer;font-weight:600;" onclick="openUserProfile('${esc(p.userId)}')">${esc(p.user?.firstName || '?')} ${esc(p.user?.lastName || '')}${kycBadge(p.user?.kycVerified)}</span> ${p.user?.id ? `<span class="gig-vpf" style="font-size:.6rem;display:inline-flex;margin-left:4px;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')">👤 View Profile</span>` : ''} ${userStarsHtml(p.user?.avgRating, p.user?.reviewCount)}</div>
+      <div style="font-size:.72rem;color:var(--muted);">${p.user?.profilePhoto ? `<img src="${esc(p.user.profilePhoto)}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:3px;"/>` : ''}Posted by <span style="color:var(--violet);cursor:pointer;font-weight:600;" onclick="openUserProfile('${esc(p.userId)}')">${esc(p.user?.firstName || '?')} ${esc(p.user?.lastName || '')}${kycBadge(p.user?.kycVerified)}${planBadge(p.user?.planBadge)}</span> ${p.user?.id ? `<span class="gig-vpf" style="font-size:.6rem;display:inline-flex;margin-left:4px;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')">👤 View Profile</span>` : ''} ${userStarsHtml(p.user?.avgRating, p.user?.reviewCount)}</div>
     </div>
     ${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="" style="width:100%;max-height:320px;object-fit:contain;border-radius:var(--rm);margin-bottom:14px;display:block;background:var(--bg);"/>` : ''}
     <div style="font-size:.82rem;color:var(--ink);line-height:1.7;margin-bottom:14px;background:var(--bg);padding:12px;border-radius:var(--rm);white-space:pre-wrap;">${esc(p.description)}</div>
@@ -6818,7 +6819,7 @@ async function loadInvites() {
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
         ${avHtml}
         <div style="flex:1;min-width:0;">
-          <div style="font-weight:600;font-size:.82rem;cursor:pointer;color:var(--violet);" onclick="openUserProfile('${esc(inv.fromUserId)}')">${from.firstName || 'Someone'} ${from.lastName || ''}${kycBadge(from.kycVerified)}</div>
+          <div style="font-weight:600;font-size:.82rem;cursor:pointer;color:var(--violet);" onclick="openUserProfile('${esc(inv.fromUserId)}')">${from.firstName || 'Someone'} ${from.lastName || ''}${kycBadge(from.kycVerified)}${planBadge(from.planBadge)}</div>
           <div style="display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap;">
             <span style="font-size:.63rem;font-weight:700;padding:2px 8px;border-radius:99px;background:rgba(108,63,232,.12);color:var(--violet);text-transform:uppercase;">${inv.targetType}</span>
             <span style="font-size:.68rem;color:var(--muted);">${new Date(inv.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</span>
