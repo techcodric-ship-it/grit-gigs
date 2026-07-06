@@ -1797,14 +1797,14 @@ textarea.fi{resize:vertical;}
     <button class="mc" onclick="closeMod('buyCredMod')">✕</button>
     <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;margin-bottom:16px;">Add Money to Wallet</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:10px;">
-      <div class="smc" onclick="selCreds(5,this)" style="border:2px solid var(--violet);cursor:pointer;"><div style="font-weight:700;font-size:.95rem;">₹5</div><div style="font-size:.65rem;color:var(--muted);">Test</div></div>
+      <div class="smc" onclick="selCreds(1,this)" style="border:2px solid var(--violet);cursor:pointer;"><div style="font-weight:700;font-size:.95rem;">₹1</div><div style="font-size:.65rem;color:var(--muted);">Test</div></div>
       <div class="smc" onclick="selCreds(500,this)" style="border:2px solid var(--bd);cursor:pointer;"><div style="font-weight:700;font-size:.95rem;">₹500</div><div style="font-size:.65rem;color:var(--muted);">Instant</div></div>
       <div class="smc" onclick="selCreds(1000,this)" style="border:2px solid var(--bd);cursor:pointer;"><div style="font-weight:700;font-size:.95rem;">₹1,000</div><div style="font-size:.65rem;color:var(--muted);">Instant</div></div>
       <div class="smc" onclick="selCreds(2000,this)" style="border:2px solid var(--bd);cursor:pointer;"><div style="font-weight:700;font-size:.95rem;">₹2,000</div><div style="font-size:.65rem;color:var(--muted);">Instant</div></div>
     </div>
     <div style="position:relative;margin-bottom:14px;">
       <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:.82rem;color:var(--muted);">₹</span>
-      <input id="customCreds" type="number" min="5" placeholder="Custom amount" style="width:100%;padding:10px 10px 10px 28px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" oninput="document.querySelectorAll('#buyCredMod .smc').forEach(c=>c.style.borderColor='var(--bd)');">
+      <input id="customCreds" type="number" min="1" placeholder="Custom amount" style="width:100%;padding:10px 10px 10px 28px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" oninput="document.querySelectorAll('#buyCredMod .smc').forEach(c=>c.style.borderColor='var(--bd)');">
     </div>
     <button class="btn bp" style="width:100%;justify-content:center;" onclick="buyCredits()">Add Money</button>
   </div>
@@ -4794,7 +4794,7 @@ async function buyCredits() {
   if (btn) btn.disabled = true;
   try {
     const amtInr = parseInt(document.getElementById('customCreds').value) || selCr;
-    if (!amtInr || amtInr < 5) { showToast('Minimum amount is ₹5', 'err'); return; }
+    if (!amtInr || amtInr < 1) { showToast('Minimum amount is ₹1', 'err'); return; }
 
     const d = await api('/credits/create-order', { method: 'POST', body: JSON.stringify({ amount: amtInr }) });
     if (!d.success) { showToast(d.message || 'Payment error', 'err'); return; }
