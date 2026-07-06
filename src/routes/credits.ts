@@ -151,21 +151,27 @@ router.post("/credits/check-pending", authenticate, async (req: Request, res: Re
     res.json({ success: true, message: "No pending payments", data: { credited: false } });
     return;
   }
+  const debug: string[] = [];
   let credited = false;
   let totalAmount = 0;
   for (const txn of pending) {
-    if (!txn.gatewayTxnId) continue;
+    if (!txn.gatewayTxnId) { debug.push("No gatewayTxnId"); continue; }
     try {
       const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
-      // Check if the order exists and was paid
-      const rzResp = await fetch("https://api.razorpay.com/v1/orders/" + txn.gatewayTxnId + "/payments", {
+      const rzUrl = "https://api.razorpay.com/v1/orders/" + txn.gatewayTxnId + "/payments";
+      const rzResp = await fetch(rzUrl, {
         headers: { Authorization: "Basic " + auth },
       });
-      if (!rzResp.ok) continue;
-      const payments = await rzResp.json() as { items?: { status: string; id: string }[] };
-      const captured = payments.items?.find((p: { status: string }) => p.status === "captured" || p.status === "authorized");
+      if (!rzResp.ok) {
+        const errBody = await rzResp.text();
+        debug.push(`Razorpay ${rzResp.status}: ${errBody.substring(0,100)}`);
+        continue;
+      }
+      const rzData = await rzResp.json() as { items?: { status: string; id: string }[] };
+      const payments = rzData.items || [];
+      debug.push(`Order ${txn.gatewayTxnId.substring(0,16)}... has ${payments.length} payments: ${payments.map((p: { status: string }) => p.status).join(",")}`);
+      const captured = payments.find((p: { status: string }) => p.status === "captured" || p.status === "authorized");
       if (!captured) continue;
-      // Credit wallet
       await db.execute(
         sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${txn.amount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${req.user!.id}`
       );
@@ -174,12 +180,12 @@ router.post("/credits/check-pending", authenticate, async (req: Request, res: Re
         .where(eq(transactionsTable.id, txn.id));
       totalAmount += txn.amount;
       credited = true;
-    } catch { continue; }
+    } catch (e: any) { debug.push(`Error: ${e.message}`); continue; }
   }
   if (credited) {
-    res.json({ success: true, data: { credited: true, amount: totalAmount } });
+    res.json({ success: true, data: { credited: true, amount: totalAmount }, debug });
   } else {
-    res.json({ success: true, message: "No captured payments found", data: { credited: false } });
+    res.json({ success: true, message: "No captured payments found", data: { credited: false }, debug });
   }
 });
 
