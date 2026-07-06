@@ -1873,7 +1873,7 @@ function switchWithdrawMethod(m) {
   <span id="liveChatBadge" style="position:absolute;top:-2px;right:-2px;width:16px;height:16px;border-radius:50%;background:var(--err);border:2px solid #fff;display:none;"></span>
 </div>
 
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 <script>
 // ══════════════════════════════════════════════
 //  CORE UTILITIES
@@ -4816,7 +4816,7 @@ async function buyCredits() {
       await verify(d.data.order.id, 'sandbox_' + Date.now(), '', true);
     } else {
       const opts = {
-        key: d.data.razorpayKeyId,
+        key: d.data.key,
         amount: d.data.order.amount,
         currency: 'INR',
         name: 'Grit&Gigs',
