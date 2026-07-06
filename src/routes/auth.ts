@@ -692,7 +692,7 @@ function googleCallbackHtml(data: { accessToken: string; refreshToken: string; u
         } else {
           params.set('error', ${JSON.stringify(errorMsg || "Unknown error")});
         }
-        window.location.href = '/google-callback.html?' + params.toString();
+        window.location.href = '/google-callback?' + params.toString();
       }
     } catch(e) {
       document.body.textContent = "Google sign-in " + (${data ? '"complete, you can close this window"' : '"failed: ' + JSON.stringify(errorMsg) + '"'});

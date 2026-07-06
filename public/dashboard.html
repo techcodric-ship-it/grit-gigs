@@ -694,7 +694,7 @@ textarea.fi{resize:vertical;}
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       My Profile
     </button>
-    <a href="index.html" class="ni">
+    <a href="/" class="ni">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
       Back to Site
     </a>
@@ -726,7 +726,7 @@ textarea.fi{resize:vertical;}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
         <div class="notif-dot" id="notifDot"></div>
       </div>
-      <a href="index.html" class="btn bs btn-sm">← Site</a>
+      <a href="/" class="btn bs btn-sm">← Site</a>
     </div>
   </div>
 
@@ -1102,7 +1102,7 @@ textarea.fi{resize:vertical;}
       <div class="card-hdr" style="margin-bottom:14px;">
         <h2 style="font-size:1.1rem;">Browse Projects</h2>
         <div style="display:flex;gap:8px;align-items:center;">
-          <a href="projects.html" class="btn bs btn-sm" target="_blank" style="font-size:.75rem;">🌐 Full Marketplace</a>
+          <a href="/projects" class="btn bs btn-sm" target="_blank" style="font-size:.75rem;">🌐 Full Marketplace</a>
           <button class="btn bp" onclick="showPage('post-project')">Post a Project</button>
         </div>
       </div>
@@ -1327,7 +1327,7 @@ textarea.fi{resize:vertical;}
     <div class="ps" id="ps-browse-gigs">
       <div class="card-hdr" style="margin-bottom:14px;">
         <h2 style="font-size:1.1rem;">Browse Gigs</h2>
-        <a href="freelance.html" class="btn bs btn-sm">Full marketplace ↗</a>
+        <a href="/freelance" class="btn bs btn-sm">Full marketplace ↗</a>
       </div>
       <div class="search-wrap">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -1967,7 +1967,7 @@ function setEquityJoined(){
 
 
 // Redirect if not logged in
-if (!gU()) window.location.href = 'index.html';
+if (!gU()) window.location.href = '/';
 
 // api() — refreshes token on 401 before logging out
   let _rp = null;
@@ -1996,7 +1996,7 @@ if (!gU()) window.location.href = 'index.html';
           return api(ep, o, true);
         }
         localStorage.clear();
-        window.location.href = 'index.html';
+        window.location.href = '/';
         return { success: false };
       }
       return data;
@@ -2179,7 +2179,7 @@ function connectSocket() {
 
   // Match accepted - show banner, navigate to inbox, and open conversation
   socket.on('match:accepted', async ({ acceptedBy, conversationId, matchId }) => {
-    showNotifBanner('🎉 Match accepted!', `${acceptedBy} accepted your request. Go to Inbox to chat!`, 'ok', '/dashboard.html#inbox');
+    showNotifBanner('🎉 Match accepted!', `${acceptedBy} accepted your request. Go to Inbox to chat!`, 'ok', '/dashboard#inbox');
     showPage('inbox');
     if (conversationId && matchId) {
       _convCtx[conversationId] = { matchId, orderId: null, projectBidId: null };
@@ -2297,7 +2297,7 @@ document.getElementById('sbOv').addEventListener('click', () => {
 document.getElementById('logoutBtn').addEventListener('click', () => {
   api('/auth/logout', { method: 'POST', body: JSON.stringify({ refreshToken: localStorage.getItem('se_refresh') }) });
   localStorage.clear();
-  window.location.href = 'index.html';
+  window.location.href = '/';
 });
 
 // ══════════════════════════════════════════════
@@ -3580,7 +3580,7 @@ async function respondMatch(matchId, action) {
 
   if (d.success && action === 'accept') {
     const convId = d.data?.conversationId;
-    showNotifBanner('🎉 Match accepted!', 'You can now chat in your Inbox', 'ok', '/dashboard.html#inbox');
+    showNotifBanner('🎉 Match accepted!', 'You can now chat in your Inbox', 'ok', '/dashboard#inbox');
     showPage('inbox');
     if (convId && matchId) {
       _convCtx[convId] = { matchId, orderId: null, projectBidId: null };
@@ -6798,7 +6798,7 @@ async function loadSaved() {
         <div style="font-size:.75rem;color:var(--muted);margin-top:2px;">${b.skillOffered ? esc(b.skillOffered) + ' ↔ ' + esc(b.skillWanted) : ''}</div>
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0;">
-        <button class="btn bp" style="font-size:.72rem;padding:5px 12px;border-radius:8px;" onclick="location.href='browse-barter.html'">View</button>
+        <button class="btn bp" style="font-size:.72rem;padding:5px 12px;border-radius:8px;" onclick="location.href='browse-barter'">View</button>
         <button class="btn" style="font-size:.72rem;padding:5px 12px;border-radius:8px;color:var(--danger);" onclick="unsaveItem('BARTER','${esc(b.id)}',this)">✕</button>
       </div>
     </div>`).join('') : '<div class="empty-state">No saved barters yet. Hit ♡ on any barter card to save it.</div>';

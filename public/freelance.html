@@ -256,7 +256,7 @@
 <!-- NAV -->
 <nav class="nav" id="mainNav">
   <div class="nav-inner">
-    <a href="index.html" class="nav-logo">
+    <a href="/" class="nav-logo">
       <div class="nav-logo-mark">
         <span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span>
       </div>
@@ -265,11 +265,11 @@
       </div>
     </a>
     <div class="nav-links">
-      <a href="index.html#how-it-works">How it works</a>
-      <a href="barter.html">Skill Exchange</a>
-      <a href="freelance.html" style="color:var(--violet);font-weight:600;">Freelance</a>
-      <a href="projects.html">Browse Projects</a>
-      <a href="index.html#about">About</a>
+      <a href="/#how-it-works">How it works</a>
+      <a href="/barter">Skill Exchange</a>
+      <a href="/freelance" style="color:var(--violet);font-weight:600;">Freelance</a>
+      <a href="/projects">Browse Projects</a>
+      <a href="/#about">About</a>
     </div>
     <div class="nav-actions" id="freelanceNavActions">
       <button class="btn btn-secondary btn-sm" onclick="openModal('loginModal')">Sign in</button>
@@ -293,8 +293,8 @@
         x.setRequestHeader('Authorization', 'Bearer ' + t);
         x.setRequestHeader('Content-Type', 'application/json');
         try { x.send(); var pr = JSON.parse(x.responseText); if (pr.success && pr.data.plan) { var b = pr.data.plan.badge; planBadge = b ? '<span style="background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">' + b + '</span>' : '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Free</span>'; try{localStorage.setItem('se_plan_cache',JSON.stringify({badge:b||null}));}catch(e){} } } catch(e) {}
-        el.innerHTML = planBadge + '<a href="dashboard.html" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
-          '<a href="dashboard.html?tab=my-gigs" class="btn btn-primary btn-sm">Dashboard</a>' +
+        el.innerHTML = planBadge + '<a href="/dashboard" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
+          '<a href="/dashboard?tab=my-gigs" class="btn btn-primary btn-sm">Dashboard</a>' +
           '<button class="btn btn-primary btn-sm" onclick="window.doLogout();">Sign out</button>';
       }
     }
@@ -311,7 +311,7 @@
         <span class="badge badge-gold" style="margin-bottom:16px;">Freelance Marketplace</span>
         <h1 class="page-hero-title">Hire India's best.<br/>Get paid for your skills.</h1>
         <p class="page-hero-sub">2,000+ verified professionals across design, development, writing, marketing, and more. Secure escrow payments. Guaranteed results.</p>
-        <button class="btn btn-primary btn-lg" onclick="if(window.gT&&window.gT()){location.href='dashboard.html?tab=my-gigs'}else{openModal('signupModal')}">
+        <button class="btn btn-primary btn-lg" onclick="if(window.gT&&window.gT()){location.href='/dashboard?tab=my-gigs'}else{openModal('signupModal')}">
           Start selling your skills
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </button>
@@ -487,7 +487,7 @@
         <div class="seller-spotlight-text" style="flex:1;">
           <h2>Start earning from your skills today</h2>
           <p>Join 2,000+ freelancers who earn consistent income on Grit&Gigs. Set your own prices, work on your own schedule, and get paid securely.</p>
-          <button class="btn btn-white btn-lg" onclick="localStorage.getItem('se_token')?location.href='dashboard.html?tab=my-gigs':openModal('signupModal')">
+          <button class="btn btn-white btn-lg" onclick="localStorage.getItem('se_token')?location.href='/dashboard?tab=my-gigs':openModal('signupModal')">
             Create your seller profile
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </button>

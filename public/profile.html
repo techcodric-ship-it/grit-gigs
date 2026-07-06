@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -123,16 +123,16 @@
 <body>
 <nav class="nav">
   <div class="nav-inner">
-    <a href="index.html" class="nav-logo">
+    <a href="/" class="nav-logo">
       <div class="nav-logo-mark" style="width:auto;min-width:44px;padding:0 8px;">
         <span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span>
       </div>
       <span class="nav-logo-text">Grit<span style="color:var(--violet);">&amp;Gigs</span></span>
     </a>
     <div class="nav-links">
-      <a href="/dashboard.html">Dashboard</a>
-      <a href="/freelance.html">Browse Gigs</a>
-      <a href="/projects.html">Browse Projects</a>
+      <a href="/dashboard">Dashboard</a>
+      <a href="/freelance">Browse Gigs</a>
+      <a href="/projects">Browse Projects</a>
     </div>
   </div>
 </nav>
@@ -205,7 +205,7 @@ async function load() {
     : '<span class="prof-meta-item"><span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block;"></span> Busy</span>';
 
   const actionBtns = isMe
-    ? `<a href="/dashboard.html?tab=my-profile"><button class="invite-btn">${icon('edit')} Edit Profile</button></a>`
+    ? `<a href="/dashboard?tab=my-profile"><button class="invite-btn">${icon('edit')} Edit Profile</button></a>`
     : (TOKEN ? `<button class="msg-btn" onclick="inviteToProject('${esc(user.id)}')">${icon('plus')} Invite to Project</button>` : '');
 
   document.title = `${user.firstName} ${user.lastName} — Grit&amp;Gigs`;
@@ -255,7 +255,7 @@ async function load() {
             <div class="prof-section-title">${icon('briefcase')} Active Gigs (${gigs.length})</div>
             <div class="gig-grid">
               ${gigs.slice(0,6).map(g => `
-                <div class="gig-card" onclick="window.location='/dashboard.html?tab=browse-gigs&gig=${esc(g.id)}'">
+                <div class="gig-card" onclick="window.location='/dashboard?tab=browse-gigs&gig=${esc(g.id)}'">
                   ${g.coverImage ? `<img class="gig-img" src="${esc(g.coverImage)}" alt=""/>` : `<div class="gig-img" style="display:flex;align-items:center;justify-content:center;color:#6C3DE0;font-family:var(--font-display);font-size:.85rem;font-weight:700;text-align:center;padding:0 16px;line-height:1.3;">${esc(g.title?.slice(0,35))}</div>`}
                   <div class="gig-body">
                     <div class="gig-title">${esc(g.title)}</div>
@@ -330,7 +330,7 @@ function renderReviews(reviews) {
 async function contactUser(uid) {
   if (!TOKEN) { window.location.href = '/?login=1'; return; }
   const d = await api('/messages/conversations/with/' + uid, { method: 'POST', body: JSON.stringify({}) });
-  if (d.success) window.location.href = '/dashboard.html?tab=inbox&conv=' + d.data.conversation.id;
+  if (d.success) window.location.href = '/dashboard?tab=inbox&conv=' + d.data.conversation.id;
 }
 
 async function inviteToProject(freelancerId) {

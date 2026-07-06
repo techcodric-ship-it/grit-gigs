@@ -24,7 +24,7 @@
       localStorage.setItem('se_token', accessToken);
       localStorage.setItem('se_refresh', refreshToken);
       localStorage.setItem('se_user', JSON.stringify(user));
-      window.location.href = 'dashboard.html';
+      window.location.href = '/dashboard';
     } catch(e) {
       document.body.textContent = 'Error processing sign-in';
     }

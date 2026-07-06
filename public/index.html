@@ -67,7 +67,7 @@
       <a href="#how-it-works">How it works</a>
       <a href="#barter">Skill Exchange</a>
       <a href="#freelance">Freelance</a>
-      <a href="projects.html">Browse Projects</a>
+      <a href="/projects">Browse Projects</a>
       <a href="#about">About</a>
     </div>
     <div class="nav-actions" id="siteNavActions">
@@ -87,7 +87,7 @@
               var planBadge = '';
               try { var x=new XMLHttpRequest(); x.open('GET','/api/subscriptions/my-plan',false); x.setRequestHeader('Authorization','Bearer '+t); x.setRequestHeader('Content-Type','application/json'); x.send(); var pr=JSON.parse(x.responseText); if(pr.success&&pr.data.plan){var b=pr.data.plan.badge;planBadge=b?'<span style="background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">'+b+'</span>':'<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Free</span>';try{localStorage.setItem('se_plan_cache',JSON.stringify({badge:b||null}));}catch(e){}} } catch(e){}
               el.innerHTML = planBadge +
-                '<a href="dashboard.html" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
+                '<a href="/dashboard" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
                 '<button class="btn btn-primary btn-sm" onclick="window.doLogout && window.doLogout()">Sign out</button>';
             }
           }
@@ -112,7 +112,7 @@
   <a href="#how-it-works">How it works</a>
   <a href="#barter">Skill Exchange</a>
   <a href="#freelance">Freelance</a>
-  <a href="projects.html">Browse Projects</a>
+  <a href="/projects">Browse Projects</a>
   <a href="#about">About</a>
   <button class="btn btn-secondary" onclick="openModal('loginModal')">Sign in</button>
   <button class="btn btn-primary" onclick="openModal('signupModal')">Join free</button>
@@ -139,7 +139,7 @@
         Trade your skills without money, work as a freelancer to earn real income, or invest in local businesses — all from one powerful platform built for India.
       </p>
       <div class="hero-actions anim-fade-up anim-delay-3">
-        <button class="btn btn-primary btn-lg" onclick="localStorage.getItem('se_token')?location.href='dashboard.html':openModal('signupModal')">
+        <button class="btn btn-primary btn-lg" onclick="localStorage.getItem('se_token')?location.href='/dashboard':openModal('signupModal')">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           Start for free
         </button>
@@ -333,7 +333,7 @@
           </div>
         </div>
         <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <button class="btn btn-primary" onclick="localStorage.getItem('se_token')?location.href='dashboard.html?tab=post-exchange':openModal('barterModal')">Post an exchange</button>
+          <button class="btn btn-primary" onclick="localStorage.getItem('se_token')?location.href='/dashboard?tab=post-exchange':openModal('barterModal')">Post an exchange</button>
           <a href="#barter" class="btn btn-secondary">Browse matches</a>
         </div>
       </div>
@@ -373,7 +373,7 @@
           </div>
         </div>
         <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <button class="btn btn-primary" onclick="localStorage.getItem('se_token')?location.href='dashboard.html':openModal('signupModal')">Start selling</button>
+          <button class="btn btn-primary" onclick="localStorage.getItem('se_token')?location.href='/dashboard':openModal('signupModal')">Start selling</button>
           <a href="#freelance" class="btn btn-secondary">Browse services</a>
         </div>
       </div>
@@ -404,7 +404,7 @@
         <h2 style="margin:0;">Live exchange requests</h2>
         <p style="margin-top:8px;">These people are looking for someone exactly like you.</p>
       </div>
-      <button class="btn btn-primary" onclick="localStorage.getItem('se_token')?location.href='dashboard.html?tab=post-exchange':openModal('barterModal')">Post your exchange</button>
+      <button class="btn btn-primary" onclick="localStorage.getItem('se_token')?location.href='/dashboard?tab=post-exchange':openModal('barterModal')">Post your exchange</button>
     </div>
 
     <div class="barter-grid"></div>
@@ -420,7 +420,7 @@
         <h2 style="margin:0;">Hire a skilled professional</h2>
         <p style="margin-top:8px;">Browse verified services from talented Indian professionals.</p>
       </div>
-      <button class="btn btn-primary" onclick="localStorage.getItem('se_token')?location.href='dashboard.html':openModal('signupModal')">Sell your skills</button>
+      <button class="btn btn-primary" onclick="localStorage.getItem('se_token')?location.href='/dashboard':openModal('signupModal')">Sell your skills</button>
     </div>
 
     <!-- Category pills -->
@@ -536,7 +536,7 @@
     </div>
 
     <div style="text-align:center;margin-top:40px;">
-      <button class="btn btn-secondary" onclick="localStorage.getItem('se_token')?location.href='freelance.html':openModal('signupModal')">
+      <button class="btn btn-secondary" onclick="localStorage.getItem('se_token')?location.href='/freelance':openModal('signupModal')">
         View all services
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </button>
@@ -572,7 +572,7 @@
             <div style="font-size:0.92rem;color:var(--text-secondary);"><strong style="color:var(--ink);">Separate wallets</strong> for freelance earnings and future investment funds.</div>
           </div>
         </div>
-        <button class="btn btn-primary" onclick="localStorage.getItem('se_token')?location.href='dashboard.html':openModal('signupModal')">Open your dashboard</button>
+        <button class="btn btn-primary" onclick="localStorage.getItem('se_token')?location.href='/dashboard':openModal('signupModal')">Open your dashboard</button>
       </div>
       <div class="dashboard-preview">
         <div class="db-topbar">
@@ -687,7 +687,7 @@
       <h2>Start exchanging today.<br/>It's completely free.</h2>
       <p>No credit card. No hidden fees. Just sign up and start trading your skills for things you actually need.</p>
       <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
-        <button class="btn btn-primary btn-lg" id="ctaMainBtn" onclick="localStorage.getItem('se_token')?location.href='dashboard.html':openModal('signupModal')">
+        <button class="btn btn-primary btn-lg" id="ctaMainBtn" onclick="localStorage.getItem('se_token')?location.href='/dashboard':openModal('signupModal')">
           Create free account
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </button>
@@ -725,17 +725,17 @@
     </div>
     <div class="footer-col">
       <h4>Company</h4>
-      <a href="about.html">About us</a>
-      <a href="blog.html">Blog</a>
-      <a href="careers.html">Careers</a>
-      <a href="press.html">Press</a>
+      <a href="/about">About us</a>
+      <a href="/blog">Blog</a>
+      <a href="/careers">Careers</a>
+      <a href="/press">Press</a>
     </div>
     <div class="footer-col">
       <h4>Legal</h4>
-      <a href="terms.html">Terms of service</a>
-      <a href="privacy.html">Privacy policy</a>
-      <a href="cookie.html">Cookie policy</a>
-      <a href="refund.html">Refund policy</a>
+      <a href="/terms">Terms of service</a>
+      <a href="/privacy">Privacy policy</a>
+      <a href="/cookie">Cookie policy</a>
+      <a href="/refund">Refund policy</a>
     </div>
   </div>
   <div class="footer-bottom">
@@ -948,10 +948,10 @@
         grid.innerHTML = filtered.map(buildCard).join('');
       } else if (category) {
         // No services in this category → show empty state
-        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">No services in <strong>' + category + '</strong> yet. <a href="dashboard.html" style="color:var(--violet);font-weight:600;">Be the first to post one!</a></div>';
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">No services in <strong>' + category + '</strong> yet. <a href="/dashboard" style="color:var(--violet);font-weight:600;">Be the first to post one!</a></div>';
       } else {
         // "All" but no services at all
-        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">No services yet. <a href="dashboard.html" style="color:var(--violet);font-weight:600;">Be the first to post one!</a></div>';
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">No services yet. <a href="/dashboard" style="color:var(--violet);font-weight:600;">Be the first to post one!</a></div>';
       }
       return;
     }
