@@ -9,7 +9,7 @@ import { clientReviewsTable } from '../db/schema/client-reviews';
 import { authenticate, optionalAuth } from '../middlewares/authenticate';
 import { getActivePlanForUser, getOrCreateSubscription } from '../lib/subscriptions';
 import { attachPlanBadge, attachPlanBadges } from '../lib/planBadge';
-import { uploadToSupabase } from '../lib/storage';
+import { uploadToSupabase, isSupabaseConfigured } from '../lib/storage';
 import { PROJECT_ROOT } from '../lib/root';
 import multer from 'multer';
 import path from 'path';
@@ -516,6 +516,9 @@ router.delete('/projects/:id', authenticate, async (req: Request, res: Response)
 router.post('/projects/upload', authenticate, _projUpload.single('image'), async (req: Request, res: Response) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
   const supabaseUrl = await uploadToSupabase(fs.readFileSync(req.file.path), req.file.originalname, "projects");
+  if (!supabaseUrl && isSupabaseConfigured()) {
+    return res.status(500).json({ success: false, message: "Upload failed" });
+  }
   const imageUrl = supabaseUrl || `/uploads/projects/${req.file.filename}`;
   return res.json({ success: true, data: { imageUrl } });
 });

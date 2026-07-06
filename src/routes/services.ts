@@ -11,7 +11,7 @@ import { eq, ilike, or, and, desc, ne, sql, asc, count, inArray } from "drizzle-
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { getActivePlanForUser } from "../lib/subscriptions";
 import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
-import { uploadToSupabase } from "../lib/storage";
+import { uploadToSupabase, isSupabaseConfigured } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
 import multer from "multer";
 import path from "path";
@@ -233,9 +233,19 @@ router.post("/services", authenticate, upload.array("images", 5), async (req, re
   }
 
   const files = (req.files as Express.Multer.File[]) ?? [];
-  const imageUrls = await Promise.all(files.map(async (f) =>
-    (await uploadToSupabase(fs.readFileSync(f.path), f.originalname, "services")) || `/uploads/services/${f.filename}`
-  ));
+  const imageUrls: string[] = [];
+  for (const f of files) {
+    const url = await uploadToSupabase(fs.readFileSync(f.path), f.originalname, "services");
+    if (!url) {
+      if (isSupabaseConfigured()) {
+        res.status(500).json({ success: false, message: "Image upload failed" });
+        return;
+      }
+      imageUrls.push(`/uploads/services/${f.filename}`);
+    } else {
+      imageUrls.push(url);
+    }
+  }
 
   const [service] = await db
     .insert(servicesTable)
@@ -264,9 +274,19 @@ router.post("/services/:id/images", authenticate, upload.array("images", 5), asy
   if (service.sellerId !== req.user!.id) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
 
   const files = (req.files as Express.Multer.File[]) ?? [];
-  const newImages = await Promise.all(files.map(async (f) =>
-    (await uploadToSupabase(fs.readFileSync(f.path), f.originalname, "services")) || `/uploads/services/${f.filename}`
-  ));
+  const newImages: string[] = [];
+  for (const f of files) {
+    const url = await uploadToSupabase(fs.readFileSync(f.path), f.originalname, "services");
+    if (!url) {
+      if (isSupabaseConfigured()) {
+        res.status(500).json({ success: false, message: "Image upload failed" });
+        return;
+      }
+      newImages.push(`/uploads/services/${f.filename}`);
+    } else {
+      newImages.push(url);
+    }
+  }
   const allImages = [...service.images, ...newImages].slice(0, 5);
 
   const [updated] = await db.update(servicesTable).set({ images: allImages }).where(eq(servicesTable.id, service.id)).returning({ id: servicesTable.id, images: servicesTable.images });

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { uploadToSupabase } from "../lib/storage";
+import { uploadToSupabase, isSupabaseConfigured } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
 import multer from "multer";
 import path from "path";
@@ -40,15 +40,19 @@ router.post("/messages/upload", authenticate, upload.array("files", 10), async (
     res.status(400).json({ success: false, message: "No files uploaded" });
     return;
   }
-  const result = await Promise.all(files.map(async (f) => {
+  const result: { name: string; url: string; size: number; mimeType: string }[] = [];
+  for (const f of files) {
     const supabaseUrl = await uploadToSupabase(fs.readFileSync(f.path), f.originalname, "messages");
-    return {
-      name: f.originalname,
-      url: supabaseUrl || `/uploads/messages/${f.filename}`,
-      size: f.size,
-      mimeType: f.mimetype,
-    };
-  }));
+    if (!supabaseUrl) {
+      if (isSupabaseConfigured()) {
+        res.status(500).json({ success: false, message: "File upload failed" });
+        return;
+      }
+      result.push({ name: f.originalname, url: `/uploads/messages/${f.filename}`, size: f.size, mimeType: f.mimetype });
+    } else {
+      result.push({ name: f.originalname, url: supabaseUrl, size: f.size, mimeType: f.mimetype });
+    }
+  }
   res.json({ success: true, data: { files: result } });
 });
 

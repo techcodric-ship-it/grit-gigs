@@ -15,7 +15,7 @@ import { eq, ilike, or, desc, sql, and, gt, inArray } from "drizzle-orm";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { getActivePlanForUser, getOrCreateSubscription, getPlan } from "../lib/subscriptions";
 import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
-import { uploadToSupabase } from "../lib/storage";
+import { uploadToSupabase, isSupabaseConfigured } from "../lib/storage";
 import { createUpiPayout, createBankPayout } from "../lib/razorpay";
 import { PROJECT_ROOT } from "../lib/root";
 import { logger } from "../lib/logger";
@@ -237,15 +237,9 @@ router.post(
         return;
       }
 
-      let supabaseUrl: string | null = null;
-      try {
-        supabaseUrl = await uploadToSupabase(
-          fs.readFileSync(req.file.path),
-          req.file.originalname,
-          "profiles",
-        );
-      } catch (_su) {
-        logger.error({ err: _su }, "Profile photo Supabase upload failed");
+      const supabaseUrl = await uploadToSupabase(fs.readFileSync(req.file.path), req.file.originalname, "profiles");
+      if (!supabaseUrl && isSupabaseConfigured()) {
+        res.status(500).json({ success: false, message: "Photo upload failed" }); return;
       }
       const photoUrl = supabaseUrl || `/uploads/profiles/${req.file.filename}`;
       await db

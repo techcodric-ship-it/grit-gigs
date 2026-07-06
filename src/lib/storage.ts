@@ -23,6 +23,10 @@ if (supabase) {
 
 export const UPLOADS_BUCKET = "uploads";
 
+export function isSupabaseConfigured(): boolean {
+  return !!SUPABASE_URL && !!SUPABASE_ANON_KEY;
+}
+
 export async function ensureBucket(): Promise<void> {
   if (!supabase) return;
   try {

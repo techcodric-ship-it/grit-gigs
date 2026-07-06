@@ -2123,6 +2123,7 @@ let activeCovId = null;
 let activeCovUserId = null;
 let _convCtx = {};
 let _onlineUsers = new Set();
+let _savedChatHeader = '';
 
 function connectSocket() {
   if (!gT()) return;
@@ -2215,6 +2216,7 @@ function connectSocket() {
   // Typing indicators
   socket.on('message:typing', ({ firstName, conversationId }) => {
     if (conversationId === activeCovId) {
+      _savedChatHeader = document.getElementById('chatHeader').innerHTML;
       document.getElementById('chatHeader').innerHTML = `
         <div style="display:flex;align-items:center;gap:9px;">
           <span>${esc(firstName)}</span>
@@ -2224,7 +2226,9 @@ function connectSocket() {
   });
 
   socket.on('message:stop-typing', ({ conversationId }) => {
-    // Restore header (will be re-rendered on next message)
+    if (conversationId === activeCovId && _savedChatHeader) {
+      document.getElementById('chatHeader').innerHTML = _savedChatHeader;
+    }
   });
 }
 
@@ -3758,6 +3762,7 @@ async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planB
       </div>
       ${!isAdminConv ? `<button data-vp="1" data-uid="${userId||''}" onclick="viewActiveConvProfile()" title="View profile" style="margin-left:auto;background:none;border:1px solid var(--bd);border-radius:99px;padding:2px 10px;font-size:.68rem;color:var(--violet);cursor:pointer;font-weight:600;transition:background .15s;" onmouseover="this.style.background='var(--vl)'" onmouseout="this.style.background='var(--vl)'">View Profile</button>` : ''}
     </div>`;
+  _savedChatHeader = document.getElementById('chatHeader').innerHTML;
   document.getElementById('ps-inbox').classList.add('show-chat');
   document.getElementById('chatInput').style.display = 'block';
   document.getElementById('msgInput').focus();

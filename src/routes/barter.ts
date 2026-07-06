@@ -13,7 +13,7 @@ import { eq, ilike, or, and, desc, ne, inArray, sql } from "drizzle-orm";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { getActivePlanForUser, getOrCreateSubscription } from "../lib/subscriptions";
 import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
-import { uploadToSupabase } from "../lib/storage";
+import { uploadToSupabase, isSupabaseConfigured } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
 import multer from "multer";
 import path from "path";
@@ -151,9 +151,19 @@ router.post("/barter/requests", authenticate, barterUpload.single("image"), asyn
     }
   }
 
-  const imageUrl = req.file
-    ? (await uploadToSupabase(fs.readFileSync(req.file.path), req.file.originalname, "barter")) || `/uploads/${req.file.filename}`
-    : null;
+  let imageUrl: string | null = null;
+  if (req.file) {
+    const supabaseUrl = await uploadToSupabase(fs.readFileSync(req.file.path), req.file.originalname, "barter");
+    if (!supabaseUrl) {
+      if (isSupabaseConfigured()) {
+        res.status(500).json({ success: false, message: "Image upload failed" });
+        return;
+      }
+      imageUrl = `/uploads/${req.file.filename}`;
+    } else {
+      imageUrl = supabaseUrl;
+    }
+  }
 
   const [request] = await db
     .insert(barterRequestsTable)

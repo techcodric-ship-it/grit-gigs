@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import rateLimit from "express-rate-limit";
 import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import { db, usersTable, notificationsTable, passwordResetsTable, refreshTokensTable, conversationsTable, messagesTable } from "../db";
@@ -16,7 +17,11 @@ import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
 
 const router: IRouter = Router();
 
-router.post("/auth/register", async (req, res): Promise<void> => {
+const registerLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: { success: false, message: "Too many registration attempts. Try again in 15 minutes." } });
+const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { success: false, message: "Too many login attempts. Try again in 15 minutes." } });
+const otpLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: { success: false, message: "Too many OTP requests. Try again in 15 minutes." } });
+
+router.post("/auth/register", registerLimiter, async (req, res): Promise<void> => {
   const { firstName, lastName, email, password } = req.body;
 
   if (!firstName || !lastName || !email || !password) {
@@ -144,7 +149,7 @@ router.post("/auth/verify-signup", async (req, res): Promise<void> => {
   });
 });
 
-router.post("/auth/resend-otp", async (req, res): Promise<void> => {
+router.post("/auth/resend-otp", otpLimiter, async (req, res): Promise<void> => {
   const { email } = req.body;
   if (!email) { res.status(400).json({ success: false, message: "Email required" }); return; }
   const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, email.toLowerCase())).limit(1);
@@ -157,7 +162,7 @@ router.post("/auth/resend-otp", async (req, res): Promise<void> => {
   res.json({ success: true, message: "Verification code resent to your email" });
 });
 
-router.post("/auth/login", async (req, res): Promise<void> => {
+router.post("/auth/login", loginLimiter, async (req, res): Promise<void> => {
   const { email, password } = req.body;
 
   if (!email || !password) {
