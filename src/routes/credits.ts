@@ -240,4 +240,50 @@ router.post("/credits/check-pending", authenticate, async (req: Request, res: Re
   }
 });
 
+// Diagnostic: check Razorpay account status
+router.get("/credits/diagnose", authenticate, async (req: Request, res: Response): Promise<void> => {
+  if (!razorpayConfigured()) {
+    res.json({ success: false, message: "Payment gateway not configured" });
+    return;
+  }
+  try {
+    const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
+    // Check a recent failed payment for error details
+    const [failed] = await db
+      .select({ gatewayTxnId: transactionsTable.gatewayTxnId })
+      .from(transactionsTable)
+      .where(and(eq(transactionsTable.userId, req.user!.id), eq(transactionsTable.status, "FAILED")))
+      .limit(1);
+    let failureReason: any = null;
+    if (failed?.gatewayTxnId) {
+      const payResp = await fetch("https://api.razorpay.com/v1/orders/" + failed.gatewayTxnId + "/payments", {
+        headers: { Authorization: "Basic " + auth },
+      });
+      if (payResp.ok) {
+        const payData = await payResp.json() as { items?: any[] };
+        const failedPayment = (payData.items || []).find((p: any) => p.status === "failed");
+        if (failedPayment) {
+          failureReason = {
+            id: failedPayment.id,
+            status: failedPayment.status,
+            error_description: (failedPayment as any).error_description,
+            error_code: (failedPayment as any).error_code,
+            error_source: (failedPayment as any).error_source,
+            error_step: (failedPayment as any).error_step,
+            error_reason: (failedPayment as any).error_reason,
+          };
+        }
+      }
+    }
+    // Try to get account info
+    const acResp = await fetch("https://api.razorpay.com/v1/orders?limit=3", {
+      headers: { Authorization: "Basic " + auth },
+    });
+    const recentOrders = acResp.ok ? await acResp.json() : null;
+    res.json({ success: true, data: { failureReason, recentOrders } });
+  } catch (e: any) {
+    res.json({ success: false, message: e.message });
+  }
+});
+
 export default router;
