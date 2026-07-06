@@ -54,8 +54,9 @@ app.use("/api", rateLimit({ windowMs: 60 * 1000, max: 500, standardHeaders: true
 // Request timeout — 30s for API, 2min for static files
 app.use("/api", (_req, _res, next) => { _req.setTimeout(30000); next(); });
 
-// Serve uploaded files
+// Serve uploaded files — with noindex to block Google Images
 const rootDir = path.resolve(__dirname, "..");
+app.use("/uploads", (_req, res, next) => { res.set("X-Robots-Tag", "noindex"); next(); });
 app.use("/uploads", express.static(path.join(rootDir, "uploads")));
 
 app.use("/api", router);
