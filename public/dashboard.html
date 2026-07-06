@@ -1814,13 +1814,14 @@ textarea.fi{resize:vertical;}
 <script>
 async function checkPendingPayments() {
   const d = await api('/credits/check-pending', { method: 'POST' });
-  if (d.debug) console.log('Recovery debug:', d.debug);
   if (d.success && d.data?.credited) {
     showNotifBanner('✅ ₹' + d.data.amount + ' recovered!', 'Your pending payment has been credited.', 'ok');
     loadOverview(); loadWallet();
+  } else if (d.data?.cleaned > 0) {
+    showToast('Marked ' + d.data.cleaned + ' failed payment(s) as FAILED', 'info');
+    loadWallet();
   } else {
-    const msg = d.debug ? d.debug.join(' | ') : (d.message || 'No pending payments found');
-    showToast(msg, 'info');
+    showToast(d.message || 'No pending payments found', 'info');
   }
 }
 </script>

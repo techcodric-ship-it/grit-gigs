@@ -151,41 +151,44 @@ router.post("/credits/check-pending", authenticate, async (req: Request, res: Re
     res.json({ success: true, message: "No pending payments", data: { credited: false } });
     return;
   }
-  const debug: string[] = [];
   let credited = false;
   let totalAmount = 0;
+  let cleaned = 0;
   for (const txn of pending) {
-    if (!txn.gatewayTxnId) { debug.push("No gatewayTxnId"); continue; }
+    if (!txn.gatewayTxnId) continue;
     try {
       const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
-      const rzUrl = "https://api.razorpay.com/v1/orders/" + txn.gatewayTxnId + "/payments";
-      const rzResp = await fetch(rzUrl, {
+      // Check payments linked to this order
+      const rzResp = await fetch("https://api.razorpay.com/v1/orders/" + txn.gatewayTxnId + "/payments", {
         headers: { Authorization: "Basic " + auth },
       });
-      if (!rzResp.ok) {
-        const errBody = await rzResp.text();
-        debug.push(`Razorpay ${rzResp.status}: ${errBody.substring(0,100)}`);
-        continue;
-      }
+      if (!rzResp.ok) continue;
       const rzData = await rzResp.json() as { items?: { status: string; id: string }[] };
       const payments = rzData.items || [];
-      debug.push(`Order ${txn.gatewayTxnId.substring(0,16)}... has ${payments.length} payments: ${payments.map((p: { status: string }) => p.status).join(",")}`);
       const captured = payments.find((p: { status: string }) => p.status === "captured" || p.status === "authorized");
-      if (!captured) continue;
-      await db.execute(
-        sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${txn.amount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${req.user!.id}`
-      );
-      await db.update(transactionsTable)
-        .set({ status: "COMPLETED", gatewayTxnId: captured.id, updatedAt: new Date() })
-        .where(eq(transactionsTable.id, txn.id));
-      totalAmount += txn.amount;
-      credited = true;
-    } catch (e: any) { debug.push(`Error: ${e.message}`); continue; }
+      if (captured) {
+        // Credit wallet
+        await db.execute(
+          sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${txn.amount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${req.user!.id}`
+        );
+        await db.update(transactionsTable)
+          .set({ status: "COMPLETED", gatewayTxnId: captured.id, updatedAt: new Date() })
+          .where(eq(transactionsTable.id, txn.id));
+        totalAmount += txn.amount;
+        credited = true;
+      } else if (payments.some((p: { status: string }) => p.status === "failed")) {
+        // Payment failed on Razorpay — mark as FAILED
+        await db.update(transactionsTable)
+          .set({ status: "FAILED", updatedAt: new Date() })
+          .where(eq(transactionsTable.id, txn.id));
+        cleaned++;
+      }
+    } catch { continue; }
   }
   if (credited) {
-    res.json({ success: true, data: { credited: true, amount: totalAmount }, debug });
+    res.json({ success: true, data: { credited: true, amount: totalAmount, cleaned } });
   } else {
-    res.json({ success: true, message: "No captured payments found", data: { credited: false }, debug });
+    res.json({ success: true, message: cleaned > 0 ? `Marked ${cleaned} failed payment(s) as FAILED` : "No captured payments found", data: { credited: false, cleaned } });
   }
 });
 
