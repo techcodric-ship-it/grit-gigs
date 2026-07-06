@@ -62,7 +62,28 @@ app.use("/api", router);
 
 // Serve frontend static files (public/ folder next to server)
 const publicPath = path.join(rootDir, "public");
+
+// Clean URL redirect — redirect .html to extensionless URL BEFORE static serves it
+app.use((req, res, next) => {
+  if (req.path.endsWith(".html") && req.path !== "/index.html") {
+    const clean = req.path.replace(/\.html$/, "");
+    const qs = req.url.includes("?") ? req.url.substring(req.url.indexOf("?")) : "";
+    res.redirect(301, clean + qs);
+    return;
+  }
+  next();
+});
+
 app.use(express.static(publicPath));
+
+// Clean URL fallback — serve .html for extensionless requests
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api") || req.path.includes(".") || req.path === "/") return next();
+  const htmlPath = path.join(publicPath, req.path + ".html");
+  res.sendFile(htmlPath, (err) => {
+    if (err) next();
+  });
+});
 
 // SPA fallback — send index.html for any non-API route
 app.use((req, res) => {
