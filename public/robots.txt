@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://www.gritandgigs.in/sitemap.xml
