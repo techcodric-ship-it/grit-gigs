@@ -130,14 +130,50 @@ router.post("/credits/verify-payment", authenticate, async (req: Request, res: R
   res.json({ success: true, message: "Amount added successfully" });
 });
 
-// Polling endpoint — check if order has been paid
+// Polling endpoint — check if order has been paid (checks Razorpay API directly so UPI QR works)
 router.get("/credits/check-order/:orderId", authenticate, async (req: Request, res: Response): Promise<void> => {
   const orderId = req.params.orderId as string;
+  // First check our DB
   const [txn] = await db
-    .select({ status: transactionsTable.status })
+    .select({ id: transactionsTable.id, status: transactionsTable.status, amount: transactionsTable.amount, gatewayTxnId: transactionsTable.gatewayTxnId })
     .from(transactionsTable)
     .where(eq(transactionsTable.gatewayTxnId, orderId))
     .limit(1);
+  if (txn?.status === "COMPLETED") {
+    res.json({ success: true, data: { status: "COMPLETED" } });
+    return;
+  }
+  // Check Razorpay directly for payments linked to this order
+  if (txn?.gatewayTxnId && razorpayConfigured()) {
+    try {
+      const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
+      const rzResp = await fetch("https://api.razorpay.com/v1/orders/" + txn.gatewayTxnId + "/payments", {
+        headers: { Authorization: "Basic " + auth },
+      });
+      if (rzResp.ok) {
+        const rzData = await rzResp.json() as { items?: { status: string; id: string }[] };
+        const captured = (rzData.items || []).find((p: { status: string }) => p.status === "captured" || p.status === "authorized");
+        if (captured) {
+          // Credit wallet immediately
+          await db.execute(
+            sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${txn.amount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${req.user!.id}`
+          );
+          await db.update(transactionsTable)
+            .set({ status: "COMPLETED", gatewayTxnId: captured.id, updatedAt: new Date() })
+            .where(eq(transactionsTable.id, txn.id));
+          await db.insert(notificationsTable).values({
+            userId: req.user!.id,
+            type: "CREDITS_ADDED",
+            title: `₹${Number(txn.amount).toLocaleString("en-IN")} added!`,
+            message: "Your wallet has been topped up successfully.",
+            linkUrl: "/dashboard.html",
+          });
+          res.json({ success: true, data: { status: "COMPLETED" } });
+          return;
+        }
+      }
+    } catch {}
+  }
   res.json({ success: true, data: { status: txn?.status || "PENDING" } });
 });
 
