@@ -36,6 +36,7 @@ async function sendResend({ to, subject, html }: EmailOptions): Promise<boolean>
 
     if (!res.ok) {
       const body = await res.text();
+      console.error("=== RESEND API ERROR ===", { status: res.status, body: body.substring(0, 500) });
       logger.error({ status: res.status, body }, "Resend API error");
       return false;
     }
