@@ -65,7 +65,7 @@ const publicPath = path.join(rootDir, "public");
 
 // Clean URL redirect — redirect .html to extensionless URL BEFORE static serves it
 app.use((req, res, next) => {
-  if (req.path.endsWith(".html") && req.path !== "/index.html") {
+  if (req.path.endsWith(".html")) {
     const clean = req.path.replace(/\.html$/, "");
     const qs = req.url.includes("?") ? req.url.substring(req.url.indexOf("?")) : "";
     res.redirect(301, clean + qs);
