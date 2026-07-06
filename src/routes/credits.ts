@@ -163,7 +163,7 @@ router.post("/credits/check-pending", authenticate, async (req: Request, res: Re
       });
       if (!rzResp.ok) continue;
       const payments = await rzResp.json() as { items?: { status: string; id: string }[] };
-      const captured = payments.items?.find((p: { status: string }) => p.status === "captured");
+      const captured = payments.items?.find((p: { status: string }) => p.status === "captured" || p.status === "authorized");
       if (!captured) continue;
       // Credit wallet
       await db.execute(
