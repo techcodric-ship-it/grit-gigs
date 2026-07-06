@@ -27,20 +27,33 @@ router.post("/credits/create-order", authenticate, async (req: Request, res: Res
 
   try {
     const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
+    const receipt = `cr_${Date.now()}_${req.user!.id.substring(0,4)}`;
     const rzResp = await fetch("https://api.razorpay.com/v1/orders", {
       method: "POST",
       headers: {
         "Authorization": `Basic ${auth}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ amount: amountInPaise, currency: "INR", receipt: `credits_${req.user!.id}_${Date.now()}` }),
+      body: JSON.stringify({ amount: amountInPaise, currency: "INR", receipt }),
     });
     if (!rzResp.ok) {
       const errBody = await rzResp.text();
       res.status(502).json({ success: false, message: `Razorpay error: ${errBody}` });
       return;
     }
-    const order = await rzResp.json();
+    const order = await rzResp.json() as { id: string };
+
+    // Store order→user mapping for webhook fallback
+    await db.insert(transactionsTable).values({
+      userId: req.user!.id,
+      type: "CREDIT_PURCHASE",
+      amount: amtInr,
+      status: "PENDING",
+      paymentMethod: "razorpay",
+      gatewayTxnId: order.id,
+      description: `Pending wallet top-up ₹${amtInr}`,
+    });
+
     res.json({ success: true, data: { order, key: RAZORPAY_KEY_ID } });
   } catch (err) {
     res.status(502).json({ success: false, message: "Failed to create payment order" });
@@ -82,15 +95,31 @@ router.post("/credits/verify-payment", authenticate, async (req: Request, res: R
       updatedAt: new Date(),
     });
   }
-  await db.insert(transactionsTable).values({
-    userId: req.user!.id,
-    type: "CREDIT_PURCHASE",
-    amount: amtInr,
-    status: "COMPLETED",
-    paymentMethod: "razorpay",
-    gatewayTxnId: razorpayPaymentId || "",
-    description: `Added ₹${amtInr.toLocaleString("en-IN")} to wallet`,
-  });
+
+  // Update pending transaction to completed (or insert if none pending)
+  if (razorpayOrderId) {
+    const [pending] = await db
+      .select({ id: transactionsTable.id })
+      .from(transactionsTable)
+      .where(eq(transactionsTable.gatewayTxnId, razorpayOrderId))
+      .limit(1);
+    if (pending) {
+      await db
+        .update(transactionsTable)
+        .set({ status: "COMPLETED", gatewayTxnId: razorpayPaymentId || "", updatedAt: new Date() })
+        .where(eq(transactionsTable.id, pending.id));
+    } else {
+      await db.insert(transactionsTable).values({
+        userId: req.user!.id,
+        type: "CREDIT_PURCHASE",
+        amount: amtInr,
+        status: "COMPLETED",
+        paymentMethod: "razorpay",
+        gatewayTxnId: razorpayPaymentId || "",
+        description: `Added ₹${amtInr.toLocaleString("en-IN")} to wallet`,
+      });
+    }
+  }
   await db.insert(notificationsTable).values({
     userId: req.user!.id,
     type: "CREDITS_ADDED",

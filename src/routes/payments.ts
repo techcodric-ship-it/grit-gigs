@@ -102,60 +102,33 @@ router.post("/payments/webhook", async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    // Idempotency check
-    const [existing] = await db
-      .select({ id: transactionsTable.id })
+    // Look up the pending transaction by order ID
+    const [pending] = await db
+      .select({ userId: transactionsTable.userId, amount: transactionsTable.amount })
       .from(transactionsTable)
-      .where(eq(transactionsTable.gatewayTxnId, paymentId))
+      .where(eq(transactionsTable.gatewayTxnId, orderId))
       .limit(1);
-    if (existing) {
-      res.status(200).json({ success: true, message: "Already processed" });
+
+    if (!pending) {
+      res.status(200).json({ success: true, message: "No pending order found" });
       return;
     }
 
-    // Fetch order from Razorpay to get receipt (contains userId)
-    try {
-      const auth = Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`).toString("base64");
-      const orderResp = await fetch(`https://api.razorpay.com/v1/orders/${orderId}`, {
-        headers: { Authorization: `Basic ${auth}` },
-      });
-      if (!orderResp.ok) {
-        res.status(200).json({ success: true, message: "Order not found" });
-        return;
-      }
-      const order = await orderResp.json() as { receipt?: string };
-      const receipt = order.receipt || "";
-      // receipt format: credits_{userId}_{timestamp}
-      const userId = receipt.startsWith("credits_") ? receipt.split("_")[1] : null;
-      if (!userId) {
-        res.status(200).json({ success: true, message: "Invalid receipt" });
-        return;
-      }
-
-      const amtInr = amountPaise / 100;
-      await db.execute(
-        sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${amtInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${userId}`
-      );
-      await db.insert(transactionsTable).values({
-        userId,
-        type: "CREDIT_PURCHASE",
-        amount: amtInr,
-        status: "COMPLETED",
-        paymentMethod: "razorpay",
-        gatewayTxnId: paymentId,
-        description: `Added ₹${amtInr.toLocaleString("en-IN")} to wallet`,
-      });
-      await db.insert(notificationsTable).values({
-        userId,
-        type: "CREDITS_ADDED",
-        title: `₹${amtInr.toLocaleString("en-IN")} added!`,
-        message: "Your wallet has been topped up successfully.",
-        linkUrl: "/dashboard.html",
-      });
-    } catch {
-      res.status(200).json({ success: true, message: "Webhook processing error" });
-      return;
-    }
+    const amtInr = pending.amount;
+    await db.execute(
+      sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${amtInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${pending.userId}`
+    );
+    await db
+      .update(transactionsTable)
+      .set({ status: "COMPLETED", gatewayTxnId: paymentId, updatedAt: new Date() })
+      .where(eq(transactionsTable.gatewayTxnId, orderId));
+    await db.insert(notificationsTable).values({
+      userId: pending.userId,
+      type: "CREDITS_ADDED",
+      title: `₹${amtInr.toLocaleString("en-IN")} added!`,
+      message: "Your wallet has been topped up successfully.",
+      linkUrl: "/dashboard.html",
+    });
 
     res.status(200).json({ success: true });
     return;
