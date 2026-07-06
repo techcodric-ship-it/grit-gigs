@@ -704,6 +704,18 @@ router.post("/auth/send-verification", authenticate, async (req, res): Promise<v
   res.json({ success: true, message: "Verification email sent" });
 });
 
+// Test email — returns exact Resend API response
+router.post("/auth/test-email", authenticate, async (req, res): Promise<void> => {
+  const user = req.user!;
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const result = await sendOtpEmail(user.email, otp);
+  if (!result) {
+    res.json({ success: false, message: "Resend API call failed — check Railway logs for details", data: { apiKeySet: !!process.env.RESEND_API_KEY, fromEmail: process.env.EMAIL_FROM || 'noreply@gritandgigs.in', appUrl: process.env.APP_URL || 'https://www.gritandgigs.in' } });
+    return;
+  }
+  res.json({ success: true, message: "Test email sent to " + user.email });
+});
+
 router.post("/auth/verify-email", async (req, res): Promise<void> => {
   const { token } = req.body;
   if (!token) {
