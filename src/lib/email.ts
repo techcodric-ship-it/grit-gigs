@@ -10,7 +10,7 @@ function htmlEscape(str: string): string {
 }
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL = process.env.EMAIL_FROM || "noreply@gritandgigs.com";
+const FROM_EMAIL = process.env.EMAIL_FROM || "noreply@gritandgigs.in";
 
 interface EmailOptions {
   to: string;
