@@ -1807,8 +1807,21 @@ textarea.fi{resize:vertical;}
       <input id="customCreds" type="number" min="1" placeholder="Custom amount" style="width:100%;padding:10px 10px 10px 28px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" oninput="document.querySelectorAll('#buyCredMod .smc').forEach(c=>c.style.borderColor='var(--bd)');">
     </div>
     <button class="btn bp" style="width:100%;justify-content:center;" onclick="buyCredits()">Add Money</button>
+    <button class="btn bs" style="width:100%;justify-content:center;margin-top:6px;" onclick="checkPendingPayments()">Check Pending Payment</button>
   </div>
 </div>
+
+<script>
+async function checkPendingPayments() {
+  const d = await api('/credits/check-pending', { method: 'POST' });
+  if (d.success && d.data?.credited) {
+    showNotifBanner('✅ ₹' + d.data.amount + ' recovered!', 'Your pending payment has been credited.', 'ok');
+    loadOverview(); loadWallet();
+  } else {
+    showToast(d.message || 'No pending payments found', 'info');
+  }
+}
+</script>
 
 <div class="mo" id="withdrawMod">
   <div class="md" style="max-width:420px;">

@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db, freelanceWalletsTable, transactionsTable, notificationsTable } from "../db";
 import { authenticate } from "../middlewares/authenticate";
 
@@ -139,6 +139,48 @@ router.get("/credits/check-order/:orderId", authenticate, async (req: Request, r
     .where(eq(transactionsTable.gatewayTxnId, orderId))
     .limit(1);
   res.json({ success: true, data: { status: txn?.status || "PENDING" } });
+});
+
+// Recover pending payments — checks Razorpay for captured orders and credits wallet
+router.post("/credits/check-pending", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const pending = await db
+    .select({ id: transactionsTable.id, gatewayTxnId: transactionsTable.gatewayTxnId, amount: transactionsTable.amount })
+    .from(transactionsTable)
+    .where(and(eq(transactionsTable.userId, req.user!.id), eq(transactionsTable.status, "PENDING")));
+  if (pending.length === 0) {
+    res.json({ success: true, message: "No pending payments", data: { credited: false } });
+    return;
+  }
+  let credited = false;
+  let totalAmount = 0;
+  for (const txn of pending) {
+    if (!txn.gatewayTxnId) continue;
+    try {
+      const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
+      // Check if the order exists and was paid
+      const rzResp = await fetch("https://api.razorpay.com/v1/orders/" + txn.gatewayTxnId + "/payments", {
+        headers: { Authorization: "Basic " + auth },
+      });
+      if (!rzResp.ok) continue;
+      const payments = await rzResp.json() as { items?: { status: string; id: string }[] };
+      const captured = payments.items?.find((p: { status: string }) => p.status === "captured");
+      if (!captured) continue;
+      // Credit wallet
+      await db.execute(
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${txn.amount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${req.user!.id}`
+      );
+      await db.update(transactionsTable)
+        .set({ status: "COMPLETED", gatewayTxnId: captured.id, updatedAt: new Date() })
+        .where(eq(transactionsTable.id, txn.id));
+      totalAmount += txn.amount;
+      credited = true;
+    } catch { continue; }
+  }
+  if (credited) {
+    res.json({ success: true, data: { credited: true, amount: totalAmount } });
+  } else {
+    res.json({ success: true, message: "No captured payments found", data: { credited: false } });
+  }
 });
 
 export default router;
