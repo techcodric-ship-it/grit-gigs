@@ -33,7 +33,7 @@ router.post("/credits/create-order", authenticate, async (req: Request, res: Res
         "Authorization": `Basic ${auth}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ amount: amountInPaise, currency: "INR", receipt: `credits_${Date.now()}` }),
+      body: JSON.stringify({ amount: amountInPaise, currency: "INR", receipt: `credits_${req.user!.id}_${Date.now()}` }),
     });
     if (!rzResp.ok) {
       const errBody = await rzResp.text();
