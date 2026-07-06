@@ -4825,14 +4825,31 @@ async function buyCredits() {
         order_id: d.data.order.id,
         handler: r => verify(r.razorpay_order_id, r.razorpay_payment_id, r.razorpay_signature, false)
       };
-      if (window.Razorpay) {
-        new window.Razorpay(opts).open();
+      const rzp = window.Razorpay ? new window.Razorpay(opts) : null;
+      if (rzp) {
+        rzp.open();
       } else {
         const s = document.createElement('script');
         s.src = 'https://checkout.razorpay.com/v1/checkout.js';
-        s.onload = () => new window.Razorpay(opts).open();
+        s.onload = () => { const r = new window.Razorpay(opts); window._rzp = r; r.open(); };
         document.body.appendChild(s);
       }
+      // Poll for payment completion (handles UPI QR where handler doesn't fire)
+      const orderId = d.data.order.id;
+      let pollCount = 0;
+      const pollTimer = setInterval(async () => {
+        pollCount++;
+        if (pollCount > 30) { clearInterval(pollTimer); return; } // max 90s
+        try {
+          const chk = await api('/credits/check-order/' + orderId);
+          if (chk.success && chk.data && chk.data.status === 'COMPLETED') {
+            clearInterval(pollTimer);
+            closeMod('buyCredMod');
+            showNotifBanner('✅ Amount added!', 'Your wallet has been topped up.', 'ok');
+            loadOverview();
+          }
+        } catch(e) {}
+      }, 3000);
     }
   } finally {
     _buyingCredits = false;

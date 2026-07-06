@@ -130,4 +130,15 @@ router.post("/credits/verify-payment", authenticate, async (req: Request, res: R
   res.json({ success: true, message: "Amount added successfully" });
 });
 
+// Polling endpoint — check if order has been paid
+router.get("/credits/check-order/:orderId", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const orderId = req.params.orderId as string;
+  const [txn] = await db
+    .select({ status: transactionsTable.status })
+    .from(transactionsTable)
+    .where(eq(transactionsTable.gatewayTxnId, orderId))
+    .limit(1);
+  res.json({ success: true, data: { status: txn?.status || "PENDING" } });
+});
+
 export default router;
