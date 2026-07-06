@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Blog — Grit&Gigs</title>
+<meta name="description" content="Read the latest stories, guides, and insights from the Grit&Gigs team."/>
+<link rel="stylesheet" href="css/main.css"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  .nav-logo-mark{width:auto!important;min-width:44px!important;padding:0 8px!important;}
+  .footer .nav-logo-mark{width:auto!important;min-width:38px!important;padding:0 6px!important;}
+  .page-hero{padding:100px 24px 60px;background:var(--bg);text-align:center;}
+  .page-hero h1{font-family:var(--font-display);font-size:2.8rem;font-weight:800;color:var(--text);margin-bottom:12px;}
+  .page-hero p{font-size:1.1rem;color:var(--text-muted);max-width:600px;margin:0 auto;}
+  .page-content{max-width:780px;margin:0 auto;padding:0 24px 80px;}
+  .blog-card{border:1px solid var(--border);border-radius:12px;padding:28px;margin-bottom:24px;transition:box-shadow .2s;}
+  .blog-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.06);}
+  .blog-card h3{font-size:1.2rem;font-weight:700;margin-bottom:6px;}
+  .blog-card h3 a{color:var(--text);text-decoration:none;}
+  .blog-card h3 a:hover{color:var(--violet);}
+  .blog-card .meta{font-size:0.8rem;color:var(--text-muted);margin-bottom:10px;}
+  .blog-card p{font-size:0.92rem;line-height:1.7;color:var(--text-muted);}
+  @media(max-width:600px){.page-hero h1{font-size:1.8rem;}.page-content{padding:0 16px 60px;}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div>
+      <span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html#how-it-works">How it works</a>
+      <a href="index.html#barter">Skill Exchange</a>
+      <a href="index.html#freelance">Freelance</a>
+      <a href="projects.html">Browse Projects</a>
+      <a href="index.html#about">About</a>
+    </div>
+    <div class="nav-actions" id="siteNavActions">
+      <button class="btn btn-secondary btn-sm" onclick="location.href='index.html?login=1'">Sign in</button>
+      <button class="btn btn-primary btn-sm" onclick="location.href='index.html?signup=1'">Join free</button>
+    </div>
+    <div class="nav-hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <h1>Blog</h1>
+  <p>Stories, guides, and insights from the Grit&Gigs community.</p>
+</div>
+
+<div class="page-content">
+  <div class="blog-card">
+    <h3><a href="#">Introducing the Grit&Gigs Skill Barter Marketplace</a></h3>
+    <div class="meta">January 15, 2026 &middot; 4 min read</div>
+    <p>We launched Skill Barter — a way for Indians to trade services without spending money. Here's how it works and why we built it.</p>
+  </div>
+
+  <div class="blog-card">
+    <h3><a href="#">How to Build a Freelance Portfolio with Zero Experience</a></h3>
+    <div class="meta">December 28, 2025 &middot; 6 min read</div>
+    <p>Starting from scratch? Learn how to create a compelling portfolio that lands your first client on Grit&Gigs.</p>
+  </div>
+
+  <div class="blog-card">
+    <h3><a href="#">The Future of MicroEquity Investing in India</a></h3>
+    <div class="meta">December 10, 2025 &middot; 5 min read</div>
+    <p>Small investments in local businesses could transform India's economy. We explore the potential of MicroEquity.</p>
+  </div>
+
+  <div class="blog-card">
+    <h3><a href="#">5 Skills You Can Trade Right Now on Grit&Gigs</a></h3>
+    <div class="meta">November 22, 2025 &middot; 3 min read</div>
+    <p>From graphic design to legal advice, these are the most in-demand skills on our platform — and how to offer yours.</p>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+     <div class="nav-logo">
+      <div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div>
+      <div class="nav-logo-text"><span class="logo-text-black" style="color:black;">Grit</span><span class="logo-text-blue">&amp;Gigs</span></div>
+     </div>
+      <p>India's first platform that combines skill barter, freelancing, and business investment — built to empower every Indian with a skill.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Platform</h4>
+      <a href="index.html#barter">Skill Exchange</a>
+      <a href="index.html#freelance">Freelance</a>
+      <a href="#">MicroEquity <span style="font-size:0.72rem;opacity:0.5;">(soon)</span></a>
+      <a href="#">Pricing</a>
+    </div>
+    <div class="footer-col">
+      <h4>Company</h4>
+      <a href="about.html">About us</a>
+      <a href="blog.html">Blog</a>
+      <a href="careers.html">Careers</a>
+      <a href="press.html">Press</a>
+    </div>
+    <div class="footer-col">
+      <h4>Legal</h4>
+      <a href="terms.html">Terms of service</a>
+      <a href="privacy.html">Privacy policy</a>
+      <a href="cookie.html">Cookie policy</a>
+      <a href="refund.html">Refund policy</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>&copy; 2026 Grit&Gigs Technologies Pvt. Ltd. All rights reserved.</p>
+    <p>Built with love in Chennai, India</p>
+  </div>
+</footer>
+
+</body>
+</html>
