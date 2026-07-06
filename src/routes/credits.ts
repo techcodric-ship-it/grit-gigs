@@ -159,12 +159,12 @@ router.post("/credits/check-pending", authenticate, async (req: Request, res: Re
     try {
       const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
       // Check payments linked to this order
-      const rzResp = await fetch("https://api.razorpay.com/v1/orders/" + txn.gatewayTxnId + "/payments", {
+      const payResp = await fetch("https://api.razorpay.com/v1/orders/" + txn.gatewayTxnId + "/payments", {
         headers: { Authorization: "Basic " + auth },
       });
-      if (!rzResp.ok) continue;
-      const rzData = await rzResp.json() as { items?: { status: string; id: string }[] };
-      const payments = rzData.items || [];
+      if (!payResp.ok) continue;
+      const payData = await payResp.json() as { items?: { status: string; id: string }[] };
+      const payments = payData.items || [];
       const captured = payments.find((p: { status: string }) => p.status === "captured" || p.status === "authorized");
       if (captured) {
         // Credit wallet
@@ -176,12 +176,24 @@ router.post("/credits/check-pending", authenticate, async (req: Request, res: Re
           .where(eq(transactionsTable.id, txn.id));
         totalAmount += txn.amount;
         credited = true;
-      } else if (payments.some((p: { status: string }) => p.status === "failed")) {
-        // Payment failed on Razorpay — mark as FAILED
-        await db.update(transactionsTable)
-          .set({ status: "FAILED", updatedAt: new Date() })
-          .where(eq(transactionsTable.id, txn.id));
-        cleaned++;
+      } else if (payments.some((p: { status: string }) => p.status === "failed") || payments.length === 0) {
+        // Payment failed or never attempted — check order status too
+        let shouldFail = payments.some((p: { status: string }) => p.status === "failed");
+        if (payments.length === 0) {
+          const ordResp = await fetch("https://api.razorpay.com/v1/orders/" + txn.gatewayTxnId, {
+            headers: { Authorization: "Basic " + auth },
+          });
+          if (ordResp.ok) {
+            const ordData = await ordResp.json() as { status: string; attempt_count?: number };
+            shouldFail = ordData.status === "attempted" || (ordData.status === "created" && (ordData.attempt_count ?? 0) > 0);
+          }
+        }
+        if (shouldFail) {
+          await db.update(transactionsTable)
+            .set({ status: "FAILED", updatedAt: new Date() })
+            .where(eq(transactionsTable.id, txn.id));
+          cleaned++;
+        }
       }
     } catch { continue; }
   }
