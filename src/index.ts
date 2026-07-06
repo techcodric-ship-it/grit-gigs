@@ -476,6 +476,8 @@ app.set("io", io);
       await col(`ALTER TABLE withdrawal_requests ALTER COLUMN account_number DROP NOT NULL`);
       await col(`ALTER TABLE withdrawal_requests ALTER COLUMN ifsc_code DROP NOT NULL`);
       await col(`ALTER TABLE withdrawal_requests ALTER COLUMN account_name DROP NOT NULL`);
+      await col(`ALTER TABLE password_resets ADD COLUMN IF NOT EXISTS otp TEXT`);
+
       await col(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS read BOOLEAN DEFAULT FALSE`);
       await col(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ`);
       await col(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb NOT NULL`);

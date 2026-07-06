@@ -10,7 +10,7 @@ import {
   deleteAllRefreshTokens,
 } from "../lib/auth";
 import { authenticate } from "../middlewares/authenticate";
-import { sendWelcomeEmail, sendPasswordResetEmail, sendEmailVerificationEmail } from "../lib/email";
+import { sendWelcomeEmail, sendPasswordResetEmail, sendEmailVerificationEmail, sendOtpEmail } from "../lib/email";
 import { verifySupabaseToken, getSupabase } from "../lib/supabase";
 import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
 
@@ -82,21 +82,17 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     }
   } catch (e) { /* non-critical */ }
 
-  // Send OTP via Supabase email
-  let otpSent = false;
-  const sb = getSupabase();
-  if (sb) {
-    const { error } = await sb.auth.signInWithOtp({ email: email.toLowerCase() });
-    if (!error) otpSent = true;
-  }
-
+  // Send OTP via Resend
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const signupToken = uuidv4();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
-  await db.insert(passwordResetsTable).values({ userId: user.id, token: signupToken, expiresAt });
+  await db.insert(passwordResetsTable).values({ userId: user.id, token: signupToken, expiresAt, otp });
+
+  const otpSent = await sendOtpEmail(email.toLowerCase(), otp);
 
   res.status(201).json({
     success: true,
-    message: otpSent ? "Verification code sent to your email." : "Account created! (Email service pending)",
+    message: otpSent ? "Verification code sent to your email." : "Account created but email service unavailable. Contact support to verify your account.",
     data: { signupToken, email: email.toLowerCase(), otpSent },
   });
 });
@@ -118,15 +114,8 @@ router.post("/auth/verify-signup", async (req, res): Promise<void> => {
     return;
   }
 
-  const sb = getSupabase();
-  if (!sb) {
-    res.status(503).json({ success: false, message: "Email verification service unavailable. Please try again later." });
-    return;
-  }
-
-  const { error } = await sb.auth.verifyOtp({ email, token: otp, type: 'email' });
-  if (error) {
-    res.status(400).json({ success: false, message: "Invalid or expired OTP. Please try again." });
+  if (reset.otp !== otp) {
+    res.status(400).json({ success: false, message: "Invalid OTP. Please try again." });
     return;
   }
 
@@ -158,11 +147,14 @@ router.post("/auth/verify-signup", async (req, res): Promise<void> => {
 router.post("/auth/resend-otp", async (req, res): Promise<void> => {
   const { email } = req.body;
   if (!email) { res.status(400).json({ success: false, message: "Email required" }); return; }
-  const sb = getSupabase();
-  if (!sb) { res.status(503).json({ success: false, message: "Email service not configured" }); return; }
-  const { error } = await sb.auth.signInWithOtp({ email });
-  if (error) { res.status(400).json({ success: false, message: error.message }); return; }
-  res.json({ success: true, message: "Code resent" });
+  const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, email.toLowerCase())).limit(1);
+  if (!user) { res.status(404).json({ success: false, message: "No account found with this email" }); return; }
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+  await db.insert(passwordResetsTable).values({ userId: user.id, token: uuidv4(), expiresAt, otp });
+  const sent = await sendOtpEmail(email.toLowerCase(), otp);
+  if (!sent) { res.status(503).json({ success: false, message: "Email service unavailable. Please try again later." }); return; }
+  res.json({ success: true, message: "Verification code resent to your email" });
 });
 
 router.post("/auth/login", async (req, res): Promise<void> => {

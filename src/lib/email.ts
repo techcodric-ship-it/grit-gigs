@@ -88,6 +88,19 @@ export async function sendEmailVerificationEmail(to: string, token: string): Pro
   });
 }
 
+export async function sendOtpEmail(to: string, otp: string): Promise<boolean> {
+  return sendResend({
+    to,
+    subject: "Your Grit&Gigs verification code",
+    html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+      <h1>Your verification code</h1>
+      <p style="font-size:2rem;font-weight:700;text-align:center;letter-spacing:8px;background:#f5f5f7;padding:20px;border-radius:12px;">${otp}</p>
+      <p>Enter this code to verify your email address. It expires in 10 minutes.</p>
+      <p style="color:#888;font-size:0.85rem;">If you didn't request this, you can ignore this email.</p>
+    </div>`,
+  });
+}
+
 export async function sendNotificationEmail(to: string, title: string, message: string, linkUrl?: string): Promise<boolean> {
   return sendResend({
     to,

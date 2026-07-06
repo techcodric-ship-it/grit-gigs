@@ -64,6 +64,7 @@ export const passwordResetsTable = pgTable("password_resets", {
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   token: text("token").notNull().unique(),
+  otp: text("otp"),
   expiresAt: timestamp("expires_at").notNull(),
   used: boolean("used").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
