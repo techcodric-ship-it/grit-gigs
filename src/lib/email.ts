@@ -56,13 +56,13 @@ export async function sendWelcomeEmail(to: string, firstName: string): Promise<b
       <h1>Welcome, ${htmlEscape(firstName)}!</h1>
       <p>You've joined Grit&Gigs — the freelance marketplace where skills meet opportunity.</p>
       <p>Get started by setting up your profile and exploring services, projects, and skill exchanges.</p>
-      <p><a href="${process.env.APP_URL || 'http://localhost:5000'}/dashboard" style="background:#6C63FF;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;">Go to Dashboard</a></p>
+      <p><a href="${process.env.APP_URL || 'https://www.gritandgigs.in'}/dashboard" style="background:#6C63FF;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;">Go to Dashboard</a></p>
     </div>`,
   });
 }
 
 export async function sendPasswordResetEmail(to: string, token: string): Promise<boolean> {
-  const resetUrl = `${process.env.APP_URL || 'http://localhost:5000'}/reset-password?token=${token}`;
+  const resetUrl = `${process.env.APP_URL || 'https://www.gritandgigs.in'}/reset-password?token=${token}`;
   return sendResend({
     to,
     subject: "Reset your Grit&Gigs password",
@@ -76,7 +76,7 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
 }
 
 export async function sendEmailVerificationEmail(to: string, token: string): Promise<boolean> {
-  const verifyUrl = `${process.env.APP_URL || 'http://localhost:5000'}/verify-email?token=${token}`;
+  const verifyUrl = `${process.env.APP_URL || 'https://www.gritandgigs.in'}/verify-email?token=${token}`;
   return sendResend({
     to,
     subject: "Verify your email address",
