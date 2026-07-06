@@ -32,6 +32,7 @@ export function setupSocket(httpServer: HttpServer): SocketServer {
   });
 
   const onlineUsers = new Map<string, Set<string>>();
+  (io as unknown as { onlineUsers: Map<string, Set<string>> }).onlineUsers = onlineUsers;
 
   io.on("connection", (socket) => {
     const sockWithUser = socket as unknown as { user: { id: string; firstName: string } };

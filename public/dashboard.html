@@ -2122,18 +2122,31 @@ let socket = null;
 let activeCovId = null;
 let activeCovUserId = null;
 let _convCtx = {};
+let _onlineUsers = new Set();
 
 function connectSocket() {
   if (!gT()) return;
 
   socket = io({ auth: { token: gT() } });
 
-  socket.on('connect', () => {
-    console.log('🔌 Socket connected');
+  socket.on('connect', async () => {
+    _fetchOnlineUsers();
   });
 
   socket.on('connect_error', (err) => {
     console.warn('Socket error:', err.message);
+  });
+
+  socket.on('user:online', ({ userId }) => {
+    if (userId) _onlineUsers.add(userId);
+    _updateConvListOnlineStatus();
+    if (activeCovUserId === userId) _updateChatHeaderOnlineStatus(true);
+  });
+
+  socket.on('user:offline', ({ userId }) => {
+    if (userId) _onlineUsers.delete(userId);
+    _updateConvListOnlineStatus();
+    if (activeCovUserId === userId) _updateChatHeaderOnlineStatus(false);
   });
 
   // ── REAL-TIME NOTIFICATION BANNER ──
@@ -2213,6 +2226,38 @@ function connectSocket() {
   socket.on('message:stop-typing', ({ conversationId }) => {
     // Restore header (will be re-rendered on next message)
   });
+}
+
+async function _fetchOnlineUsers() {
+  try {
+    const d = await api('/messages/online-users');
+    if (d.success && d.data?.onlineUserIds) {
+      _onlineUsers = new Set(d.data.onlineUserIds);
+      _updateConvListOnlineStatus();
+    }
+  } catch(e) {}
+}
+function _updateConvListOnlineStatus() {
+  const convList = document.getElementById('convList');
+  if (!convList) return;
+  const items = convList.querySelectorAll('[data-conv-id]');
+  const u = gU();
+  const isAdminUser = u?.id === adminUserId;
+  items.forEach(el => {
+    const otherId = el.getAttribute('data-other-id');
+    const dot = el.querySelector('.online-dot');
+    if (!otherId || !dot) return;
+    const isOtherAdmin = otherId === adminUserId;
+    const show = _onlineUsers.has(otherId) && (!isOtherAdmin || isAdminUser);
+    dot.style.display = show ? '' : 'none';
+  });
+}
+function _updateChatHeaderOnlineStatus(online) {
+  const el = document.getElementById('chatOnlineStatus');
+  if (el) {
+    el.textContent = online ? 'Online' : 'Offline';
+    el.style.color = online ? '#16A34A' : 'var(--muted)';
+  }
 }
 
 connectSocket();
@@ -3636,6 +3681,7 @@ async function loadInbox() {
   });
   updateLiveChatBadge(adminUnread);
   const sorted = adminConvData ? [adminConvData, ...d.data.conversations] : d.data.conversations;
+  const isAdminUser = u?.id === adminUserId;
   c.innerHTML = sorted.map(conv => {
     const other = conv.otherUser;
     const firstName = other?.firstName || '?';
@@ -3650,9 +3696,15 @@ async function loadInbox() {
         : '';
     const _isAdmin = other?.id === adminUserId;
     const _avEnc = encodeURIComponent(other ? avUrl(other) : '');
-    return `<div onclick="openConv('${conv.id}','${firstName + ' ' + lastName}','${ini}','${_avEnc}','${other?.id||''}',${other?.kycVerified||false},'${esc(other?.planBadge||'')}')"
+    const _isOtherAdmin = other?.id === adminUserId;
+    const _showOnline = _onlineUsers.has(other?.id) && (!_isOtherAdmin || isAdminUser);
+    return `<div data-conv-id="${conv.id}" data-other-id="${other?.id||''}" onclick="openConv('${conv.id}','${firstName + ' ' + lastName}','${ini}','${_avEnc}','${other?.id||''}',${other?.kycVerified||false},'${esc(other?.planBadge||'')}')"
       style="display:flex;gap:10px;align-items:center;padding:13px 16px;cursor:pointer;border-bottom:1px solid var(--bd);transition:background .15s;${activeCovId === conv.id ? 'background:var(--vl);' : ''}">
-      <span ${_isAdmin ? '' : `onclick="event.stopPropagation();if('${esc(other?.id||'')}')openUserProfile('${esc(other?.id||'')}')" title="View profile"`} style="cursor:pointer;flex-shrink:0;position:relative;"><img src="${esc(avUrl(other))}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid ${unread?'var(--violet)':'var(--bd,#e5e7eb)'};" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="av" style="width:34px;height:34px;font-size:12px;display:none;${unread ? 'background:var(--violet);color:white;' : ''}">${ini}</div></span>
+      <span ${_isAdmin ? '' : `onclick="event.stopPropagation();if('${esc(other?.id||'')}')openUserProfile('${esc(other?.id||'')}')" title="View profile"`} style="cursor:pointer;flex-shrink:0;position:relative;">
+        <img src="${esc(avUrl(other))}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid ${unread?'var(--violet)':'var(--bd,#e5e7eb)'};" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+        <div class="av" style="width:34px;height:34px;font-size:12px;display:none;${unread ? 'background:var(--violet);color:white;' : ''}">${ini}</div>
+        <span class="online-dot" style="position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;background:#16A34A;border:2px solid var(--bg,#0f0f15);${_showOnline ? '' : 'display:none;'}"></span>
+      </span>
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:5px;">
           <span style="font-weight:${unread ? '700' : '500'};font-size:.82rem;color:var(--violet);${_isAdmin ? '' : 'cursor:pointer;'}" ${_isAdmin ? '' : `onclick="event.stopPropagation();openUserProfile('${esc(other?.id||'')}')"`}>${firstName} ${lastName}${kycBadge(other?.kycVerified)}${planBadge(other?.planBadge)}</span>
@@ -3683,11 +3735,18 @@ async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planB
 
   if (userId) activeCovUserId = userId;
   const isAdminConv = name.trim() === 'Grit&Gigs Admin';
+  const u = gU();
+  const isAdminUser = u?.id === adminUserId;
+  const _isOtherAdmin = userId === adminUserId;
+  const _showOnline = userId && _onlineUsers.has(userId) && (!_isOtherAdmin || isAdminUser);
   document.getElementById('chatHeader').innerHTML = `
     <div style="display:flex;align-items:center;gap:9px;">
       <button class="mb-back" onclick="closeMobileChat()" title="Back to conversations">←</button>
       ${photo ? `<img src="${photo}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">` : `<div class="av" style="width:28px;height:28px;font-size:10px;">${ini}</div>`}
-      <span style="font-weight:600;">${name.trim()}${kycVerified ? '<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.56rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:5px;">✓ KYC</span>' : ''}${planBadgeVal ? '<span style="display:inline-flex;align-items:center;gap:2px;background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.56rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;">' + planBadgeVal + '</span>' : ''}</span>
+      <div style="display:flex;flex-direction:column;">
+        <span style="font-weight:600;">${name.trim()}${kycVerified ? '<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.56rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:5px;">✓ KYC</span>' : ''}${planBadgeVal ? '<span style="display:inline-flex;align-items:center;gap:2px;background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.56rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;">' + planBadgeVal + '</span>' : ''}</span>
+        <span id="chatOnlineStatus" style="font-size:.62rem;${_showOnline ? 'color:#16A34A;' : 'color:var(--muted);'}">${_showOnline ? 'Online' : 'Offline'}</span>
+      </div>
       ${!isAdminConv ? `<button data-vp="1" data-uid="${userId||''}" onclick="viewActiveConvProfile()" title="View profile" style="margin-left:auto;background:none;border:1px solid var(--bd);border-radius:99px;padding:2px 10px;font-size:.68rem;color:var(--violet);cursor:pointer;font-weight:600;transition:background .15s;" onmouseover="this.style.background='var(--vl)'" onmouseout="this.style.background='var(--vl)'">View Profile</button>` : ''}
     </div>`;
   document.getElementById('ps-inbox').classList.add('show-chat');
@@ -3699,7 +3758,6 @@ async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planB
   if (_wb) { _wb.style.display='none'; _wb.innerHTML=''; }
 
   const d = await api('/messages/conversations/' + convId + '/messages');
-  const u = gU();
   const msgDiv = document.getElementById('chatMessages');
 
   if (!d.success) {
@@ -3710,6 +3768,11 @@ async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planB
   // Use otherUserId from API response (most reliable source)
   if (d.data?.otherUserId) {
     activeCovUserId = d.data.otherUserId;
+    const u2 = gU();
+    const _isAdminUser = u2?.id === adminUserId;
+    const _otherIsAdmin = activeCovUserId === adminUserId;
+    const _onlineNow = _onlineUsers.has(activeCovUserId) && (!_otherIsAdmin || _isAdminUser);
+    _updateChatHeaderOnlineStatus(_onlineNow);
     const hdr = document.getElementById('chatHeader');
     if (hdr) {
       const existingBtn = hdr.querySelector('button[data-vp]');
