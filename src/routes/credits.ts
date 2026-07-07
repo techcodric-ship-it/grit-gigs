@@ -71,14 +71,14 @@ router.post("/credits/verify-payment", authenticate, async (req: Request, res: R
     res.status(400).json({ success: false, message: "Invalid amount" });
     return;
   }
-  // Idempotency: skip if this order was already processed
+  // Idempotency: skip only if this order was already COMPLETED
   if (razorpayOrderId) {
     const [existing] = await db
-      .select({ id: transactionsTable.id })
+      .select({ id: transactionsTable.id, status: transactionsTable.status })
       .from(transactionsTable)
       .where(eq(transactionsTable.gatewayTxnId, razorpayOrderId))
       .limit(1);
-    if (existing) {
+    if (existing && existing.status === "COMPLETED") {
       res.json({ success: true, message: "Already processed" });
       return;
     }
