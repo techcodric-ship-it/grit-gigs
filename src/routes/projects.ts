@@ -365,48 +365,56 @@ router.post('/projects/:id/bids', authenticate, async (req: Request, res: Respon
     }
   }
 
-  const [bid] = await db
-    .insert(projectBidsTable)
-    .values({
-      projectId: project.id,
-      userId,
-      amount: bidAmount,
-      proposal: proposal.trim(),
-      deliveryDays: deliveryEstimate,
-      isHighlighted,
-    })
-    .returning();
+  let bid;
+  try {
+    await db.transaction(async (tx) => {
+      [bid] = await tx
+        .insert(projectBidsTable)
+        .values({
+          projectId: project.id,
+          userId,
+          amount: bidAmount,
+          proposal: proposal.trim(),
+          deliveryDays: deliveryEstimate,
+          isHighlighted,
+        })
+        .returning();
 
-  // Deduct highlight fee AFTER bid is created
-  if (isHighlighted && _highlightWallet) {
-    const deductResult = await db.execute(
-      sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${HIGHLIGHT_FEE}, updated_at = NOW() WHERE ${freelanceWalletsTable.id} = ${_highlightWallet.id} AND balance >= ${HIGHLIGHT_FEE}`
-    );
-    if (deductResult.rowCount === 0) {
+      if (isHighlighted && _highlightWallet) {
+        const deductResult = await tx.execute(
+          sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${HIGHLIGHT_FEE}, updated_at = NOW() WHERE ${freelanceWalletsTable.id} = ${_highlightWallet.id} AND balance >= ${HIGHLIGHT_FEE}`
+        );
+        if (deductResult.rowCount === 0) {
+          throw new Error("INSUFFICIENT_HIGHLIGHT");
+        }
+        await tx.insert(transactionsTable).values({
+          userId,
+          type: 'SERVICE_PAYMENT',
+          amount: HIGHLIGHT_FEE,
+          description: 'Bid highlight fee',
+          status: 'COMPLETED',
+        });
+      }
+
+      if (sub.proposalCreditsRemaining !== -1) {
+        await tx
+          .update(userSubscriptionsTable)
+          .set({
+            proposalCreditsRemaining: sub.proposalCreditsRemaining - 1,
+            updatedAt: new Date(),
+          })
+          .where(eq(userSubscriptionsTable.id, sub.id));
+      }
+    });
+  } catch (e) {
+    if (e instanceof Error && e.message === "INSUFFICIENT_HIGHLIGHT") {
       return res.status(400).json({
         success: false,
         message: `Insufficient balance for highlight (₹${HIGHLIGHT_FEE} required). Add funds to your wallet first.`,
         _highlightFailed: true,
       });
     }
-    await db.insert(transactionsTable).values({
-      userId,
-      type: 'SERVICE_PAYMENT',
-      amount: HIGHLIGHT_FEE,
-      description: 'Bid highlight fee',
-      status: 'COMPLETED',
-    });
-  }
-
-  // Deduct proposal credit AFTER bid is created
-  if (sub.proposalCreditsRemaining !== -1) {
-    await db
-      .update(userSubscriptionsTable)
-      .set({
-        proposalCreditsRemaining: sub.proposalCreditsRemaining - 1,
-        updatedAt: new Date(),
-      })
-      .where(eq(userSubscriptionsTable.id, sub.id));
+    throw e;
   }
 
   await db.insert(notificationsTable).values({
@@ -589,30 +597,38 @@ router.post('/projects/bids/:bidId/highlight', authenticate, async (req: Request
 
   // Atomically charge ₹50 + ensure only one highlighted bid per project
   const HIGHLIGHT_FEE = 50;
-  const deductResult = await db.execute(
-    sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${HIGHLIGHT_FEE}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${userId} AND balance >= ${HIGHLIGHT_FEE}`
-  );
-  if (deductResult.rowCount === 0) {
-    return res.status(400).json({
-      success: false,
-      message: `Insufficient balance for highlight (₹${HIGHLIGHT_FEE} required). Add funds to your wallet first.`,
+  let updated;
+  try {
+    await db.transaction(async (tx) => {
+      const deductResult = await tx.execute(
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${HIGHLIGHT_FEE}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${userId} AND balance >= ${HIGHLIGHT_FEE}`
+      );
+      if (deductResult.rowCount === 0) {
+        throw new Error("INSUFFICIENT_HIGHLIGHT");
+      }
+      await tx.insert(transactionsTable).values({
+        userId,
+        type: 'SERVICE_PAYMENT',
+        amount: HIGHLIGHT_FEE,
+        description: 'Bid highlight fee',
+        status: 'COMPLETED',
+      });
+      [updated] = await tx
+        .update(projectBidsTable)
+        .set({ isHighlighted: true, updatedAt: new Date() })
+        .where(and(eq(projectBidsTable.id, bid.id), eq(projectBidsTable.isHighlighted, false)))
+        .returning();
+      if (!updated) {
+        throw new Error("HIGHLIGHT_CONFLICT");
+      }
     });
-  }
-  await db.insert(transactionsTable).values({
-    userId,
-    type: 'SERVICE_PAYMENT',
-    amount: HIGHLIGHT_FEE,
-    description: 'Bid highlight fee',
-    status: 'COMPLETED',
-  });
-
-  const [updated] = await db
-    .update(projectBidsTable)
-    .set({ isHighlighted: true, updatedAt: new Date() })
-    .where(and(eq(projectBidsTable.id, bid.id), eq(projectBidsTable.isHighlighted, false)))
-    .returning();
-
-  if (!updated) {
+  } catch (e) {
+    if (e instanceof Error && e.message === "INSUFFICIENT_HIGHLIGHT") {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient balance for highlight (₹${HIGHLIGHT_FEE} required). Add funds to your wallet first.`,
+      });
+    }
     return res.status(400).json({
       success: false,
       message: 'This project already has a highlighted proposal or this bid is already highlighted.',
