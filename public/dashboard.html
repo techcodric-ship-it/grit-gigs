@@ -4843,21 +4843,73 @@ async function loadPlans() {
 }
 
 async function subscribePlan(id) {
+  // Free plan — direct subscribe (no payment)
+  if (id === 'free') {
+    const btn = document.querySelector(`[onclick="subscribePlan('${id}')"]`);
+    const orig = btn ? btn.innerHTML : '';
+    if (btn) { btn.textContent = 'Activating...'; btn.disabled = true; }
+    const d = await api('/subscriptions/subscribe', { method: 'POST', body: JSON.stringify({ planId: id }) });
+    if (d.success) {
+      sU({ ...gU(), planId: d.data.planId, planActivatedAt: d.data.planActivatedAt, planExpiresAt: d.data.planExpiresAt });
+      updateSidebarPlanBadge(d.data.planId);
+      showNotifBanner('✅ ' + d.message, '', 'ok');
+      loadPlans();
+    } else {
+      if (btn) { btn.innerHTML = orig; btn.disabled = false; }
+      showToast(d.message || 'Failed', 'err');
+    }
+    return;
+  }
+
+  // Paid plan — Razorpay checkout flow
   const btn = document.querySelector(`[onclick="subscribePlan('${id}')"]`);
   const orig = btn ? btn.innerHTML : '';
-  if (btn) { btn.textContent = 'Activating...'; btn.disabled = true; }
+  if (btn) { btn.textContent = 'Please wait...'; btn.disabled = true; }
 
-  const d = await api('/subscriptions/subscribe', { method: 'POST', body: JSON.stringify({ planId: id }) });
+  try {
+    const d = await api('/subscriptions/create-order', { method: 'POST', body: JSON.stringify({ planId: id }) });
+    if (!d.success) { showToast(d.message || 'Payment error', 'err'); if (btn) { btn.innerHTML = orig; btn.disabled = false; } return; }
 
-  if (d.success) {
-    // Persist plan in local user state
-    sU({ ...gU(), planId: d.data.planId, planActivatedAt: d.data.planActivatedAt, planExpiresAt: d.data.planExpiresAt });
-    updateSidebarPlanBadge(d.data.planId);
-    showNotifBanner('✅ ' + d.message, d.data.plan ? d.data.plan.commission + '% commission active.' : '', 'ok');
-    loadPlans(); // refresh cards
-  } else {
+    const { order, key } = d.data;
+    const loadRazorpay = () => new Promise((resolve, reject) => {
+      if (window.Razorpay) return resolve(window.Razorpay);
+      const s = document.createElement('script');
+      s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      s.onload = () => resolve(window.Razorpay);
+      s.onerror = () => reject(new Error('Failed to load Razorpay'));
+      document.head.appendChild(s);
+    });
+
+    const Razorpay = await loadRazorpay();
+    const opts = {
+      key,
+      order_id: order.id,
+      name: 'Grit&Gigs',
+      description: d.data.planId ? d.data.planId.charAt(0).toUpperCase() + d.data.planId.slice(1) + ' Subscription' : 'Plan Upgrade',
+      prefill: { email: gU()?.email || '' },
+      theme: { color: '#7C3AED' },
+      handler: async function (payload) {
+        const v = await api('/subscriptions/verify-payment', {
+          method: 'POST',
+          body: JSON.stringify({ razorpayOrderId: payload.razorpay_order_id, razorpayPaymentId: payload.razorpay_payment_id, planId: id })
+        });
+        if (v.success) {
+          sU({ ...gU(), planId: v.data.planId, planActivatedAt: v.data.planActivatedAt, planExpiresAt: v.data.planExpiresAt });
+          updateSidebarPlanBadge(v.data.planId);
+          showNotifBanner('✅ ' + v.message, v.data.plan ? v.data.plan.commission + '% commission active.' : '', 'ok');
+          loadPlans();
+        } else {
+          showToast(v.message || 'Verification failed', 'err');
+          if (btn) { btn.innerHTML = orig; btn.disabled = false; }
+        }
+      },
+      modal: { ondismiss: function () { if (btn) { btn.innerHTML = orig; btn.disabled = false; } } },
+    };
+    const rzp = new Razorpay(opts);
+    rzp.open();
+  } catch (e) {
+    showToast('Payment error: ' + (e.message || 'unknown'), 'err');
     if (btn) { btn.innerHTML = orig; btn.disabled = false; }
-    showToast(d.message || 'Failed', 'err');
   }
 }
 

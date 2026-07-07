@@ -1,8 +1,20 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq } from "drizzle-orm";
-import { db, notificationsTable, userSubscriptionsTable } from "../db";
+import { db, notificationsTable, transactionsTable, userSubscriptionsTable } from "../db";
 import { authenticate } from "../middlewares/authenticate";
 import { PLANS, getPlan, getOrCreateSubscription, type PlanConfig } from "../lib/subscriptions";
+
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
+const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
+
+function razorpayConfigured(): boolean {
+  return !!(RAZORPAY_KEY_ID && RAZORPAY_KEY_SECRET);
+}
+
+function getPlanIdFromDescription(desc: string): string | null {
+  const m = desc.match(/^SUBSCRIPTION_PLAN:(\w+)\|/);
+  return m ? m[1] : null;
+}
 
 const router: IRouter = Router();
 
@@ -71,25 +83,98 @@ router.get("/subscriptions/my-plan", authenticate, async (req: Request, res: Res
   });
 });
 
-// POST /subscriptions/subscribe — activate or upgrade a plan.
-router.post("/subscriptions/subscribe", authenticate, async (req: Request, res: Response): Promise<void> => {
+// POST /subscriptions/create-order — create a Razorpay order for a paid plan.
+router.post("/subscriptions/create-order", authenticate, async (req: Request, res: Response): Promise<void> => {
   const { planId } = req.body;
   const plan = PLANS.find((p) => p.id === planId);
+  if (!plan || plan.priceInr < 1) {
+    res.status(400).json({ success: false, message: "Invalid or free plan" });
+    return;
+  }
+  if (!razorpayConfigured()) {
+    res.status(503).json({ success: false, message: "Payment gateway not configured" });
+    return;
+  }
+
+  const sub = await getOrCreateSubscription(req.user!.id);
+  if (sub.planId === plan.id && sub.expiresAt && sub.expiresAt.getTime() > Date.now()) {
+    res.status(400).json({ success: false, message: `You're already on the ${plan.name} plan.` });
+    return;
+  }
+
+  const amountInPaise = Math.round(plan.priceInr * 100);
+  try {
+    const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
+    const receipt = `sub_${Date.now()}_${req.user!.id.substring(0, 4)}`;
+    const rzResp = await fetch("https://api.razorpay.com/v1/orders", {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${auth}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ amount: amountInPaise, currency: "INR", receipt }),
+    });
+    if (!rzResp.ok) {
+      const errBody = await rzResp.text();
+      res.status(502).json({ success: false, message: `Razorpay error: ${errBody}` });
+      return;
+    }
+    const order = await rzResp.json() as { id: string };
+
+    await db.insert(transactionsTable).values({
+      userId: req.user!.id,
+      type: "CREDIT_PURCHASE",
+      amount: plan.priceInr,
+      status: "PENDING",
+      paymentMethod: "razorpay",
+      gatewayTxnId: order.id,
+      description: `SUBSCRIPTION_PLAN:${plan.id}|Pending ${plan.name} subscription (₹${plan.priceInr})`,
+    });
+
+    res.json({ success: true, data: { order, key: RAZORPAY_KEY_ID, planId: plan.id } });
+  } catch (err) {
+    res.status(502).json({ success: false, message: "Failed to create payment order" });
+  }
+});
+
+// POST /subscriptions/verify-payment — verify Razorpay payment and activate plan.
+router.post("/subscriptions/verify-payment", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const { razorpayOrderId, razorpayPaymentId, planId } = req.body;
+  if (!razorpayConfigured()) {
+    res.status(503).json({ success: false, message: "Payment gateway not configured" });
+    return;
+  }
+
+  let effectivePlanId = planId as string;
+
+  // Look up transaction by order ID to get plan info if not provided
+  if (razorpayOrderId) {
+    const [txn] = await db
+      .select({ id: transactionsTable.id, description: transactionsTable.description, status: transactionsTable.status })
+      .from(transactionsTable)
+      .where(eq(transactionsTable.gatewayTxnId, razorpayOrderId))
+      .limit(1);
+    if (txn) {
+      if (txn.status === "COMPLETED") {
+        res.json({ success: true, message: "Already processed" });
+        return;
+      }
+      const storedPlan = txn.description ? getPlanIdFromDescription(txn.description) : null;
+      if (storedPlan) effectivePlanId = storedPlan;
+    }
+  }
+
+  const plan = PLANS.find((p) => p.id === effectivePlanId);
   if (!plan) {
     res.status(400).json({ success: false, message: "Invalid plan" });
     return;
   }
 
+  // Activate the plan
   const userId = req.user!.id;
   const sub = await getOrCreateSubscription(userId);
-
-  if (sub.planId === plan.id && sub.expiresAt && sub.expiresAt.getTime() > Date.now()) {
-    res.status(400).json({ success: false, message: `You're already on the ${plan.name} plan until ${sub.expiresAt.toDateString()}.` });
-    return;
-  }
-
   const now = new Date();
-  const expiresAt = plan.id === "free" ? null : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
   await db
     .update(userSubscriptionsTable)
     .set({
@@ -103,13 +188,19 @@ router.post("/subscriptions/subscribe", authenticate, async (req: Request, res: 
     })
     .where(eq(userSubscriptionsTable.id, sub.id));
 
+  // Mark transaction as completed
+  if (razorpayOrderId) {
+    await db
+      .update(transactionsTable)
+      .set({ status: "COMPLETED", gatewayTxnId: razorpayPaymentId || "", updatedAt: now })
+      .where(eq(transactionsTable.gatewayTxnId, razorpayOrderId));
+  }
+
   await db.insert(notificationsTable).values({
     userId,
     type: "SUBSCRIPTION",
     title: `${plan.name} plan activated!`,
-    message: plan.id === "free"
-      ? "You're back on the Free plan."
-      : `You now get ${plan.monthlyProposalCredits === -1 ? "unlimited" : plan.monthlyProposalCredits} free proposals/month, ${plan.serviceFeePercent}% platform fee, and ${plan.maxActiveGigs === -1 ? "unlimited" : plan.maxActiveGigs} active gig listings.`,
+    message: `You now get ${plan.monthlyProposalCredits === -1 ? "unlimited" : plan.monthlyProposalCredits} free proposals/month, ${plan.serviceFeePercent}% platform fee, and ${plan.maxActiveGigs === -1 ? "unlimited" : plan.maxActiveGigs} active gig listings.`,
     linkUrl: "/dashboard.html",
   });
 
@@ -119,6 +210,60 @@ router.post("/subscriptions/subscribe", authenticate, async (req: Request, res: 
     success: true,
     message: `Subscribed to the ${plan.name} plan`,
     data: { planId: plan.id, planActivatedAt: now, planExpiresAt: expiresAt, plan: planToClientJson(plan) },
+  });
+});
+
+// POST /subscriptions/subscribe — activate a free plan (downgrade) only.
+// Paid plans must go through create-order → Razorpay checkout → verify-payment.
+router.post("/subscriptions/subscribe", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const { planId } = req.body;
+  const plan = PLANS.find((p) => p.id === planId);
+  if (!plan) {
+    res.status(400).json({ success: false, message: "Invalid plan" });
+    return;
+  }
+
+  if (plan.priceInr > 0) {
+    res.status(400).json({ success: false, message: "Paid plans require payment. Use the checkout flow." });
+    return;
+  }
+
+  const userId = req.user!.id;
+  const sub = await getOrCreateSubscription(userId);
+
+  if (sub.planId === "free") {
+    res.status(400).json({ success: false, message: "You're already on the Free plan." });
+    return;
+  }
+
+  const now = new Date();
+  await db
+    .update(userSubscriptionsTable)
+    .set({
+      planId: "free",
+      startedAt: now,
+      expiresAt: null,
+      proposalCreditsRemaining: plan.monthlyProposalCredits,
+      featuredProposalsRemaining: plan.featuredProposalsPerMonth,
+      creditsResetAt: now,
+      updatedAt: now,
+    })
+    .where(eq(userSubscriptionsTable.id, sub.id));
+
+  await db.insert(notificationsTable).values({
+    userId,
+    type: "SUBSCRIPTION",
+    title: `Free plan activated`,
+    message: "You're back on the Free plan.",
+    linkUrl: "/dashboard.html",
+  });
+
+  try { req.app?.get("io")?.emit("profile:updated", { userId }); } catch {}
+
+  res.json({
+    success: true,
+    message: "Downgraded to Free plan",
+    data: { planId: "free", planActivatedAt: now, planExpiresAt: null, plan: planToClientJson(plan) },
   });
 });
 
