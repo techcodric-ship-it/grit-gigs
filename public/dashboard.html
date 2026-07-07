@@ -1864,6 +1864,7 @@ async function checkPendingPayments() {
         <input id="wUpi" type="text" style="width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" placeholder="e.g. user@paytm">
       </div>
       <button type="submit" class="btn bp" style="width:100%;justify-content:center;">Request Withdrawal</button>
+      <div style="font-size:.68rem;color:var(--muted);margin-top:10px;text-align:center;line-height:1.5;">Admin will process your withdrawal manually. You'll receive the payment via UPI/bank within 24 hours.<br>Commission (based on your plan) will be deducted when processed.</div>
     </form>
   </div>
 </div>
@@ -5180,7 +5181,7 @@ document.getElementById('withdrawF').addEventListener('submit', async e => {
   closeMod('withdrawMod');
 
   if (d.success) {
-    showNotifBanner('✅ Withdrawal processing!', 'Arrives in a few minutes via UPI/bank.', 'ok');
+    showNotifBanner('✅ Withdrawal requested!', 'Admin will process it manually within 24 hours.', 'ok');
     loadOverview();
     loadWallet();
   } else {

@@ -249,6 +249,10 @@ a{text-decoration:none;color:inherit;}
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 1 18"/><polyline points="16 7 22 7 22 13"/></svg>
       Equity Waitlist
     </button>
+    <button class="ni" data-p="withdrawals">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      Withdrawals
+    </button>
     <div class="ns">Session</div>
     <button class="ni danger" onclick="adminLogout()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -372,6 +376,18 @@ a{text-decoration:none;color:inherit;}
     <button class="btn bs btn-sm" onclick="loadEquityWaitlist()">⟳ Refresh</button>
   </div>
   <div id="equityWaitlistContent"><p style="font-size:.82rem;color:var(--muted);">Loading...</p></div>
+</div>
+
+<!-- ═══ WITHDRAWALS ═══ -->
+<div class="ps" id="ps-withdrawals">
+  <div style="margin-bottom:16px;">
+    <h1 style="font-size:1.2rem;">Pending Withdrawals</h1>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:3px;">Users requesting withdrawal — you send money manually, then confirm here.</p>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;">
+    <button class="btn bs btn-sm" onclick="loadPendingWithdrawals()">⟳ Refresh</button>
+  </div>
+  <div id="withdrawalsContent"><p style="font-size:.82rem;color:var(--muted);">Loading...</p></div>
 </div>
 
   </div>
@@ -572,6 +588,7 @@ function loadPage(n) {
   else if (n==='kyc') loadKyc();
   else if (n==='messages') { /* nothing to load on init */ }
   else if (n==='equity') loadEquityWaitlist();
+  else if (n==='withdrawals') loadPendingWithdrawals();
 }
 
 // ─── INIT ───
@@ -1139,6 +1156,52 @@ async function sendAdminMessage() {
     closeModal('messageModal');
   } catch(e) { notify(e.message,'err'); }
   finally { btn.disabled = false; btn.textContent = 'Send'; }
+}
+
+// ─── WITHDRAWALS ───
+async function loadPendingWithdrawals() {
+  try {
+    const r = await api('/admin/withdrawals/pending');
+    const wds = Array.isArray(r.data) ? r.data : [];
+    const el = document.getElementById('withdrawalsContent');
+    if (!wds.length) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">💸</div><div class="empty-title">No pending withdrawals</div><div class="empty-sub">Users haven't requested any withdrawals yet.</div></div>`;
+      return;
+    }
+    el.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr>
+      <th>User</th><th>Amount</th><th>Destination</th><th>Details</th><th>Wallet</th><th>Requested</th><th></th>
+    </tr></thead><tbody>${wds.map(w => {
+      const dest = w.upiId ? `<span style="color:var(--violet);">UPI</span>` : `<span style="color:var(--ok);">Bank</span>`;
+      const details = w.upiId ? esc(w.upiId) : `${esc(w.accountName||'')} — ${esc(w.bankName||'')} (${esc(w.accountNumber||'')})`;
+      const extra = w.upiId ? '' : `<div style="font-size:.65rem;color:var(--muted);">IFSC: ${esc(w.ifscCode||'—')}</div>`;
+      return `<tr>
+        <td class="tdt">${esc(w.userFirstName+' '+w.userLastName)}<div style="font-size:.65rem;color:var(--muted);">${esc(w.userEmail)}</div></td>
+        <td><strong>₹${Number(w.amount).toLocaleString('en-IN')}</strong></td>
+        <td>${dest}</td>
+        <td style="max-width:220px;font-size:.78rem;">${esc(details)}${extra}</td>
+        <td>₹${Number(w.walletBalance||0).toLocaleString('en-IN')}</td>
+        <td style="font-size:.7rem;color:var(--muted);">${new Date(w.createdAt).toLocaleDateString()}</td>
+        <td><button class="btn bp btn-xs" onclick="confirmWithdrawal('${w.id}')">Confirm Sent</button></td>
+      </tr>`;
+    }).join('')}</tbody></table></div>
+    <div style="margin-top:8px;font-size:.72rem;color:var(--muted);text-align:right;">Pending: ${wds.length}</div>`;
+  } catch(e) {
+    document.getElementById('withdrawalsContent').innerHTML = `<div class="empty"><div class="empty-sub">Failed to load withdrawals</div></div>`;
+  }
+}
+
+async function confirmWithdrawal(id) {
+  if (!confirm('Have you sent the money to this user? This will deduct from their wallet and mark as completed.')) return;
+  const btn = document.querySelector(`button[onclick*="confirmWithdrawal('${id}')"]`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Confirming...'; }
+  try {
+    const r = await api('/admin/withdrawals/confirm/'+id, { method: 'POST' });
+    notify(r.message || 'Withdrawal confirmed', 'ok');
+    loadPendingWithdrawals();
+  } catch(e) {
+    notify(e.message || 'Failed to confirm', 'err');
+    if (btn) { btn.disabled = false; btn.textContent = 'Confirm Sent'; }
+  }
 }
 
 // ─── CONFIRM ───

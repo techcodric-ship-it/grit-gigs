@@ -27,6 +27,7 @@ import path from "path";
 import fs from "fs";
 import { uploadToSupabase, isSupabaseConfigured } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
+import { getActivePlanForUser } from "../lib/subscriptions";
 import { adminAuth } from "../middlewares/adminAuth";
 import { waitlistTable } from "./equity";
 
@@ -567,6 +568,100 @@ router.get("/admin/equity/waitlist", async (req: Request, res: Response) => {
   } catch (err) {
     console.error("admin equity waitlist error:", err);
     res.status(500).json({ success: false, message: "Failed to fetch waitlist" });
+  }
+});
+
+// ── Admin: pending withdrawals (manual payout) ──
+router.get("/admin/withdrawals/pending", async (_req: Request, res: Response) => {
+  try {
+    const rows = await db
+      .select({
+        id: withdrawalRequestsTable.id,
+        userId: withdrawalRequestsTable.userId,
+        amount: withdrawalRequestsTable.amount,
+        upiId: withdrawalRequestsTable.upiId,
+        bankName: withdrawalRequestsTable.bankName,
+        accountNumber: withdrawalRequestsTable.accountNumber,
+        ifscCode: withdrawalRequestsTable.ifscCode,
+        accountName: withdrawalRequestsTable.accountName,
+        createdAt: withdrawalRequestsTable.createdAt,
+        userFirstName: usersTable.firstName,
+        userLastName: usersTable.lastName,
+        userEmail: usersTable.email,
+        walletBalance: freelanceWalletsTable.balance,
+      })
+      .from(withdrawalRequestsTable)
+      .leftJoin(usersTable, eq(withdrawalRequestsTable.userId, usersTable.id))
+      .leftJoin(freelanceWalletsTable, eq(withdrawalRequestsTable.walletId, freelanceWalletsTable.id))
+      .where(eq(withdrawalRequestsTable.status, "PENDING"))
+      .orderBy(desc(withdrawalRequestsTable.createdAt));
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to fetch pending withdrawals" });
+  }
+});
+
+router.post("/admin/withdrawals/confirm/:id", async (req: Request, res: Response) => {
+  const wdId = req.params.id as string;
+  try {
+    const [wd] = await db
+      .select({
+        id: withdrawalRequestsTable.id,
+        userId: withdrawalRequestsTable.userId,
+        walletId: withdrawalRequestsTable.walletId,
+        amount: withdrawalRequestsTable.amount,
+        status: withdrawalRequestsTable.status,
+        walletBalance: freelanceWalletsTable.balance,
+      })
+      .from(withdrawalRequestsTable)
+      .leftJoin(freelanceWalletsTable, eq(withdrawalRequestsTable.walletId, freelanceWalletsTable.id))
+      .where(eq(withdrawalRequestsTable.id, wdId))
+      .limit(1);
+    if (!wd) { res.status(404).json({ success: false, message: "Withdrawal not found" }); return; }
+    if (wd.status !== "PENDING") { res.status(400).json({ success: false, message: "Already processed" }); return; }
+    if ((wd.walletBalance ?? 0) < wd.amount) { res.status(400).json({ success: false, message: "Insufficient wallet balance" }); return; }
+
+    const plan = await getActivePlanForUser(wd.userId);
+    const commissionPct = plan.serviceFeePercent;
+    const commission = Math.round(wd.amount * commissionPct / 100);
+    const netAmount = wd.amount - commission;
+
+    await db.transaction(async (tx) => {
+      const deductResult = await tx.execute(
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${wd.amount}, total_withdrawn = COALESCE(total_withdrawn, 0) + ${wd.amount}, updated_at = NOW() WHERE id = ${wd.walletId} AND balance >= ${wd.amount}`
+      );
+      if (deductResult.rowCount === 0) throw new Error("Insufficient balance");
+
+      if (commission > 0) {
+        await tx.insert(transactionsTable).values({
+          userId: wd.userId,
+          type: "COMMISSION",
+          amount: commission,
+          description: `Withdrawal commission (${commissionPct}%) on ₹${wd.amount}`,
+          status: "COMPLETED",
+        });
+      }
+
+      await tx.update(withdrawalRequestsTable)
+        .set({ status: "COMPLETED", processedAt: new Date() })
+        .where(eq(withdrawalRequestsTable.id, wd.id));
+    });
+
+    await db.insert(notificationsTable).values({
+      userId: wd.userId,
+      type: "WITHDRAWAL_COMPLETED",
+      title: "Withdrawal completed",
+      message: `Your withdrawal of ₹${netAmount} has been processed and sent.`,
+      linkUrl: "/dashboard.html",
+    });
+
+    res.json({ success: true, message: `Withdrawal confirmed — ₹${netAmount} sent to user (₹${commission} commission earned)` });
+  } catch (err) {
+    if (err instanceof Error && err.message === "Insufficient balance") {
+      res.status(400).json({ success: false, message: "Insufficient wallet balance" });
+    } else {
+      res.status(500).json({ success: false, message: "Failed to confirm withdrawal" });
+    }
   }
 });
 

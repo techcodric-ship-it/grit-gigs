@@ -136,93 +136,38 @@ router.post("/users/me/wallet/withdraw", authenticate, async (req: Request, res:
     res.status(400).json({ success: false, message: "No wallet found. Please add funds to your wallet first." });
     return;
   }
-
-  // Calculate withdrawal commission based on user's plan
-  const plan = await getActivePlanForUser(req.user!.id);
-  const commissionPct = plan.serviceFeePercent;
-  const withdrawalFee = Math.round(amount * commissionPct / 100);
-  const netAmount = amount - withdrawalFee;
-
-  let withdrawalId: string | null = null;
-
-  // Atomically deduct from wallet and record withdrawal request
-  try {
-    await db.transaction(async (tx) => {
-      const deductResult = await tx.execute(
-        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${amount}, total_withdrawn = COALESCE(total_withdrawn, 0) + ${amount}, updated_at = NOW() WHERE ${freelanceWalletsTable.id} = ${wallet.id} AND balance >= ${amount}`
-      );
-      if (deductResult.rowCount === 0) {
-        throw new Error("Insufficient balance");
-      }
-
-      if (withdrawalFee > 0) {
-        await tx.insert(transactionsTable).values({
-          userId: req.user!.id,
-          type: 'COMMISSION',
-          amount: withdrawalFee,
-          description: `Withdrawal commission (${commissionPct}%)`,
-          status: 'COMPLETED',
-        });
-      }
-
-      const [wd] = await tx.insert(withdrawalRequestsTable).values({
-        walletId: wallet.id,
-        userId: req.user!.id,
-        amount: netAmount,
-        bankName: hasBank ? bankName : null,
-        accountNumber: hasBank ? accountNumber : null,
-        ifscCode: hasBank ? ifscCode : null,
-        accountName: hasBank ? accountName : null,
-        upiId: hasUpi ? upiId : null,
-      }).returning();
-      withdrawalId = wd.id;
-    });
-  } catch (e) {
-    if (e instanceof Error && e.message === "Insufficient balance") {
-      res.status(400).json({ success: false, message: "You don't have enough funds in your wallet to withdraw. Please check your balance and try again." });
-    } else {
-      res.status(500).json({ success: false, message: "Withdrawal failed. Please try again." });
-    }
+  if (wallet.balance < amount) {
+    res.status(400).json({ success: false, message: "Insufficient balance" });
     return;
   }
 
-  // Auto-payout via Razorpay
-  let payoutResult;
-  if (hasUpi) {
-    payoutResult = await createUpiPayout(netAmount, upiId, withdrawalId!, { name: req.user!.firstName + " " + req.user!.lastName });
-  } else {
-    payoutResult = await createBankPayout(netAmount, { name: req.user!.firstName + " " + req.user!.lastName, accountNumber, ifsc: ifscCode, accountName }, withdrawalId!);
-  }
+  const plan = await getActivePlanForUser(req.user!.id);
+  const withdrawalFee = Math.round(amount * plan.serviceFeePercent / 100);
+  const netAmount = amount - withdrawalFee;
 
-  if (payoutResult.success) {
-    await db.update(withdrawalRequestsTable).set({
-      status: "PROCESSING",
-      gatewayTxnId: payoutResult.gatewayTxnId,
-    }).where(eq(withdrawalRequestsTable.id, withdrawalId!));
+  try {
+    const [wd] = await db.insert(withdrawalRequestsTable).values({
+      walletId: wallet.id,
+      userId: req.user!.id,
+      amount,
+      bankName: hasBank ? bankName : null,
+      accountNumber: hasBank ? accountNumber : null,
+      ifscCode: hasBank ? ifscCode : null,
+      accountName: hasBank ? accountName : null,
+      upiId: hasUpi ? upiId : null,
+    }).returning();
 
     await db.insert(notificationsTable).values({
       userId: req.user!.id,
       type: "WITHDRAWAL_REQUESTED",
-      title: "Withdrawal processing",
-      message: `Withdrawal of ₹${netAmount} is being processed via Razorpay.`,
+      title: "Withdrawal request submitted",
+      message: `Your withdrawal request for ₹${amount} has been submitted. Admin will process it shortly.`,
       linkUrl: "/dashboard.html",
     });
 
-    res.json({ success: true, message: `Withdrawal of ₹${netAmount} is being processed. It should arrive in a few minutes.` });
-  } else {
-    // Payout failed — mark as failed and refund
-    await db.update(withdrawalRequestsTable).set({ status: "FAILED" }).where(eq(withdrawalRequestsTable.id, withdrawalId!));
-    await db.execute(sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${amount}, total_withdrawn = COALESCE(total_withdrawn, 0) - ${amount}, updated_at = NOW() WHERE id = ${wallet.id}`);
-
-    await db.insert(notificationsTable).values({
-      userId: req.user!.id,
-      type: "WITHDRAWAL_FAILED",
-      title: "Withdrawal failed",
-      message: `Your withdrawal of ₹${netAmount} failed: ${payoutResult.error}. Amount has been refunded to your wallet.`,
-      linkUrl: "/dashboard.html",
-    });
-
-    res.status(502).json({ success: false, message: `Payout failed: ${payoutResult.error}. Amount refunded.` });
+    res.json({ success: true, message: `Withdrawal request for ₹${amount} submitted. Admin will process it shortly.`, data: { withdrawalId: wd.id } });
+  } catch (e) {
+    res.status(500).json({ success: false, message: "Withdrawal failed. Please try again." });
   }
 });
 
