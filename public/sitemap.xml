@@ -18,5 +18,7 @@
   <url><loc>https://www.gritandgigs.in/privacy</loc><priority>0.4</priority><changefreq>monthly</changefreq></url>
   <url><loc>https://www.gritandgigs.in/cookie</loc><priority>0.4</priority><changefreq>monthly</changefreq></url>
   <url><loc>https://www.gritandgigs.in/refund</loc><priority>0.4</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://www.gritandgigs.in/contact</loc><priority>0.4</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://www.gritandgigs.in/shipping</loc><priority>0.4</priority><changefreq>monthly</changefreq></url>
   <url><loc>https://www.gritandgigs.in/profile</loc><priority>0.5</priority><changefreq>daily</changefreq></url>
 </urlset>
