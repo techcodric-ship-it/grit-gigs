@@ -33,6 +33,9 @@ function planToClientJson(plan: PlanConfig) {
     plan.portfolioSlots === -1
       ? "Unlimited portfolio items"
       : `${plan.portfolioSlots} portfolio items`,
+    plan.maxActiveProjects === -1
+      ? "Unlimited active project listings"
+      : `${plan.maxActiveProjects} active project listings`,
     `${plan.serviceFeePercent}% platform fee on completed work`,
   ];
   if (plan.badge) features.push(`${plan.badge} verified badge on your profile`);
