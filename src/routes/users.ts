@@ -120,15 +120,13 @@ router.get("/users/me/wallet", authenticate, async (req: Request, res: Response)
 });
 
 router.post("/users/me/wallet/withdraw", authenticate, async (req: Request, res: Response): Promise<void> => {
-  const { amount, bankName, accountNumber, ifscCode, accountName, upiId } = req.body;
+  const { amount, upiId } = req.body;
   if (!amount || amount < 1) {
     res.status(400).json({ success: false, message: "Minimum withdrawal is ₹1" });
     return;
   }
-  const hasBank = bankName && accountNumber && ifscCode && accountName;
-  const hasUpi = upiId && upiId.includes("@");
-  if (!hasBank && !hasUpi) {
-    res.status(400).json({ success: false, message: "Provide bank details or UPI ID" });
+  if (!upiId || !upiId.includes("@")) {
+    res.status(400).json({ success: false, message: "Provide a valid UPI ID" });
     return;
   }
   const [wallet] = await db.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, req.user!.id));
@@ -150,11 +148,7 @@ router.post("/users/me/wallet/withdraw", authenticate, async (req: Request, res:
       walletId: wallet.id,
       userId: req.user!.id,
       amount,
-      bankName: hasBank ? bankName : null,
-      accountNumber: hasBank ? accountNumber : null,
-      ifscCode: hasBank ? ifscCode : null,
-      accountName: hasBank ? accountName : null,
-      upiId: hasUpi ? upiId : null,
+      upiId,
     }).returning();
 
     await db.insert(notificationsTable).values({

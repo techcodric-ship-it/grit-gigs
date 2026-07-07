@@ -1793,21 +1793,30 @@ textarea.fi{resize:vertical;}
 </div>
 
 <div class="mo" id="buyCredMod">
-  <div class="md" style="max-width:420px;">
-    <button class="mc" onclick="closeMod('buyCredMod')">✕</button>
-    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;margin-bottom:16px;">Add Money to Wallet</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:10px;">
-      <div class="smc" onclick="selCreds(1,this)" style="border:2px solid var(--violet);cursor:pointer;"><div style="font-weight:700;font-size:.95rem;">₹1</div><div style="font-size:.65rem;color:var(--muted);">Test</div></div>
-      <div class="smc" onclick="selCreds(500,this)" style="border:2px solid var(--bd);cursor:pointer;"><div style="font-weight:700;font-size:.95rem;">₹500</div><div style="font-size:.65rem;color:var(--muted);">Instant</div></div>
-      <div class="smc" onclick="selCreds(1000,this)" style="border:2px solid var(--bd);cursor:pointer;"><div style="font-weight:700;font-size:.95rem;">₹1,000</div><div style="font-size:.65rem;color:var(--muted);">Instant</div></div>
-      <div class="smc" onclick="selCreds(2000,this)" style="border:2px solid var(--bd);cursor:pointer;"><div style="font-weight:700;font-size:.95rem;">₹2,000</div><div style="font-size:.65rem;color:var(--muted);">Instant</div></div>
+  <div class="md" style="max-width:400px;border-radius:var(--rxl);padding:28px;">
+    <button class="mc" onclick="closeMod('buyCredMod')" style="top:14px;right:14px;width:28px;height:28px;font-size:.8rem;">✕</button>
+    <div style="text-align:center;margin-bottom:4px;">
+      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--violet),#A78BFA);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      </div>
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;">Add Money</div>
+      <div style="font-size:.78rem;color:var(--muted);margin-top:2px;">Choose an amount to add to your wallet</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:18px 0 12px;">
+      <div class="smc" onclick="selCreds(1,this)" style="border:2px solid var(--violet);cursor:pointer;border-radius:var(--rm);padding:12px;text-align:center;transition:all .15s;"><div style="font-weight:700;font-size:1.05rem;">₹1</div><div style="font-size:.65rem;color:var(--muted);">Test</div></div>
+      <div class="smc" onclick="selCreds(100,this)" style="border:2px solid var(--bd);cursor:pointer;border-radius:var(--rm);padding:12px;text-align:center;"><div style="font-weight:700;font-size:1.05rem;">₹100</div><div style="font-size:.65rem;color:var(--muted);">Quick</div></div>
+      <div class="smc" onclick="selCreds(500,this)" style="border:2px solid var(--bd);cursor:pointer;border-radius:var(--rm);padding:12px;text-align:center;"><div style="font-weight:700;font-size:1.05rem;">₹500</div><div style="font-size:.65rem;color:var(--muted);">Starter</div></div>
+      <div class="smc" onclick="selCreds(1000,this)" style="border:2px solid var(--bd);cursor:pointer;border-radius:var(--rm);padding:12px;text-align:center;"><div style="font-weight:700;font-size:1.05rem;">₹1,000</div><div style="font-size:.65rem;color:var(--muted);">Pro</div></div>
     </div>
     <div style="position:relative;margin-bottom:14px;">
-      <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:.82rem;color:var(--muted);">₹</span>
-      <input id="customCreds" type="number" min="1" placeholder="Custom amount" style="width:100%;padding:10px 10px 10px 28px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" oninput="document.querySelectorAll('#buyCredMod .smc').forEach(c=>c.style.borderColor='var(--bd)');">
+      <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:.85rem;color:var(--muted);font-weight:600;">₹</span>
+      <input id="customCreds" type="number" min="1" placeholder="Custom amount" style="width:100%;padding:11px 12px 11px 30px;border:1.5px solid var(--bd2);border-radius:var(--rm);font-size:.9rem;outline:none;box-sizing:border-box;background:var(--bg);transition:border-color .2s;" oninput="document.querySelectorAll('#buyCredMod .smc').forEach(c=>c.style.borderColor='var(--bd)');" onfocus="this.style.borderColor='var(--violet)'" onblur="this.style.borderColor='var(--bd2)'">
     </div>
-    <button class="btn bp" style="width:100%;justify-content:center;" onclick="buyCredits()">Add Money</button>
-    <button class="btn bs" style="width:100%;justify-content:center;margin-top:6px;" onclick="checkPendingPayments()">Check Pending Payment</button>
+    <button class="btn bp" style="width:100%;justify-content:center;padding:12px;border-radius:var(--rm);font-size:.9rem;" onclick="buyCredits()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      Add Money
+    </button>
+    <button class="btn bs" style="width:100%;justify-content:center;padding:10px;border-radius:var(--rm);margin-top:8px;font-size:.8rem;" onclick="checkPendingPayments()">Recover Pending Payment</button>
   </div>
 </div>
 
@@ -1827,59 +1836,42 @@ async function checkPendingPayments() {
 </script>
 
 <div class="mo" id="withdrawMod">
-  <div class="md" style="max-width:420px;">
-    <button class="mc" onclick="closeMod('withdrawMod')">✕</button>
-    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;margin-bottom:16px;">Withdraw Funds</div>
+  <div class="md" style="max-width:400px;border-radius:var(--rxl);padding:28px;">
+    <button class="mc" onclick="closeMod('withdrawMod')" style="top:14px;right:14px;width:28px;height:28px;font-size:.8rem;">✕</button>
+    <div style="text-align:center;margin-bottom:4px;">
+      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#DC2626,#FB7185);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+      </div>
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;">Withdraw to UPI</div>
+      <div style="font-size:.78rem;color:var(--muted);margin-top:2px;">Money will be sent to your UPI ID within 48 hours</div>
+    </div>
     <form id="withdrawF">
-      <div style="margin-bottom:10px;">
-        <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px;">Amount (₹)</label>
-        <input id="wAmt" type="number" min="1" required style="width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" placeholder="Enter amount">
+      <div style="margin:18px 0 4px;">
+        <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:4px;font-weight:500;">Amount (₹)</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;">
+          <div style="border:1.5px solid var(--bd2);border-radius:var(--r);padding:8px;text-align:center;cursor:pointer;font-weight:600;font-size:.85rem;transition:all .15s;" onclick="document.getElementById('wAmt').value=100;this.style.borderColor='var(--violet)'" onmouseover="this.style.borderColor='var(--violet)'" onmouseout="this.style.borderColor='var(--bd2)'">₹100</div>
+          <div style="border:1.5px solid var(--bd2);border-radius:var(--r);padding:8px;text-align:center;cursor:pointer;font-weight:600;font-size:.85rem;" onclick="document.getElementById('wAmt').value=500;this.style.borderColor='var(--violet)'" onmouseover="this.style.borderColor='var(--violet)'" onmouseout="this.style.borderColor='var(--bd2)'">₹500</div>
+          <div style="border:1.5px solid var(--bd2);border-radius:var(--r);padding:8px;text-align:center;cursor:pointer;font-weight:600;font-size:.85rem;" onclick="document.getElementById('wAmt').value=1000;this.style.borderColor='var(--violet)'" onmouseover="this.style.borderColor='var(--violet)'" onmouseout="this.style.borderColor='var(--bd2)'">₹1,000</div>
+        </div>
+        <input id="wAmt" type="number" min="1" required style="width:100%;padding:11px 12px;border:1.5px solid var(--bd2);border-radius:var(--rm);font-size:.9rem;outline:none;box-sizing:border-box;background:var(--bg);transition:border-color .2s;" placeholder="Enter amount" onfocus="this.style.borderColor='var(--violet)'" onblur="this.style.borderColor='var(--bd2)'">
       </div>
-      <div style="margin-bottom:10px;">
-        <div style="display:flex;gap:6px;margin-bottom:8px;">
-          <button type="button" id="wBankTab" class="btn btn-sm" style="flex:1;justify-content:center;background:var(--violet);color:#fff;" onclick="switchWithdrawMethod('bank')">Bank</button>
-          <button type="button" id="wUpiTab" class="btn btn-sm" style="flex:1;justify-content:center;" onclick="switchWithdrawMethod('upi')">UPI</button>
-        </div>
-      </div>
-      <div id="wBankFields">
-        <div style="margin-bottom:10px;">
-          <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px;">Bank Name</label>
-          <input id="wBank" type="text" style="width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" placeholder="e.g. State Bank of India">
-        </div>
-        <div style="margin-bottom:10px;">
-          <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px;">Account Number</label>
-          <input id="wAccN" type="text" style="width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" placeholder="Enter account number">
-        </div>
-        <div style="margin-bottom:10px;">
-          <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px;">IFSC Code</label>
-          <input id="wIfsc" type="text" style="width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" placeholder="e.g. SBIN0001234">
-        </div>
-        <div style="margin-bottom:14px;">
-          <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px;">Account Holder Name</label>
-          <input id="wAccNm" type="text" style="width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" placeholder="As on bank account">
+      <div style="margin-bottom:14px;">
+        <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:4px;font-weight:500;">UPI ID</label>
+        <div style="position:relative;">
+          <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:.8rem;color:var(--muted);">UPI</span>
+          <input id="wUpi" type="text" required style="width:100%;padding:11px 12px 11px 44px;border:1.5px solid var(--bd2);border-radius:var(--rm);font-size:.9rem;outline:none;box-sizing:border-box;background:var(--bg);transition:border-color .2s;" placeholder="username@paytm" onfocus="this.style.borderColor='var(--violet)'" onblur="this.style.borderColor='var(--bd2)'">
         </div>
       </div>
-      <div id="wUpiFields" style="display:none;margin-bottom:14px;">
-        <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px;">UPI ID</label>
-        <input id="wUpi" type="text" style="width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" placeholder="e.g. user@paytm">
+      <button type="submit" class="btn bp" style="width:100%;justify-content:center;padding:12px;border-radius:var(--rm);font-size:.9rem;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Request Withdrawal
+      </button>
+      <div style="font-size:.65rem;color:var(--muted);margin-top:10px;text-align:center;line-height:1.6;background:var(--bg2);border-radius:var(--r);padding:10px;">
+        <strong style="color:var(--ink);">⏱ 48 hours</strong> — Withdrawals are processed manually. Commission (based on your plan) will be deducted.
       </div>
-      <button type="submit" class="btn bp" style="width:100%;justify-content:center;">Request Withdrawal</button>
-      <div style="font-size:.68rem;color:var(--muted);margin-top:10px;text-align:center;line-height:1.5;">Withdrawals are processed within 48 hours. You'll receive the payment via UPI/bank.<br>Commission (based on your plan) will be deducted when processed.</div>
     </form>
   </div>
 </div>
-<script>
-let _withdrawMethod = 'bank';
-function switchWithdrawMethod(m) {
-  _withdrawMethod = m;
-  document.getElementById('wBankFields').style.display = m === 'bank' ? '' : 'none';
-  document.getElementById('wUpiFields').style.display = m === 'upi' ? '' : 'none';
-  document.getElementById('wBankTab').style.background = m === 'bank' ? 'var(--violet)' : '';
-  document.getElementById('wBankTab').style.color = m === 'bank' ? '#fff' : '';
-  document.getElementById('wUpiTab').style.background = m === 'upi' ? 'var(--violet)' : '';
-  document.getElementById('wUpiTab').style.color = m === 'upi' ? '#fff' : '';
-}
-</script>
 
 <div class="mo" id="serviceModal"><div class="md" style="max-width:540px;"></div></div>
 
@@ -5167,15 +5159,7 @@ document.getElementById('withdrawF').addEventListener('submit', async e => {
   btn.disabled = true;
 
   const amtInr = parseInt(document.getElementById('wAmt').value);
-  const body = _withdrawMethod === 'upi'
-    ? { amount: amtInr, upiId: document.getElementById('wUpi').value }
-    : {
-        amount: amtInr,
-        bankName: document.getElementById('wBank').value,
-        accountNumber: document.getElementById('wAccN').value,
-        ifscCode: document.getElementById('wIfsc').value,
-        accountName: document.getElementById('wAccNm').value,
-      };
+  const body = { amount: amtInr, upiId: document.getElementById('wUpi').value };
   const d = await api('/users/me/wallet/withdraw', {
     method: 'POST',
     body: JSON.stringify(body),
