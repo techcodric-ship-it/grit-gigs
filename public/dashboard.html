@@ -1793,56 +1793,21 @@ textarea.fi{resize:vertical;}
 </div>
 
 <div class="mo" id="buyCredMod">
-  <div class="md" style="max-width:440px;">
+  <div class="md" style="max-width:420px;">
     <button class="mc" onclick="closeMod('buyCredMod')">✕</button>
     <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;margin-bottom:16px;">Add Money to Wallet</div>
-
-    <div style="display:flex;gap:8px;margin-bottom:14px;">
-      <button class="btn bs btn-sm" style="flex:1;justify-content:center;" id="upiTabBtn" onclick="showUpiTab()">Pay via UPI</button>
-      <button class="btn bp btn-sm" style="flex:1;justify-content:center;" id="cardTabBtn" onclick="showCardTab()">Card / Net Banking</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:10px;">
+      <div class="smc" onclick="selCreds(1,this)" style="border:2px solid var(--violet);cursor:pointer;"><div style="font-weight:700;font-size:.95rem;">₹1</div><div style="font-size:.65rem;color:var(--muted);">Test</div></div>
+      <div class="smc" onclick="selCreds(500,this)" style="border:2px solid var(--bd);cursor:pointer;"><div style="font-weight:700;font-size:.95rem;">₹500</div><div style="font-size:.65rem;color:var(--muted);">Instant</div></div>
+      <div class="smc" onclick="selCreds(1000,this)" style="border:2px solid var(--bd);cursor:pointer;"><div style="font-weight:700;font-size:.95rem;">₹1,000</div><div style="font-size:.65rem;color:var(--muted);">Instant</div></div>
+      <div class="smc" onclick="selCreds(2000,this)" style="border:2px solid var(--bd);cursor:pointer;"><div style="font-weight:700;font-size:.95rem;">₹2,000</div><div style="font-size:.65rem;color:var(--muted);">Instant</div></div>
     </div>
-
-    <div id="upiTabContent">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:10px;">
-        <div class="smc" onclick="selUpiAmt(1,this)" style="border:2px solid var(--violet);cursor:pointer;"><div style="font-weight:700;font-size:.95rem;">₹1</div><div style="font-size:.65rem;color:var(--muted);">Test</div></div>
-        <div class="smc" onclick="selUpiAmt(500,this)" style="border:2px solid var(--bd);cursor:pointer;"><div style="font-weight:700;font-size:.95rem;">₹500</div><div style="font-size:.65rem;color:var(--muted);">Instant</div></div>
-        <div class="smc" onclick="selUpiAmt(1000,this)" style="border:2px solid var(--bd);cursor:pointer;"><div style="font-weight:700;font-size:.95rem;">₹1,000</div><div style="font-size:.65rem;color:var(--muted);">Instant</div></div>
-        <div class="smc" onclick="selUpiAmt(2000,this)" style="border:2px solid var(--bd);cursor:pointer;"><div style="font-weight:700;font-size:.95rem;">₹2,000</div><div style="font-size:.65rem;color:var(--muted);">Instant</div></div>
-      </div>
-      <div style="position:relative;margin-bottom:10px;">
-        <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:.82rem;color:var(--muted);">₹</span>
-        <input id="upiAmount" type="number" min="1" placeholder="Enter amount" style="width:100%;padding:10px 10px 10px 28px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" oninput="document.querySelectorAll('#buyCredMod .smc').forEach(c=>c.style.borderColor='var(--bd)'); window._upiAmt=this.value">
-      </div>
-      <div id="upiQrArea" style="display:none;text-align:center;padding:16px 0;">
-        <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px;">Scan to pay <strong id="upiPayeeName">Grit&Gigs</strong></div>
-        <img id="upiQrImg" src="" alt="UPI QR" style="width:200px;height:200px;border-radius:12px;border:1px solid var(--bd);"/>
-        <div style="font-size:.72rem;color:var(--muted);margin:8px 0;" id="upiIdDisplay">amuthavanan.e@ptyes</div>
-        <div style="font-size:.82rem;font-weight:700;" id="upiAmountDisplay"></div>
-        <div style="display:flex;gap:8px;margin-top:12px;justify-content:center;">
-          <a id="upiDeepLink" href="#" target="_blank" class="btn bp btn-sm" style="text-decoration:none;">Open UPI App</a>
-          <button class="btn bs btn-sm" onclick="copyUpiId()">Copy UPI ID</button>
-        </div>
-        <button class="btn bp" style="width:100%;justify-content:center;margin-top:12px;" onclick="submitUpiPayment()">I've Paid — Confirm</button>
-        <div style="font-size:.68rem;color:var(--muted);margin-top:8px;">After payment, click confirm. Admin will verify and credit your wallet.</div>
-        <div id="upiStatus" style="font-size:.78rem;margin-top:8px;"></div>
-      </div>
-      <button class="btn bp" style="width:100%;justify-content:center;" id="showQrBtn" onclick="showUpiQr()">Generate QR</button>
+    <div style="position:relative;margin-bottom:14px;">
+      <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:.82rem;color:var(--muted);">₹</span>
+      <input id="customCreds" type="number" min="1" placeholder="Custom amount" style="width:100%;padding:10px 10px 10px 28px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" oninput="document.querySelectorAll('#buyCredMod .smc').forEach(c=>c.style.borderColor='var(--bd)');">
     </div>
-
-    <div id="cardTabContent" style="display:none;">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:10px;">
-        <div class="smc" onclick="selCreds(1,this)" style="border:2px solid var(--violet);cursor:pointer;"><div style="font-weight:700;font-size:.95rem;">₹1</div><div style="font-size:.65rem;color:var(--muted);">Test</div></div>
-        <div class="smc" onclick="selCreds(500,this)" style="border:2px solid var(--bd);cursor:pointer;"><div style="font-weight:700;font-size:.95rem;">₹500</div><div style="font-size:.65rem;color:var(--muted);">Instant</div></div>
-        <div class="smc" onclick="selCreds(1000,this)" style="border:2px solid var(--bd);cursor:pointer;"><div style="font-weight:700;font-size:.95rem;">₹1,000</div><div style="font-size:.65rem;color:var(--muted);">Instant</div></div>
-        <div class="smc" onclick="selCreds(2000,this)" style="border:2px solid var(--bd);cursor:pointer;"><div style="font-weight:700;font-size:.95rem;">₹2,000</div><div style="font-size:.65rem;color:var(--muted);">Instant</div></div>
-      </div>
-      <div style="position:relative;margin-bottom:14px;">
-        <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:.82rem;color:var(--muted);">₹</span>
-        <input id="customCreds" type="number" min="1" placeholder="Custom amount" style="width:100%;padding:10px 10px 10px 28px;border:1px solid var(--bd);border-radius:var(--r);font-size:.85rem;outline:none;box-sizing:border-box;" oninput="document.querySelectorAll('#buyCredMod .smc').forEach(c=>c.style.borderColor='var(--bd)');">
-      </div>
-      <button class="btn bp" style="width:100%;justify-content:center;" onclick="buyCredits()">Add Money</button>
-      <button class="btn bs" style="width:100%;justify-content:center;margin-top:6px;" onclick="checkPendingPayments()">Check Pending Payment</button>
-    </div>
+    <button class="btn bp" style="width:100%;justify-content:center;" onclick="buyCredits()">Add Money</button>
+    <button class="btn bs" style="width:100%;justify-content:center;margin-top:6px;" onclick="checkPendingPayments()">Check Pending Payment</button>
   </div>
 </div>
 
@@ -4911,64 +4876,6 @@ function selCreds(n, el) {
   selCr = n;
   document.querySelectorAll('#buyCredMod .smc').forEach(c => c.style.borderColor = 'var(--bd)');
   el.style.borderColor = 'var(--violet)';
-}
-
-// ── UPI tab ──
-let _upiAmt = 0;
-function selUpiAmt(n, el) {
-  _upiAmt = n;
-  document.getElementById('upiAmount').value = n;
-  document.querySelectorAll('#buyCredMod .smc').forEach(c => c.style.borderColor = 'var(--bd)');
-  el.style.borderColor = 'var(--violet)';
-}
-function showUpiTab() {
-  document.getElementById('upiTabContent').style.display = 'block';
-  document.getElementById('cardTabContent').style.display = 'none';
-  document.getElementById('upiTabBtn').className = 'btn bp btn-sm';
-  document.getElementById('cardTabBtn').className = 'btn bs btn-sm';
-  document.getElementById('upiQrArea').style.display = 'none';
-  document.getElementById('showQrBtn').style.display = 'block';
-}
-function showCardTab() {
-  document.getElementById('upiTabContent').style.display = 'none';
-  document.getElementById('cardTabContent').style.display = 'block';
-  document.getElementById('upiTabBtn').className = 'btn bs btn-sm';
-  document.getElementById('cardTabBtn').className = 'btn bp btn-sm';
-}
-function showUpiQr() {
-  const amt = parseInt(document.getElementById('upiAmount').value) || _upiAmt;
-  if (!amt || amt < 1) { showToast('Enter a valid amount', 'err'); return; }
-  _upiAmt = amt;
-  const upiStr = 'upi://pay?pa=amuthavanan.e@ptyes&pn=Grit%26Gigs&am=' + amt + '&tn=Wallet%20Top-up&cu=INR';
-  document.getElementById('upiQrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(upiStr);
-  document.getElementById('upiAmountDisplay').textContent = '₹' + amt.toLocaleString('en-IN');
-  document.getElementById('upiDeepLink').href = upiStr;
-  document.getElementById('upiQrArea').style.display = 'block';
-  document.getElementById('showQrBtn').style.display = 'none';
-  document.getElementById('upiStatus').textContent = '';
-}
-function copyUpiId() {
-  navigator.clipboard.writeText('amuthavanan.e@ptyes').then(() => showToast('UPI ID copied!'));
-}
-async function submitUpiPayment() {
-  const btn = document.querySelector('#upiQrArea .btn.bp:last-of-type');
-  const statusEl = document.getElementById('upiStatus');
-  if (!_upiAmt || _upiAmt < 1) { showToast('Enter a valid amount', 'err'); return; }
-  btn.disabled = true;
-  statusEl.textContent = 'Submitting...';
-  try {
-    const d = await api('/credits/upi-request', { method: 'POST', body: JSON.stringify({ amount: _upiAmt }) });
-    if (d.success) {
-      statusEl.innerHTML = '<span style="color:#16A34A;">✅ Request submitted! Admin will verify and credit your wallet.</span>';
-      showToast('Payment request sent for verification');
-      setTimeout(() => closeMod('buyCredMod'), 2000);
-    } else {
-      statusEl.innerHTML = '<span style="color:#DC2626;">❌ ' + (d.message || 'Failed') + '</span>';
-    }
-  } catch(e) {
-    statusEl.innerHTML = '<span style="color:#DC2626;">❌ Network error</span>';
-  }
-  btn.disabled = false;
 }
 
 let _buyingCredits = false;
