@@ -2689,8 +2689,13 @@ async function loadWallet() {
       const sc = wd.status === 'COMPLETED' ? 'var(--ok)' : wd.status === 'FAILED' ? 'var(--err)' : 'var(--gold)';
       const sb = wd.status === 'COMPLETED' ? 'var(--okl)' : wd.status === 'FAILED' ? 'var(--errl)' : 'var(--gl)';
       const dest = wd.upiId ? wd.upiId : (wd.bankName || 'Bank');
-      const statusLabel = wd.status === 'PROCESSING' ? 'Processing' : wd.status.charAt(0) + wd.status.slice(1).toLowerCase();
-      return '<div class="ti"><div class="tic" style="background:var(--errl);">\u2193</div><div><div class="tit">\u20B9' + (wd.amount||0).toLocaleString('en-IN') + ' \u2192 ' + dest + '</div><div class="tis">' + new Date(wd.createdAt).toLocaleDateString('en-IN') + '</div></div><span class="pill" style="background:' + sb + ';color:' + sc + ';">' + statusLabel + '</span></div>';
+      const icon = wd.status === 'COMPLETED' ? '\u2705' : wd.status === 'FAILED' ? '\u274C' : '\u23F3';
+      let statusLabel;
+      if (wd.status === 'PENDING') statusLabel = 'Pending \u2014 Admin processing';
+      else if (wd.status === 'PROCESSING') statusLabel = 'Processing';
+      else if (wd.status === 'COMPLETED') statusLabel = 'Completed';
+      else statusLabel = wd.status.charAt(0) + wd.status.slice(1).toLowerCase();
+      return '<div class="ti"><div class="tic" style="background:var(--errl);">\u2193</div><div><div class="tit">\u20B9' + (wd.amount||0).toLocaleString('en-IN') + ' \u2192 ' + dest + '</div><div class="tis">' + new Date(wd.createdAt).toLocaleDateString('en-IN') + '</div></div><span class="pill" style="background:' + sb + ';color:' + sc + ';">' + icon + ' ' + statusLabel + '</span></div>';
     }).join('');
   }
 }

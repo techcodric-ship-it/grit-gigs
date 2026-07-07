@@ -595,7 +595,19 @@ router.get("/admin/withdrawals/pending", async (_req: Request, res: Response) =>
       .leftJoin(freelanceWalletsTable, eq(withdrawalRequestsTable.walletId, freelanceWalletsTable.id))
       .where(eq(withdrawalRequestsTable.status, "PENDING"))
       .orderBy(desc(withdrawalRequestsTable.createdAt));
-    res.json({ success: true, data: rows });
+
+    // Enrich each row with commission info based on user's plan
+    const enriched = await Promise.all(rows.map(async (r) => {
+      let commissionPct = 10;
+      try {
+        const plan = await getActivePlanForUser(r.userId);
+        commissionPct = plan.serviceFeePercent;
+      } catch {}
+      const commission = Math.round(r.amount * commissionPct / 100);
+      return { ...r, commissionPct, commission, netAmount: r.amount - commission };
+    }));
+
+    res.json({ success: true, data: enriched });
   } catch (err) {
     res.status(500).json({ success: false, message: "Failed to fetch pending withdrawals" });
   }
