@@ -626,13 +626,40 @@ router.post("/admin/withdrawals/confirm/:id", async (req: Request, res: Response
     const commission = Math.round(wd.amount * commissionPct / 100);
     const netAmount = wd.amount - commission;
 
+    const [adminUser] = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.email, "amuthavananfl@gmail.com"))
+      .limit(1);
+
+    // Ensure admin has a wallet row
+    if (adminUser) {
+      const [adminWallet] = await db
+        .select({ id: freelanceWalletsTable.id })
+        .from(freelanceWalletsTable)
+        .where(eq(freelanceWalletsTable.userId, adminUser.id))
+        .limit(1);
+      if (!adminWallet) {
+        await db.insert(freelanceWalletsTable).values({
+          userId: adminUser.id,
+          balance: 0,
+          totalEarned: 0,
+          updatedAt: new Date(),
+        });
+      }
+    }
+
     await db.transaction(async (tx) => {
       const deductResult = await tx.execute(
         sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${wd.amount}, total_withdrawn = COALESCE(total_withdrawn, 0) + ${wd.amount}, updated_at = NOW() WHERE id = ${wd.walletId} AND balance >= ${wd.amount}`
       );
       if (deductResult.rowCount === 0) throw new Error("Insufficient balance");
 
-      if (commission > 0) {
+      if (commission > 0 && adminUser) {
+        await tx.execute(
+          sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${commission}, total_earned = COALESCE(total_earned, 0) + ${commission}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${adminUser.id}`
+        );
+
         await tx.insert(transactionsTable).values({
           userId: wd.userId,
           type: "COMMISSION",
@@ -655,7 +682,7 @@ router.post("/admin/withdrawals/confirm/:id", async (req: Request, res: Response
       linkUrl: "/dashboard.html",
     });
 
-    res.json({ success: true, message: `Withdrawal confirmed — ₹${netAmount} sent to user (₹${commission} commission earned)` });
+    res.json({ success: true, message: `Withdrawal confirmed — ₹${netAmount} sent to user (₹${commission} commission credited to your wallet)` });
   } catch (err) {
     if (err instanceof Error && err.message === "Insufficient balance") {
       res.status(400).json({ success: false, message: "Insufficient wallet balance" });
