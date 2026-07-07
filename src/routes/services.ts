@@ -3,6 +3,7 @@ import {
   db,
   servicesTable,
   servicePackagesTable,
+  ordersTable,
   usersTable,
   reviewsTable,
   notificationsTable,
@@ -298,6 +299,16 @@ router.put("/services/:id", authenticate, async (req, res): Promise<void> => {
   if (!service) { res.status(404).json({ success: false, message: "Service not found" }); return; }
   if (service.sellerId !== req.user!.id) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
 
+  // Block editing if gig has active orders (non-cancelled)
+  const [{ value: activeOrders }] = await db
+    .select({ value: count() })
+    .from(ordersTable)
+    .where(and(eq(ordersTable.serviceId, service.id), ne(ordersTable.status, "CANCELLED")));
+  if (activeOrders > 0) {
+    res.status(400).json({ success: false, message: "Cannot edit a gig while it has active or completed orders." });
+    return;
+  }
+
   const { title, category, subcategory, description, tags, status } = req.body;
   const updates: Partial<typeof servicesTable.$inferInsert> = { updatedAt: new Date() };
   if (title) updates.title = title;
@@ -331,6 +342,15 @@ router.delete("/services/:id", authenticate, async (req, res): Promise<void> => 
   const [service] = await db.select().from(servicesTable).where(eq(servicesTable.id, String(req.params.id)));
   if (!service) { res.status(404).json({ success: false, message: "Service not found" }); return; }
   if (service.sellerId !== req.user!.id) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
+  // Block deleting if gig has orders
+  const [{ value: orderCount }] = await db
+    .select({ value: count() })
+    .from(ordersTable)
+    .where(eq(ordersTable.serviceId, service.id));
+  if (orderCount > 0) {
+    res.status(400).json({ success: false, message: "Cannot delete a gig that has orders. You can pause it instead." });
+    return;
+  }
   await db.update(servicesTable).set({ status: "DELETED" }).where(eq(servicesTable.id, service.id));
   res.json({ success: true, message: "Service deleted" });
 });
