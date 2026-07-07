@@ -61,65 +61,60 @@ router.post("/credits/create-order", authenticate, async (req: Request, res: Res
 });
 
 router.post("/credits/verify-payment", authenticate, async (req: Request, res: Response): Promise<void> => {
-  const { razorpayOrderId, razorpayPaymentId, amount } = req.body;
+  const { razorpayOrderId, razorpayPaymentId } = req.body;
   if (!razorpayConfigured()) {
     res.status(503).json({ success: false, message: "Payment gateway not configured" });
     return;
   }
-  const amtInr = Number(amount);
+  if (!razorpayOrderId) {
+    res.status(400).json({ success: false, message: "Missing order ID" });
+    return;
+  }
+
+  // Use the amount stored in the pending transaction — never trust client amount
+  const [txn] = await db
+    .select({ id: transactionsTable.id, amount: transactionsTable.amount, status: transactionsTable.status, userId: transactionsTable.userId })
+    .from(transactionsTable)
+    .where(eq(transactionsTable.gatewayTxnId, razorpayOrderId))
+    .limit(1);
+  if (!txn) {
+    res.status(400).json({ success: false, message: "Transaction not found" });
+    return;
+  }
+  if (txn.userId !== req.user!.id) {
+    res.status(403).json({ success: false, message: "Unauthorized" });
+    return;
+  }
+  if (txn.status === "COMPLETED") {
+    res.json({ success: true, message: "Already processed" });
+    return;
+  }
+
+  const amtInr = Number(txn.amount);
   if (!amtInr || amtInr < 1) {
     res.status(400).json({ success: false, message: "Invalid amount" });
     return;
   }
-  // Idempotency: skip only if this order was already COMPLETED
-  if (razorpayOrderId) {
-    const [existing] = await db
-      .select({ id: transactionsTable.id, status: transactionsTable.status })
-      .from(transactionsTable)
-      .where(eq(transactionsTable.gatewayTxnId, razorpayOrderId))
-      .limit(1);
-    if (existing && existing.status === "COMPLETED") {
-      res.json({ success: true, message: "Already processed" });
-      return;
-    }
-  }
-  // Atomically add funds to wallet (INSERT if wallet doesn't exist)
-  const addResult = await db.execute(
-    sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${amtInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${req.user!.id}`
-  );
-  if (addResult.rowCount === 0) {
-    await db.insert(freelanceWalletsTable).values({
-      userId: req.user!.id,
-      balance: amtInr,
-      totalEarned: 0,
-      updatedAt: new Date(),
-    });
-  }
 
-  // Update pending transaction to completed (or insert if none pending)
-  if (razorpayOrderId) {
-    const [pending] = await db
-      .select({ id: transactionsTable.id })
-      .from(transactionsTable)
-      .where(eq(transactionsTable.gatewayTxnId, razorpayOrderId))
-      .limit(1);
-    if (pending) {
-      await db
-        .update(transactionsTable)
-        .set({ status: "COMPLETED", gatewayTxnId: razorpayPaymentId || "", updatedAt: new Date() })
-        .where(eq(transactionsTable.id, pending.id));
-    } else {
-      await db.insert(transactionsTable).values({
+  // Atomically credit wallet and mark transaction completed
+  await db.transaction(async (tx) => {
+    const addResult = await tx.execute(
+      sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${amtInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${req.user!.id}`
+    );
+    if (addResult.rowCount === 0) {
+      await tx.insert(freelanceWalletsTable).values({
         userId: req.user!.id,
-        type: "CREDIT_PURCHASE",
-        amount: amtInr,
-        status: "COMPLETED",
-        paymentMethod: "razorpay",
-        gatewayTxnId: razorpayPaymentId || "",
-        description: `Added ₹${amtInr.toLocaleString("en-IN")} to wallet`,
+        balance: amtInr,
+        totalEarned: 0,
+        updatedAt: new Date(),
       });
     }
-  }
+    await tx
+      .update(transactionsTable)
+      .set({ status: "COMPLETED", gatewayTxnId: razorpayPaymentId || "", updatedAt: new Date() })
+      .where(eq(transactionsTable.id, txn.id));
+  });
+
   await db.insert(notificationsTable).values({
     userId: req.user!.id,
     type: "CREDITS_ADDED",
@@ -133,34 +128,40 @@ router.post("/credits/verify-payment", authenticate, async (req: Request, res: R
 // Polling endpoint — check if order has been paid (checks Razorpay API directly so UPI QR works)
 router.get("/credits/check-order/:orderId", authenticate, async (req: Request, res: Response): Promise<void> => {
   const orderId = req.params.orderId as string;
-  // First check our DB
   const [txn] = await db
-    .select({ id: transactionsTable.id, status: transactionsTable.status, amount: transactionsTable.amount, gatewayTxnId: transactionsTable.gatewayTxnId })
+    .select({ id: transactionsTable.id, status: transactionsTable.status, amount: transactionsTable.amount, gatewayTxnId: transactionsTable.gatewayTxnId, userId: transactionsTable.userId })
     .from(transactionsTable)
     .where(eq(transactionsTable.gatewayTxnId, orderId))
     .limit(1);
-  if (txn?.status === "COMPLETED") {
+  if (!txn || txn.userId !== req.user!.id) {
+    res.json({ success: true, data: { status: "PENDING" } });
+    return;
+  }
+  if (txn.status === "COMPLETED") {
     res.json({ success: true, data: { status: "COMPLETED" } });
     return;
   }
   // Check Razorpay directly for payments linked to this order
-  if (txn?.gatewayTxnId && razorpayConfigured()) {
+  if (razorpayConfigured()) {
     try {
       const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
-      const rzResp = await fetch("https://api.razorpay.com/v1/orders/" + txn.gatewayTxnId + "/payments", {
+      const rzResp = await fetch("https://api.razorpay.com/v1/orders/" + orderId + "/payments", {
         headers: { Authorization: "Basic " + auth },
       });
       if (rzResp.ok) {
         const rzData = await rzResp.json() as { items?: { status: string; id: string }[] };
         const captured = (rzData.items || []).find((p: { status: string }) => p.status === "captured" || p.status === "authorized");
         if (captured) {
-          // Credit wallet immediately
-          await db.execute(
-            sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${txn.amount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${req.user!.id}`
-          );
-          await db.update(transactionsTable)
-            .set({ status: "COMPLETED", gatewayTxnId: captured.id, updatedAt: new Date() })
-            .where(eq(transactionsTable.id, txn.id));
+          await db.transaction(async (tx) => {
+            const [current] = await tx.select({ status: transactionsTable.status }).from(transactionsTable).where(eq(transactionsTable.id, txn.id)).limit(1);
+            if (current?.status !== "PENDING") return;
+            await tx.execute(
+              sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${txn.amount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${req.user!.id}`
+            );
+            await tx.update(transactionsTable)
+              .set({ status: "COMPLETED", gatewayTxnId: captured.id, updatedAt: new Date() })
+              .where(eq(transactionsTable.id, txn.id));
+          });
           await db.insert(notificationsTable).values({
             userId: req.user!.id,
             type: "CREDITS_ADDED",
@@ -174,7 +175,7 @@ router.get("/credits/check-order/:orderId", authenticate, async (req: Request, r
       }
     } catch {}
   }
-  res.json({ success: true, data: { status: txn?.status || "PENDING" } });
+  res.json({ success: true, data: { status: txn.status || "PENDING" } });
 });
 
 // Recover pending payments — checks Razorpay for captured orders and credits wallet
@@ -203,13 +204,16 @@ router.post("/credits/check-pending", authenticate, async (req: Request, res: Re
       const payments = payData.items || [];
       const captured = payments.find((p: { status: string }) => p.status === "captured" || p.status === "authorized");
       if (captured) {
-        // Credit wallet
-        await db.execute(
-          sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${txn.amount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${req.user!.id}`
-        );
-        await db.update(transactionsTable)
-          .set({ status: "COMPLETED", gatewayTxnId: captured.id, updatedAt: new Date() })
-          .where(eq(transactionsTable.id, txn.id));
+        await db.transaction(async (tx) => {
+          const [current] = await tx.select({ status: transactionsTable.status }).from(transactionsTable).where(eq(transactionsTable.id, txn.id)).limit(1);
+          if (current?.status !== "PENDING") return;
+          await tx.execute(
+            sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${txn.amount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${req.user!.id}`
+          );
+          await tx.update(transactionsTable)
+            .set({ status: "COMPLETED", gatewayTxnId: captured.id, updatedAt: new Date() })
+            .where(eq(transactionsTable.id, txn.id));
+        });
         totalAmount += txn.amount;
         credited = true;
       } else if (payments.some((p: { status: string }) => p.status === "failed") || payments.length === 0) {

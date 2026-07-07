@@ -11,10 +11,14 @@ const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET || "";
  * POST /payments/webhook — Razorpay webhook for payout status updates.
  */
 router.post("/payments/webhook", async (req: Request, res: Response): Promise<void> => {
+  if (!RAZORPAY_WEBHOOK_SECRET) {
+    res.status(503).json({ success: false, message: "Webhook not configured" });
+    return;
+  }
   const signature = req.headers["x-razorpay-signature"] as string;
   const body = JSON.stringify(req.body);
 
-  if (RAZORPAY_WEBHOOK_SECRET && !verifyWebhookSignature(body, signature, RAZORPAY_WEBHOOK_SECRET)) {
+  if (!verifyWebhookSignature(body, signature, RAZORPAY_WEBHOOK_SECRET)) {
     res.status(400).json({ success: false, message: "Invalid signature" });
     return;
   }
@@ -102,9 +106,9 @@ router.post("/payments/webhook", async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    // Look up the pending transaction by order ID
+    // Look up the pending transaction by order ID with idempotency check
     const [pending] = await db
-      .select({ userId: transactionsTable.userId, amount: transactionsTable.amount })
+      .select({ id: transactionsTable.id, userId: transactionsTable.userId, amount: transactionsTable.amount, status: transactionsTable.status })
       .from(transactionsTable)
       .where(eq(transactionsTable.gatewayTxnId, orderId))
       .limit(1);
@@ -114,14 +118,21 @@ router.post("/payments/webhook", async (req: Request, res: Response): Promise<vo
       return;
     }
 
+    if (pending.status === "COMPLETED") {
+      res.status(200).json({ success: true, message: "Already processed" });
+      return;
+    }
+
     const amtInr = pending.amount;
-    await db.execute(
-      sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${amtInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${pending.userId}`
-    );
-    await db
-      .update(transactionsTable)
-      .set({ status: "COMPLETED", gatewayTxnId: paymentId, updatedAt: new Date() })
-      .where(eq(transactionsTable.gatewayTxnId, orderId));
+    await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${amtInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${pending.userId}`
+      );
+      await tx
+        .update(transactionsTable)
+        .set({ status: "COMPLETED", gatewayTxnId: paymentId, updatedAt: new Date() })
+        .where(eq(transactionsTable.id, pending.id));
+    });
     await db.insert(notificationsTable).values({
       userId: pending.userId,
       type: "CREDITS_ADDED",
