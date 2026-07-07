@@ -286,4 +286,27 @@ router.get("/credits/diagnose", authenticate, async (req: Request, res: Response
   }
 });
 
+// ── Manual UPI payment request (no PG) ──
+router.post("/credits/upi-request", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const { amount } = req.body;
+  if (!amount || Number(amount) < 1) {
+    res.status(400).json({ success: false, message: "Invalid amount. Minimum ₹1." });
+    return;
+  }
+  const amtInr = Number(amount);
+  try {
+    const [txn] = await db.insert(transactionsTable).values({
+      userId: req.user!.id,
+      type: "CREDIT_PURCHASE",
+      amount: amtInr,
+      status: "PENDING",
+      paymentMethod: "upi_manual",
+      description: `UPI wallet top-up ₹${amtInr} — awaiting admin confirmation`,
+    }).returning({ id: transactionsTable.id });
+    res.json({ success: true, data: { txnId: txn.id, amount: amtInr, upiId: "amuthavanan.e@ptyes", payeeName: "Grit&Gigs" } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to create payment request" });
+  }
+});
+
 export default router;
