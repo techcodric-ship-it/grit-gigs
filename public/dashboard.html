@@ -2596,7 +2596,7 @@ async function loadOverview() {
   }
   let feePct = 5;
   if (myPlan.success) {
-    feePct = myPlan.data.serviceFeePercent || 5;
+    feePct = (myPlan.data.plan?.serviceFeePercent) || 5;
     sU({ ...gU(), planId: myPlan.data.planId, planExpiresAt: myPlan.data.planExpiresAt });
     updateSidebarPlanBadge(myPlan.data.planId);
   }
@@ -2667,7 +2667,7 @@ async function loadWallet() {
   }
   const w = d.data.wallet || {};
   const b = Math.floor(w.balance || 0);
-  const feePct = planRes.success ? (planRes.data.serviceFeePercent || 5) : 5;
+  const feePct = planRes.success ? (planRes.data.plan?.serviceFeePercent || 5) : 5;
   const withdrawable = Math.floor(b * (1 - feePct / 100));
   document.getElementById('wBal2').textContent = '\u20B9' + b.toLocaleString('en-IN');
   document.getElementById('wSub2').innerHTML = '\u20B9' + withdrawable.toLocaleString('en-IN') + ' withdrawable <span style="font-size:.65rem;color:var(--muted);">(' + feePct + '% fee)</span>';
