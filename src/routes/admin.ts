@@ -620,18 +620,14 @@ router.post("/admin/withdrawals/confirm/:id", async (req: Request, res: Response
       .select({
         id: withdrawalRequestsTable.id,
         userId: withdrawalRequestsTable.userId,
-        walletId: withdrawalRequestsTable.walletId,
         amount: withdrawalRequestsTable.amount,
         status: withdrawalRequestsTable.status,
-        walletBalance: freelanceWalletsTable.balance,
       })
       .from(withdrawalRequestsTable)
-      .leftJoin(freelanceWalletsTable, eq(withdrawalRequestsTable.walletId, freelanceWalletsTable.id))
       .where(eq(withdrawalRequestsTable.id, wdId))
       .limit(1);
     if (!wd) { res.status(404).json({ success: false, message: "Withdrawal not found" }); return; }
     if (wd.status !== "PENDING") { res.status(400).json({ success: false, message: "Already processed" }); return; }
-    if ((wd.walletBalance ?? 0) < wd.amount) { res.status(400).json({ success: false, message: "Insufficient wallet balance" }); return; }
 
     const plan = await getActivePlanForUser(wd.userId);
     const commissionPct = plan.serviceFeePercent;
@@ -644,7 +640,6 @@ router.post("/admin/withdrawals/confirm/:id", async (req: Request, res: Response
       .where(eq(usersTable.email, "amuthavananfl@gmail.com"))
       .limit(1);
 
-    // Ensure admin has a wallet row
     if (adminUser) {
       const [adminWallet] = await db
         .select({ id: freelanceWalletsTable.id })
@@ -662,11 +657,6 @@ router.post("/admin/withdrawals/confirm/:id", async (req: Request, res: Response
     }
 
     await db.transaction(async (tx) => {
-      const deductResult = await tx.execute(
-        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${wd.amount}, total_withdrawn = COALESCE(total_withdrawn, 0) + ${wd.amount}, updated_at = NOW() WHERE id = ${wd.walletId} AND balance >= ${wd.amount}`
-      );
-      if (deductResult.rowCount === 0) throw new Error("Insufficient balance");
-
       if (commission > 0 && adminUser) {
         await tx.execute(
           sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${commission}, total_earned = COALESCE(total_earned, 0) + ${commission}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${adminUser.id}`
@@ -696,11 +686,7 @@ router.post("/admin/withdrawals/confirm/:id", async (req: Request, res: Response
 
     res.json({ success: true, message: `Withdrawal confirmed — ₹${netAmount} sent to user (₹${commission} commission credited to your wallet)` });
   } catch (err) {
-    if (err instanceof Error && err.message === "Insufficient balance") {
-      res.status(400).json({ success: false, message: "Insufficient wallet balance" });
-    } else {
-      res.status(500).json({ success: false, message: "Failed to confirm withdrawal" });
-    }
+    res.status(500).json({ success: false, message: "Failed to confirm withdrawal" });
   }
 });
 

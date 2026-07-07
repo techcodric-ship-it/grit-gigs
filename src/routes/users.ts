@@ -144,12 +144,19 @@ router.post("/users/me/wallet/withdraw", authenticate, async (req: Request, res:
   const netAmount = amount - withdrawalFee;
 
   try {
-    const [wd] = await db.insert(withdrawalRequestsTable).values({
-      walletId: wallet.id,
-      userId: req.user!.id,
-      amount,
-      upiId,
-    }).returning();
+    await db.transaction(async (tx) => {
+      const deductResult = await tx.execute(
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${amount}, total_withdrawn = COALESCE(total_withdrawn, 0) + ${amount}, updated_at = NOW() WHERE id = ${wallet.id} AND balance >= ${amount}`
+      );
+      if (deductResult.rowCount === 0) throw new Error("Insufficient balance");
+
+      await tx.insert(withdrawalRequestsTable).values({
+        walletId: wallet.id,
+        userId: req.user!.id,
+        amount,
+        upiId,
+      });
+    });
 
     await db.insert(notificationsTable).values({
       userId: req.user!.id,
@@ -159,9 +166,13 @@ router.post("/users/me/wallet/withdraw", authenticate, async (req: Request, res:
       linkUrl: "/dashboard.html",
     });
 
-    res.json({ success: true, message: `Withdrawal request for ₹${amount} submitted. Admin will process it shortly.`, data: { withdrawalId: wd.id } });
+    res.json({ success: true, message: `Withdrawal request for ₹${amount} submitted. Admin will process it shortly.` });
   } catch (e) {
-    res.status(500).json({ success: false, message: "Withdrawal failed. Please try again." });
+    if (e instanceof Error && e.message === "Insufficient balance") {
+      res.status(400).json({ success: false, message: "Insufficient balance" });
+    } else {
+      res.status(500).json({ success: false, message: "Withdrawal failed. Please try again." });
+    }
   }
 });
 
