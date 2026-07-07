@@ -749,6 +749,14 @@ textarea.fi{resize:vertical;}
         <div class="sc"><div class="sl">Active Exchanges</div><div class="sv" id="stEx">—</div><div class="sc2 nt">Skill barters</div></div>
         <div class="sc"><div class="sl">Reputation</div><div class="sv" id="stRp">—</div><div class="sc2 up">Platform score</div></div>
       </div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-hdr"><span class="card-title">📊 Plan Usage</span><span id="planNameBadge" style="font-size:.75rem;color:var(--muted);"></span></div>
+        <div class="sg" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));padding:4px 0;">
+          <div class="sc" style="box-shadow:none;border:none;padding:6px;"><div class="sl">Proposal Credits</div><div class="sv" id="stPropCr" style="font-size:1rem;">—</div></div>
+          <div class="sc" style="box-shadow:none;border:none;padding:6px;"><div class="sl">Active Gigs</div><div class="sv" id="stActG" style="font-size:1rem;">—</div></div>
+          <div class="sc" style="box-shadow:none;border:none;padding:6px;"><div class="sl">Open Projects</div><div class="sv" id="stOpPr" style="font-size:1rem;">—</div></div>
+        </div>
+      </div>
       <div class="wallet-card">
         <div class="wl">Wallet Balance</div>
         <div class="wb" id="wBal">₹0</div>
@@ -2596,9 +2604,16 @@ async function loadOverview() {
   }
   let feePct = 5;
   if (myPlan.success) {
-    feePct = (myPlan.data.plan?.serviceFeePercent) || 5;
-    sU({ ...gU(), planId: myPlan.data.planId, planExpiresAt: myPlan.data.planExpiresAt });
-    updateSidebarPlanBadge(myPlan.data.planId);
+    const mp = myPlan.data;
+    feePct = (mp.plan?.serviceFeePercent) || 5;
+    sU({ ...gU(), planId: mp.planId, planExpiresAt: mp.planExpiresAt });
+    updateSidebarPlanBadge(mp.planId);
+    document.getElementById('planNameBadge').textContent = mp.plan?.name || '';
+    const u = mp.usage || {};
+    const fmt = (v, max) => max === -1 ? (v + ' / ∞') : (v + ' / ' + max);
+    document.getElementById('stPropCr').textContent = fmt(mp.proposalCreditsRemaining ?? '?', mp.plan?.monthlyProposalCredits ?? '?');
+    document.getElementById('stActG').textContent = fmt(u.activeGigs ?? 0, u.maxActiveGigs ?? '?');
+    document.getElementById('stOpPr').textContent = fmt(u.openProjects ?? 0, u.maxActiveProjects ?? '?');
   }
 
   if (wal.success && wal.data) {

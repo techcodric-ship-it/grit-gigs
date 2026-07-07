@@ -7,7 +7,7 @@ import { eq, desc, and, not, or, count, sql, inArray } from 'drizzle-orm';
 import { reviewsTable } from '../db/schema/orders';
 import { clientReviewsTable } from '../db/schema/client-reviews';
 import { authenticate, optionalAuth } from '../middlewares/authenticate';
-import { getActivePlanForUser, getOrCreateSubscription } from '../lib/subscriptions';
+import { getActivePlanForUser, getOrCreateSubscription, getPlan } from '../lib/subscriptions';
 import { attachPlanBadge, attachPlanBadges } from '../lib/planBadge';
 import { uploadToSupabase, isSupabaseConfigured } from '../lib/storage';
 import { PROJECT_ROOT } from '../lib/root';
@@ -576,7 +576,17 @@ router.delete('/projects/bids/:bidId', authenticate, async (req: Request, res: R
   const [bid] = await db.select().from(projectBidsTable).where(and(eq(projectBidsTable.id, req.params.bidId as string), eq(projectBidsTable.userId, userId))).limit(1);
   if (!bid) return res.status(404).json({ success: false, message: 'Bid not found or not yours' });
   if (bid.status !== 'PENDING') return res.status(400).json({ success: false, message: 'Only PENDING bids can be withdrawn' });
-  await db.delete(projectBidsTable).where(eq(projectBidsTable.id, bid.id));
+  await db.transaction(async (tx) => {
+    await tx.delete(projectBidsTable).where(eq(projectBidsTable.id, bid.id));
+    // Restore proposal credit if plan tracks credits
+    const sub = await getOrCreateSubscription(userId);
+    const plan = getPlan(sub.planId);
+    if (plan.monthlyProposalCredits !== -1 && sub.proposalCreditsRemaining < plan.monthlyProposalCredits) {
+      await tx.update(userSubscriptionsTable)
+        .set({ proposalCreditsRemaining: sub.proposalCreditsRemaining + 1, updatedAt: new Date() })
+        .where(eq(userSubscriptionsTable.id, sub.id));
+    }
+  });
   return res.json({ success: true, message: 'Proposal withdrawn.' });
 });
 

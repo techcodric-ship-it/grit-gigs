@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { eq } from "drizzle-orm";
-import { db, notificationsTable, transactionsTable, userSubscriptionsTable } from "../db";
+import { eq, count, and, sql } from "drizzle-orm";
+import { db, notificationsTable, transactionsTable, userSubscriptionsTable, servicesTable, projectsTable, projectBidsTable } from "../db";
 import { authenticate } from "../middlewares/authenticate";
 import { PLANS, getPlan, getOrCreateSubscription, type PlanConfig } from "../lib/subscriptions";
 
@@ -35,9 +35,6 @@ function planToClientJson(plan: PlanConfig) {
       : `${plan.portfolioSlots} portfolio items`,
     `${plan.serviceFeePercent}% platform fee on completed work`,
   ];
-  if (plan.featuredProposalsPerMonth > 0) {
-    features.push(`${plan.featuredProposalsPerMonth} featured proposal${plan.featuredProposalsPerMonth > 1 ? "s" : ""}/month`);
-  }
   if (plan.badge) features.push(`${plan.badge} verified badge on your profile`);
 
   return {
@@ -69,6 +66,21 @@ router.get("/subscriptions/my-plan", authenticate, async (req: Request, res: Res
   const daysLeft = sub.expiresAt
     ? Math.max(0, Math.ceil((sub.expiresAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
     : null;
+
+  const userId = req.user!.id;
+  const [gigCount] = await db
+    .select({ value: count() })
+    .from(servicesTable)
+    .where(and(eq(servicesTable.sellerId, userId), eq(servicesTable.status, "ACTIVE")));
+  const [projectCount] = await db
+    .select({ value: count() })
+    .from(projectsTable)
+    .where(and(eq(projectsTable.userId, userId), eq(projectsTable.status, "OPEN")));
+  const [bidCount] = await db
+    .select({ value: count() })
+    .from(projectBidsTable)
+    .where(and(eq(projectBidsTable.userId, userId), eq(projectBidsTable.status, "PENDING")));
+
   res.json({
     success: true,
     data: {
@@ -78,7 +90,13 @@ router.get("/subscriptions/my-plan", authenticate, async (req: Request, res: Res
       planActivatedAt: sub.startedAt,
       planExpiresAt: sub.expiresAt,
       proposalCreditsRemaining: sub.proposalCreditsRemaining,
-      featuredProposalsRemaining: sub.featuredProposalsRemaining,
+      usage: {
+        activeGigs: gigCount.value,
+        maxActiveGigs: plan.maxActiveGigs,
+        openProjects: projectCount.value,
+        maxActiveProjects: plan.maxActiveProjects,
+        pendingBids: bidCount.value,
+      },
     },
   });
 });
