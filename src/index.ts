@@ -58,7 +58,8 @@ app.set("io", io);
         logger.info("migrate: creating enums...");
         await client.query(`
           DO $$ BEGIN CREATE TYPE user_role AS ENUM ('USER','ADMIN','MODERATOR'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-          DO $$ BEGIN CREATE TYPE transaction_type AS ENUM ('CREDIT_PURCHASE','CREDIT_WITHDRAWAL','SERVICE_PAYMENT','SERVICE_EARNING','COMMISSION','REFUND'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE transaction_type AS ENUM ('CREDIT_PURCHASE','CREDIT_WITHDRAWAL','SUBSCRIPTION','SERVICE_PAYMENT','SERVICE_EARNING','COMMISSION','REFUND'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          ALTER TYPE transaction_type ADD VALUE IF NOT EXISTS 'SUBSCRIPTION';
           DO $$ BEGIN CREATE TYPE txn_status AS ENUM ('PENDING','COMPLETED','FAILED','REFUNDED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
           DO $$ BEGIN CREATE TYPE withdrawal_status AS ENUM ('PENDING','PROCESSING','COMPLETED','FAILED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
           DO $$ BEGIN CREATE TYPE barter_status AS ENUM ('ACTIVE','MATCHED','IN_PROGRESS','COMPLETED','CANCELLED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;

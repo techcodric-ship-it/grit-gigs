@@ -73,7 +73,7 @@ router.post("/credits/verify-payment", authenticate, async (req: Request, res: R
 
   // Use the amount stored in the pending transaction — never trust client amount
   const [txn] = await db
-    .select({ id: transactionsTable.id, amount: transactionsTable.amount, status: transactionsTable.status, userId: transactionsTable.userId })
+    .select({ id: transactionsTable.id, amount: transactionsTable.amount, status: transactionsTable.status, userId: transactionsTable.userId, type: transactionsTable.type })
     .from(transactionsTable)
     .where(eq(transactionsTable.gatewayTxnId, razorpayOrderId))
     .limit(1);
@@ -83,6 +83,10 @@ router.post("/credits/verify-payment", authenticate, async (req: Request, res: R
   }
   if (txn.userId !== req.user!.id) {
     res.status(403).json({ success: false, message: "Unauthorized" });
+    return;
+  }
+  if (txn.type !== "CREDIT_PURCHASE") {
+    res.status(400).json({ success: false, message: "Invalid transaction type" });
     return;
   }
   if (txn.status === "COMPLETED") {
@@ -183,7 +187,7 @@ router.post("/credits/check-pending", authenticate, async (req: Request, res: Re
   const pending = await db
     .select({ id: transactionsTable.id, gatewayTxnId: transactionsTable.gatewayTxnId, amount: transactionsTable.amount })
     .from(transactionsTable)
-    .where(and(eq(transactionsTable.userId, req.user!.id), eq(transactionsTable.status, "PENDING")));
+    .where(and(eq(transactionsTable.userId, req.user!.id), eq(transactionsTable.status, "PENDING"), eq(transactionsTable.type, "CREDIT_PURCHASE")));
   if (pending.length === 0) {
     res.json({ success: true, message: "No pending payments", data: { credited: false } });
     return;

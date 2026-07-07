@@ -123,7 +123,7 @@ router.post("/subscriptions/create-order", authenticate, async (req: Request, re
 
     await db.insert(transactionsTable).values({
       userId: req.user!.id,
-      type: "CREDIT_PURCHASE",
+      type: "SUBSCRIPTION",
       amount: plan.priceInr,
       status: "PENDING",
       paymentMethod: "razorpay",
