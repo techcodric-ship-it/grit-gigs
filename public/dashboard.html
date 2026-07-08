@@ -1811,14 +1811,13 @@ textarea.fi{resize:vertical;}
       <div style="font-size:.78rem;color:var(--muted);margin-top:2px;">Choose an amount to add to your wallet</div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:18px 0 12px;">
-      <div class="smc" onclick="selCreds(1,this)" style="border:2px solid var(--violet);cursor:pointer;border-radius:var(--rm);padding:12px;text-align:center;transition:all .15s;"><div style="font-weight:700;font-size:1.05rem;">₹1</div><div style="font-size:.65rem;color:var(--muted);">Test</div></div>
-      <div class="smc" onclick="selCreds(100,this)" style="border:2px solid var(--bd);cursor:pointer;border-radius:var(--rm);padding:12px;text-align:center;"><div style="font-weight:700;font-size:1.05rem;">₹100</div><div style="font-size:.65rem;color:var(--muted);">Quick</div></div>
+      <div class="smc" onclick="selCreds(100,this)" style="border:2px solid var(--violet);cursor:pointer;border-radius:var(--rm);padding:12px;text-align:center;transition:all .15s;"><div style="font-weight:700;font-size:1.05rem;">₹100</div><div style="font-size:.65rem;color:var(--muted);">Starter</div></div>
       <div class="smc" onclick="selCreds(500,this)" style="border:2px solid var(--bd);cursor:pointer;border-radius:var(--rm);padding:12px;text-align:center;"><div style="font-weight:700;font-size:1.05rem;">₹500</div><div style="font-size:.65rem;color:var(--muted);">Starter</div></div>
       <div class="smc" onclick="selCreds(1000,this)" style="border:2px solid var(--bd);cursor:pointer;border-radius:var(--rm);padding:12px;text-align:center;"><div style="font-weight:700;font-size:1.05rem;">₹1,000</div><div style="font-size:.65rem;color:var(--muted);">Pro</div></div>
     </div>
     <div style="position:relative;margin-bottom:14px;">
       <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:.85rem;color:var(--muted);font-weight:600;">₹</span>
-      <input id="customCreds" type="number" min="1" placeholder="Custom amount" style="width:100%;padding:11px 12px 11px 30px;border:1.5px solid var(--bd2);border-radius:var(--rm);font-size:.9rem;outline:none;box-sizing:border-box;background:var(--bg);transition:border-color .2s;" oninput="document.querySelectorAll('#buyCredMod .smc').forEach(c=>c.style.borderColor='var(--bd)');" onfocus="this.style.borderColor='var(--violet)'" onblur="this.style.borderColor='var(--bd2)'">
+      <input id="customCreds" type="number" min="100" placeholder="Custom amount" style="width:100%;padding:11px 12px 11px 30px;border:1.5px solid var(--bd2);border-radius:var(--rm);font-size:.9rem;outline:none;box-sizing:border-box;background:var(--bg);transition:border-color .2s;" oninput="document.querySelectorAll('#buyCredMod .smc').forEach(c=>c.style.borderColor='var(--bd)');" onfocus="this.style.borderColor='var(--violet)'" onblur="this.style.borderColor='var(--bd2)'">
     </div>
     <button class="btn bp" style="width:100%;justify-content:center;padding:12px;border-radius:var(--rm);font-size:.9rem;" onclick="buyCredits()">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
@@ -1861,7 +1860,7 @@ async function checkPendingPayments() {
           <div style="border:1.5px solid var(--bd2);border-radius:var(--r);padding:8px;text-align:center;cursor:pointer;font-weight:600;font-size:.85rem;" onclick="document.getElementById('wAmt').value=500;this.style.borderColor='var(--violet)'" onmouseover="this.style.borderColor='var(--violet)'" onmouseout="this.style.borderColor='var(--bd2)'">₹500</div>
           <div style="border:1.5px solid var(--bd2);border-radius:var(--r);padding:8px;text-align:center;cursor:pointer;font-weight:600;font-size:.85rem;" onclick="document.getElementById('wAmt').value=1000;this.style.borderColor='var(--violet)'" onmouseover="this.style.borderColor='var(--violet)'" onmouseout="this.style.borderColor='var(--bd2)'">₹1,000</div>
         </div>
-        <input id="wAmt" type="number" min="1" required style="width:100%;padding:11px 12px;border:1.5px solid var(--bd2);border-radius:var(--rm);font-size:.9rem;outline:none;box-sizing:border-box;background:var(--bg);transition:border-color .2s;" placeholder="Enter amount" onfocus="this.style.borderColor='var(--violet)'" onblur="this.style.borderColor='var(--bd2)'">
+        <input id="wAmt" type="number" min="100" required style="width:100%;padding:11px 12px;border:1.5px solid var(--bd2);border-radius:var(--rm);font-size:.9rem;outline:none;box-sizing:border-box;background:var(--bg);transition:border-color .2s;" placeholder="Enter amount" onfocus="this.style.borderColor='var(--violet)'" onblur="this.style.borderColor='var(--bd2)'">
       </div>
       <div style="margin-bottom:14px;">
         <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:4px;font-weight:500;">UPI ID</label>
@@ -4954,7 +4953,7 @@ async function buyCredits() {
   if (btn) btn.disabled = true;
   try {
     const amtInr = parseInt(document.getElementById('customCreds').value) || selCr;
-    if (!amtInr || amtInr < 1) { showToast('Minimum amount is ₹1', 'err'); return; }
+    if (!amtInr || amtInr < 100) { showToast('Minimum amount is ₹100', 'err'); return; }
 
     const d = await api('/credits/create-order', { method: 'POST', body: JSON.stringify({ amount: amtInr }) });
     if (!d.success) { showToast(d.message || 'Payment error', 'err'); return; }

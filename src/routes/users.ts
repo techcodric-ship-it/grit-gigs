@@ -121,8 +121,8 @@ router.get("/users/me/wallet", authenticate, async (req: Request, res: Response)
 
 router.post("/users/me/wallet/withdraw", authenticate, async (req: Request, res: Response): Promise<void> => {
   const { amount, upiId } = req.body;
-  if (!amount || amount < 1) {
-    res.status(400).json({ success: false, message: "Minimum withdrawal is ₹1" });
+  if (!amount || amount < 100) {
+    res.status(400).json({ success: false, message: "Minimum withdrawal is ₹100" });
     return;
   }
   if (!upiId || !upiId.includes("@")) {

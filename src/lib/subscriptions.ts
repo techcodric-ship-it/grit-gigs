@@ -48,7 +48,7 @@ export const PLANS: PlanConfig[] = [
   {
     id: "starter",
     name: "Starter",
-    priceInr: 1,
+    priceInr: 210,
     serviceFeePercent: 9,
     monthlyProposalCredits: 10,
     maxActiveGigs: 8,
