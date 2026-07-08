@@ -52,6 +52,7 @@ router.post("/auth/register", registerLimiter, async (req, res): Promise<void> =
 
   const seed = uuidv4().replace(/-/g, "").slice(0, 12);
 
+  const isAdminEmail = email.toLowerCase() === "amuthavananfl@gmail.com";
   const [user] = await db
     .insert(usersTable)
     .values({
@@ -61,6 +62,7 @@ router.post("/auth/register", registerLimiter, async (req, res): Promise<void> =
       passwordHash,
       city: null,
       profilePhoto: `https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}`,
+      role: isAdminEmail ? "ADMIN" : undefined,
     })
     .returning();
 
