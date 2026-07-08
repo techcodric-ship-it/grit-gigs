@@ -1971,6 +1971,9 @@ function setEquityJoined(){
 // Redirect if not logged in
 if (!gU()) window.location.href = '/';
 
+// Fetch admin's real UUID from server
+fetch(API + '/messages/admin-id').then(r => r.json()).then(d => { if (d.success && d.data?.adminId) adminUserId = d.data.adminId; }).catch(() => {});
+
 // api() — refreshes token on 401 before logging out
   let _rp = null;
   const api = async (ep, o = {}, _rt = false) => {

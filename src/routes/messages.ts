@@ -56,6 +56,11 @@ router.post("/messages/upload", authenticate, upload.array("files", 10), async (
   res.json({ success: true, data: { files: result } });
 });
 
+router.get("/messages/admin-id", async (_req, res): Promise<void> => {
+  const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
+  res.json({ success: true, data: { adminId: admin?.id ?? null } });
+});
+
 router.get("/messages/online-users", authenticate, async (req, res): Promise<void> => {
   const io = req.app.get("io") as unknown as { onlineUsers?: Map<string, Set<string>> };
   const map = io?.onlineUsers;
