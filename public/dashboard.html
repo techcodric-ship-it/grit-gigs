@@ -3688,7 +3688,7 @@ async function loadInbox() {
   const u = gU();
   // Store context (matchId / orderId) for each conversation for banner display
   window._lastConvList = d.data.conversations;
-  console.log('[DEBUG loadInbox] conversations:', d.data.conversations.map(c => ({ id: c.id, isAdminConv: c.isAdminConv, otherName: c.otherUser?.firstName + ' ' + c.otherUser?.lastName, otherRole: c.otherUser?.role, otherId: c.otherUser?.id })));
+  d.data.conversations.forEach(c => console.log('[DEBUG loadInbox] conv:', 'id='+c.id, 'isAdminConv='+c.isAdminConv, 'otherName='+(c.otherUser?.firstName||'')+' '+(c.otherUser?.lastName||''), 'otherRole='+(c.otherUser?.role||''), 'otherId='+(c.otherUser?.id||'')));
   let adminUnread = 0;
   const adminConvIdx = d.data.conversations.findIndex(conv => conv.isAdminConv);
   let adminConvData = null;
@@ -3768,7 +3768,7 @@ async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planB
   const isAdminUser = u?.role === 'ADMIN' || u?.id === adminUserId;
   const _convData = (window._lastConvList || []).find(c => c.id === convId);
   const isAdminConv = _convData?.isAdminConv || name.trim() === 'Grit&Gigs Admin';
-  console.log('[DEBUG openConv]', { convId, name, userId, isAdminUser, isAdminConv, _convDataIsAdminConv: _convData?.isAdminConv, adminUserId, currentUserRole: u?.role, currentUserId: u?.id });
+  console.log('[DEBUG openConv]', 'convId='+convId, 'name="'+name+'"', 'userId='+userId, 'isAdminUser='+isAdminUser, 'isAdminConv='+isAdminConv, '_convData.isAdminConv='+(_convData?.isAdminConv), 'adminUserId='+adminUserId, 'myRole='+(u?.role||''), 'myId='+(u?.id||''));
   const _isOtherAdmin = isAdminConv;
   const _showOnline = userId && _onlineUsers.has(userId) && (!_isOtherAdmin || isAdminUser);
   document.getElementById('chatHeader').innerHTML = `
@@ -3805,7 +3805,7 @@ async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planB
     const _isAdminUser = u2?.role === 'ADMIN' || u2?.id === adminUserId;
     const _otherIsAdmin = (window._lastConvList || []).find(c => c.id === activeCovId)?.isAdminConv || (window._lastConvList || []).find(c => c.id === activeCovId)?.otherUser?.role === 'ADMIN' || activeCovUserId === adminUserId;
     const _onlineNow = _onlineUsers.has(activeCovUserId) && (!_otherIsAdmin || _isAdminUser);
-    console.log('[DEBUG msg loaded]', { _otherIsAdmin, isAdminConv, _onlineNow, activeCovUserId, adminUserId, _isAdminUser, otherUserId: d.data.otherUserId, hasOnline: _onlineUsers.has(activeCovUserId), lastConvEntry: (window._lastConvList || []).find(c => c.id === activeCovId) });
+    console.log('[DEBUG msg loaded]', '_otherIsAdmin='+_otherIsAdmin, '_onlineNow='+_onlineNow, 'activeCovUserId='+activeCovUserId, 'adminUserId='+adminUserId, '_isAdminUser='+_isAdminUser, 'otherUserId='+(d.data.otherUserId||''), 'hasOnline='+_onlineUsers.has(activeCovUserId));
     _updateChatHeaderOnlineStatus(_onlineNow);
     const hdr = document.getElementById('chatHeader');
     if (hdr) {
@@ -3953,7 +3953,6 @@ async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planB
       : '<div class="empty"><div class="empty-sub">No messages yet. Say hello! 👋</div></div>');
 
   msgDiv.scrollTop = msgDiv.scrollHeight;
-  _updateChatWorkBar(convId);
 
   // Mark as read
   api('/messages/conversations/' + convId + '/read', { method: 'PUT' }).catch(() => {});
