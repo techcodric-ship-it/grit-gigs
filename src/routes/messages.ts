@@ -133,8 +133,9 @@ router.get("/messages/conversations", authenticate, async (req, res): Promise<vo
   const result = conversations.map(c => {
     const otherId = c.user1Id === myId ? c.user2Id : c.user1Id;
     let other = userMap.get(otherId) ?? null;
-    if (other && adminId2 && (other as any).id === adminId2) other = { ...(other as any), firstName: "Grit&Gigs", lastName: "Admin" };
-    return { ...c, otherUser: other, lastMessage: lastMsgMap.get(c.id) ?? null, unreadCount: unreadMap.get(c.id) ?? 0 };
+    const isAdminConv = !!(other && adminId2 && (other as any).id === adminId2);
+    if (isAdminConv) other = { ...(other as any), firstName: "Grit&Gigs", lastName: "Admin" };
+    return { ...c, otherUser: other, isAdminConv, lastMessage: lastMsgMap.get(c.id) ?? null, unreadCount: unreadMap.get(c.id) ?? 0 };
   });
 
   const convUsers = result.map(c => c.otherUser).filter(Boolean);
