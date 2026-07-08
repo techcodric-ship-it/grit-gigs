@@ -102,7 +102,7 @@ router.get("/messages/conversations", authenticate, async (req, res): Promise<vo
   const convIds = conversations.map(c => c.id);
 
   const [users, lastMsgs, unreadCounts] = await Promise.all([
-    db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, kycVerified: usersTable.kycVerified })
+    db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, kycVerified: usersTable.kycVerified, role: usersTable.role })
       .from(usersTable).where(inArray(usersTable.id, otherIds)),
     (async () => {
       const res = await pool.query(
@@ -133,7 +133,7 @@ router.get("/messages/conversations", authenticate, async (req, res): Promise<vo
   const result = conversations.map(c => {
     const otherId = c.user1Id === myId ? c.user2Id : c.user1Id;
     let other = userMap.get(otherId) ?? null;
-    const isAdminConv = !!(other && adminId2 && (other as any).id === adminId2);
+    const isAdminConv = (other && adminId2 && (other as any).id === adminId2) || (other && (other as any).role === "ADMIN") || false;
     if (isAdminConv) other = { ...(other as any), firstName: "Grit&Gigs", lastName: "Admin" };
     return { ...c, otherUser: other, isAdminConv, lastMessage: lastMsgMap.get(c.id) ?? null, unreadCount: unreadMap.get(c.id) ?? 0 };
   });
