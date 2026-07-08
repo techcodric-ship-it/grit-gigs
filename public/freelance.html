@@ -292,7 +292,7 @@
         x.open('GET', '/api/subscriptions/my-plan', false);
         x.setRequestHeader('Authorization', 'Bearer ' + t);
         x.setRequestHeader('Content-Type', 'application/json');
-        try { x.send(); var pr = JSON.parse(x.responseText); if (pr.success && pr.data.plan) { var b = pr.data.plan.badge; planBadge = b ? '<span style="background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">' + b + '</span>' : '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Free</span>'; try{localStorage.setItem('se_plan_cache',JSON.stringify({badge:b||null}));}catch(e){} } } catch(e) {}
+        try { x.send(); var pr = JSON.parse(x.responseText); if (pr.success && pr.data.plan) { var b = pr.data.plan.badge;           planBadge = b ? (function(){var g={STARTER:'linear-gradient(135deg,#059669,#34D399)',PRO:'linear-gradient(135deg,#6C3FE8,#2980b9)',ELITE:'linear-gradient(135deg,#D97706,#F59E0B)'};return '<span style="background:'+(g[b]||'linear-gradient(135deg,#6C3FE8,#2980b9)')+';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">'+b+'</span>';})() : '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Free</span>'; try{localStorage.setItem('se_plan_cache',JSON.stringify({badge:b||null}));}catch(e){} } } catch(e) {}
         el.innerHTML = planBadge + '<a href="/dashboard" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
           '<a href="/dashboard?tab=my-gigs" class="btn btn-primary btn-sm">Dashboard</a>' +
           '<button class="btn btn-primary btn-sm" onclick="window.doLogout();">Sign out</button>';
@@ -646,7 +646,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function escAttr(s) { return escHtml(String(s ?? '')).replace(/'/g, '&#39;'); }
   function escJsStr(s) { return String(s ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r'); }
   function kycBadge(v) { return v ? '<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">✓ KYC</span>' : ''; }
-  function planBadge(v) { return v ? '<span style="display:inline-flex;align-items:center;gap:2px;background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>' : ''; }
+  function planBadge(v) { if (!v) return ''; var g={STARTER:'linear-gradient(135deg,#059669,#34D399)',PRO:'linear-gradient(135deg,#7C3AED,#A855F7)',ELITE:'linear-gradient(135deg,#D97706,#F59E0B)'}; return '<span style="display:inline-flex;align-items:center;gap:2px;background:' + (g[v]||'linear-gradient(135deg,#6C3FE8,#2980b9)') + ';color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>'; }
 
   var gigPage = 1;
 

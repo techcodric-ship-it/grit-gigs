@@ -421,8 +421,9 @@ textarea.fi{resize:vertical;}
 .plan-days b{color:var(--violet);}
 .plan-sb-badge{display:inline-flex;align-items:center;gap:4px;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;}
 .plan-sb-badge.free{background:var(--bg2);color:var(--muted);}
+.plan-sb-badge.starter{background:rgba(5,150,105,.12);color:#059669;}
 .plan-sb-badge.pro{background:rgba(108,63,232,.12);color:var(--violet);}
-.plan-sb-badge.business{background:rgba(234,179,8,.12);color:#B45309;}
+.plan-sb-badge.elite{background:rgba(217,119,6,.12);color:#D97706;}
 
 /* ── MISC ── */
 .toast{position:fixed;bottom:18px;right:18px;z-index:8000;background:var(--ink2);color:#fff;padding:11px 15px;border-radius:var(--rm);font-size:.8rem;box-shadow:var(--shl);transform:translateY(80px);opacity:0;transition:all .3s ease;max-width:250px;line-height:1.5;}
@@ -1937,7 +1938,7 @@ function userStarsHtml(avg, cnt) {
   return '<span style="color:var(--muted);font-size:.6rem;">No reviews</span>';
 }
 function kycBadge(v) { return v ? `<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">✓ KYC</span>` : ''; }
-function planBadge(v) { return v ? `<span style="display:inline-flex;align-items:center;gap:2px;background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">${v}</span>` : ''; }
+function planBadge(v) { if (!v) return ''; var g={STARTER:'linear-gradient(135deg,#059669,#34D399)',PRO:'linear-gradient(135deg,#7C3AED,#A855F7)',ELITE:'linear-gradient(135deg,#D97706,#F59E0B)'}; return `<span style="display:inline-flex;align-items:center;gap:2px;background:${g[v]||'linear-gradient(135deg,#6C3FE8,#2980b9)'};color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">${v}</span>`; }
 async function joinEquityWaitlist(btn){
   try {
     const d = await api('/equity/waitlist',{method:'POST'});
@@ -3772,7 +3773,7 @@ async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planB
       <button class="mb-back" onclick="closeMobileChat()" title="Back to conversations">←</button>
       ${photo ? `<img src="${photo}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">` : `<div class="av" style="width:28px;height:28px;font-size:10px;">${ini}</div>`}
       <div style="display:flex;flex-direction:column;">
-        <span style="font-weight:600;">${name.trim()}${kycVerified ? '<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.56rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:5px;">✓ KYC</span>' : ''}${planBadgeVal ? '<span style="display:inline-flex;align-items:center;gap:2px;background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.56rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;">' + planBadgeVal + '</span>' : ''}</span>
+        <span style="font-weight:600;">${name.trim()}${kycVerified ? '<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.56rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:5px;">✓ KYC</span>' : ''}${planBadgeVal ? (function(){var g={STARTER:'#059669',PRO:'#7C3AED',ELITE:'#D97706'};return '<span style="display:inline-flex;align-items:center;gap:2px;background:'+(g[planBadgeVal]||'#6C3FE8')+';color:#fff;font-size:.56rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;">'+planBadgeVal+'</span>'})() : ''}</span>
         ${isAdminConv && !isAdminUser ? '' : `<span id="chatOnlineStatus" style="font-size:.62rem;${_showOnline ? 'color:#16A34A;' : 'color:var(--muted);'}">${_showOnline ? 'Online' : 'Offline'}</span>`}
       </div>
       ${!isAdminConv || isAdminUser ? `<button data-vp="1" data-uid="${userId||''}" onclick="viewActiveConvProfile()" title="View profile" style="margin-left:auto;background:none;border:1px solid var(--bd);border-radius:99px;padding:2px 10px;font-size:.68rem;color:var(--violet);cursor:pointer;font-weight:600;transition:background .15s;" onmouseover="this.style.background='var(--vl)'" onmouseout="this.style.background='var(--vl)'">View Profile</button>` : ''}
@@ -6354,7 +6355,7 @@ async function openUserProfile(userId) {
   const availBadge = u.isAvailable !== false
     ? `<span style="font-size:.68rem;background:rgba(34,197,94,.1);color:#16A34A;font-weight:600;padding:2px 7px;border-radius:99px;">● Available for work</span>`
     : `<span style="font-size:.68rem;background:rgba(107,114,128,.1);color:#6B7280;font-weight:600;padding:2px 7px;border-radius:99px;">● Not available</span>`;
-  const planBadgeHtml = u.planBadge ? `<span style="font-size:.6rem;padding:1px 6px;border-radius:99px;background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;font-weight:700;">${esc(u.planBadge)}</span>` : '';
+  const planBadgeHtml = u.planBadge ? (function(){var g={STARTER:'#059669',PRO:'#7C3AED',ELITE:'#D97706'};return '<span style="font-size:.6rem;padding:1px 6px;border-radius:99px;background:'+(g[u.planBadge]||'#7C3AED')+';color:#fff;font-weight:700;">'+esc(u.planBadge)+'</span>'})() : '';
   const kycBadge = u.kycVerified ? `<span style="font-size:.68rem;color:#16A34A;font-weight:600;">✓ KYC Verified</span>` : '';
   const socialHtml = Object.keys(socialLinks).length
     ? Object.entries(socialLinks).map(([k, v]) => v ? `<div><a href="${safeUrl(v)}" target="_blank" rel="noopener" style="color:var(--violet);font-size:.78rem;word-break:break-all;">${esc(k.charAt(0).toUpperCase() + k.slice(1))}</a></div>` : '').filter(Boolean).join('')

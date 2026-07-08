@@ -25,7 +25,7 @@ export interface PlanConfig {
   portfolioSlots: number;
   /** "Featured" proposal placements granted per 30-day cycle (highlighted at the top of a project's bid list). */
   featuredProposalsPerMonth: number;
-  badge: "PRO" | "ELITE" | null;
+  badge: "STARTER" | "PRO" | "ELITE" | null;
   description: string;
 }
 
@@ -57,7 +57,7 @@ export const PLANS: PlanConfig[] = [
     maxActiveProjects: 8,
     portfolioSlots: 8,
     featuredProposalsPerMonth: 1,
-    badge: null,
+    badge: "STARTER",
     description: "For freelancers picking up momentum.",
   },
   {

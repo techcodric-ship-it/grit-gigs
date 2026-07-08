@@ -12,7 +12,7 @@ const gT = () => localStorage.getItem('se_token');
 const gU = () => { try { return JSON.parse(localStorage.getItem('se_user') || 'null'); } catch(e) { return null; } };
 const sU = u  => localStorage.setItem('se_user', JSON.stringify(u));
 function kycBadge(v) { return v ? '<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">\u2713 KYC</span>' : ''; }
-function planBadge(v) { return v ? '<span style="display:inline-flex;align-items:center;gap:2px;background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>' : ''; }
+function planBadge(v) { if (!v) return ''; var g={STARTER:'linear-gradient(135deg,#059669,#34D399)',PRO:'linear-gradient(135deg,#7C3AED,#A855F7)',ELITE:'linear-gradient(135deg,#D97706,#F59E0B)'}; return '<span style="display:inline-flex;align-items:center;gap:2px;background:' + (g[v]||'linear-gradient(135deg,#6C3FE8,#2980b9)') + ';color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>'; }
 
 async function api(endpoint, opts = {}) {
   try {
@@ -173,7 +173,7 @@ window.doLogout = function() {
           try {
             var pr2 = JSON.parse(localStorage.getItem('se_plan_cache') || 'null');
             if (pr2 && pr2.badge && pr2.badge !== 'Free') {
-              planBadgeHtml = '<span style="background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">' + pr2.badge + '</span>';
+              planBadgeHtml = (function(){var g={STARTER:'linear-gradient(135deg,#059669,#34D399)',PRO:'linear-gradient(135deg,#6C3FE8,#2980b9)',ELITE:'linear-gradient(135deg,#D97706,#F59E0B)'};return '<span style="background:'+(g[pr2.badge]||'linear-gradient(135deg,#6C3FE8,#2980b9)')+';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">'+pr2.badge+'</span>';})();
             } else if (pr2) {
               planBadgeHtml = '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Free</span>';
             }
