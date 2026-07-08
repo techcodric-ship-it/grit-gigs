@@ -598,6 +598,24 @@ router.post("/admin/conversations/:id/reply", async (req: Request, res: Response
   } catch (err) { console.error("admin reply error:", err); res.status(500).json({ success: false, message: "Failed to send reply" }); }
 });
 
+// ── Send announcement to all users ──
+router.post("/admin/announcement", async (req: Request, res: Response) => {
+  try {
+    const { messageText } = req.body;
+    if (!messageText?.trim()) return res.status(400).json({ success: false, message: "Message text required" });
+    const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
+    if (!admin) return res.status(500).json({ success: false, message: "Admin user not found" });
+    const allUsers = await db.select({ id: usersTable.id }).from(usersTable);
+    let sent = 0;
+    for (const user of allUsers) {
+      if (user.id === admin.id) continue;
+      await _adminSendMessage(admin.id, user.id, messageText.trim(), req, []);
+      sent++;
+    }
+    res.json({ success: true, data: { total: allUsers.length - 1, sent } });
+  } catch (err) { console.error("admin announcement error:", err); res.status(500).json({ success: false, message: "Failed to send announcement" }); }
+});
+
 // ── Send a message from admin to any user ──
 router.post("/admin/users/:id/message", async (req: Request, res: Response) => {
   const { messageText, attachments } = req.body;
