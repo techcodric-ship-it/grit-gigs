@@ -96,6 +96,13 @@ router.post("/orders", authenticate, async (req, res): Promise<void> => {
   if (!service || service.status !== "ACTIVE") { res.status(400).json({ success: false, message: "Service is not available" }); return; }
   if (service.sellerId === req.user!.id) { res.status(400).json({ success: false, message: "Cannot buy your own service" }); return; }
 
+  const [buyerWallet] = await db.select({ balance: freelanceWalletsTable.balance }).from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, req.user!.id)).limit(1);
+  const walletBalance = buyerWallet?.balance ?? 0;
+  if (walletBalance < pkg.priceInr) {
+    res.status(400).json({ success: false, message: "Insufficient wallet balance. Please add funds and try again." });
+    return;
+  }
+
   const deliveryDate = new Date();
   deliveryDate.setDate(deliveryDate.getDate() + pkg.deliveryDays);
 
