@@ -134,23 +134,6 @@ router.post("/barter/requests", authenticate, barterUpload.single("image"), asyn
     return;
   }
 
-  // Subscription plan: check max active barter requests
-  const plan = await getActivePlanForUser(req.user!.id);
-  if (plan.maxActiveBarterRequests !== -1) {
-    const [{ cnt }] = await db
-      .select({ cnt: sql<number>`count(*)` })
-      .from(barterRequestsTable)
-      .where(and(eq(barterRequestsTable.userId, req.user!.id), eq(barterRequestsTable.status, "ACTIVE")));
-    if (Number(cnt) >= plan.maxActiveBarterRequests) {
-      res.status(403).json({
-        success: false,
-        message: `Your ${plan.name} plan allows max ${plan.maxActiveBarterRequests} active exchange${plan.maxActiveBarterRequests === 1 ? '' : 'es'}. Upgrade your plan for more.`,
-        _planLimitExceeded: true,
-      });
-      return;
-    }
-  }
-
   let imageUrl: string | null = null;
   if (req.file) {
     const supabaseUrl = await uploadToSupabase(fs.readFileSync(req.file.path), req.file.originalname, "barter");
@@ -382,24 +365,6 @@ router.post("/barter/matches", authenticate, async (req, res): Promise<void> => 
   if (existing) {
     res.status(400).json({ success: false, message: "Match request already exists" });
     return;
-  }
-
-  // Subscription plan: check monthly barter match credits
-  const plan2 = await getActivePlanForUser(req.user!.id);
-  if (plan2.monthlyBarterMatchCredits !== -1) {
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const [{ cnt }] = await db
-      .select({ cnt: sql<number>`count(*)` })
-      .from(barterMatchesTable)
-      .where(and(eq(barterMatchesTable.user1Id, req.user!.id), sql`created_at >= ${thirtyDaysAgo}`));
-    if (Number(cnt) >= plan2.monthlyBarterMatchCredits) {
-      res.status(403).json({
-        success: false,
-        message: `Your ${plan2.name} plan allows ${plan2.monthlyBarterMatchCredits} match requests per month. Upgrade your plan for more.`,
-        _planLimitExceeded: true,
-      });
-      return;
-    }
   }
 
   const [match] = await db
