@@ -1900,7 +1900,6 @@ const API = '/api';
 const gT  = () => localStorage.getItem('se_token');
 const gU  = () => { try { return JSON.parse(localStorage.getItem('se_user') || 'null'); } catch(e) { return null; } };
 let adminUserId = 'b5ad53bd-6c50-490b-8c3a-d77200f99383';
-let _adminId = '';
 const sU  = u => localStorage.setItem('se_user', JSON.stringify(u));
 const esc = v => String(v ?? '').replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
 const ADMIN_AV = (() => {
@@ -1909,7 +1908,7 @@ const ADMIN_AV = (() => {
 })();
 const avUrl = u => {
   if (u?.profilePhoto) return u.profilePhoto;
-  if (u?.id === adminUserId) return ADMIN_AV;
+  if (u?.firstName === 'Grit&Gigs' || u?.id === adminUserId) return ADMIN_AV;
   return `https://api.dicebear.com/7.x/adventurer/svg?seed=${(u?.id||'').replace(/-/g,'').slice(0,12)}`;
 };
 const moneyInr = v => Number.isFinite(Number(v)) ? '₹' + Number(v).toLocaleString('en-IN') : '₹?';
@@ -2256,7 +2255,8 @@ function _updateConvListOnlineStatus() {
     const otherId = el.getAttribute('data-other-id');
     const dot = el.querySelector('.online-dot');
     if (!otherId || !dot) return;
-    const isOtherAdmin = otherId === adminUserId;
+    const convItem = (window._lastConvList || []).find(c => c.otherUser?.id === otherId);
+    const isOtherAdmin = convItem?.otherUser?.firstName === 'Grit&Gigs' || otherId === adminUserId;
     const show = _onlineUsers.has(otherId) && (!isOtherAdmin || isAdminUser);
     dot.style.display = show ? '' : 'none';
   });
@@ -3689,11 +3689,8 @@ async function loadInbox() {
   const u = gU();
   // Store context (matchId / orderId) for each conversation for banner display
   window._lastConvList = d.data.conversations;
-  // Detect admin's actual UUID from server-renamed conversation (firstName === 'Grit&Gigs')
-  const _adminDetect = d.data.conversations.find(conv => conv.otherUser && conv.otherUser.firstName === 'Grit&Gigs');
-  if (_adminDetect?.otherUser?.id) adminUserId = _adminDetect.otherUser.id;
   let adminUnread = 0;
-  const adminConvIdx = d.data.conversations.findIndex(conv => conv.otherUser && conv.otherUser.id === adminUserId);
+  const adminConvIdx = d.data.conversations.findIndex(conv => conv.otherUser && conv.otherUser.firstName === 'Grit&Gigs');
   let adminConvData = null;
   if (adminConvIdx !== -1) {
     adminConvData = d.data.conversations.splice(adminConvIdx, 1)[0];
@@ -3718,9 +3715,9 @@ async function loadInbox() {
       : (conv.orderId || conv.projectBidId)
         ? `<span style="color:var(--gold);font-weight:600;font-size:.6rem;text-transform:uppercase;letter-spacing:.04em;">Freelance</span>`
         : '';
-    const _isAdmin = other?.id === adminUserId;
+    const _isAdmin = other?.firstName === 'Grit&Gigs';
     const _avEnc = encodeURIComponent(other ? avUrl(other) : '');
-    const _isOtherAdmin = other?.id === adminUserId;
+    const _isOtherAdmin = other?.firstName === 'Grit&Gigs';
     const _showOnline = _onlineUsers.has(other?.id) && (!_isOtherAdmin || isAdminUser);
     const _dispName = esc(firstName + ' ' + lastName);
     const _dispMsg = esc(last?.messageText || 'Start conversation');
@@ -3770,7 +3767,7 @@ async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planB
   const isAdminConv = name.trim() === 'Grit&Gigs Admin';
   const u = gU();
   const isAdminUser = u?.role === 'ADMIN' || u?.id === adminUserId;
-  const _isOtherAdmin = userId === adminUserId;
+  const _isOtherAdmin = userId === adminUserId || name.trim() === 'Grit&Gigs Admin';
   const _showOnline = userId && _onlineUsers.has(userId) && (!_isOtherAdmin || isAdminUser);
   document.getElementById('chatHeader').innerHTML = `
     <div style="display:flex;align-items:center;gap:9px;">
@@ -3804,7 +3801,7 @@ async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planB
     activeCovUserId = d.data.otherUserId;
     const u2 = gU();
     const _isAdminUser = u2?.role === 'ADMIN' || u2?.id === adminUserId;
-    const _otherIsAdmin = activeCovUserId === adminUserId;
+    const _otherIsAdmin = (window._lastConvList || []).find(c => c.id === activeCovId)?.otherUser?.firstName === 'Grit&Gigs' || activeCovUserId === adminUserId;
     const _onlineNow = _onlineUsers.has(activeCovUserId) && (!_otherIsAdmin || _isAdminUser);
     _updateChatHeaderOnlineStatus(_onlineNow);
     const hdr = document.getElementById('chatHeader');
@@ -3812,7 +3809,7 @@ async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planB
       const existingBtn = hdr.querySelector('button[data-vp]');
       if (existingBtn) {
         existingBtn.setAttribute('data-uid', d.data.otherUserId);
-      } else if (d.data?.otherUserId !== adminUserId) {
+      } else if (!(window._lastConvList || []).find(c => c.id === activeCovId)?.otherUser?.firstName === 'Grit&Gigs' && d.data?.otherUserId !== adminUserId) {
         const btn = document.createElement('button');
         btn.setAttribute('data-vp','1');
         btn.setAttribute('data-uid', d.data.otherUserId);
