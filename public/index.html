@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta name="robots" content="noimageindex"/>
+<meta name="robots" content="index, follow, max-image-preview:large"/>
 <title>Grit&Gigs — India's #1 Skill Barter & Freelance Marketplace</title>
 <meta name="description" content="Trade skills without money, freelance for real income, and invest in local businesses — all on one platform. India's first skill barter marketplace."/>
 <meta name="keywords" content="skill barter India, trade skills without money, freelance marketplace India, skill exchange platform, MicroEquity India, barter services online"/>
@@ -27,22 +27,59 @@
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "Organization",
-  "name": "Grit&Gigs",
-  "url": "https://www.gritandgigs.in/",
-  "description": "India's first platform combining skill barter, freelancing, and business investment.",
-  "foundingDate": "2025",
-  "areaServed": "IN",
-  "knowsAbout": ["Skill Barter", "Freelancing", "MicroEquity", "Skill Exchange"],
-  "founder": {
-    "@type": "Person",
-    "name": "Amuthavanan",
-    "jobTitle": "Founder",
-    "url": "https://www.gritandgigs.in/"
-  },
-  "logo": "https://www.gritandgigs.in/logo-og.png",
-  "image": "https://www.gritandgigs.in/logo-og.png",
-  "sameAs": ["https://www.instagram.com/gritandgigs/"]
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://www.gritandgigs.in/#organization",
+      "name": "Grit&Gigs",
+      "url": "https://www.gritandgigs.in/",
+      "description": "India's first platform combining skill barter, freelancing, and business investment.",
+      "foundingDate": "2025",
+      "areaServed": "IN",
+      "knowsAbout": ["Skill Barter", "Freelancing", "MicroEquity", "Skill Exchange"],
+      "founder": {
+        "@type": "Person",
+        "name": "Amuthavanan",
+        "jobTitle": "Founder",
+        "url": "https://www.gritandgigs.in/"
+      },
+      "logo": "https://www.gritandgigs.in/logo-og.png",
+      "image": "https://www.gritandgigs.in/logo-og.png",
+      "sameAs": ["https://www.instagram.com/gritandgigs/"]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://www.gritandgigs.in/#website",
+      "url": "https://www.gritandgigs.in/",
+      "name": "Grit&Gigs",
+      "description": "Trade skills without money, freelance for real income, and invest in local businesses.",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://www.gritandgigs.in/?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      },
+      "inLanguage": "en-IN",
+      "publisher": { "@id": "https://www.gritandgigs.in/#organization" }
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://www.gritandgigs.in/#webapp",
+      "url": "https://www.gritandgigs.in/",
+      "name": "Grit&Gigs",
+      "description": "India's #1 skill barter and freelance marketplace",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "All",
+      "browserRequirements": "Requires JavaScript",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "INR"
+      }
+    }
+  ]
 }
 </script>
 <link rel="stylesheet" href="css/main.css"/>
