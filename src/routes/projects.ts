@@ -318,6 +318,12 @@ router.post('/projects/:id/bids', authenticate, async (req: Request, res: Respon
     return res.status(400).json({ success: false, message: 'Amount and proposal are required' });
   }
 
+  const [bidderWallet] = await db.select({ balance: freelanceWalletsTable.balance }).from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, userId)).limit(1);
+  const bidderBalance = bidderWallet?.balance ?? 0;
+  if (bidderBalance < bidAmount) {
+    return res.status(400).json({ success: false, message: `Insufficient wallet balance. You need ₹${bidAmount.toLocaleString('en-IN')} in your wallet to submit this bid.` });
+  }
+
   // Truelancer rule: only ONE highlighted bid per project
   if (highlight) {
     const [existingHighlight] = await db
@@ -660,7 +666,7 @@ router.post('/projects/:id/mark-complete', authenticate, async (req: Request, re
 
   // Atomically claim the delivery — only the first request succeeds
   const claimResult = await db.execute(
-    sql`UPDATE ${projectsTable} SET ${projectsTable.status} = 'DELIVERED', ${projectsTable.updatedAt} = NOW() WHERE ${projectsTable.id} = ${project.id} AND ${projectsTable.status} IN ('IN_PROGRESS', 'REVISION_REQUESTED')`
+    sql`UPDATE ${sql.identifier("projects")} SET status = 'DELIVERED', updated_at = NOW() WHERE id = ${project.id} AND status IN ('IN_PROGRESS', 'REVISION_REQUESTED')`
   );
   if (claimResult.rowCount === 0) {
     return res.status(400).json({ success: false, message: 'Project is not in progress' });
@@ -716,7 +722,7 @@ router.post('/projects/:id/release-payment', authenticate, async (req: Request, 
 
   // Atomically claim the transition — only the first request succeeds
   const claimResult = await db.execute(
-    sql`UPDATE ${projectsTable} SET ${projectsTable.status} = 'COMPLETED', ${projectsTable.updatedAt} = NOW() WHERE ${projectsTable.id} = ${project.id} AND ${projectsTable.status} = 'DELIVERED'`
+    sql`UPDATE ${sql.identifier("projects")} SET status = 'COMPLETED', updated_at = NOW() WHERE id = ${project.id} AND status = 'DELIVERED'`
   );
   if (claimResult.rowCount === 0) {
     return res.status(409).json({ success: false, message: 'Payment already released' });
@@ -776,7 +782,7 @@ router.post('/projects/:id/release-payment', authenticate, async (req: Request, 
       }
     });
   } catch (e) {
-    await db.execute(sql`UPDATE ${projectsTable} SET ${projectsTable.status} = 'DELIVERED', ${projectsTable.updatedAt} = NOW() WHERE ${projectsTable.id} = ${project.id}`);
+    await db.execute(sql`UPDATE ${sql.identifier("projects")} SET status = 'DELIVERED', updated_at = NOW() WHERE id = ${project.id}`);
     if (e instanceof Error && e.message === "Insufficient funds") {
       return res.status(400).json({ success: false, message: "You don't have enough funds in your wallet. Please add funds and try again." });
     }

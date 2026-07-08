@@ -104,7 +104,7 @@ router.post("/milestones/:id/approve", authenticate, async (req: Request, res: R
 
   // Atomically claim the transition — only the first request succeeds
   const claimResult = await db.execute(
-    sql`UPDATE ${projectMilestonesTable} SET ${projectMilestonesTable.status} = 'APPROVED', ${projectMilestonesTable.approvedAt} = NOW() WHERE ${projectMilestonesTable.id} = ${ms.id} AND ${projectMilestonesTable.status} = 'DELIVERED'`
+    sql`UPDATE ${sql.identifier("project_milestones")} SET status = 'APPROVED', approved_at = NOW() WHERE id = ${ms.id} AND status = 'DELIVERED'`
   );
   if (claimResult.rowCount === 0) {
     res.status(409).json({ success: false, message: "Milestone already approved" });
@@ -166,7 +166,7 @@ router.post("/milestones/:id/approve", authenticate, async (req: Request, res: R
       }
     });
   } catch (e) {
-    await db.execute(sql`UPDATE ${projectMilestonesTable} SET ${projectMilestonesTable.status} = 'DELIVERED' WHERE ${projectMilestonesTable.id} = ${ms.id}`);
+    await db.execute(sql`UPDATE ${sql.identifier("project_milestones")} SET status = 'DELIVERED' WHERE id = ${ms.id}`);
     if (e instanceof Error && e.message === "Insufficient funds") {
       res.status(400).json({ success: false, message: 'You don\'t have enough funds in your wallet. Please add funds and try again.' });
     } else {

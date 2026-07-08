@@ -40,9 +40,9 @@ router.put("/barter/matches/:id/complete", authenticate, async (req: Request, re
   }
 
   // Atomically claim this user's confirmation — only succeeds if not already confirmed
-  const col = isUser1 ? barterMatchesTable.confirmedByUser1 : barterMatchesTable.confirmedByUser2;
+  const colName = isUser1 ? 'confirmed_by_user1' : 'confirmed_by_user2';
   const claimResult = await db.execute(
-    sql`UPDATE ${barterMatchesTable} SET ${col} = TRUE, ${barterMatchesTable.updatedAt} = NOW() WHERE ${barterMatchesTable.id} = ${matchId} AND ${col} = FALSE`
+    sql`UPDATE ${sql.identifier("barter_matches")} SET ${sql.identifier(colName)} = TRUE, updated_at = NOW() WHERE id = ${matchId} AND ${sql.identifier(colName)} = FALSE`
   );
   if (claimResult.rowCount === 0) {
     res.status(409).json({ success: false, message: "Already confirmed completion" });
@@ -59,7 +59,7 @@ router.put("/barter/matches/:id/complete", authenticate, async (req: Request, re
   const bothConfirmed = updatedMatch.confirmedByUser1 && updatedMatch.confirmedByUser2;
   if (bothConfirmed && updatedMatch.status !== "IN_PROGRESS") {
     await db.execute(
-      sql`UPDATE ${barterMatchesTable} SET ${barterMatchesTable.status} = 'IN_PROGRESS', ${barterMatchesTable.updatedAt} = NOW() WHERE ${barterMatchesTable.id} = ${matchId} AND ${barterMatchesTable.status} = 'ACCEPTED'`
+      sql`UPDATE ${sql.identifier("barter_matches")} SET status = 'IN_PROGRESS', updated_at = NOW() WHERE id = ${matchId} AND status = 'ACCEPTED'`
     );
   }
 
