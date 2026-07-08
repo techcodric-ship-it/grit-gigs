@@ -206,7 +206,15 @@ a{text-decoration:none;color:inherit;}
   <div class="fg"><label class="fl">Email</label><input class="fi" id="loginEmail" type="email" value="amuthavananfl@gmail.com" readonly/></div>
   <div class="fg"><label class="fl">Password</label><input class="fi" id="loginPass" type="password" placeholder="Enter your password" autofocus/></div>
   <button class="btn bp btn-full" id="loginBtn" onclick="adminLogin()">Sign In</button>
+  <div class="login-divider"></div>
+  <button class="btn bs btn-full" onclick="showResetForm()" style="font-size:.75rem;">Forgot password?</button>
+  <div id="resetForm" style="display:none;margin-top:12px;">
+    <div class="fg"><label class="fl">Admin API Key</label><input class="fi" id="resetKey" type="password" placeholder="Enter ADMIN_API_KEY from Railway"/></div>
+    <div class="fg"><label class="fl">New Password</label><input class="fi" id="resetPass" type="password" placeholder="New password"/></div>
+    <button class="btn bp btn-full" id="resetBtn" onclick="adminResetPassword()">Reset Password</button>
+  </div>
   <div class="error" id="loginError"></div>
+  <div class="error" id="resetError" style="display:none;"></div>
 </div>
 </div>
 
@@ -517,13 +525,38 @@ async function adminLogin() {
   } catch(e) { err.textContent=e.message; err.style.display='block'; btn.disabled=false; btn.textContent='Sign In'; }
 }
 document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') adminLogin(); });
+function showResetForm() {
+  document.getElementById('resetForm').style.display = 'block';
+  document.getElementById('loginError').style.display = 'none';
+  document.getElementById('resetError').style.display = 'none';
+}
+async function adminResetPassword() {
+  const adminKey = document.getElementById('resetKey').value;
+  const newPass = document.getElementById('resetPass').value;
+  const btn = document.getElementById('resetBtn');
+  const err = document.getElementById('resetError');
+  err.style.display = 'none';
+  if (!adminKey || !newPass) { err.textContent = 'Both fields required'; err.style.display='block'; return; }
+  if (newPass.length < 6) { err.textContent = 'Password must be at least 6 characters'; err.style.display='block'; return; }
+  btn.disabled = true; btn.textContent = 'Resetting...';
+  try {
+    const res = await fetch(`${API}/admin/reset-password`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({adminKey, newPassword: newPass}) });
+    const d = await res.json();
+    if (!d.success) { err.textContent = d.message||'Reset failed'; err.style.display='block'; btn.disabled=false; btn.textContent='Reset Password'; return; }
+    err.style.color = '#1A7A5E'; err.textContent = 'Password reset successful! You can now sign in.'; err.style.display='block';
+    btn.disabled=false; btn.textContent='Reset Password';
+  } catch(e) { err.textContent=e.message; err.style.display='block'; btn.disabled=false; btn.textContent='Reset Password'; }
+}
 function adminLogout() { localStorage.removeItem(KEY_STORE); showLogin(); }
 
 async function loadAdminPhoto() {
   try {
     const key = localStorage.getItem(KEY_STORE);
     if (!key) return;
-    const res = await fetch(`${API}/admin/users/b5ad53bd-6c50-490b-8c3a-d77200f99383`, { headers: { 'X-Admin-Key': key } });
+    const meRes = await fetch(`${API}/admin/me`, { headers: { 'X-Admin-Key': key } });
+    let adminId = 'b5ad53bd-6c50-490b-8c3a-d77200f99383';
+    if (meRes.ok) { const meData = await meRes.json(); if (meData.success && meData.data?.id) adminId = meData.data.id; }
+    const res = await fetch(`${API}/admin/users/${adminId}`, { headers: { 'X-Admin-Key': key } });
     const d = await res.json();
     if (d.success && d.data?.profilePhoto) {
       const el = document.getElementById('adminAvatar');

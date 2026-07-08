@@ -70,8 +70,36 @@ router.post("/admin/login", async (req: Request, res: Response) => {
   res.json({ success: true, data: { adminToken } });
 });
 
+// ── Admin password reset (uses ADMIN_API_KEY env var) ──
+router.post("/admin/reset-password", async (req: Request, res: Response) => {
+  const { adminKey, newPassword } = req.body;
+  if (!adminKey || !newPassword) {
+    return res.status(400).json({ success: false, message: "Admin key and new password required" });
+  }
+  if (adminKey !== process.env.ADMIN_API_KEY) {
+    return res.status(403).json({ success: false, message: "Invalid admin key" });
+  }
+  if (newPassword.length < 6) {
+    return res.status(400).json({ success: false, message: "Password must be at least 6 characters" });
+  }
+  const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
+  if (!admin) {
+    return res.status(500).json({ success: false, message: "Admin user not found" });
+  }
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+  await db.update(usersTable).set({ passwordHash, updatedAt: new Date() }).where(eq(usersTable.id, admin.id));
+  res.json({ success: true, message: "Admin password reset successful" });
+});
+
 // All subsequent routes require the admin API key
 router.use(adminAuth);
+
+// ── Get admin's own user info ──
+router.get("/admin/me", async (req: Request, res: Response) => {
+  const [admin] = await db.select().from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
+  if (!admin) return res.status(404).json({ success: false, message: "Admin user not found" });
+  res.json({ success: true, data: { id: admin.id, email: admin.email, firstName: admin.firstName, lastName: admin.lastName, profilePhoto: admin.profilePhoto, role: admin.role } });
+});
 
 function _ggId(id: string): string {
   return 'G&G-' + id.replace(/-/g, '').slice(0, 8).toUpperCase();

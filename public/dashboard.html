@@ -1907,8 +1907,8 @@ const ADMIN_AV = (() => {
   return 'data:image/svg+xml,' + encodeURIComponent(_svg);
 })();
 const avUrl = u => {
-  if (u?.profilePhoto) return u.profilePhoto;
   if (u?.firstName === 'Grit&Gigs' || u?.role === 'ADMIN' || u?.id === adminUserId) return ADMIN_AV;
+  if (u?.profilePhoto) return u.profilePhoto;
   return `https://api.dicebear.com/7.x/adventurer/svg?seed=${(u?.id||'').replace(/-/g,'').slice(0,12)}`;
 };
 const moneyInr = v => Number.isFinite(Number(v)) ? '₹' + Number(v).toLocaleString('en-IN') : '₹?';
@@ -3700,7 +3700,6 @@ async function loadInbox() {
   updateLiveChatBadge(adminUnread);
   const sorted = adminConvData ? [adminConvData, ...d.data.conversations] : d.data.conversations;
   window._lastConvList = sorted;
-  sorted.forEach(c => console.log('[DEBUG loadInbox] conv:', 'id='+c.id, 'isAdminConv='+c.isAdminConv, 'otherName='+(c.otherUser?.firstName||'')+' '+(c.otherUser?.lastName||''), 'otherRole='+(c.otherUser?.role||''), 'otherId='+(c.otherUser?.id||'')));
   const isAdminUser = u?.role === 'ADMIN' || u?.id === adminUserId;
   c.innerHTML = sorted.map(conv => {
     const other = conv.otherUser;
@@ -3767,7 +3766,6 @@ async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planB
   const isAdminUser = u?.role === 'ADMIN' || u?.id === adminUserId;
   const _convData = (window._lastConvList || []).find(c => c.id === convId);
   const isAdminConv = _convData?.isAdminConv || name.trim() === 'Grit&Gigs Admin';
-  console.log('[DEBUG openConv]', 'convId='+convId, 'name="'+name+'"', 'userId='+userId, 'isAdminUser='+isAdminUser, 'isAdminConv='+isAdminConv, '_convData.isAdminConv='+(_convData?.isAdminConv), 'adminUserId='+adminUserId, 'myRole='+(u?.role||''), 'myId='+(u?.id||''));
   const _isOtherAdmin = isAdminConv;
   const _showOnline = userId && _onlineUsers.has(userId) && (!_isOtherAdmin || isAdminUser);
   document.getElementById('chatHeader').innerHTML = `
@@ -3804,7 +3802,6 @@ async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planB
     const _isAdminUser = u2?.role === 'ADMIN' || u2?.id === adminUserId;
     const _otherIsAdmin = (window._lastConvList || []).find(c => c.id === activeCovId)?.isAdminConv || (window._lastConvList || []).find(c => c.id === activeCovId)?.otherUser?.role === 'ADMIN' || activeCovUserId === adminUserId;
     const _onlineNow = _onlineUsers.has(activeCovUserId) && (!_otherIsAdmin || _isAdminUser);
-    console.log('[DEBUG msg loaded]', '_otherIsAdmin='+_otherIsAdmin, '_onlineNow='+_onlineNow, 'activeCovUserId='+activeCovUserId, 'adminUserId='+adminUserId, '_isAdminUser='+_isAdminUser, 'otherUserId='+(d.data.otherUserId||''), 'hasOnline='+_onlineUsers.has(activeCovUserId));
     _updateChatHeaderOnlineStatus(_onlineNow);
     const hdr = document.getElementById('chatHeader');
     if (hdr) {
