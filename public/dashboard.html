@@ -3686,9 +3686,6 @@ async function loadInbox() {
   badge.style.display = totalUnread > 0 ? 'inline' : 'none';
 
   const u = gU();
-  // Store context (matchId / orderId) for each conversation for banner display
-  window._lastConvList = d.data.conversations;
-  d.data.conversations.forEach(c => console.log('[DEBUG loadInbox] conv:', 'id='+c.id, 'isAdminConv='+c.isAdminConv, 'otherName='+(c.otherUser?.firstName||'')+' '+(c.otherUser?.lastName||''), 'otherRole='+(c.otherUser?.role||''), 'otherId='+(c.otherUser?.id||'')));
   let adminUnread = 0;
   const adminConvIdx = d.data.conversations.findIndex(conv => conv.isAdminConv);
   let adminConvData = null;
@@ -3702,6 +3699,8 @@ async function loadInbox() {
   });
   updateLiveChatBadge(adminUnread);
   const sorted = adminConvData ? [adminConvData, ...d.data.conversations] : d.data.conversations;
+  window._lastConvList = sorted;
+  sorted.forEach(c => console.log('[DEBUG loadInbox] conv:', 'id='+c.id, 'isAdminConv='+c.isAdminConv, 'otherName='+(c.otherUser?.firstName||'')+' '+(c.otherUser?.lastName||''), 'otherRole='+(c.otherUser?.role||''), 'otherId='+(c.otherUser?.id||'')));
   const isAdminUser = u?.role === 'ADMIN' || u?.id === adminUserId;
   c.innerHTML = sorted.map(conv => {
     const other = conv.otherUser;
