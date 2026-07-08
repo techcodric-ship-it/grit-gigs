@@ -583,11 +583,11 @@ async function uploadAdminPhoto(input) {
       localStorage.setItem('admin_user_id', 'a3c8ae8d-419a-4656-a31d-4dca965db1ed');
       const el = document.getElementById('adminAvatar');
       if (el) { el.style.backgroundImage='url('+d.data.profilePhoto+')'; el.style.backgroundSize='cover'; el.style.backgroundPosition='center'; el.textContent=''; }
-      showToast('Profile photo updated', 'ok');
+      notify('Profile photo updated', 'ok');
     } else {
-      showToast(d.message || 'Upload failed', 'err');
+      notify(d.message || 'Upload failed', 'err');
     }
-  } catch(e) { showToast(e.message, 'err'); }
+  } catch(e) { notify(e.message, 'err'); }
   input.value = '';
 }
 
