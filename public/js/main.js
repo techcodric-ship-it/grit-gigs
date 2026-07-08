@@ -12,7 +12,7 @@ const gT = () => localStorage.getItem('se_token');
 const gU = () => { try { return JSON.parse(localStorage.getItem('se_user') || 'null'); } catch(e) { return null; } };
 const sU = u  => localStorage.setItem('se_user', JSON.stringify(u));
 function kycBadge(v) { return v ? '<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">\u2713 KYC</span>' : ''; }
-function planBadge(v) { if (!v) return ''; var g={STARTER:'linear-gradient(135deg,#059669,#34D399)',PRO:'linear-gradient(135deg,#7C3AED,#A855F7)',ELITE:'linear-gradient(135deg,#D97706,#F59E0B)'}; return '<span style="display:inline-flex;align-items:center;gap:2px;background:' + (g[v]||'linear-gradient(135deg,#6C3FE8,#2980b9)') + ';color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>'; }
+if (typeof planBadge !== 'function') { window.planBadge = function(v) { if (!v) return ''; var g={STARTER:'linear-gradient(135deg,#059669,#34D399)',PRO:'linear-gradient(135deg,#7C3AED,#A855F7)',ELITE:'linear-gradient(135deg,#D97706,#F59E0B)'}; return '<span style="display:inline-flex;align-items:center;gap:2px;background:' + (g[v]||'linear-gradient(135deg,#6C3FE8,#2980b9)') + ';color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>'; }; }
 
 async function api(endpoint, opts = {}) {
   try {
