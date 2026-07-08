@@ -18,7 +18,7 @@ import { eq, or, and, desc, count, sql } from "drizzle-orm";
 import { authenticate } from "../middlewares/authenticate";
 import { getActivePlanForUser } from "../lib/subscriptions";
 import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
-import { logger } from "../lib/logger";
+
 
 
 const router: IRouter = Router();
@@ -165,47 +165,41 @@ router.put("/orders/:id/accept", authenticate, async (req, res): Promise<void> =
 });
 
 router.put("/orders/:id/deliver", authenticate, async (req, res): Promise<void> => {
-  try {
-    const deliveryMsg = req.body.deliveryMessage ?? req.body.message ?? "";
-    const deliveryLink = req.body.deliveryLink ?? null;
-    const files = req.body.files ?? [];
-    const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, String(req.params.id)));
-    if (!order) { res.status(404).json({ success: false, message: "Order not found" }); return; }
-    if (order.sellerId !== req.user!.id) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
+  const deliveryMsg = req.body.deliveryMessage ?? req.body.message ?? "";
+  const deliveryLink = req.body.deliveryLink ?? null;
+  const files = req.body.files ?? [];
+  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, String(req.params.id)));
+  if (!order) { res.status(404).json({ success: false, message: "Order not found" }); return; }
+  if (order.sellerId !== req.user!.id) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
 
-    const claimResult = await db.execute(
-      sql`UPDATE ${sql.identifier("orders")} SET status = 'DELIVERED', updated_at = NOW() WHERE id = ${order.id} AND status IN ('ACCEPTED', 'IN_PROGRESS', 'REVISION_REQUESTED')`
-    );
-    if (claimResult.rowCount === 0) {
-      res.status(400).json({ success: false, message: "Order cannot be delivered in current state" });
-      return;
-    }
-
-    const [lastDelivery] = await db.select().from(orderDeliveriesTable).where(eq(orderDeliveriesTable.orderId, order.id)).orderBy(desc(orderDeliveriesTable.revisionNumber)).limit(1);
-    const revisionNumber = lastDelivery ? lastDelivery.revisionNumber + 1 : 0;
-
-    const fullDeliveryMessage = deliveryMsg + (deliveryLink ? `\n\n🔗 Deliverable: ${deliveryLink}` : "");
-    await db.insert(orderDeliveriesTable).values({ orderId: order.id, message: fullDeliveryMessage, files: files ?? [], revisionNumber });
-    await db.insert(notificationsTable).values({ userId: order.buyerId, type: "ORDER_DELIVERED", title: "Work delivered!", message: "Your order has been delivered. Please review and accept.", linkUrl: `/dashboard/orders/${order.id}` });
-
-    const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.orderId, order.id)).limit(1);
-    if (conv) {
-      const inboxMsg = `📦 *Work Delivered!*\n\n${deliveryMsg}${deliveryLink ? `\n\n🔗 Deliverable: ${deliveryLink}` : ""}\n\n_Please review and click "Accept & Release Payment" or request a revision._`;
-      await db.insert(messagesTable).values({
-        conversationId: conv.id,
-        senderId: req.user!.id,
-        messageText: inboxMsg,
-        attachments: [],
-      });
-      await db.update(conversationsTable).set({ lastMessageAt: new Date() }).where(eq(conversationsTable.id, conv.id));
-    }
-
-    res.json({ success: true, message: "Order delivered successfully", data: { deliveryLink } });
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    logger.error({ err: e, url: req.url, method: req.method }, "Order deliver error");
-    res.status(500).json({ success: false, message: msg });
+  const claimResult = await db.execute(
+    sql`UPDATE ${sql.identifier("orders")} SET status = 'DELIVERED', updated_at = NOW() WHERE id = ${order.id} AND status IN ('ACCEPTED', 'IN_PROGRESS', 'REVISION_REQUESTED')`
+  );
+  if (claimResult.rowCount === 0) {
+    res.status(400).json({ success: false, message: "Order cannot be delivered in current state" });
+    return;
   }
+
+  const [lastDelivery] = await db.select().from(orderDeliveriesTable).where(eq(orderDeliveriesTable.orderId, order.id)).orderBy(desc(orderDeliveriesTable.revisionNumber)).limit(1);
+  const revisionNumber = lastDelivery ? lastDelivery.revisionNumber + 1 : 0;
+
+  const fullDeliveryMessage = deliveryMsg + (deliveryLink ? `\n\n🔗 Deliverable: ${deliveryLink}` : "");
+  await db.insert(orderDeliveriesTable).values({ orderId: order.id, message: fullDeliveryMessage, files: files ?? [], revisionNumber });
+  await db.insert(notificationsTable).values({ userId: order.buyerId, type: "ORDER_DELIVERED", title: "Work delivered!", message: "Your order has been delivered. Please review and accept.", linkUrl: `/dashboard/orders/${order.id}` });
+
+  const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.orderId, order.id)).limit(1);
+  if (conv) {
+    const inboxMsg = `📦 *Work Delivered!*\n\n${deliveryMsg}${deliveryLink ? `\n\n🔗 Deliverable: ${deliveryLink}` : ""}\n\n_Please review and click "Accept & Release Payment" or request a revision._`;
+    await db.insert(messagesTable).values({
+      conversationId: conv.id,
+      senderId: req.user!.id,
+      messageText: inboxMsg,
+      attachments: [],
+    });
+    await db.update(conversationsTable).set({ lastMessageAt: new Date() }).where(eq(conversationsTable.id, conv.id));
+  }
+
+  res.json({ success: true, message: "Order delivered successfully", data: { deliveryLink } });
 });
 
 router.put("/orders/:id/revision", authenticate, async (req, res): Promise<void> => {
