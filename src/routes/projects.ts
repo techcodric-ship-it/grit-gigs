@@ -318,12 +318,6 @@ router.post('/projects/:id/bids', authenticate, async (req: Request, res: Respon
     return res.status(400).json({ success: false, message: 'Amount and proposal are required' });
   }
 
-  const [bidderWallet] = await db.select({ balance: freelanceWalletsTable.balance }).from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, userId)).limit(1);
-  const bidderBalance = bidderWallet?.balance ?? 0;
-  if (bidderBalance < bidAmount) {
-    return res.status(400).json({ success: false, message: `Insufficient wallet balance. You need ₹${bidAmount.toLocaleString('en-IN')} in your wallet to submit this bid.` });
-  }
-
   // Truelancer rule: only ONE highlighted bid per project
   if (highlight) {
     const [existingHighlight] = await db
@@ -457,6 +451,12 @@ router.put('/projects/bids/:bidId/accept', authenticate, async (req: Request, re
   if (project.userId !== userId) return res.status(403).json({ success: false, message: 'Only the project owner can accept bids' });
   if (project.status !== 'OPEN') return res.status(400).json({ success: false, message: 'Project is not open' });
   if (bid.userId === userId) return res.status(400).json({ success: false, message: 'Cannot accept your own bid' });
+
+  const [clientWallet] = await db.select({ balance: freelanceWalletsTable.balance }).from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, userId)).limit(1);
+  const clientBalance = clientWallet?.balance ?? 0;
+  if (clientBalance < bid.amount) {
+    return res.status(400).json({ success: false, message: `You need ₹${Number(bid.amount).toLocaleString('en-IN')} in your wallet to accept this bid. Please add funds first.` });
+  }
 
   // Accept this bid, reject others, close project — atomically
   await db.transaction(async (tx) => {
