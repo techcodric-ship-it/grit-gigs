@@ -188,9 +188,6 @@ router.post(
       }
 
       const supabaseUrl = await uploadToSupabase(fs.readFileSync(req.file.path), req.file.originalname, "profiles");
-      if (!supabaseUrl && isSupabaseConfigured()) {
-        res.status(500).json({ success: false, message: "Photo upload failed" }); return;
-      }
       const photoUrl = supabaseUrl || `/uploads/profiles/${req.file.filename}`;
       await db
         .update(usersTable)
