@@ -546,7 +546,7 @@ router.get("/admin/conversations", async (req: Request, res: Response) => {
         return r.rows;
       })(),
       (async () => {
-        const r = await pool.query(`SELECT conversation_id, COUNT(*)::int AS cnt FROM messages WHERE conversation_id = ANY($1::uuid[]) AND sender_id != $2 AND read = FALSE GROUP BY conversation_id`, [convIds, adminId]);
+        const r = await pool.query(`SELECT conversation_id, COUNT(*)::int AS cnt FROM messages WHERE conversation_id = ANY($1::uuid[]) AND sender_id != $2 AND read_at IS NULL GROUP BY conversation_id`, [convIds, adminId]);
         return r.rows;
       })(),
     ]);
@@ -558,9 +558,9 @@ router.get("/admin/conversations", async (req: Request, res: Response) => {
       const other = userMap.get(otherId) ?? null;
       return { ...c, otherUser: other, lastMessage: lastMsgMap.get(c.id) ?? null, unreadCount: unreadMap.get(c.id) ?? 0 };
     });
-    // Mark conversations as read (by admin)
+    // Mark messages as read (by admin)
     for (const c of conversations) {
-      await db.update(messagesTable).set({ read: true }).where(and(eq(messagesTable.conversationId, c.id), sql`${messagesTable.senderId} != ${adminId}`, eq(messagesTable.read, false)));
+      await db.update(messagesTable).set({ readAt: new Date() }).where(and(eq(messagesTable.conversationId, c.id), sql`${messagesTable.senderId} != ${adminId}`, sql`${messagesTable.readAt} IS NULL`));
     }
     res.json({ success: true, data: result });
   } catch (err) { console.error("admin conversations error:", err); res.status(500).json({ success: false, message: "Failed to load conversations" }); }
