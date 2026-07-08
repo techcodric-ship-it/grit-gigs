@@ -737,6 +737,12 @@ router.post("/admin/withdrawals/confirm/:id", async (req: Request, res: Response
         userId: withdrawalRequestsTable.userId,
         amount: withdrawalRequestsTable.amount,
         status: withdrawalRequestsTable.status,
+        upiId: withdrawalRequestsTable.upiId,
+        bankName: withdrawalRequestsTable.bankName,
+        accountNumber: withdrawalRequestsTable.accountNumber,
+        ifscCode: withdrawalRequestsTable.ifscCode,
+        accountName: withdrawalRequestsTable.accountName,
+        createdAt: withdrawalRequestsTable.createdAt,
       })
       .from(withdrawalRequestsTable)
       .where(eq(withdrawalRequestsTable.id, wdId))
@@ -791,6 +797,19 @@ router.post("/admin/withdrawals/confirm/:id", async (req: Request, res: Response
         .where(eq(withdrawalRequestsTable.id, wd.id));
     });
 
+    // Send admin conversation message to user
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" });
+    const timeStr = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+
+    const paymentMethod = wd.upiId
+      ? `UPI ID: ${wd.upiId}`
+      : `Bank: ${wd.bankName || "N/A"} · A/C: ${wd.accountNumber ? "xxxx" + wd.accountNumber.slice(-4) : "N/A"} · IFSC: ${wd.ifscCode || "N/A"} · Name: ${wd.accountName || "N/A"}`;
+
+    const adminMsg = `✅ Your withdrawal of ₹${netAmount} has been processed and sent to your ${paymentMethod}.\n\nAmount: ₹${netAmount}\nDate: ${dateStr}\nTime: ${timeStr}\n\nThank you for using Grit&Gigs!`;
+
+    await _adminSendMessage(adminUser!.id, wd.userId, adminMsg, req, []);
+
     await db.insert(notificationsTable).values({
       userId: wd.userId,
       type: "WITHDRAWAL_COMPLETED",
@@ -801,6 +820,7 @@ router.post("/admin/withdrawals/confirm/:id", async (req: Request, res: Response
 
     res.json({ success: true, message: `Withdrawal confirmed — ₹${netAmount} sent to user (₹${commission} commission credited to your wallet)` });
   } catch (err) {
+    console.error("confirm withdrawal error:", err);
     res.status(500).json({ success: false, message: "Failed to confirm withdrawal" });
   }
 });
