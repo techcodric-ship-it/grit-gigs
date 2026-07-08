@@ -799,8 +799,8 @@ router.post("/admin/withdrawals/confirm/:id", async (req: Request, res: Response
 
     // Send admin conversation message to user
     const now = new Date();
-    const dateStr = now.toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" });
-    const timeStr = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+    const dateStr = now.toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric", timeZone: "Asia/Kolkata" });
+    const timeStr = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata", hour12: true });
 
     const paymentMethod = wd.upiId
       ? `UPI ID: ${wd.upiId}`
