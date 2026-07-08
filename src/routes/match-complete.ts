@@ -174,11 +174,11 @@ router.post("/barter/matches/:id/deliver", authenticate, async (req: Request, re
   }
 
   const isUser1 = match.user1Id === userId;
-  const flagCol = isUser1 ? barterMatchesTable.deliveredByUser1 : barterMatchesTable.deliveredByUser2;
+  const flagColName = isUser1 ? 'delivered_by_user1' : 'delivered_by_user2';
 
   // Atomically claim delivery flag — only the first request succeeds
   const claimResult = await db.execute(
-    sql`UPDATE ${barterMatchesTable} SET ${flagCol} = true, updated_at = NOW() WHERE ${barterMatchesTable.id} = ${matchId} AND ${flagCol} = false`
+    sql`UPDATE ${sql.identifier("barter_matches")} SET ${sql.identifier(flagColName)} = true, updated_at = NOW() WHERE id = ${matchId} AND ${sql.identifier(flagColName)} = false`
   );
   if (claimResult.rowCount === 0) {
     res.status(400).json({ success: false, message: "You have already submitted your deliverable" });
@@ -315,11 +315,11 @@ router.put("/barter/matches/:id/accept-delivery", authenticate, async (req: Requ
   // Atomically claim acceptance for the current user
   const isUser1 = (await db.select({ u1: barterMatchesTable.user1Id }).from(barterMatchesTable).where(eq(barterMatchesTable.id, matchId)).limit(1))[0]?.u1 === userId;
 
-  const acceptCol = isUser1 ? barterMatchesTable.acceptedByUser1 : barterMatchesTable.acceptedByUser2;
-  const deliveredOtherCol = isUser1 ? barterMatchesTable.deliveredByUser2 : barterMatchesTable.deliveredByUser1;
+  const acceptColName = isUser1 ? 'accepted_by_user1' : 'accepted_by_user2';
+  const deliveredOtherColName = isUser1 ? 'delivered_by_user2' : 'delivered_by_user1';
 
   const claimResult = await db.execute(
-    sql`UPDATE ${barterMatchesTable} SET ${acceptCol} = true, updated_at = NOW() WHERE ${barterMatchesTable.id} = ${matchId} AND ${deliveredOtherCol} = true AND ${acceptCol} = false`
+    sql`UPDATE ${sql.identifier("barter_matches")} SET ${sql.identifier(acceptColName)} = true, updated_at = NOW() WHERE id = ${matchId} AND ${sql.identifier(deliveredOtherColName)} = true AND ${sql.identifier(acceptColName)} = false`
   );
   if (claimResult.rowCount === 0) {
     res.status(400).json({ success: false, message: "Cannot accept: your partner hasn't delivered yet or you already accepted." });
