@@ -1908,7 +1908,7 @@ const ADMIN_AV = (() => {
 })();
 const avUrl = u => {
   if (u?.profilePhoto) return u.profilePhoto;
-  if (u?.firstName === 'Grit&Gigs' || u?.id === adminUserId) return ADMIN_AV;
+  if (u?.firstName === 'Grit&Gigs' || u?.role === 'ADMIN' || u?.id === adminUserId) return ADMIN_AV;
   return `https://api.dicebear.com/7.x/adventurer/svg?seed=${(u?.id||'').replace(/-/g,'').slice(0,12)}`;
 };
 const moneyInr = v => Number.isFinite(Number(v)) ? '₹' + Number(v).toLocaleString('en-IN') : '₹?';
@@ -3801,7 +3801,7 @@ async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planB
     activeCovUserId = d.data.otherUserId;
     const u2 = gU();
     const _isAdminUser = u2?.role === 'ADMIN' || u2?.id === adminUserId;
-    const _otherIsAdmin = (window._lastConvList || []).find(c => c.id === activeCovId)?.isAdminConv || activeCovUserId === adminUserId;
+    const _otherIsAdmin = (window._lastConvList || []).find(c => c.id === activeCovId)?.isAdminConv || (window._lastConvList || []).find(c => c.id === activeCovId)?.otherUser?.role === 'ADMIN' || activeCovUserId === adminUserId;
     const _onlineNow = _onlineUsers.has(activeCovUserId) && (!_otherIsAdmin || _isAdminUser);
     _updateChatHeaderOnlineStatus(_onlineNow);
     const hdr = document.getElementById('chatHeader');
