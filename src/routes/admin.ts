@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, like, desc, or, and, sql, isNull, inArray } from "drizzle-orm";
 import {
-  db,
+  db, pool,
   usersTable, notificationsTable,
   freelanceWalletsTable, transactionsTable, withdrawalRequestsTable,
   servicesTable, servicePackagesTable,
@@ -524,6 +524,78 @@ router.post("/admin/upload", upload.array("files", 10), async (req: Request, res
     }
   }
   res.json({ success: true, data: { files: result } });
+});
+
+// ── List all admin conversations ──
+router.get("/admin/conversations", async (req: Request, res: Response) => {
+  try {
+    const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
+    if (!admin) return res.status(500).json({ success: false, message: "Admin user not found" });
+    const adminId = admin.id;
+    const conversations = await db.select().from(conversationsTable).where(
+      or(eq(conversationsTable.user1Id, adminId), eq(conversationsTable.user2Id, adminId)),
+    ).orderBy(desc(conversationsTable.lastMessageAt));
+    if (!conversations.length) return res.json({ success: true, data: [] });
+    const otherIds = conversations.map(c => c.user1Id === adminId ? c.user2Id : c.user1Id);
+    const convIds = conversations.map(c => c.id);
+    const [users, lastMsgs, unreadCounts] = await Promise.all([
+      db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, kycVerified: usersTable.kycVerified })
+        .from(usersTable).where(inArray(usersTable.id, otherIds)),
+      (async () => {
+        const r = await pool.query(`SELECT DISTINCT ON (conversation_id) conversation_id AS "conversationId", id, sender_id AS "senderId", message_text AS "messageText", created_at AS "createdAt", attachments FROM messages WHERE conversation_id = ANY($1::uuid[]) ORDER BY conversation_id, created_at DESC`, [convIds]);
+        return r.rows;
+      })(),
+      (async () => {
+        const r = await pool.query(`SELECT conversation_id, COUNT(*)::int AS cnt FROM messages WHERE conversation_id = ANY($1::uuid[]) AND sender_id != $2 AND read = FALSE GROUP BY conversation_id`, [convIds, adminId]);
+        return r.rows;
+      })(),
+    ]);
+    const userMap = new Map(users.map(u => [u.id, u]));
+    const lastMsgMap = new Map((lastMsgs || []).map(m => [m.conversationId, m]));
+    const unreadMap = new Map((unreadCounts || []).map(r => [r.conversation_id, r.cnt]));
+    const result = conversations.map(c => {
+      const otherId = c.user1Id === adminId ? c.user2Id : c.user1Id;
+      const other = userMap.get(otherId) ?? null;
+      return { ...c, otherUser: other, lastMessage: lastMsgMap.get(c.id) ?? null, unreadCount: unreadMap.get(c.id) ?? 0 };
+    });
+    // Mark conversations as read (by admin)
+    for (const c of conversations) {
+      await db.update(messagesTable).set({ read: true }).where(and(eq(messagesTable.conversationId, c.id), sql`${messagesTable.senderId} != ${adminId}`, eq(messagesTable.read, false)));
+    }
+    res.json({ success: true, data: result });
+  } catch (err) { console.error("admin conversations error:", err); res.status(500).json({ success: false, message: "Failed to load conversations" }); }
+});
+
+// ── Get messages for a conversation ──
+router.get("/admin/conversations/:id/messages", async (req: Request, res: Response) => {
+  try {
+    const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
+    if (!admin) return res.status(500).json({ success: false, message: "Admin user not found" });
+    const messages = await db.select().from(messagesTable).where(eq(messagesTable.conversationId, req.params.id as string)).orderBy(messagesTable.createdAt);
+    const senderIds = [...new Set(messages.map(m => m.senderId))];
+    const senders = await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto }).from(usersTable).where(inArray(usersTable.id, senderIds));
+    const senderMap = new Map(senders.map(s => [s.id, s]));
+    // Add admin sender info for messages from admin
+    const result = messages.map(m => ({
+      ...m, sender: m.senderId === admin.id ? { id: admin.id, firstName: "Grit&Gigs", lastName: "Admin", profilePhoto: senders.find(s => s.id === admin.id)?.profilePhoto ?? null } : (senderMap.get(m.senderId) ?? null),
+    }));
+    res.json({ success: true, data: result });
+  } catch (err) { console.error("admin messages error:", err); res.status(500).json({ success: false, message: "Failed to load messages" }); }
+});
+
+// ── Reply to a conversation ──
+router.post("/admin/conversations/:id/reply", async (req: Request, res: Response) => {
+  try {
+    const { messageText, attachments } = req.body;
+    if (!messageText?.trim()) return res.status(400).json({ success: false, message: "Message text required" });
+    const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
+    if (!admin) return res.status(500).json({ success: false, message: "Admin user not found" });
+    const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, req.params.id)).limit(1);
+    if (!conv) return res.status(404).json({ success: false, message: "Conversation not found" });
+    const otherUserId = conv.user1Id === admin.id ? conv.user2Id : conv.user1Id;
+    const msg = await _adminSendMessage(admin.id, otherUserId, messageText.trim(), req, attachments || []);
+    res.json({ success: true, data: msg });
+  } catch (err) { console.error("admin reply error:", err); res.status(500).json({ success: false, message: "Failed to send reply" }); }
 });
 
 // ── Send a message from admin to any user ──

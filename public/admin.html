@@ -361,17 +361,36 @@ a{text-decoration:none;color:inherit;}
 
 <!-- ═══ MESSAGES ═══ -->
 <div class="ps" id="ps-messages">
-  <div style="margin-bottom:16px;">
-    <h1 style="font-size:1.2rem;">Send Message</h1>
-    <p style="font-size:.82rem;color:var(--muted);margin-top:3px;">Search for a user by GG ID or email and send them a direct message.</p>
-  </div>
-  <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
-    <div class="search-wrap" style="flex:1;max-width:400px;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input class="fi" id="msgUserSearch" placeholder="Search by GG ID (G&G-...) or email..." oninput="debounceMsgUserSearch()" style="max-width:380px;"/>
+  <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+    <div>
+      <h1 style="font-size:1.2rem;">User Messages</h1>
+      <p style="font-size:.82rem;color:var(--muted);margin-top:3px;">Conversations with users — reply to their messages.</p>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn bs btn-sm" onclick="loadAdminConversations()">⟳ Refresh</button>
+      <button class="btn bp btn-sm" onclick="openMessageComposer('','')">✉️ New Message</button>
     </div>
   </div>
-  <div id="msgUserResults" style="max-height:500px;overflow-y:auto;"></div>
+  <div id="adminMessagesApp" style="display:flex;gap:0;border:1px solid var(--bd);border-radius:var(--rm);overflow:hidden;background:var(--white);min-height:500px;">
+    <div id="adminConvList" style="width:280px;min-width:200px;border-right:1px solid var(--bd);overflow-y:auto;background:var(--bg);">
+      <div style="padding:10px 12px;">
+        <input class="fi" id="adminConvSearch" placeholder="Search users..." oninput="filterAdminConvs()" style="font-size:.78rem;padding:6px 10px;"/>
+      </div>
+      <div id="adminConvItems"></div>
+    </div>
+    <div id="adminConvView" style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      <div id="adminConvHeader" style="padding:12px 16px;border-bottom:1px solid var(--bd);font-weight:600;font-size:.9rem;display:flex;align-items:center;gap:8px;min-height:52px;">
+        <span style="color:var(--muted);font-weight:400;">Select a conversation</span>
+      </div>
+      <div id="adminConvMessages" style="flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:6px;"></div>
+      <div id="adminConvReply" style="padding:10px 14px;border-top:1px solid var(--bd);display:none;">
+        <div style="display:flex;gap:8px;">
+          <textarea id="adminReplyInput" placeholder="Type your reply..." style="flex:1;border:1px solid var(--bd);border-radius:var(--r);padding:8px 12px;font-size:.82rem;resize:none;font-family:inherit;outline:none;min-height:38px;" rows="1" oninput="this.style.height='';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
+          <button class="btn bp" onclick="sendAdminReply()" style="align-self:flex-end;">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ═══ EQUITY WAITLIST ═══ -->
@@ -626,7 +645,7 @@ function loadPage(n) {
   else if (n==='users') loadUsers(1);
   else if (n==='reports') loadReports(1);
   else if (n==='kyc') loadKyc();
-  else if (n==='messages') { /* nothing to load on init */ }
+  else if (n==='messages') { loadAdminConversations(); }
   else if (n==='equity') loadEquityWaitlist();
   else if (n==='withdrawals') loadPendingWithdrawals();
 }
@@ -1123,6 +1142,96 @@ async function loadEquityWaitlist() {
     </tr>`).join('')}</tbody></table></div>
     <div style="margin-top:8px;font-size:.72rem;color:var(--muted);text-align:right;">Total: ${entries.length}</div>`;
   } catch(e) { document.getElementById('equityWaitlistContent').innerHTML = `<div class="empty"><div class="empty-sub">Failed to load waitlist</div></div>`; }
+}
+
+// ─── ADMIN CONVERSATIONS ───
+let adminConvs = [];
+let activeAdminConvId = '';
+async function loadAdminConversations() {
+  try {
+    const r = await api('/admin/conversations');
+    adminConvs = Array.isArray(r.data) ? r.data : [];
+    renderAdminConvList();
+    if (activeAdminConvId) {
+      const stillExists = adminConvs.find(c => c.id === activeAdminConvId);
+      if (!stillExists) { activeAdminConvId = ''; document.getElementById('adminConvHeader').innerHTML = '<span style="color:var(--muted);font-weight:400;">Select a conversation</span>'; document.getElementById('adminConvMessages').innerHTML = ''; document.getElementById('adminConvReply').style.display = 'none'; }
+    }
+  } catch(e) { adminConvs = []; renderAdminConvList(); }
+}
+function renderAdminConvList() {
+  const q = (document.getElementById('adminConvSearch')?.value || '').toLowerCase();
+  const filtered = q ? adminConvs.filter(c => { const u = c.otherUser; return u && ((u.firstName+' '+u.lastName).toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)); }) : adminConvs;
+  const el = document.getElementById('adminConvItems');
+  if (!filtered.length) { el.innerHTML = `<div style="padding:20px;text-align:center;font-size:.78rem;color:var(--muted);">No conversations yet</div>`; return; }
+  el.innerHTML = filtered.map(c => {
+    const u = c.otherUser || {};
+    const ini = ((u.firstName||'?')[0]).toUpperCase();
+    const last = c.lastMessage;
+    const unread = c.unreadCount > 0;
+    const isActive = c.id === activeAdminConvId;
+    return `<div class="admin-conv-item" data-conv-id="${c.id}" onclick="selectAdminConv('${c.id}')"
+      style="display:flex;gap:8px;align-items:center;padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--bd);transition:background .12s;${isActive?'background:var(--vl);':''}${unread?'background:#FFF8E7;':''}">
+      <div style="width:32px;height:32px;border-radius:50%;flex-shrink:0;overflow:hidden;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:var(--violet);">${u.profilePhoto ? `<img src="${esc(u.profilePhoto)}" style="width:100%;height:100%;object-fit:cover;"/>` : ini}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:${unread?'700':'500'};font-size:.78rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(u.firstName||'?')} ${esc(u.lastName||'')}</div>
+        <div style="font-size:.65rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${last ? esc(last.messageText||'') : 'No messages'}</div>
+      </div>
+      ${unread ? `<div style="width:7px;height:7px;border-radius:50%;background:var(--gold);flex-shrink:0;"></div>` : ''}
+      <div style="font-size:.55rem;color:var(--muted);flex-shrink:0;">${c.lastMessageAt ? timeAgo(c.lastMessageAt) : ''}</div>
+    </div>`;
+  }).join('');
+}
+function filterAdminConvs() { renderAdminConvList(); }
+async function selectAdminConv(convId) {
+  activeAdminConvId = convId;
+  renderAdminConvList();
+  const conv = adminConvs.find(c => c.id === convId);
+  if (!conv) return;
+  const u = conv.otherUser || {};
+  const ini = ((u.firstName||'?')[0]).toUpperCase();
+  const name = esc(u.firstName||'?') + ' ' + esc(u.lastName||'');
+  document.getElementById('adminConvHeader').innerHTML = `<div style="width:30px;height:30px;border-radius:50%;flex-shrink:0;overflow:hidden;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:var(--violet);">${u.profilePhoto ? `<img src="${esc(u.profilePhoto)}" style="width:100%;height:100%;object-fit:cover;"/>` : ini}</div><span>${name}</span>`;
+  document.getElementById('adminConvReply').style.display = 'block';
+  document.getElementById('adminReplyInput').value = '';
+  try {
+    const r = await api(`/admin/conversations/${convId}/messages`);
+    const msgs = Array.isArray(r.data) ? r.data : [];
+    const msgsEl = document.getElementById('adminConvMessages');
+    msgsEl.innerHTML = msgs.map(m => {
+      const isAdmin = m.senderId === conv.otherUser?.id ? false : true;
+      const senderName = isAdmin ? 'Grit&Gigs Admin' : (m.sender?.firstName||'User');
+      const time = m.createdAt ? timeAgo(m.createdAt) : '';
+      return `<div style="display:flex;flex-direction:${isAdmin?'row-reverse':'row'};align-items:flex-end;gap:6px;${isAdmin?'margin-left:40px;':'margin-right:40px;'}">
+        <div style="max-width:80%;padding:7px 12px;border-radius:12px;${isAdmin?'background:var(--violet);color:#fff;border-bottom-right-radius:4px;':'background:var(--bg2);color:var(--ink);border-bottom-left-radius:4px;'}">
+          <div style="font-size:.75rem;word-break:break-word;white-space:pre-wrap;">${esc(m.messageText||'')}</div>
+          ${m.attachments?.length ? m.attachments.map(a => a.url ? `<div style="margin-top:4px;"><a href="${esc(a.url)}" target="_blank" style="font-size:.65rem;color:${isAdmin?'rgba(255,255,255,.8)':'var(--violet)'};">📎 ${esc(a.name||'Attachment')}</a></div>` : '').join('') : ''}
+          <div style="font-size:.55rem;${isAdmin?'color:rgba(255,255,255,.6);':'color:var(--muted);'}margin-top:3px;text-align:${isAdmin?'left':'right'};">${time}</div>
+        </div>
+      </div>`;
+    }).join('');
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  } catch(e) { document.getElementById('adminConvMessages').innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted);font-size:.8rem;">Failed to load messages</div>`; }
+}
+async function sendAdminReply() {
+  const input = document.getElementById('adminReplyInput');
+  const text = input.value.trim();
+  if (!text || !activeAdminConvId) return;
+  input.disabled = true;
+  try {
+    await api(`/admin/conversations/${activeAdminConvId}/reply`, { method:'POST', body:JSON.stringify({messageText:text}) });
+    input.value = '';
+    await selectAdminConv(activeAdminConvId);
+  } catch(e) { notify(e.message||'Failed to send','err'); }
+  finally { input.disabled = false; input.focus(); }
+}
+function timeAgo(date) {
+  const diff = Date.now() - new Date(date).getTime();
+  const mins = Math.floor(diff/60000);
+  if (mins < 1) return 'now';
+  if (mins < 60) return mins+'m';
+  const hrs = Math.floor(mins/60);
+  if (hrs < 24) return hrs+'h';
+  return Math.floor(hrs/24)+'d';
 }
 
 // ─── MESSAGE TAB SEARCH ───
