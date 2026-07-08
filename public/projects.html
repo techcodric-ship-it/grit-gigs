@@ -424,7 +424,12 @@
 <div class="modal-overlay" id="forgotPwModal">
   <div class="modal" style="max-width:400px;">
     <button class="modal-close" onclick="closeModal('forgotPwModal')">&times;</button>
-    <div class="modal-logo" style="margin-bottom:8px;"><span class="nav-logo-mark">G&amp;G</span></div>
+    <div class="modal-logo" style="margin-bottom:8px;">
+      <div class="nav-logo-mark">
+        <span style="color:#0A0A0F;">G</span><span style="color:var(--violet);">&amp;G</span>
+      </div>
+      <span class="nav-logo-text">Grit<span style="color:var(--violet);">&amp;Gigs</span></span>
+    </div>
     <h2 style="margin-bottom:4px;">Reset password</h2>
     <p class="modal-sub" style="margin-bottom:16px;">Enter your email and we'll send you a reset link.</p>
     <form id="forgotPwForm" onsubmit="event.preventDefault();sendForgotPw()">
