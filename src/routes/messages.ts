@@ -65,17 +65,7 @@ router.get("/messages/online-users", authenticate, async (req, res): Promise<voi
       if (sockets.size > 0) onlineIds.push(userId);
     }
   }
-  const myRole = req.user!.role;
-  const myId = req.user!.id;
-  const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
-  const adminId = admin?.id ?? null;
-  let result: string[];
-  if (myRole === "ADMIN" || myId === adminId) {
-    result = onlineIds;
-  } else {
-    result = onlineIds.filter(id => id !== adminId);
-  }
-  res.json({ success: true, data: { onlineUserIds: result } });
+  res.json({ success: true, data: { onlineUserIds: onlineIds } });
 });
 
 router.get("/messages/conversations", authenticate, async (req, res): Promise<void> => {

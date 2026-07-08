@@ -2246,14 +2246,11 @@ function _updateConvListOnlineStatus() {
   const convList = document.getElementById('convList');
   if (!convList) return;
   const items = convList.querySelectorAll('[data-conv-id]');
-  const u = gU();
-  const isAdminUser = u?.id === adminUserId;
   items.forEach(el => {
     const otherId = el.getAttribute('data-other-id');
     const dot = el.querySelector('.online-dot');
     if (!otherId || !dot) return;
-    const isOtherAdmin = otherId === adminUserId;
-    const show = _onlineUsers.has(otherId) && (!isOtherAdmin || isAdminUser);
+    const show = _onlineUsers.has(otherId);
     dot.style.display = show ? '' : 'none';
   });
 }
@@ -3714,12 +3711,12 @@ async function loadInbox() {
     const _isAdmin = other?.id === adminUserId;
     const _avEnc = encodeURIComponent(other ? avUrl(other) : '');
     const _isOtherAdmin = other?.id === adminUserId;
-    const _showOnline = _onlineUsers.has(other?.id) && (!_isOtherAdmin || isAdminUser);
+    const _showOnline = _onlineUsers.has(other?.id);
     const _dispName = esc(firstName + ' ' + lastName);
     const _dispMsg = esc(last?.messageText || 'Start conversation');
     return `<div data-conv-id="${conv.id}" data-other-id="${other?.id||''}" onclick="openConv('${conv.id}','','${ini}','${_avEnc}','${other?.id||''}',${other?.kycVerified||false},'${esc(other?.planBadge||'')}')"
       style="display:flex;gap:10px;align-items:center;padding:13px 16px;cursor:pointer;border-bottom:1px solid var(--bd);transition:background .15s;${activeCovId === conv.id ? 'background:var(--vl);' : ''}">
-      <span ${_isAdmin ? '' : `onclick="event.stopPropagation();if('${esc(other?.id||'')}')openUserProfile('${esc(other?.id||'')}')" title="View profile"`} style="cursor:pointer;flex-shrink:0;position:relative;">
+      <span onclick="event.stopPropagation();if('${esc(other?.id||'')}')openUserProfile('${esc(other?.id||'')}')" title="View profile" style="cursor:pointer;flex-shrink:0;position:relative;">
         <img src="${esc(avUrl(other))}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid ${unread?'var(--violet)':'var(--bd,#e5e7eb)'};" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
         <div class="av" style="width:34px;height:34px;font-size:12px;display:none;${unread ? 'background:var(--violet);color:white;' : ''}">${ini}</div>
         <span class="online-dot" style="position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;background:#16A34A;border:2px solid var(--bg,#0f0f15);${_showOnline ? '' : 'display:none;'}"></span>
@@ -3763,8 +3760,7 @@ async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planB
   const isAdminConv = name.trim() === 'Grit&Gigs Admin';
   const u = gU();
   const isAdminUser = u?.id === adminUserId;
-  const _isOtherAdmin = userId === adminUserId;
-  const _showOnline = userId && _onlineUsers.has(userId) && (!_isOtherAdmin || isAdminUser);
+  const _showOnline = userId && _onlineUsers.has(userId);
   document.getElementById('chatHeader').innerHTML = `
     <div style="display:flex;align-items:center;gap:9px;">
       <button class="mb-back" onclick="closeMobileChat()" title="Back to conversations">←</button>
@@ -3773,7 +3769,7 @@ async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planB
         <span style="font-weight:600;">${name.trim()}${kycVerified ? '<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.56rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:5px;">✓ KYC</span>' : ''}${planBadgeVal ? '<span style="display:inline-flex;align-items:center;gap:2px;background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.56rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;">' + planBadgeVal + '</span>' : ''}</span>
         <span id="chatOnlineStatus" style="font-size:.62rem;${_showOnline ? 'color:#16A34A;' : 'color:var(--muted);'}">${_showOnline ? 'Online' : 'Offline'}</span>
       </div>
-      ${!isAdminConv ? `<button data-vp="1" data-uid="${userId||''}" onclick="viewActiveConvProfile()" title="View profile" style="margin-left:auto;background:none;border:1px solid var(--bd);border-radius:99px;padding:2px 10px;font-size:.68rem;color:var(--violet);cursor:pointer;font-weight:600;transition:background .15s;" onmouseover="this.style.background='var(--vl)'" onmouseout="this.style.background='var(--vl)'">View Profile</button>` : ''}
+      <button data-vp="1" data-uid="${userId||''}" onclick="viewActiveConvProfile()" title="View profile" style="margin-left:auto;background:none;border:1px solid var(--bd);border-radius:99px;padding:2px 10px;font-size:.68rem;color:var(--violet);cursor:pointer;font-weight:600;transition:background .15s;" onmouseover="this.style.background='var(--vl)'" onmouseout="this.style.background='var(--vl)'">View Profile</button>
     </div>`;
   _savedChatHeader = document.getElementById('chatHeader').innerHTML;
   document.getElementById('ps-inbox').classList.add('show-chat');
@@ -3797,8 +3793,7 @@ async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planB
     activeCovUserId = d.data.otherUserId;
     const u2 = gU();
     const _isAdminUser = u2?.id === adminUserId;
-    const _otherIsAdmin = activeCovUserId === adminUserId;
-    const _onlineNow = _onlineUsers.has(activeCovUserId) && (!_otherIsAdmin || _isAdminUser);
+    const _onlineNow = _onlineUsers.has(activeCovUserId);
     _updateChatHeaderOnlineStatus(_onlineNow);
     const hdr = document.getElementById('chatHeader');
     if (hdr) {
