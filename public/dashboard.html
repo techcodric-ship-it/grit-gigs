@@ -1907,8 +1907,8 @@ const ADMIN_AV = (() => {
   return 'data:image/svg+xml,' + encodeURIComponent(_svg);
 })();
 const avUrl = u => {
-  if (u?.firstName === 'Grit&Gigs' || u?.role === 'ADMIN' || u?.id === adminUserId) return ADMIN_AV;
   if (u?.profilePhoto) return u.profilePhoto;
+  if (u?.firstName === 'Grit&Gigs' || u?.role === 'ADMIN' || u?.id === adminUserId) return ADMIN_AV;
   return `https://api.dicebear.com/7.x/adventurer/svg?seed=${(u?.id||'').replace(/-/g,'').slice(0,12)}`;
 };
 const moneyInr = v => Number.isFinite(Number(v)) ? '₹' + Number(v).toLocaleString('en-IN') : '₹?';

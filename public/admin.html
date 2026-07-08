@@ -554,8 +554,9 @@ async function loadAdminPhoto() {
     const key = localStorage.getItem(KEY_STORE);
     if (!key) return;
     const meRes = await fetch(`${API}/admin/me`, { headers: { 'X-Admin-Key': key } });
-    let adminId = 'b5ad53bd-6c50-490b-8c3a-d77200f99383';
-    if (meRes.ok) { const meData = await meRes.json(); if (meData.success && meData.data?.id) adminId = meData.data.id; }
+    let adminId = localStorage.getItem('admin_user_id') || '';
+    if (meRes.ok) { const meData = await meRes.json(); if (meData.success && meData.data?.id) { adminId = meData.data.id; localStorage.setItem('admin_user_id', adminId); } }
+    if (!adminId) return;
     const res = await fetch(`${API}/admin/users/${adminId}`, { headers: { 'X-Admin-Key': key } });
     const d = await res.json();
     if (d.success && d.data?.profilePhoto) {
@@ -574,6 +575,7 @@ async function uploadAdminPhoto(input) {
     const res = await fetch(`${API}/admin/profile/photo`, { method: 'POST', headers: { 'X-Admin-Key': key }, body: fd });
     const d = await res.json();
     if (d.success) {
+      localStorage.setItem('admin_user_id', 'a3c8ae8d-419a-4656-a31d-4dca965db1ed');
       const el = document.getElementById('adminAvatar');
       if (el) { el.style.backgroundImage='url('+d.data.profilePhoto+')'; el.style.backgroundSize='cover'; el.style.backgroundPosition='center'; el.textContent=''; }
       showToast('Profile photo updated', 'ok');
