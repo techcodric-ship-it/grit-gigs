@@ -456,11 +456,30 @@
       <div class="form-group"><label class="form-label">Email address</label><input class="form-input" type="email" placeholder="arjun@email.com" required/></div>
       <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" placeholder="Your password" required/></div>
       <div style="text-align:right;margin-top:-10px;margin-bottom:18px;">
-        <a style="font-size:0.83rem;color:var(--violet);cursor:pointer;" onclick="alert('Password reset is not yet implemented. Please contact support.');">Forgot password?</a>
+        <a style="font-size:0.83rem;color:var(--violet);cursor:pointer;" onclick="openModal('forgotPwModal')">Forgot password?</a>
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;">Sign in</button>
     </form>
     <p class="modal-footer-text">New to Grit&Gigs? <a onclick="closeModal('loginModal');openModal('signupModal')">Create account</a></p>
+  </div>
+</div>
+
+<!-- Forgot Password Modal -->
+<div class="modal-overlay" id="forgotPwModal">
+  <div class="modal" style="max-width:400px;">
+    <button class="modal-close" onclick="closeModal('forgotPwModal')">&times;</button>
+    <div class="modal-logo" style="margin-bottom:8px;"><span class="nav-logo-mark">G&amp;G</span></div>
+    <h2 style="margin-bottom:4px;">Reset password</h2>
+    <p class="modal-sub" style="margin-bottom:16px;">Enter your email and we'll send you a reset link.</p>
+    <form id="forgotPwForm" onsubmit="event.preventDefault();sendForgotPw()">
+      <div class="form-group">
+        <label class="form-label">Email address</label>
+        <input class="form-input" id="forgotEmail" type="email" placeholder="arjun@email.com" required/>
+      </div>
+      <p id="forgotPwMsg" style="font-size:.78rem;margin-bottom:12px;display:none;"></p>
+      <button type="submit" class="btn btn-primary" id="forgotPwBtn" style="width:100%;justify-content:center;padding:13px;">Send reset link</button>
+    </form>
+    <p class="modal-footer-text"><a onclick="closeModal('forgotPwModal');openModal('loginModal')">Back to sign in</a></p>
   </div>
 </div>
 
@@ -677,6 +696,22 @@ document.addEventListener('DOMContentLoaded',()=>{
 // Expose functions to global scope for inline onclick handlers
   window.loadBPage=loadBPage;window.doSendMatch=doSendMatch;window.openBDet=openBDet;window.doSendMatchDtl=doSendMatchDtl;window.gT=gT;
 })();
+
+function sendForgotPw() {
+  var btn = document.getElementById('forgotPwBtn');
+  var msg = document.getElementById('forgotPwMsg');
+  var email = document.getElementById('forgotEmail').value.trim();
+  if (!email) return;
+  btn.disabled = true; btn.textContent = 'Sending...';
+  msg.style.display = 'none';
+  fetch('/api/auth/forgot-password', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email}) })
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if (d.success) { msg.style.display='block'; msg.style.color='#16A34A'; msg.textContent='Reset link sent! Check your email.'; document.getElementById('forgotEmail').value=''; }
+      else { msg.style.display='block'; msg.style.color='#DC2626'; msg.textContent=d.message||'Failed to send reset link.'; }
+    }).catch(function(){ msg.style.display='block'; msg.style.color='#DC2626'; msg.textContent='Network error. Try again.'; })
+    .finally(function(){ btn.disabled = false; btn.textContent = 'Send reset link'; });
+}
 </script>
 
 </body>
