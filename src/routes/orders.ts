@@ -174,7 +174,7 @@ router.put("/orders/:id/deliver", authenticate, async (req, res): Promise<void> 
     if (order.sellerId !== req.user!.id) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
 
     const claimResult = await db.execute(
-      sql`UPDATE ${ordersTable} SET ${ordersTable.status} = 'DELIVERED', ${ordersTable.updatedAt} = NOW() WHERE ${ordersTable.id} = ${order.id} AND ${ordersTable.status} IN ('ACCEPTED', 'IN_PROGRESS', 'REVISION_REQUESTED')`
+      sql`UPDATE ${sql.identifier("orders")} SET status = 'DELIVERED', updated_at = NOW() WHERE id = ${order.id} AND status IN ('ACCEPTED', 'IN_PROGRESS', 'REVISION_REQUESTED')`
     );
     if (claimResult.rowCount === 0) {
       res.status(400).json({ success: false, message: "Order cannot be delivered in current state" });
@@ -250,7 +250,7 @@ router.put("/orders/:id/complete", authenticate, async (req, res): Promise<void>
 
   // Atomically claim the transition — only the first request succeeds
   const claimResult = await db.execute(
-    sql`UPDATE ${ordersTable} SET ${ordersTable.status} = 'COMPLETED', ${ordersTable.completedAt} = NOW(), ${ordersTable.updatedAt} = NOW() WHERE ${ordersTable.id} = ${order.id} AND ${ordersTable.status} = 'DELIVERED'`
+    sql`UPDATE ${sql.identifier("orders")} SET status = 'COMPLETED', completed_at = NOW(), updated_at = NOW() WHERE id = ${order.id} AND status = 'DELIVERED'`
   );
   if (claimResult.rowCount === 0) {
     res.status(409).json({ success: false, message: "Order already completed" });
@@ -312,7 +312,7 @@ router.put("/orders/:id/complete", authenticate, async (req, res): Promise<void>
     });
   } catch (e) {
     // Roll back the order status claim if the transaction failed
-    await db.execute(sql`UPDATE ${ordersTable} SET ${ordersTable.status} = 'DELIVERED', ${ordersTable.updatedAt} = NOW() WHERE ${ordersTable.id} = ${order.id}`);
+    await db.execute(sql`UPDATE ${sql.identifier("orders")} SET status = 'DELIVERED', updated_at = NOW() WHERE id = ${order.id}`);
     if (e instanceof Error && e.message === "Insufficient funds") {
       res.status(400).json({ success: false, message: "You don't have enough funds in your wallet. Please add funds and try again." });
     } else {
