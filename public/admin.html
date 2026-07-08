@@ -553,17 +553,22 @@ async function loadAdminPhoto() {
   try {
     const key = localStorage.getItem(KEY_STORE);
     if (!key) return;
+    // Reset to default G&G logo first
+    const av = document.getElementById('adminAvatar');
+    if (av) { av.style.backgroundImage = ''; av.innerHTML = '<span style="color:#0A0A0F;">G</span><span style="color:#7C3AED;">&amp;G</span>'; }
     const meRes = await fetch(`${API}/admin/me`, { headers: { 'X-Admin-Key': key } });
     let adminId = localStorage.getItem('admin_user_id') || '';
     if (meRes.ok) { const meData = await meRes.json(); if (meData.success && meData.data?.id) { adminId = meData.data.id; localStorage.setItem('admin_user_id', adminId); } }
+    console.log('loadAdminPhoto adminId:', adminId);
     if (!adminId) return;
     const res = await fetch(`${API}/admin/users/${adminId}`, { headers: { 'X-Admin-Key': key } });
     const d = await res.json();
+    console.log('loadAdminPhoto user data:', d);
     if (d.success && d.data?.profilePhoto) {
       const el = document.getElementById('adminAvatar');
       if (el) { el.style.backgroundImage='url('+d.data.profilePhoto+')'; el.style.backgroundSize='cover'; el.style.backgroundPosition='center'; el.textContent=''; }
     }
-  } catch {}
+  } catch(e) { console.error('loadAdminPhoto error:', e); }
 }
 async function uploadAdminPhoto(input) {
   const file = input.files?.[0];
