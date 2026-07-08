@@ -504,6 +504,7 @@ app.set("io", io);
       await col(`ALTER TABLE barter_matches ADD COLUMN IF NOT EXISTS revised_by_user2 BOOLEAN DEFAULT FALSE`);
       await col(`ALTER TABLE project_bids ADD COLUMN IF NOT EXISTS is_highlighted BOOLEAN DEFAULT FALSE NOT NULL`);
       await col(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS is_paused BOOLEAN DEFAULT FALSE NOT NULL`);
+      await col(`ALTER TABLE order_deliveries ADD COLUMN IF NOT EXISTS revision_number INTEGER DEFAULT 0 NOT NULL`);
 
       // ── Table column fixes (Drizzle schema vs raw migration mismatches) ───
       await col(`ALTER TABLE freelance_wallets ADD COLUMN IF NOT EXISTS total_spent NUMERIC(12,2) DEFAULT 0 NOT NULL`);
