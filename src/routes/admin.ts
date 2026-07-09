@@ -25,7 +25,7 @@ import bcrypt from "bcryptjs";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { uploadToSupabase, isSupabaseConfigured } from "../lib/storage";
+import { uploadToSupabase, isSupabaseConfigured, ensureBucketExists, UPLOADS_BUCKET } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
 import { getActivePlanForUser } from "../lib/subscriptions";
 import { adminAuth } from "../middlewares/adminAuth";
@@ -94,7 +94,24 @@ router.post("/admin/reset-password", async (req: Request, res: Response) => {
 // All subsequent routes require the admin API key
 router.use(adminAuth);
 
-// ── Get admin's own user info ──
+// ── Check Supabase storage status ──
+router.get("/admin/storage/status", async (req: Request, res: Response) => {
+  const supabaseUrl = process.env.SUPABASE_URL || "(not set)";
+  const hasAnonKey = !!process.env.SUPABASE_ANON_KEY;
+  const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const bucketOk = await ensureBucketExists();
+  res.json({
+    success: true,
+    data: {
+      supabaseUrl: supabaseUrl !== "(not set)" ? supabaseUrl.substring(0, 30) + "..." : "(not set)",
+      anonKeyConfigured: hasAnonKey,
+      serviceRoleKeyConfigured: hasServiceKey,
+      bucketExists: bucketOk,
+      bucketName: UPLOADS_BUCKET,
+    },
+  });
+});
+
 router.get("/admin/me", async (req: Request, res: Response) => {
   const [admin] = await db.select().from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
   if (!admin) return res.status(404).json({ success: false, message: "Admin user not found" });
