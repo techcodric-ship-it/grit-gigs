@@ -23,6 +23,10 @@ h1,h2,h3,h4{font-family:'Syne',sans-serif;letter-spacing:-.02em;}
 a{text-decoration:none;color:inherit;}
 .app{display:flex;min-height:100vh;}
 
+/* ── ANIMATED EMOJI ── */
+@keyframes chartPulse{0%,100%{transform:scale(1) translateY(0)}25%{transform:scale(1.08) translateY(-2px)}50%{transform:scale(1) translateY(0)}75%{transform:scale(0.97) translateY(1px)}}
+.emoji-live{display:inline-block;animation:chartPulse 3s ease-in-out infinite;cursor:default;}
+
 /* ── STAR RATING & REVIEWS ── */
 .stars-row{display:flex;gap:6px;margin:12px 0;}
 .star-btn{font-size:1.8rem;background:none;border:none;cursor:pointer;color:#D1D5DB;transition:color .1s;line-height:1;}
@@ -751,7 +755,7 @@ textarea.fi{resize:vertical;}
         <div class="sc"><div class="sl">Reputation</div><div class="sv" id="stRp">—</div><div class="sc2 up">Platform score</div></div>
       </div>
       <div class="card" style="margin-bottom:16px;">
-        <div class="card-hdr"><span class="card-title">📊 Plan Usage</span><span id="planNameBadge" style="font-size:.75rem;color:var(--muted);"></span></div>
+        <div class="card-hdr"><span class="card-title"><span class="emoji-live">📊</span> Plan Usage</span><span id="planNameBadge" style="font-size:.75rem;color:var(--muted);"></span></div>
         <div class="sg" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));padding:4px 0;">
           <div class="sc" style="box-shadow:none;border:none;padding:6px;"><div class="sl">Proposal Credits Left</div><div class="sv" id="stPropCr" style="font-size:1rem;">—</div></div>
           <div class="sc" style="box-shadow:none;border:none;padding:6px;"><div class="sl">Active Gigs</div><div class="sv" id="stActG" style="font-size:1rem;">—</div></div>
