@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { eq } from "drizzle-orm";
-import { uploadToSupabase, isSupabaseConfigured } from "../lib/storage";
+import { uploadToSupabase } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
 import multer from "multer";
 import path from "path";
@@ -47,9 +47,6 @@ router.post("/kyc/submit", authenticate, (req: Request, res: Response, next: Nex
       res.status(400).json({ success: false, message: "docType and a file upload are required" }); return;
     }
     const supabaseUrl = await uploadToSupabase(fs.readFileSync(req.file.path), req.file.originalname, "kyc");
-    if (!supabaseUrl && isSupabaseConfigured()) {
-      res.status(500).json({ success: false, message: "File upload failed" }); return;
-    }
     const fileUrl = supabaseUrl || `/uploads/kyc/${req.file.filename}`;
 
     const [existing] = await db.select().from(kycDocumentsTable).where(eq(kycDocumentsTable.userId, req.user!.id)).limit(1);

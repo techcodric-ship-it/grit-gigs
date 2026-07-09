@@ -25,7 +25,7 @@ import bcrypt from "bcryptjs";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { uploadToSupabase, isSupabaseConfigured, ensureBucketExists, UPLOADS_BUCKET } from "../lib/storage";
+import { uploadToSupabase, ensureBucketExists, UPLOADS_BUCKET } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
 import { getActivePlanForUser } from "../lib/subscriptions";
 import { adminAuth } from "../middlewares/adminAuth";
@@ -516,9 +516,6 @@ router.post("/admin/profile/photo", profileUpload.single("photo"), async (req: R
     return res.status(400).json({ success: false, message: "No photo uploaded" });
   }
   const supabaseUrl = await uploadToSupabase(fs.readFileSync(req.file.path), req.file.originalname, "profiles");
-  if (!supabaseUrl && isSupabaseConfigured()) {
-    return res.status(500).json({ success: false, message: "Upload to storage failed. Check Supabase configuration." });
-  }
   const photoUrl = supabaseUrl || `/uploads/profiles/${req.file.filename}`;
   const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
   if (!admin) return res.status(500).json({ success: false, message: "Admin user not found" });
@@ -535,9 +532,6 @@ router.post("/admin/upload", upload.array("files", 10), async (req: Request, res
   for (const f of files) {
     const supabaseUrl = await uploadToSupabase(fs.readFileSync(f.path), f.originalname, "messages");
     if (!supabaseUrl) {
-      if (isSupabaseConfigured()) {
-        return res.status(500).json({ success: false, message: "File upload failed" });
-      }
       result.push({ name: f.originalname, url: `/uploads/messages/${f.filename}`, size: f.size, mimeType: f.mimetype });
     } else {
       result.push({ name: f.originalname, url: supabaseUrl, size: f.size, mimeType: f.mimetype });

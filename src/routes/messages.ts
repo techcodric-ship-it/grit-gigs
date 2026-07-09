@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { uploadToSupabase, isSupabaseConfigured } from "../lib/storage";
+import { uploadToSupabase } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
 import multer from "multer";
 import path from "path";
@@ -44,10 +44,6 @@ router.post("/messages/upload", authenticate, upload.array("files", 10), async (
   for (const f of files) {
     const supabaseUrl = await uploadToSupabase(fs.readFileSync(f.path), f.originalname, "messages");
     if (!supabaseUrl) {
-      if (isSupabaseConfigured()) {
-        res.status(500).json({ success: false, message: "File upload failed" });
-        return;
-      }
       result.push({ name: f.originalname, url: `/uploads/messages/${f.filename}`, size: f.size, mimeType: f.mimetype });
     } else {
       result.push({ name: f.originalname, url: supabaseUrl, size: f.size, mimeType: f.mimetype });

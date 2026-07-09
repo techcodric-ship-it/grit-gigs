@@ -15,7 +15,7 @@ import { eq, ilike, or, desc, sql, and, gt, inArray } from "drizzle-orm";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { getActivePlanForUser, getOrCreateSubscription, getPlan } from "../lib/subscriptions";
 import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
-import { uploadToSupabase, isSupabaseConfigured } from "../lib/storage";
+import { uploadToSupabase } from "../lib/storage";
 import { createUpiPayout, createBankPayout } from "../lib/razorpay";
 import { PROJECT_ROOT } from "../lib/root";
 import { logger } from "../lib/logger";
