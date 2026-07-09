@@ -5225,6 +5225,7 @@ document.getElementById('profileForm').addEventListener('submit', async e => {
         tagline: document.getElementById('pTagline').value,
         languages,
         hourlyRate: hrVal ? parseInt(hrVal) : null,
+        socialLinks: {linkedin:(document.getElementById("slLinkedin")||{}).value||"",github:(document.getElementById("slGithub")||{}).value||"",twitter:(document.getElementById("slTwitter")||{}).value||"",behance:(document.getElementById("slBehance")||{}).value||"",website:(document.getElementById("slWebsite")||{}).value||""},
       })
     });
 
@@ -5344,7 +5345,7 @@ window.saveSocialLinks = async function() {
     website:  (document.getElementById("slWebsite")||{}).value||"",
   };
   const d = await api("/users/me", { method: "PUT", body: JSON.stringify({ socialLinks }) });
-  if (d.success) { sU(Object.assign({}, gU(), d.data.user)); showToast("Social links saved!", "ok"); }
+  if (d.success) { sU(Object.assign({}, gU(), d.data.user)); popUser(Object.assign({}, gU(), d.data.user)); showToast("Social links saved!", "ok"); }
   else showToast(d.message || "Failed", "err");
 };
 
