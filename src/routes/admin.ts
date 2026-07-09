@@ -499,6 +499,9 @@ router.post("/admin/profile/photo", profileUpload.single("photo"), async (req: R
     return res.status(400).json({ success: false, message: "No photo uploaded" });
   }
   const supabaseUrl = await uploadToSupabase(fs.readFileSync(req.file.path), req.file.originalname, "profiles");
+  if (!supabaseUrl && isSupabaseConfigured()) {
+    return res.status(500).json({ success: false, message: "Upload to storage failed. Check Supabase configuration." });
+  }
   const photoUrl = supabaseUrl || `/uploads/profiles/${req.file.filename}`;
   const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
   if (!admin) return res.status(500).json({ success: false, message: "Admin user not found" });

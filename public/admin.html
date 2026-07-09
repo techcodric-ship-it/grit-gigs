@@ -602,7 +602,12 @@ async function loadAdminPhoto() {
     console.log('loadAdminPhoto user data:', d);
     if (d.success && d.data?.profilePhoto) {
       const el = document.getElementById('adminAvatar');
-      if (el) { el.style.backgroundImage='url('+d.data.profilePhoto+')'; el.style.backgroundSize='cover'; el.style.backgroundPosition='center'; el.textContent=''; }
+      if (el) {
+        const img = new Image();
+        img.onload = function() { el.style.backgroundImage='url('+d.data.profilePhoto+')'; el.style.backgroundSize='cover'; el.style.backgroundPosition='center'; el.textContent=''; };
+        img.onerror = function() { el.style.backgroundImage = ''; el.innerHTML = '<span style="color:#0A0A0F;">G</span><span style="color:#7C3AED;">&amp;G</span>'; };
+        img.src = d.data.profilePhoto;
+      }
     }
   } catch(e) { console.error('loadAdminPhoto error:', e); }
 }
