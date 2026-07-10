@@ -253,6 +253,10 @@ a{text-decoration:none;color:inherit;}
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       Messages
     </button>
+    <button class="ni" data-p="email">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      Send Email
+    </button>
     <button class="ni" data-p="equity">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 1 18"/><polyline points="16 7 22 7 22 13"/></svg>
       Equity Waitlist
@@ -391,6 +395,30 @@ a{text-decoration:none;color:inherit;}
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ═══ SEND EMAIL ═══ -->
+<div class="ps" id="ps-email">
+  <div style="margin-bottom:20px;">
+    <h1 style="font-size:1.2rem;">Send Email</h1>
+    <p style="font-size:.82rem;color:var(--muted);">Emails are sent from noreply@gritandgigs.in. Replies go to gritandgigsofficial@gmail.com.</p>
+  </div>
+  <div style="max-width:500px;">
+    <div class="fg">
+      <label class="fl">To <span style="color:var(--err)">*</span></label>
+      <input class="fi" id="emailTo" placeholder="user@example.com" type="email"/>
+    </div>
+    <div class="fg">
+      <label class="fl">Subject <span style="color:var(--err)">*</span></label>
+      <input class="fi" id="emailSubject" placeholder="Subject"/>
+    </div>
+    <div class="fg">
+      <label class="fl">Message <span style="color:var(--err)">*</span></label>
+      <textarea class="fi" id="emailMessage" rows="8" placeholder="Write your message..." style="resize:vertical;"></textarea>
+    </div>
+    <button class="btn bp" id="sendEmailBtn" onclick="sendAdminEmail()">Send Email</button>
+    <div id="emailStatus" style="margin-top:10px;font-size:.82rem;"></div>
   </div>
 </div>
 
@@ -668,8 +696,29 @@ function loadPage(n) {
   else if (n==='reports') loadReports(1);
   else if (n==='kyc') loadKyc();
   else if (n==='messages') { loadAdminConversations(); }
+  else if (n==='email') {}
   else if (n==='equity') loadEquityWaitlist();
   else if (n==='withdrawals') loadPendingWithdrawals();
+}
+
+async function sendAdminEmail() {
+  const to = document.getElementById('emailTo').value.trim();
+  const subject = document.getElementById('emailSubject').value.trim();
+  const message = document.getElementById('emailMessage').value.trim();
+  const btn = document.getElementById('sendEmailBtn');
+  const status = document.getElementById('emailStatus');
+  if (!to || !subject || !message) { status.innerHTML = '<span style="color:var(--err)">All fields are required</span>'; return; }
+  btn.disabled = true; btn.textContent = 'Sending...';
+  try {
+    const r = await fetch('/api/admin/send-email', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({to,subject,message}) });
+    const d = await r.json();
+    status.innerHTML = d.success ? '<span style="color:var(--ok)">✓ Email sent successfully</span>' : '<span style="color:var(--err)">✗ '+(d.message||'Failed')+'</span>';
+    if (d.success) { document.getElementById('emailTo').value=''; document.getElementById('emailSubject').value=''; document.getElementById('emailMessage').value=''; }
+  } catch(e) {
+    status.innerHTML = '<span style="color:var(--err)">✗ Network error</span>';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Send Email';
+  }
 }
 
 // ─── INIT ───

@@ -28,6 +28,7 @@ import fs from "fs";
 import { uploadToSupabase, ensureBucketExists, UPLOADS_BUCKET } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
 import { getActivePlanForUser } from "../lib/subscriptions";
+import { sendAdminEmail } from "../lib/email";
 import { adminAuth } from "../middlewares/adminAuth";
 import { waitlistTable } from "./equity";
 
@@ -836,6 +837,26 @@ router.post("/admin/withdrawals/confirm/:id", async (req: Request, res: Response
   } catch (err) {
     console.error("confirm withdrawal error:", err);
     res.status(500).json({ success: false, message: "Failed to confirm withdrawal" });
+  }
+});
+
+// POST /admin/send-email — manually send an email to a user
+router.post("/admin/send-email", adminAuth, async (req: Request, res: Response): Promise<void> => {
+  const { to, subject, message } = req.body;
+  if (!to || !subject || !message) {
+    res.status(400).json({ success: false, message: "to, subject, and message are required" });
+    return;
+  }
+  try {
+    const result = await sendAdminEmail(to, subject, message, "gritandgigsofficial@gmail.com");
+    if (result) {
+      res.json({ success: true, message: "Email sent successfully" });
+    } else {
+      res.status(502).json({ success: false, message: "Failed to send email — check Resend API key" });
+    }
+  } catch (err) {
+    console.error("send email error:", err);
+    res.status(500).json({ success: false, message: "Failed to send email" });
   }
 });
 

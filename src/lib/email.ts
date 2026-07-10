@@ -17,6 +17,7 @@ interface EmailOptions {
   to: string;
   subject: string;
   html: string;
+  replyTo?: string;
 }
 
 function layout(content: string): string {
@@ -66,20 +67,22 @@ function layout(content: string): string {
 </html>`;
 }
 
-async function sendResend({ to, subject, html }: EmailOptions): Promise<boolean> {
+async function sendResend({ to, subject, html, replyTo }: EmailOptions): Promise<boolean> {
   if (!RESEND_API_KEY) {
     logger.warn({ to, subject }, "Email skipped — no RESEND_API_KEY set");
     return false;
   }
 
   try {
+    const body = { from: FROM_EMAIL, to, subject, html: layout(html) } as any;
+    if (replyTo) body.reply_to = replyTo;
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${RESEND_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ from: FROM_EMAIL, to, subject, html: layout(html) }),
+      body: JSON.stringify(body),
     });
 
     if (!res.ok) {
@@ -157,5 +160,14 @@ export async function sendNotificationEmail(to: string, title: string, message: 
     html: `<h1>${htmlEscape(title)}</h1>
       <p>${htmlEscape(message)}</p>
       ${linkUrl ? `<p style="text-align:center;margin:24px 0;"><a href="${htmlEscape(linkUrl)}" class="btn">View Details →</a></p>` : ''}`,
+  });
+}
+
+export async function sendAdminEmail(to: string, subject: string, message: string, replyTo?: string): Promise<boolean> {
+  return sendResend({
+    to,
+    subject,
+    html: `<p>${htmlEscape(message).replace(/\n/g, "<br/>")}</p>`,
+    replyTo,
   });
 }
