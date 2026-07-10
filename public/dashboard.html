@@ -3631,10 +3631,7 @@ window.toggleGig = async function(id) {
   if (d.success) {
     showToast(d.message || 'Toggled', 'ok');
     loadOverview();
-    api('/services/mine').then(r => { if (r.success) renderGigCards(r.data.services || [], 'myGigGrid'); });
-    document.querySelectorAll('[onclick*="toggleGig(\'' + id + '\')"]').forEach(b => {
-      b.textContent = b.textContent.trim() === '⏸ Pause' ? '▶ Activate' : '⏸ Pause';
-    });
+    loadBrowseGigs();
   } else if (d._planLimitExceeded) {
     showToast(d.message, 'err');
     setTimeout(() => showPage('plans'), 800);
