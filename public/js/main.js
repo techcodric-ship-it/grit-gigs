@@ -686,7 +686,32 @@ if (path.includes('barter')) {
           notif.querySelector('.match-notif-sub').textContent = suggestions.length === 1
             ? `1 user who offers what you need and needs what you offer.`
             : `${suggestions.length} users who offer what you need and need what you offer.`;
-          if (btn) { btn.textContent = 'See your matches'; btn.onclick = () => location.href = 'dashboard.html'; }
+          if (btn) {
+            btn.textContent = 'See your matches';
+            btn.onclick = function() {
+              const ov = document.createElement('div');
+              ov.className = 'modal-overlay open';
+              ov.id = 'aiMatchModal';
+              ov.style.cursor = 'pointer';
+              ov.innerHTML = '<div class="modal" style="max-width:600px;max-height:85vh;overflow-y:auto;padding:24px 28px;cursor:default;" onclick="event.stopPropagation()"><button class="modal-close" onclick="document.getElementById(\'aiMatchModal\')?.remove();document.body.style.overflow=\'\'">&times;</button><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#6C3DE0,#A78BFA);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;">AI</div><div><div style="font-size:1rem;font-weight:700;">AI Match Suggestions</div><div style="font-size:.78rem;color:var(--muted);">Based on your post — ranked by fit</div></div></div><div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;" id="aiMatchList"></div></div>';
+              ov.addEventListener('click', function() { ov.remove(); document.body.style.overflow = ''; });
+              document.body.appendChild(ov);
+              document.body.style.overflow = 'hidden';
+              const list = document.getElementById('aiMatchList');
+              if (list) {
+                suggestions.forEach(function(r) {
+                  const ini = ((r.user?.firstName||'?')[0] + (r.user?.lastName||'')[0] || '?').toUpperCase();
+                  list.innerHTML += '<div style="display:flex;align-items:center;gap:10px;padding:12px;border-radius:12px;border:1px solid var(--bd);cursor:pointer;transition:all .15s;" onmouseenter="this.style.borderColor=\'var(--violet)\';this.style.background=\'var(--vl)\'" onmouseleave="this.style.borderColor=\'var(--bd)\';this.style.background=\'transparent\'" onclick="document.getElementById(\'aiMatchModal\')?.remove();document.body.style.overflow=\'\';openBDet(\'' + r.id + '\')">' +
+                    (r.imageUrl ? '<div style="width:50px;height:50px;border-radius:10px;overflow:hidden;flex-shrink:0;"><img src="' + r.imageUrl + '" style="width:100%;height:100%;object-fit:cover;"/></div>' : '') +
+                    (r.user?.profilePhoto ? '<img src="' + r.user.profilePhoto + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;"/>' : '<div style="width:36px;height:36px;border-radius:50%;background:#ede9fe;color:#6C3DE0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">' + ini + '</div>') +
+                    '<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:.82rem;">' + (r.skillOffered || '') + '</div><div style="font-size:.68rem;color:var(--muted);">Offered by ' + (r.user?.firstName || '?') + ' · Needs: ' + (r.skillNeeded || '?') + '</div></div>' +
+                    '<span style="font-size:.55rem;font-weight:700;padding:3px 8px;border-radius:100px;background:#ede9fe;color:#6C3DE0;white-space:nowrap;">' + (r.score ? Math.round(r.score * 10) / 10 : '') + ' match</span>' +
+                  '</div>';
+                });
+              }
+              document.addEventListener('keydown', function _esc(e) { if (e.key === 'Escape') { var el = document.getElementById('aiMatchModal'); if (el) { el.remove(); document.body.style.overflow = ''; } document.removeEventListener('keydown', _esc); } });
+            };
+          }
         } else if (hasMyRequest) {
           notif.querySelector('.match-notif-title').textContent = 'No matches found yet';
           notif.querySelector('.match-notif-sub').textContent = 'We haven\'t found a complementary skill swap yet. Check back after more people post.';
