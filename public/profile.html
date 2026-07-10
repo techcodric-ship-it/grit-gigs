@@ -313,7 +313,7 @@ function renderReviews(reviews) {
   const container = document.getElementById('reviewsContainer');
   if (!container) return;
   if (!reviews.length) { container.innerHTML = '<div style="color:#9ca3af;font-size:.85rem;">No reviews yet.</div>'; return; }
-  const typeLabels = { service: 'Gig order', client: 'Client review', barter: 'Barter exchange' };
+  const typeLabels = { service: 'Gig order', client: 'Client review', barter: 'Barter exchange', project: 'Project review' };
   container.innerHTML = reviews.slice(0,10).map(r => `
     <div class="review-item">
       <div class="review-header">

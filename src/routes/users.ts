@@ -467,6 +467,26 @@ router.get("/users/:id", optionalAuth, async (req, res): Promise<void> => {
       // barter_reviews table may not exist on older deployments
     }
 
+    // Project reviews
+    try {
+      const projRows = await pool.query(
+        `SELECT id, reviewer_id, rating, comment, created_at FROM project_reviews WHERE reviewee_id = $1`,
+        [user.id]
+      );
+      for (const r of projRows.rows) {
+        allReviews.push({
+          id: r.id,
+          reviewerId: r.reviewer_id,
+          rating: r.rating,
+          reviewText: r.comment,
+          createdAt: r.created_at,
+          type: 'project',
+        });
+      }
+    } catch (e) {
+      // project_reviews table may not exist on older deployments
+    }
+
     const avgRating = allReviews.length ? allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length : null;
     // Fetch reviews with reviewer info
     let reviews: any[] = [];

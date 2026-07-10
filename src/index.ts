@@ -274,6 +274,17 @@ app.set("io", io);
             created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
           );
 
+          CREATE TABLE IF NOT EXISTS project_reviews (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            reviewer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            reviewee_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+            comment TEXT,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
+          CREATE INDEX IF NOT EXISTS idx_project_reviews_project ON project_reviews(project_id);
+
           CREATE TABLE IF NOT EXISTS projects (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             client_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
