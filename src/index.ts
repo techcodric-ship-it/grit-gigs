@@ -6,6 +6,8 @@ import { logger } from "./lib/logger";
 import { pool } from "./db";
 import { ensureBucket } from "./lib/storage";
 
+process.env.DEPLOY_TRIGGER = "1";
+
 process.on("unhandledRejection", (reason) => {
   logger.error({ err: reason }, "Unhandled promise rejection — exiting");
   process.exit(1);
