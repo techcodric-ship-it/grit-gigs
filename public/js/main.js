@@ -356,6 +356,7 @@ async function loadLiveBarterCards() {
     const avHtml = pp ? `<img src="${pp}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;"/>` : `<div class="avatar-placeholder ${bg}" style="width:34px;height:34px;font-size:12px;">${initials}</div>`;
     return `
       <div class="barter-card">
+        ${r.imageUrl ? `<div style="height:120px;overflow:hidden;border-radius:8px;margin-bottom:14px;"><img src="${r.imageUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.style.display='none'"/></div>` : ''}
         <div class="barter-card-top">
           <div class="barter-user-info">
             ${avHtml}
