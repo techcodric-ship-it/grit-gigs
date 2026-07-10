@@ -2808,7 +2808,6 @@ function renderBarterCards(reqs, c, sentMatchIds = new Set()) {
       ${r.description ? `<div class="bc-desc">${esc(r.description.slice(0, 100))}${r.description.length > 100 ? '...' : ''}</div>` : ''}
       ${!isOwn ? `<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
         <button class="btn bs btn-xs" style="font-size:.65rem;padding:3px 8px;" onclick="event.stopPropagation();toggleSave('BARTER','${r.id}',this)">♡ Save</button>
-        <button class="btn bs btn-xs" style="font-size:.65rem;padding:3px 8px;" onclick="event.stopPropagation();openInviteModal('BARTER','${r.id}')">📨 Invite</button>
         <button class="btn bs btn-xs" style="font-size:.65rem;padding:3px 8px;color:var(--err);" onclick="event.stopPropagation();openReportModal('BARTER','${r.id}')">🚩 Report</button>
       </div>` : ''}
       <div class="bc-tags">
@@ -3375,7 +3374,6 @@ async function openBarterDet(id) {
     ${actionHtml}
     ${!isOwn ? `<div style="display:flex;gap:8px;margin-top:10px;justify-content:center;">
       <button class="btn bs btn-xs" onclick="event.stopPropagation();toggleSave('BARTER','${r.id}',this)">♡ Save</button>
-      <button class="btn bs btn-xs" onclick="event.stopPropagation();openInviteModal('BARTER','${r.id}')">📨 Invite</button>
       <button class="btn bs btn-xs" style="color:var(--err);" onclick="event.stopPropagation();openReportModal('BARTER','${r.id}')">🚩 Report</button>
     </div>` : ''}
   </div>`;
@@ -3400,32 +3398,6 @@ async function toggleSave(itemType, itemId, btn) {
   const d = await api('/saved', { method: 'POST', body: JSON.stringify({ itemType, itemId }) });
   showToast(d.success ? '⭐ Saved!' : d.message || 'Error', d.success ? 'ok' : 'err');
   if (d.success && btn) { btn.textContent = '⭐ Saved'; btn.style.opacity = '.6'; btn.onclick = null; }
-}
-async function openInviteModal(targetType, targetId) {
-  inputModal('📨 Send Invite', '', '', async (vals) => {
-    if (!vals.ggid.trim()) { showToast('Enter a ggId', 'err'); return; }
-    const raw = vals.ggid.trim();
-    const res = await api('/users/by-ggid/' + encodeURIComponent(raw));
-    if (!res.success || !res.data?.users?.length) { showToast('No user found with that ggId', 'err'); return; }
-    const users = res.data.users;
-    if (users.length > 1) {
-      const picks = users.map((u, i) => `${i + 1}. ${u.firstName} ${u.lastName || ''}`).join('\n');
-      const pick = prompt(`Multiple users found:\n${picks}\n\nEnter number:`);
-      const idx = parseInt(pick) - 1;
-      if (idx >= 0 && idx < users.length) {
-        sendInvite(targetType, targetId, users[idx].id, vals.message.trim());
-      } else { showToast('Invalid selection', 'err'); }
-    } else {
-      sendInvite(targetType, targetId, users[0].id, vals.message.trim());
-    }
-  }, {
-    okLabel: 'Invite',
-    fields: [
-      { id: 'ggid', label: 'Platform ID (ggId)', type: 'text', placeholder: 'e.g. G&G-649E8B79 or just 649E8B79' },
-      { id: 'message', label: 'Message (optional)', type: 'textarea', placeholder: 'Why would they be a good fit?' },
-    ],
-    required: 'ggid',
-  });
 }
 async function sendInvite(targetType, targetId, toUserId, message) {
   const d = await api('/invites', { method: 'POST', body: JSON.stringify({ targetType, targetId, toUserId, message }) });
@@ -6348,7 +6320,6 @@ async function openProjectDet(projectId, viewAs, myBidId = null) {
     ${bidForm}
     ${!isOwn ? `<div style="display:flex;gap:8px;margin-top:10px;justify-content:center;">
       <button class="btn bs btn-xs" onclick="event.stopPropagation();toggleSave('PROJECT','${p.id}',this)">♡ Save</button>
-      ${p.status === 'OPEN' ? `<button class="btn bs btn-xs" onclick="event.stopPropagation();openInviteModal('PROJECT','${p.id}')">📨 Invite</button>` : ''}
       <button class="btn bs btn-xs" style="color:var(--err);" onclick="event.stopPropagation();openReportModal('PROJECT','${p.id}')">🚩 Report</button>
     </div>` : ''}
   </div>`;
