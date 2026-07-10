@@ -798,7 +798,7 @@ router.post("/admin/withdrawals/confirm/:id", async (req: Request, res: Response
         );
 
         await tx.insert(transactionsTable).values({
-          userId: wd.userId,
+          userId: adminUser.id,
           type: "COMMISSION",
           amount: commission,
           description: `Withdrawal commission (${commissionPct}%) on ₹${wd.amount}`,

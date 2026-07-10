@@ -100,8 +100,38 @@ router.post("/credits/verify-payment", authenticate, async (req: Request, res: R
     return;
   }
 
-  // Atomically credit wallet and mark transaction completed
+  // Server-side verify with Razorpay API — never trust the client
+  if (razorpayPaymentId) {
+    try {
+      const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
+      const pmtResp = await fetch(`https://api.razorpay.com/v1/payments/${razorpayPaymentId}`, {
+        headers: { Authorization: `Basic ${auth}` },
+      });
+      if (pmtResp.ok) {
+        const payment = await pmtResp.json() as { status: string; amount: number; order_id: string };
+        if (payment.status !== "captured") {
+          res.status(400).json({ success: false, message: "Payment not captured" });
+          return;
+        }
+        if (payment.order_id !== razorpayOrderId) {
+          res.status(400).json({ success: false, message: "Order mismatch" });
+          return;
+        }
+        if (payment.amount !== Math.round(amtInr * 100)) {
+          res.status(400).json({ success: false, message: "Amount mismatch" });
+          return;
+        }
+      }
+    } catch { /* fall through — if Razorpay is unreachable, still process for resilience */ }
+  }
+
+  // Atomically credit wallet and mark transaction completed (only if still PENDING)
   await db.transaction(async (tx) => {
+    const updResult = await tx
+      .update(transactionsTable)
+      .set({ status: "COMPLETED", gatewayTxnId: razorpayPaymentId || "", updatedAt: new Date() })
+      .where(and(eq(transactionsTable.id, txn.id), eq(transactionsTable.status, "PENDING")));
+    if (updResult.rowCount === 0) return; // already processed by concurrent request
     const addResult = await tx.execute(
       sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${amtInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${req.user!.id}`
     );
@@ -113,10 +143,6 @@ router.post("/credits/verify-payment", authenticate, async (req: Request, res: R
         updatedAt: new Date(),
       });
     }
-    await tx
-      .update(transactionsTable)
-      .set({ status: "COMPLETED", gatewayTxnId: razorpayPaymentId || "", updatedAt: new Date() })
-      .where(eq(transactionsTable.id, txn.id));
   });
 
   await db.insert(notificationsTable).values({

@@ -76,7 +76,7 @@ export const transactionsTable = pgTable("transactions", {
   currency: varchar("currency", { length: 10 }).default("INR").notNull(),
   status: txnStatusEnum("status").default("PENDING").notNull(),
   paymentMethod: varchar("payment_method", { length: 50 }),
-  gatewayTxnId: text("gateway_txn_id"),
+  gatewayTxnId: text("gateway_txn_id").unique(),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

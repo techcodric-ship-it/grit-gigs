@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and, inArray } from "drizzle-orm";
 import { db, withdrawalRequestsTable, transactionsTable, freelanceWalletsTable, notificationsTable } from "../db";
 import { verifyWebhookSignature } from "../lib/razorpay";
 
@@ -65,10 +65,16 @@ router.post("/payments/webhook", async (req: Request, res: Response): Promise<vo
         })
         .where(eq(withdrawalRequestsTable.id, withdrawal.id));
     } else if (event === "payout.reversed" || event === "payout.failed") {
-      await db
+      // Idempotency: only process if withdrawal hasn't already been marked FAILED
+      const updResult = await db
         .update(withdrawalRequestsTable)
         .set({ status: "FAILED", gatewayTxnId: payoutId || withdrawal.gatewayTxnId })
-        .where(eq(withdrawalRequestsTable.id, withdrawal.id));
+        .where(and(eq(withdrawalRequestsTable.id, withdrawal.id), inArray(withdrawalRequestsTable.status, ["PENDING", "PROCESSING"])));
+
+      if (updResult.rowCount === 0) {
+        res.status(200).json({ success: true, message: "Already processed" });
+        return;
+      }
 
       // Refund the amount back to wallet on failure
       if (status === "failed" || event === "payout.reversed") {
@@ -125,13 +131,14 @@ router.post("/payments/webhook", async (req: Request, res: Response): Promise<vo
 
     const amtInr = pending.amount;
     await db.transaction(async (tx) => {
+      const updResult = await tx
+        .update(transactionsTable)
+        .set({ status: "COMPLETED", gatewayTxnId: paymentId, updatedAt: new Date() })
+        .where(and(eq(transactionsTable.id, pending.id), eq(transactionsTable.status, "PENDING")));
+      if (updResult.rowCount === 0) return;
       await tx.execute(
         sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${amtInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${pending.userId}`
       );
-      await tx
-        .update(transactionsTable)
-        .set({ status: "COMPLETED", gatewayTxnId: paymentId, updatedAt: new Date() })
-        .where(eq(transactionsTable.id, pending.id));
     });
     await db.insert(notificationsTable).values({
       userId: pending.userId,

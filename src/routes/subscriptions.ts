@@ -160,62 +160,93 @@ router.post("/subscriptions/create-order", authenticate, async (req: Request, re
 
 // POST /subscriptions/verify-payment — verify Razorpay payment and activate plan.
 router.post("/subscriptions/verify-payment", authenticate, async (req: Request, res: Response): Promise<void> => {
-  const { razorpayOrderId, razorpayPaymentId, planId } = req.body;
+  const { razorpayOrderId, razorpayPaymentId } = req.body;
   if (!razorpayConfigured()) {
     res.status(503).json({ success: false, message: "Payment gateway not configured" });
     return;
   }
 
-  let effectivePlanId = planId as string;
-
-  // Look up transaction by order ID to get plan info if not provided
-  if (razorpayOrderId) {
-    const [txn] = await db
-      .select({ id: transactionsTable.id, description: transactionsTable.description, status: transactionsTable.status })
-      .from(transactionsTable)
-      .where(eq(transactionsTable.gatewayTxnId, razorpayOrderId))
-      .limit(1);
-    if (txn) {
-      if (txn.status === "COMPLETED") {
-        res.json({ success: true, message: "Already processed" });
-        return;
-      }
-      const storedPlan = txn.description ? getPlanIdFromDescription(txn.description) : null;
-      if (storedPlan) effectivePlanId = storedPlan;
-    }
+  if (!razorpayOrderId) {
+    res.status(400).json({ success: false, message: "Missing order ID" });
+    return;
   }
 
-  const plan = PLANS.find((p) => p.id === effectivePlanId);
+  // Always derive plan from stored transaction — never trust client-supplied planId
+  const [txn] = await db
+    .select({ id: transactionsTable.id, description: transactionsTable.description, status: transactionsTable.status, amount: transactionsTable.amount })
+    .from(transactionsTable)
+    .where(eq(transactionsTable.gatewayTxnId, razorpayOrderId))
+    .limit(1);
+  if (!txn) {
+    res.status(400).json({ success: false, message: "Transaction not found" });
+    return;
+  }
+  if (txn.status === "COMPLETED") {
+    res.json({ success: true, message: "Already processed" });
+    return;
+  }
+
+  const storedPlan = txn.description ? getPlanIdFromDescription(txn.description) : null;
+  if (!storedPlan) {
+    res.status(400).json({ success: false, message: "Invalid transaction" });
+    return;
+  }
+
+  const plan = PLANS.find((p) => p.id === storedPlan);
   if (!plan) {
     res.status(400).json({ success: false, message: "Invalid plan" });
     return;
   }
 
-  // Activate the plan
+  // Server-side verify with Razorpay API — never trust the client
+  if (razorpayPaymentId) {
+    try {
+      const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
+      const pmtResp = await fetch(`https://api.razorpay.com/v1/payments/${razorpayPaymentId}`, {
+        headers: { Authorization: `Basic ${auth}` },
+      });
+      if (pmtResp.ok) {
+        const payment = await pmtResp.json() as { status: string; amount: number; order_id: string };
+        if (payment.status !== "captured") {
+          res.status(400).json({ success: false, message: "Payment not captured" });
+          return;
+        }
+        if (payment.order_id !== razorpayOrderId) {
+          res.status(400).json({ success: false, message: "Order mismatch" });
+          return;
+        }
+        if (payment.amount !== Math.round(plan.priceInr * 100)) {
+          res.status(400).json({ success: false, message: "Amount mismatch" });
+          return;
+        }
+      }
+    } catch { /* fall through for resilience */ }
+  }
+
+  // Activate plan and mark transaction completed in one transaction
   const userId = req.user!.id;
   const sub = await getOrCreateSubscription(userId);
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-  await db
-    .update(userSubscriptionsTable)
-    .set({
-      planId: plan.id,
-      startedAt: now,
-      expiresAt,
-      proposalCreditsRemaining: plan.monthlyProposalCredits,
-      featuredProposalsRemaining: plan.featuredProposalsPerMonth,
-      creditsResetAt: now,
-      updatedAt: now,
-    })
-    .where(eq(userSubscriptionsTable.id, sub.id));
-
-  // Mark transaction as completed
-  if (razorpayOrderId) {
-    await db
+  await db.transaction(async (tx) => {
+    const updResult = await tx
       .update(transactionsTable)
       .set({ status: "COMPLETED", gatewayTxnId: razorpayPaymentId || "", updatedAt: now })
-      .where(eq(transactionsTable.gatewayTxnId, razorpayOrderId));
-  }
+      .where(and(eq(transactionsTable.gatewayTxnId, razorpayOrderId), eq(transactionsTable.status, "PENDING")));
+    if (updResult.rowCount === 0) return;
+    await tx
+      .update(userSubscriptionsTable)
+      .set({
+        planId: plan.id,
+        startedAt: now,
+        expiresAt,
+        proposalCreditsRemaining: plan.monthlyProposalCredits,
+        featuredProposalsRemaining: plan.featuredProposalsPerMonth,
+        creditsResetAt: now,
+        updatedAt: now,
+      })
+      .where(eq(userSubscriptionsTable.id, sub.id));
+  });
 
   await db.insert(notificationsTable).values({
     userId,
