@@ -4343,7 +4343,7 @@ function renderGigCards(svcs, cId) {
           <div class="gig-price">₹${price.toLocaleString('en-IN')}<span class="gig-price-sub"> starting</span></div>
         </div>
         <div style="font-size:.65rem;color:var(--muted);margin-top:4px;">🕒 ${timeAgo(s.createdAt)}</div>
-        ${isOwn ? `<div style="margin-top:8px;display:flex;gap:6px;"><button class="btn bs btn-xs" onclick="event.stopPropagation();openEditGigMod('${s.id}')">✏ Edit</button><button class="btn bs btn-xs" onclick="event.stopPropagation();toggleGig('${s.id}')">${s.status === 'ACTIVE' ? '⏸ Pause' : '▶ Activate'}</button><button class="btn bs btn-xs" onclick="event.stopPropagation();openGigInvite('${s.id}')" style="border:1px solid #6C3DE0;color:#6C3DE0;background:#F5F0FF;">➕ Invite</button><button class="btn bs btn-xs" onclick="event.stopPropagation();deleteGig('${s.id}')" style="color:var(--err);">🗑 Delete</button></div>` : ''}
+        ${isOwn ? `<div style="margin-top:8px;display:flex;gap:6px;"><button class="btn bs btn-xs" onclick="event.stopPropagation();openEditGigMod('${s.id}')">✏ Edit</button>${cId === 'brGigGrid' ? '' : `<button class="btn bs btn-xs" onclick="event.stopPropagation();toggleGig('${s.id}')">${s.status === 'ACTIVE' ? '⏸ Pause' : '▶ Activate'}</button>`}<button class="btn bs btn-xs" onclick="event.stopPropagation();openGigInvite('${s.id}')" style="border:1px solid #6C3DE0;color:#6C3DE0;background:#F5F0FF;">➕ Invite</button><button class="btn bs btn-xs" onclick="event.stopPropagation();deleteGig('${s.id}')" style="color:var(--err);">🗑 Delete</button></div>` : ''}
       </div>
     </div>`;
   }).join('');
