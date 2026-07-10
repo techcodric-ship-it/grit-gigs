@@ -3972,6 +3972,20 @@ function _openConvById(convId, retries = 5) {
   return false;
 }
 
+function showImageLightbox(url, name) {
+  const ov = document.createElement('div');
+  ov.className = 'mo open';
+  ov.style.background = 'rgba(0,0,0,.88)';
+  ov.style.cursor = 'zoom-out';
+  ov.innerHTML = `<div style="position:fixed;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;padding:20px;z-index:100000;">
+    <button onclick="this.closest('.mo').remove();document.body.style.overflow=''" style="position:fixed;top:14px;right:18px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:24px;width:40px;height:40px;border-radius:50%;cursor:pointer;z-index:100001;display:flex;align-items:center;justify-content:center;line-height:1;">×</button>
+    <img src="${esc(url)}" alt="${esc(name)}" style="max-width:100%;max-height:90vh;border-radius:6px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.5);" onclick="event.stopPropagation()"/>
+  </div>`;
+  ov.addEventListener('click', function() { ov.remove(); document.body.style.overflow = ''; });
+  document.body.appendChild(ov);
+  document.body.style.overflow = 'hidden';
+}
+
 function renderMsgAttachments(attachments, mine) {
   if (!attachments || !attachments.length) return '';
   return attachments.map(f => {
@@ -3980,9 +3994,9 @@ function renderMsgAttachments(attachments, mine) {
     const name = f.name || 'file';
     if (isImage) {
       return `<div style="margin-top:6px;">
-        <a href="${url}" target="_blank" style="display:block;">
-          <img src="${url}" alt="${name}" style="max-width:220px;max-height:200px;border-radius:8px;display:block;cursor:pointer;" onerror="this.style.display='none'"/>
-        </a>
+        <div onclick="showImageLightbox('${esc(url)}','${esc(name)}')" style="cursor:pointer;">
+          <img src="${url}" alt="${name}" style="max-width:220px;max-height:200px;border-radius:8px;display:block;" onerror="this.style.display='none'"/>
+        </div>
         <a href="${url}" download="${name}" style="display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:.68rem;opacity:.75;color:${mine ? 'white' : 'var(--violet)'};text-decoration:none;">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Download
