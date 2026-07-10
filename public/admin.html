@@ -708,9 +708,11 @@ async function sendAdminEmail() {
   const btn = document.getElementById('sendEmailBtn');
   const status = document.getElementById('emailStatus');
   if (!to || !subject || !message) { status.innerHTML = '<span style="color:var(--err)">All fields are required</span>'; return; }
+  const key = localStorage.getItem('admin_api_key');
+  if (!key) { showLogin(); return; }
   btn.disabled = true; btn.textContent = 'Sending...';
   try {
-    const r = await fetch('/api/admin/send-email', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({to,subject,message}) });
+    const r = await fetch('/api/admin/send-email', { method:'POST', headers:{'Content-Type':'application/json','X-Admin-Key':key}, body:JSON.stringify({to,subject,message}) });
     const d = await r.json();
     status.innerHTML = d.success ? '<span style="color:var(--ok)">✓ Email sent successfully</span>' : '<span style="color:var(--err)">✗ '+(d.message||'Failed')+'</span>';
     if (d.success) { document.getElementById('emailTo').value=''; document.getElementById('emailSubject').value=''; document.getElementById('emailMessage').value=''; }
