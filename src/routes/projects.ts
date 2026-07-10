@@ -36,15 +36,21 @@ function toPositiveInt(value: unknown): number | null {
 async function attachReviewStats(users: ({ id: string } | undefined | null)[]) {
   const ids = users.filter((u): u is { id: string } => !!u && !!u.id).map(u => u.id);
   if (!ids.length) return;
-  const [serviceRows, clientRows, projectRows] = await Promise.all([
+  const [serviceRows, clientRows] = await Promise.all([
     ids.length ? db.select({ revieweeId: reviewsTable.revieweeId, avg: sql<number>`avg(rating)`, cnt: sql<number>`count(*)` }).from(reviewsTable).where(inArray(reviewsTable.revieweeId, ids)).groupBy(reviewsTable.revieweeId) : Promise.resolve([]),
     ids.length ? db.select({ revieweeId: clientReviewsTable.revieweeId, avg: sql<number>`avg(rating)`, cnt: sql<number>`count(*)` }).from(clientReviewsTable).where(inArray(clientReviewsTable.revieweeId, ids)).groupBy(clientReviewsTable.revieweeId) : Promise.resolve([]),
-    ids.length ? db.execute(sql`SELECT reviewee_id, AVG(rating)::float AS avg, COUNT(*)::int AS cnt FROM project_reviews WHERE reviewee_id = ANY(${ids}::uuid[]) GROUP BY reviewee_id`) : Promise.resolve({ rows: [] }),
   ]);
+  let projectRows: { rows: any[] } = { rows: [] };
+  try {
+    if (ids.length) {
+      const r = await db.execute(sql`SELECT reviewee_id, AVG(rating)::float AS avg, COUNT(*)::int AS cnt FROM project_reviews WHERE reviewee_id = ANY(${ids}::uuid[]) GROUP BY reviewee_id`);
+      projectRows = r as any;
+    }
+  } catch { /* project_reviews table may not exist on older deployments */ }
   const allStats: Record<string, { total: number; count: number }> = {};
   for (const r of serviceRows) { if (!allStats[r.revieweeId]) allStats[r.revieweeId] = { total: 0, count: 0 }; allStats[r.revieweeId].total += Number(r.avg) * Number(r.cnt); allStats[r.revieweeId].count += Number(r.cnt); }
   for (const r of clientRows) { if (!allStats[r.revieweeId]) allStats[r.revieweeId] = { total: 0, count: 0 }; allStats[r.revieweeId].total += Number(r.avg) * Number(r.cnt); allStats[r.revieweeId].count += Number(r.cnt); }
-  for (const r of (projectRows as any).rows || []) { if (!allStats[r.reviewee_id]) allStats[r.reviewee_id] = { total: 0, count: 0 }; allStats[r.reviewee_id].total += Number(r.avg) * Number(r.cnt); allStats[r.reviewee_id].count += Number(r.cnt); }
+  for (const r of projectRows.rows || []) { if (!allStats[r.reviewee_id]) allStats[r.reviewee_id] = { total: 0, count: 0 }; allStats[r.reviewee_id].total += Number(r.avg) * Number(r.cnt); allStats[r.reviewee_id].count += Number(r.cnt); }
   for (const u of users) {
     if (!u) continue;
     if (allStats[u.id]) {
