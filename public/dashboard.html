@@ -6718,10 +6718,7 @@ async function openEditBid(bidId) {
     <button class="mc" onclick="this.closest('.mo').remove();document.body.style.overflow='';">×</button>
     <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:.96rem;margin-bottom:14px;">✏️ Edit Your Proposal</div>
     <div class="proposal-mini" style="margin-bottom:12px;">Updating your proposal will replace your previous cover letter and milestone plan.</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <div class="fg"><label class="fl">Bid Amount (₹) *</label><input class="fi" type="number" id="ebAmt" value="${b.amount||''}"/></div>
-      <div class="fg"><label class="fl">Delivery Days</label><input class="fi" type="number" id="ebDays" value="${b.deliveryDays||''}"/></div>
-    </div>
+    <div class="fg"><label class="fl">Delivery Days</label><input class="fi" type="number" id="ebDays" value="${b.deliveryDays||''}"/></div>
     <div class="fg"><label class="fl">Cover Letter *</label><textarea class="fi" id="ebCover" rows="3" placeholder="Why are you the best fit?">${esc(cvr)}</textarea></div>
     <div class="fg"><label class="fl">Milestone Plan</label><textarea class="fi" id="ebMilestones" rows="2" placeholder="milestone 1, milestone 2...">${esc(mst)}</textarea></div>
     <div class="fg"><label class="fl">Portfolio Link</label><input class="fi" type="url" id="ebPortfolio" value="${esc(pfl)}" placeholder="https://your-work-link.com"/></div>
@@ -6733,16 +6730,13 @@ async function openEditBid(bidId) {
 }
 
 async function saveEditBid(bidId, modalEl) {
-  const b = _bidData[bidId];
-  const amt = parseFloat(document.getElementById('ebAmt')?.value);
   const days = parseInt(document.getElementById('ebDays')?.value, 10);
   const cover = document.getElementById('ebCover')?.value?.trim();
   const milestones = document.getElementById('ebMilestones')?.value?.trim();
   const portfolio = document.getElementById('ebPortfolio')?.value?.trim();
-  if (!amt || amt <= 0) { showToast('Enter a valid bid amount', 'err'); return; }
   if (!cover) { showToast('Cover letter is required', 'err'); return; }
   const proposal = [cover, milestones ? `\nMilestone plan:\n${milestones}` : '', portfolio ? `\nPortfolio:\n${portfolio}` : ''].filter(Boolean).join('\n');
-  const d = await api('/projects/bids/' + bidId, { method: 'PUT', body: JSON.stringify({ amount: amt, deliveryDays: Number.isFinite(days) && days > 0 ? days : null, proposal }) });
+  const d = await api('/projects/bids/' + bidId, { method: 'PUT', body: JSON.stringify({ deliveryDays: Number.isFinite(days) && days > 0 ? days : null, proposal }) });
   if (d.success) {
     if (modalEl) { modalEl.remove(); document.body.style.overflow = ''; }
     showToast('Proposal updated!', 'ok');
