@@ -6669,10 +6669,6 @@ async function openEditProject(projectId) {
       </select>
     </div>
     <div class="fg"><label class="fl">Skills Required</label><input class="fi" id="epSkills" value="${esc(proj.skills||'')}"/></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <div class="fg"><label class="fl">Budget Min (₹)</label><input class="fi" type="number" id="epBudMin" value="${proj.budgetMin||''}"/></div>
-      <div class="fg"><label class="fl">Budget Max (₹)</label><input class="fi" type="number" id="epBudMax" value="${proj.budgetMax||''}"/></div>
-    </div>
     <div class="fg"><label class="fl">Deadline</label><input class="fi" type="date" id="epDeadline" value="${proj.deadline ? new Date(proj.deadline).toISOString().slice(0,10) : ''}"/></div>
     <button class="btn bp btn-lg" style="width:100%;justify-content:center;margin-top:6px;" onclick="saveEditProject('${esc(projectId)}',this.closest('.mo'))">💾 Save Changes</button>
   </div>`;
@@ -6687,8 +6683,6 @@ async function saveEditProject(projectId, modalEl) {
     description: document.getElementById('epDesc')?.value?.trim(),
     category: document.getElementById('epCat')?.value,
     skills: document.getElementById('epSkills')?.value?.trim() || null,
-    budgetMin: parseInt(document.getElementById('epBudMin')?.value) || null,
-    budgetMax: parseInt(document.getElementById('epBudMax')?.value) || null,
     deadline: document.getElementById('epDeadline')?.value || null,
   };
   if (!body.title || !body.description) { showToast('Title and description are required', 'err'); return; }
