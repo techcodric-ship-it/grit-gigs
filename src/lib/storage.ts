@@ -72,13 +72,14 @@ export async function uploadToSupabase(
   subfolder: string,
   retried = false,
 ): Promise<string | null> {
-  if (!supabase) return null;
+  const client = supabaseAdmin || supabase;
+  if (!client) return null;
 
   try {
     const ext = path.extname(originalName) || ".bin";
     const fileName = `${sanitizeSubfolder(subfolder)}/${Date.now()}-${uuid().slice(0, 8)}${ext}`;
 
-    const { error } = await supabase.storage
+    const { error } = await client.storage
       .from(UPLOADS_BUCKET)
       .upload(fileName, buffer, {
         contentType: "application/octet-stream",
@@ -95,7 +96,7 @@ export async function uploadToSupabase(
       return null;
     }
 
-    const { data: publicUrl } = supabase.storage
+    const { data: publicUrl } = client.storage
       .from(UPLOADS_BUCKET)
       .getPublicUrl(fileName);
 
@@ -107,14 +108,15 @@ export async function uploadToSupabase(
 }
 
 export async function deleteFromSupabase(fileUrl: string): Promise<void> {
-  if (!supabase) return;
+  const client = supabaseAdmin || supabase;
+  if (!client) return;
 
   try {
     const parts = fileUrl.split(`/storage/v1/object/public/${UPLOADS_BUCKET}/`);
     if (parts.length !== 2) return;
 
     const filePath = parts[1];
-    const { error } = await supabase.storage
+    const { error } = await client.storage
       .from(UPLOADS_BUCKET)
       .remove([filePath]);
 
