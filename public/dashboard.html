@@ -2979,7 +2979,7 @@ async function loadMyExchanges() {
           <button class="btn bs btn-xs" onclick="event.stopPropagation();openBarterDet('${r.id}')">👁 View</button>
           <button class="btn" style="border:1px solid #6C3DE0;color:#6C3DE0;background:#F5F0FF;font-size:.65rem;padding:4px 8px;border-radius:var(--r);cursor:pointer;font-weight:600;" onclick="event.stopPropagation();openBarterInvite('${r.id}')">➕ Invite</button>
           <button class="btn bp btn-xs" onclick="event.stopPropagation();_openEditExchangeById('${r.id}')">✏ Edit</button>
-          <button class="btn btn-xs" style="${isPaused ? 'border:1px solid var(--ok);color:var(--ok);background:var(--okl);' : 'border:1px solid var(--gold);color:#b8860b;background:var(--gl);'}font-size:.65rem;padding:4px 8px;border-radius:var(--r);cursor:pointer;font-weight:600;transition:all .15s;" onclick="event.stopPropagation();togglePauseExchange('${r.id}')">${isPaused ? '▶ Active' : '⏸ Pause'}</button>
+          <button class="btn bs btn-xs" style="${isPaused ? 'border:1px solid var(--ok);color:var(--ok);background:var(--okl);' : 'border:1px solid var(--gold);color:#b8860b;background:var(--gl);'}font-size:.65rem;padding:4px 8px;border-radius:var(--r);cursor:pointer;font-weight:600;transition:all .15s;" onclick="event.stopPropagation();togglePauseExchange('${r.id}')">${isPaused ? '▶ Active' : '⏸ Pause'}</button>
           <button class="btn" style="border:1px solid var(--errl);color:var(--err);font-size:.65rem;padding:4px 8px;border-radius:var(--r);cursor:pointer;background:var(--errl);font-weight:600;transition:all .15s;" onclick="event.stopPropagation();deleteExchange('${r.id}')">🗑</button>
         </div>
       </div>
@@ -3632,6 +3632,7 @@ window.toggleGig = async function(id) {
     showToast(d.message || 'Toggled', 'ok');
     loadOverview();
     api('/services/mine').then(r => { if (r.success) renderGigCards(r.data.services || [], 'myGigGrid'); });
+    if (document.getElementById('ps-browse-gigs').classList.contains('active')) loadBrowseGigs();
   } else if (d._planLimitExceeded) {
     showToast(d.message, 'err');
     setTimeout(() => showPage('plans'), 800);
