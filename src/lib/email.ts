@@ -48,11 +48,9 @@ function layout(content: string): string {
 <body>
   <div class="wrap">
     <div class="logo">
-      <svg xmlns="http://www.w3.org/2000/svg" width="140" height="36" viewBox="0 0 140 36">
-        <rect width="140" height="36" rx="8" fill="white"/>
-        <text x="16" y="25" font-family="Arial,Helvetica,sans-serif" font-weight="900" font-size="22">
-          <tspan fill="#0A0A0F">G</tspan><tspan fill="#6C3FE8">&amp;G</tspan>
-        </text>
+      <svg viewBox="0 0 140 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="140" height="36" rx="8" fill="#6C3DE0"/>
+        <text x="10" y="25" font-family="'Segoe UI',sans-serif" font-size="16" font-weight="800" fill="white">Grit&amp;Gigs</text>
       </svg>
     </div>
     <div class="card">
