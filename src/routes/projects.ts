@@ -541,14 +541,12 @@ router.put('/projects/:id', authenticate, async (req: Request, res: Response) =>
   const [project] = await db.select().from(projectsTable).where(and(eq(projectsTable.id, req.params.id as string), eq(projectsTable.userId, userId))).limit(1);
   if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
   if (project.status !== 'OPEN') return res.status(400).json({ success: false, message: 'Only OPEN projects can be edited' });
-  const { title, description, category, skills, budgetMin, budgetMax, deadline } = req.body;
+  const { title, description, category, skills, deadline } = req.body;
   const [updated] = await db.update(projectsTable).set({
     ...(title ? { title: String(title).trim() } : {}),
     ...(description ? { description: String(description).trim() } : {}),
     ...(category ? { category: String(category) } : {}),
     skills: skills !== undefined ? (skills || null) : project.skills,
-    budgetMin: budgetMin !== undefined ? toPositiveInt(budgetMin) : project.budgetMin,
-    budgetMax: budgetMax !== undefined ? toPositiveInt(budgetMax) : project.budgetMax,
     deadline: (() => { const _dl = deadline; if (_dl === undefined) return project.deadline; if (!_dl || typeof _dl !== 'string' || !_dl.trim() || _dl === 'dd-mm-yyyy') return null; const _d1 = new Date(_dl.trim()); if (!isNaN(_d1.getTime())) return _d1; const _m = _dl.trim().match(/^(\d{2})-(\d{2})-(\d{4})$/); if (_m) { const _d2 = new Date(_m[3]+'-'+_m[2]+'-'+_m[1]); if (!isNaN(_d2.getTime())) return _d2; } return null; })(),
     updatedAt: new Date(),
   }).where(eq(projectsTable.id, req.params.id as string)).returning();
@@ -562,9 +560,8 @@ router.put('/projects/bids/:bidId', authenticate, async (req: Request, res: Resp
   const [bid] = await db.select().from(projectBidsTable).where(and(eq(projectBidsTable.id, req.params.bidId as string), eq(projectBidsTable.userId, userId))).limit(1);
   if (!bid) return res.status(404).json({ success: false, message: 'Bid not found or not yours' });
   if (bid.status !== 'PENDING') return res.status(400).json({ success: false, message: 'Only PENDING bids can be edited' });
-  const { amount, deliveryDays, proposal } = req.body;
+  const { deliveryDays, proposal } = req.body;
   const [updated] = await db.update(projectBidsTable).set({
-    ...(amount ? { amount: toPositiveInt(amount) ?? bid.amount } : {}),
     deliveryDays: deliveryDays !== undefined ? (toPositiveInt(deliveryDays) || null) : bid.deliveryDays,
     ...(proposal ? { proposal: String(proposal).trim() } : {}),
     updatedAt: new Date(),
