@@ -48,10 +48,7 @@ function layout(content: string): string {
 <body>
   <div class="wrap">
     <div class="logo">
-      <svg viewBox="0 0 140 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="140" height="36" rx="8" fill="#6C3DE0"/>
-        <text x="10" y="25" font-family="'Segoe UI',sans-serif" font-size="16" font-weight="800" fill="white">Grit&amp;Gigs</text>
-      </svg>
+      <img src="${APP_URL}/logo.svg" alt="Grit&amp;Gigs" width="140" height="36" style="display:block;"/>
     </div>
     <div class="card">
       ${content}
