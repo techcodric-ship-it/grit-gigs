@@ -336,11 +336,32 @@ async function contactUser(uid) {
 
 async function inviteToProject(freelancerId) {
   if (!TOKEN) { window.location.href = '/?login=1'; return; }
-  const projectId = prompt('Enter the Project ID you want to invite this freelancer to:\n(Find it on your My Projects page → Project ID shown in the URL or details)');
-  if (!projectId?.trim()) return;
+  const d = await api('/projects/mine');
+  const projects = (d.data?.projects || []).filter(p => p.status === 'OPEN');
+  if (!projects.length) { alert('You have no open projects to invite to.'); return; }
+  const div = document.createElement('div');
+  div.className = 'mo open'; div.id = 'inviteProfileModal';
+  div.innerHTML = `<div class="md" style="max-width:400px;">
+    <button class="mc" onclick="this.closest('.mo').remove();document.body.style.overflow='';">✕</button>
+    <div style="font-weight:700;font-size:1rem;margin-bottom:4px;">➕ Invite to Project</div>
+    <div style="font-size:.78rem;color:var(--muted);margin-bottom:14px;">Choose a project to invite this user to</div>
+    <div style="max-height:300px;overflow-y:auto;">${projects.map(p => `<div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;cursor:pointer;transition:background .15s;border:1px solid var(--bd);margin-bottom:6px;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''" onclick="sendInviteFromProfile('${esc(p.id)}','${esc(freelancerId)}')">
+      <div style="flex:1;">
+        <div style="font-weight:600;font-size:.8rem;">${esc(p.title)}</div>
+        <div style="font-size:.7rem;color:var(--muted);">${esc(p.category || 'Project')}</div>
+      </div>
+      <button class="btn bp btn-xs" style="flex-shrink:0;">Invite</button>
+    </div>`).join('')}</div>
+  </div>`;
+  div.addEventListener('click', e => { if (e.target === div) { div.remove(); document.body.style.overflow = ''; } });
+  document.body.appendChild(div);
+  document.body.style.overflow = 'hidden';
+}
+async function sendInviteFromProfile(projectId, freelancerId) {
   const msg = prompt('Add a personal message (optional):');
-  const d = await api('/invites', { method: 'POST', body: JSON.stringify({ targetType: 'PROJECT', targetId: projectId.trim(), toUserId: freelancerId, message: msg }) });
-  alert(d.message || (d.success ? 'Invite sent!' : 'Error sending invite'));
+  const d = await api('/invites', { method: 'POST', body: JSON.stringify({ targetType: 'PROJECT', targetId: projectId, toUserId: freelancerId, message: msg }) });
+  if (d.success) { document.getElementById('inviteProfileModal')?.remove(); document.body.style.overflow = ''; }
+  alert(d.message || (d.success ? '✅ Invite sent!' : 'Error sending invite'));
 }
 
 load();

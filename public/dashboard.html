@@ -2978,6 +2978,7 @@ async function loadMyExchanges() {
         <span style="font-size:.6rem;color:var(--muted);">Posted ${created}</span>
         <div style="display:flex;gap:6px;">
           <button class="btn bs btn-xs" onclick="event.stopPropagation();openBarterDet('${r.id}')">👁 View</button>
+          <button class="btn" style="border:1px solid #6C3DE0;color:#6C3DE0;background:#F5F0FF;font-size:.65rem;padding:4px 8px;border-radius:var(--r);cursor:pointer;font-weight:600;" onclick="event.stopPropagation();openBarterInvite('${r.id}')">➕ Invite</button>
           <button class="btn bp btn-xs" onclick="event.stopPropagation();_openEditExchangeById('${r.id}')">✏ Edit</button>
           <button class="btn btn-xs" style="${isPaused ? 'border:1px solid var(--ok);color:var(--ok);background:var(--okl);' : 'border:1px solid var(--gold);color:#b8860b;background:var(--gl);'}font-size:.65rem;padding:4px 8px;border-radius:var(--r);cursor:pointer;font-weight:600;transition:all .15s;" onclick="event.stopPropagation();togglePauseExchange('${r.id}')">${isPaused ? '▶ Active' : '⏸ Pause'}</button>
           <button class="btn" style="border:1px solid var(--errl);color:var(--err);font-size:.65rem;padding:4px 8px;border-radius:var(--r);cursor:pointer;background:var(--errl);font-weight:600;transition:all .15s;" onclick="event.stopPropagation();deleteExchange('${r.id}')">🗑</button>
@@ -3430,28 +3431,34 @@ async function sendInvite(targetType, targetId, toUserId, message) {
   const d = await api('/invites', { method: 'POST', body: JSON.stringify({ targetType, targetId, toUserId, message }) });
   showToast(d.success ? '✅ Invite sent!' : d.message || 'Error', d.success ? 'ok' : 'err');
 }
-async function openProjectInvite(projectId) {
-  const div = document.createElement('div');
+function openProjectInvite(id) { openInviteModal('PROJECT', id, 'Freelancer'); }
+function openGigInvite(id) { openInviteModal('SERVICE', id, 'Buyer'); }
+function openBarterInvite(id) { openInviteModal('BARTER', id, 'Partner'); }
+function openInviteModal(targetType, targetId, role) {
+  const mid = 'inviteModal-' + targetType + '-' + targetId;
+  let div = document.getElementById(mid);
+  if (div) { div.classList.add('open'); div.style.display='flex'; document.body.style.overflow='hidden'; document.getElementById('inviteSearchInput-'+targetType)?.focus(); return; }
+  div = document.createElement('div');
   div.className = 'mo open';
-  div.id = 'projectInviteModal';
+  div.id = mid;
   div.innerHTML = `<div class="md" style="max-width:460px;">
-    <button class="mc" onclick="document.getElementById('projectInviteModal')?.remove();document.body.style.overflow='';">✕</button>
-    <div style="font-weight:700;font-size:1rem;margin-bottom:4px;">➕ Invite Freelancer</div>
-    <div style="font-size:.78rem;color:var(--muted);margin-bottom:14px;">Search users by name to invite to this project</div>
+    <button class="mc" onclick="this.closest('.mo').remove();document.body.style.overflow='';">✕</button>
+    <div style="font-weight:700;font-size:1rem;margin-bottom:4px;">➕ Invite ${role}</div>
+    <div style="font-size:.78rem;color:var(--muted);margin-bottom:14px;">Search users by name to invite</div>
     <div class="fg">
-      <input class="fi" id="inviteSearchInput" placeholder="Search users..." oninput="searchInviteUsers(this.value,'${esc(projectId)}')"/>
+      <input class="fi" id="inviteSearchInput-${targetType}" placeholder="Search users..." oninput="searchInviteUsers(this.value,'${targetType}','${esc(targetId)}')"/>
     </div>
-    <div id="inviteSearchResults" style="max-height:300px;overflow-y:auto;margin-top:8px;"></div>
+    <div id="inviteSearchResults-${targetType}" style="max-height:300px;overflow-y:auto;margin-top:8px;"></div>
   </div>`;
   div.addEventListener('click', e => { if (e.target === div) { div.remove(); document.body.style.overflow = ''; } });
   document.body.appendChild(div);
   document.body.style.overflow = 'hidden';
-  document.getElementById('inviteSearchInput')?.focus();
+  document.getElementById('inviteSearchInput-'+targetType)?.focus();
 }
 let _inviteSearchTimer;
-async function searchInviteUsers(q, projectId) {
+async function searchInviteUsers(q, targetType, targetId) {
   clearTimeout(_inviteSearchTimer);
-  const el = document.getElementById('inviteSearchResults');
+  const el = document.getElementById('inviteSearchResults-'+targetType);
   if (!el) return;
   if (q.length < 2) { el.innerHTML = '<div style="font-size:.75rem;color:var(--muted);padding:12px;">Type at least 2 characters</div>'; return; }
   _inviteSearchTimer = setTimeout(async () => {
@@ -3459,7 +3466,7 @@ async function searchInviteUsers(q, projectId) {
     const d = await api('/users/search?q=' + encodeURIComponent(q));
     const users = d.data?.users || [];
     if (!users.length) { el.innerHTML = '<div style="font-size:.75rem;color:var(--muted);padding:12px;">No users found</div>'; return; }
-    el.innerHTML = users.map(u => `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''" onclick="sendInvite('PROJECT','${esc(projectId)}','${esc(u.id)}','');this.closest('.mo')?.remove();document.body.style.overflow='';">
+    el.innerHTML = users.map(u => `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''" onclick="sendInvite('${targetType}','${esc(targetId)}','${esc(u.id)}','');this.closest('.mo')?.remove();document.body.style.overflow='';">
       <img src="${esc(u.profilePhoto || '/avatar.png')}" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;background:var(--bg);"/>
       <div style="flex:1;">
         <div style="font-weight:600;font-size:.8rem;">${esc(u.firstName || '')} ${esc(u.lastName || '')}</div>
@@ -4364,7 +4371,7 @@ function renderGigCards(svcs, cId) {
           <div class="gig-price">₹${price.toLocaleString('en-IN')}<span class="gig-price-sub"> starting</span></div>
         </div>
         <div style="font-size:.65rem;color:var(--muted);margin-top:4px;">🕒 ${timeAgo(s.createdAt)}</div>
-        ${isOwn ? `<div style="margin-top:8px;display:flex;gap:6px;"><button class="btn bs btn-xs" onclick="event.stopPropagation();openEditGigMod('${s.id}')">✏ Edit</button><button class="btn bs btn-xs" onclick="event.stopPropagation();toggleGig('${s.id}')">${s.status === 'ACTIVE' ? '⏸ Pause' : '▶ Activate'}</button><button class="btn bs btn-xs" onclick="event.stopPropagation();deleteGig('${s.id}')" style="color:var(--err);">🗑 Delete</button></div>` : ''}
+        ${isOwn ? `<div style="margin-top:8px;display:flex;gap:6px;"><button class="btn bs btn-xs" onclick="event.stopPropagation();openEditGigMod('${s.id}')">✏ Edit</button><button class="btn bs btn-xs" onclick="event.stopPropagation();toggleGig('${s.id}')">${s.status === 'ACTIVE' ? '⏸ Pause' : '▶ Activate'}</button><button class="btn bs btn-xs" onclick="event.stopPropagation();openGigInvite('${s.id}')" style="border:1px solid #6C3DE0;color:#6C3DE0;background:#F5F0FF;">➕ Invite</button><button class="btn bs btn-xs" onclick="event.stopPropagation();deleteGig('${s.id}')" style="color:var(--err);">🗑 Delete</button></div>` : ''}
       </div>
     </div>`;
   }).join('');
