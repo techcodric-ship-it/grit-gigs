@@ -12,7 +12,7 @@ const gT = () => localStorage.getItem('se_token');
 const gU = () => { try { return JSON.parse(localStorage.getItem('se_user') || 'null'); } catch(e) { return null; } };
 const sU = u  => localStorage.setItem('se_user', JSON.stringify(u));
 function kycBadge(v) { return v ? '<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">\u2713 KYC</span>' : ''; }
-if (typeof planBadge !== 'function') { window.planBadge = function(v) { if (!v) return ''; var g={STARTER:'linear-gradient(135deg,#059669,#34D399)',PRO:'linear-gradient(135deg,#7C3AED,#A855F7)',ELITE:'linear-gradient(135deg,#D97706,#F59E0B)'}; return '<span style="display:inline-flex;align-items:center;gap:2px;background:' + (g[v]||'linear-gradient(135deg,#6C3FE8,#2980b9)') + ';color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>'; }; }
+if (typeof planBadge !== 'function') { window.planBadge = function(v) { if (!v) return ''; var g={STARTER:'#059669',PRO:'#7C3AED',ELITE:'#D97706'}; return '<span style="display:inline-flex;align-items:center;gap:2px;background:' + (g[v]||'#6C3FE8') + ';color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>'; }; }
 
 async function api(endpoint, opts = {}) {
   try {
@@ -133,8 +133,9 @@ function updateNav(u) {
       var badgeEl = document.getElementById('mainNavPlanBadge');
       if (badgeEl && pr.success && pr.data.plan) {
         var b = pr.data.plan.badge;
+        var _g={STARTER:'#059669',PRO:'#7C3AED',ELITE:'#D97706'};
         badgeEl.innerHTML = b
-          ? '<span style="background:linear-gradient(135deg,#6C3FE8,#2980b9);color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">' + b + '</span>'
+          ? '<span style="display:inline-flex;align-items:center;gap:4px;background:' + (_g[b]||'#6C3FE8') + ';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">' + b + '</span>'
           : '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Free</span>';
       }
     }).catch(function(){});
@@ -173,7 +174,7 @@ window.doLogout = function() {
           try {
             var pr2 = JSON.parse(localStorage.getItem('se_plan_cache') || 'null');
             if (pr2 && pr2.badge && pr2.badge !== 'Free') {
-              planBadgeHtml = (function(){var g={STARTER:'linear-gradient(135deg,#059669,#34D399)',PRO:'linear-gradient(135deg,#6C3FE8,#2980b9)',ELITE:'linear-gradient(135deg,#D97706,#F59E0B)'};return '<span style="background:'+(g[pr2.badge]||'linear-gradient(135deg,#6C3FE8,#2980b9)')+';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">'+pr2.badge+'</span>';})();
+              planBadgeHtml = (function(){var g={STARTER:'#059669',PRO:'#7C3AED',ELITE:'#D97706'};return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+(g[pr2.badge]||'#6C3FE8')+';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">'+pr2.badge+'</span>';})();
             } else if (pr2) {
               planBadgeHtml = '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Free</span>';
             }
