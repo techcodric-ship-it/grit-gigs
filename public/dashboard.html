@@ -7544,7 +7544,7 @@ async function openLiveChat() {
       const name = 'Grit&Gigs Admin';
       const ini = 'G';
       showPage('inbox');
-      openConv(convId, name, ini, '', other.id || '', false);
+      openConv(convId, name, ini, encodeURIComponent(avUrl(other)), other.id || '', false);
     } else {
       showPage('inbox');
     }
