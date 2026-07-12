@@ -4,6 +4,20 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Freelancer Profile — Grit&amp;Gigs</title>
+<meta name="description" content="View freelancer profile on Grit&Gigs — skills, reviews, and contact information."/>
+<meta name="robots" content="index, follow"/>
+<link rel="canonical" href="https://www.gritandgigs.in/profile"/>
+<meta property="og:type" content="profile"/>
+<meta property="og:url" content="https://www.gritandgigs.in/profile"/>
+<meta property="og:title" content="Freelancer Profile — Grit&Gigs"/>
+<meta property="og:description" content="View freelancer profile on Grit&Gigs — skills, reviews, and contact information."/>
+<meta property="og:image" content="https://www.gritandgigs.in/logo-og.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Freelancer Profile — Grit&Gigs"/>
+<meta name="twitter:description" content="View freelancer profile on Grit&Gigs — skills, reviews, and contact information."/>
+<meta name="twitter:image" content="https://www.gritandgigs.in/logo-og.png"/>
 <link rel="stylesheet" href="css/main.css"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -210,6 +224,16 @@ async function load() {
     : (TOKEN ? `<button class="msg-btn" onclick="inviteToProject('${esc(user.id)}')">${icon('plus')} Invite to Project</button>` : '');
 
   document.title = `${user.firstName} ${user.lastName} — Grit&amp;Gigs`;
+  document.querySelector('meta[property="og:title"]')?.setAttribute('content', `${user.firstName} ${user.lastName} — Grit&Gigs`);
+  document.querySelector('meta[name="twitter:title"]')?.setAttribute('content', `${user.firstName} ${user.lastName} — Grit&Gigs`);
+  const desc = `${user.firstName} ${user.lastName} — ${user.tagline || user.bio?.slice(0,120) || 'Freelancer on Grit&Gigs'}`;
+  document.querySelector('meta[name="description"]')?.setAttribute('content', desc);
+  document.querySelector('meta[property="og:description"]')?.setAttribute('content', desc);
+  document.querySelector('meta[name="twitter:description"]')?.setAttribute('content', desc);
+  if (user.profilePhoto) {
+    document.querySelector('meta[property="og:image"]')?.setAttribute('content', user.profilePhoto);
+    document.querySelector('meta[name="twitter:image"]')?.setAttribute('content', user.profilePhoto);
+  }
 
   document.getElementById('profileRoot').innerHTML = `
     <div class="prof-cover">

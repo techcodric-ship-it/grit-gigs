@@ -4,7 +4,6 @@
   <url><loc>https://www.gritandgigs.in/barter</loc><priority>0.9</priority><changefreq>weekly</changefreq></url>
   <url><loc>https://www.gritandgigs.in/freelance</loc><priority>0.9</priority><changefreq>weekly</changefreq></url>
   <url><loc>https://www.gritandgigs.in/projects</loc><priority>0.8</priority><changefreq>daily</changefreq></url>
-  <url><loc>https://www.gritandgigs.in/dashboard</loc><priority>0.5</priority><changefreq>daily</changefreq></url>
   <url><loc>https://www.gritandgigs.in/blog</loc><priority>0.9</priority><changefreq>weekly</changefreq></url>
   <url><loc>https://www.gritandgigs.in/blog-skill-barter</loc><priority>0.7</priority><changefreq>monthly</changefreq></url>
   <url><loc>https://www.gritandgigs.in/blog-freelance-portfolio</loc><priority>0.7</priority><changefreq>monthly</changefreq></url>
