@@ -198,7 +198,7 @@
         x.open('GET', '/api/subscriptions/my-plan', false);
         x.setRequestHeader('Authorization', 'Bearer ' + t);
         x.setRequestHeader('Content-Type', 'application/json');
-        try { x.send(); var pr = JSON.parse(x.responseText); if (pr.success && pr.data.plan) { var b = pr.data.plan.badge;           planBadge = b ? (function(){var g={STARTER:'rgba(5,150,105,.12)',PRO:'rgba(108,63,232,.12)',ELITE:'rgba(217,119,6,.12)'},c={STARTER:'#059669',PRO:'#6C3DE0',ELITE:'#D97706'};return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+(g[b]||'rgba(108,63,232,.12)')+';color:'+(c[b]||'#6C3DE0')+';font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">'+b+'</span>';})() : '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Free</span>'; try{localStorage.setItem('se_plan_cache',JSON.stringify({badge:b||null}));}catch(e){} } } catch(e) {}
+        try { x.send(); var pr = JSON.parse(x.responseText); if (pr.success && pr.data.plan) { var b = pr.data.plan.badge;           planBadge = b ? (function(){var g={STARTER:'#059669',PRO:'#7C3AED',ELITE:'#D97706'};return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+(g[b]||'#6C3FE8')+';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">'+b+'</span>';})() : '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Free</span>'; try{localStorage.setItem('se_plan_cache',JSON.stringify({badge:b||null}));}catch(e){} } } catch(e) {}
         el.innerHTML = planBadge + '<a href="/dashboard" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
           '<button class="btn btn-primary btn-sm" onclick="window.doLogout();">Sign out</button>';
       }
@@ -513,7 +513,7 @@ function _toast(msg, type = 'info') {
 
 function _starsHtml(avg, cnt) { if (cnt === undefined || cnt === null) return ''; return cnt > 0 ? '<span style="color:#F59E0B;letter-spacing:1px;font-size:.6rem;">★★★★★</span> ' + (+avg||0).toFixed(1) + ' <span style="color:var(--text-muted);font-weight:400;font-size:.6rem;">(' + cnt + ')</span>' : '<span style="color:var(--text-muted);font-size:.6rem;">No reviews</span>'; }
 function kycBadge(v) { return v ? '<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">✓ KYC</span>' : ''; }
-  function planBadge(v) { if (!v) return ''; var g={STARTER:'linear-gradient(135deg,#059669,#34D399)',PRO:'linear-gradient(135deg,#7C3AED,#A855F7)',ELITE:'linear-gradient(135deg,#D97706,#F59E0B)'}; return '<span style="display:inline-flex;align-items:center;gap:2px;background:' + (g[v]||'linear-gradient(135deg,#6C3FE8,#2980b9)') + ';color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>'; }
+  function planBadge(v) { if (!v) return ''; var g={STARTER:'#059669',PRO:'#7C3AED',ELITE:'#D97706'}; return '<span style="display:inline-flex;align-items:center;gap:2px;background:' + (g[v]||'#6C3FE8') + ';color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>'; }
 function _timeAgo(d) {
   if (!d) return '';
   const diff = Date.now() - new Date(d).getTime();
@@ -694,7 +694,7 @@ async function openProposalModal(projectId, title, budgetMin, budgetMax) {
       const planName = p.plan?.name || 'Free';
       const planBadge = p.plan?.badge || '';
       const planLabel = planBadge
-        ? (function(){var g={STARTER:'rgba(5,150,105,.12)',PRO:'rgba(108,63,232,.12)',ELITE:'rgba(217,119,6,.12)'},c={STARTER:'#059669',PRO:'#6C3DE0',ELITE:'#D97706'};return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+(g[planBadge]||'rgba(108,63,232,.12)')+';color:'+(c[planBadge]||'#6C3DE0')+';font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;vertical-align:middle;">${planBadge}</span>';})()
+        ? (function(){var g={STARTER:'#059669',PRO:'#7C3AED',ELITE:'#D97706'};return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+(g[planBadge]||'#6C3FE8')+';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;vertical-align:middle;">${planBadge}</span>';})()
         : `<span style="font-size:.65rem;color:var(--violet);font-weight:600;vertical-align:middle;">${planName}</span>`;
       const propText = propUnlimited
         ? '<span style="color:#1A7A5E;font-weight:600;">♾️ Unlimited proposals</span>'
@@ -804,7 +804,7 @@ async function _refreshNavWithPlan(u) {
     if (pr.success && pr.data.plan) {
       const b = pr.data.plan.badge;
       planBadge = b
-        ? (function(){var g={STARTER:'rgba(5,150,105,.12)',PRO:'rgba(108,63,232,.12)',ELITE:'rgba(217,119,6,.12)'},c={STARTER:'#059669',PRO:'#6C3DE0',ELITE:'#D97706'};return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+(g[b]||'rgba(108,63,232,.12)')+';color:'+(c[b]||'#6C3DE0')+';font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">'+b+'</span>';})()
+        ? (function(){var g={STARTER:'#059669',PRO:'#7C3AED',ELITE:'#D97706'};return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+(g[b]||'#6C3FE8')+';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">'+b+'</span>';})()
         : '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Free</span>';
     }
   } catch(e) {}
