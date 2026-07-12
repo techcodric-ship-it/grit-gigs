@@ -1890,7 +1890,7 @@ async function checkPendingPayments() {
 <div class="toast" id="toast"></div>
 
 <!-- ── Floating Live Chat Support ── -->
-<div id="liveChatBtn" onclick="openLiveChat()" title="Live Chat Support" style="position:fixed;bottom:24px;right:24px;z-index:9999;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#6C3FE8,#A855F7);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px rgba(108,63,232,0.4);transition:all .25s;border:none;font-size:22px;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+<div id="liveChatBtn" title="Live Chat Support (drag me!)" style="position:fixed;bottom:24px;right:24px;z-index:9999;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#6C3FE8,#A855F7);color:#fff;display:flex;align-items:center;justify-content:center;cursor:grab;box-shadow:0 4px 20px rgba(108,63,232,0.4);border:none;font-size:22px;user-select:none;touch-action:none;">
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
   <span id="liveChatBadge" style="position:absolute;top:-2px;right:-2px;width:16px;height:16px;border-radius:50%;background:var(--err);border:2px solid #fff;display:none;"></span>
 </div>
@@ -1970,6 +1970,45 @@ function setEquityJoined(){
   });
 }
 
+// ── Draggable Live Chat Button ──
+(function(){
+  const btn = document.getElementById('liveChatBtn');
+  if (!btn) return;
+  let isDragging = false, startX, startY, origX, origY, moved = false;
+  function onStart(e) {
+    const ev = e.touches ? e.touches[0] : e;
+    isDragging = true; moved = false;
+    btn.style.cursor = 'grabbing';
+    btn.style.transition = 'none';
+    const rect = btn.getBoundingClientRect();
+    startX = ev.clientX; startY = ev.clientY;
+    origX = rect.left; origY = rect.top;
+  }
+  function onMove(e) {
+    if (!isDragging) return;
+    const ev = e.touches ? e.touches[0] : e;
+    const dx = ev.clientX - startX, dy = ev.clientY - startY;
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) moved = true;
+    btn.style.left = (origX + dx) + 'px';
+    btn.style.top = (origY + dy) + 'px';
+    btn.style.bottom = 'auto';
+    btn.style.right = 'auto';
+    if (e.cancelable) e.preventDefault();
+  }
+  function onEnd() {
+    if (!isDragging) return;
+    isDragging = false;
+    btn.style.cursor = 'grab';
+    btn.style.transition = 'all .25s';
+    if (!moved) openLiveChat();
+  }
+  btn.addEventListener('mousedown', onStart);
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onEnd);
+  btn.addEventListener('touchstart', onStart, { passive: true });
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('touchend', onEnd);
+})();
 
 // Redirect if not logged in
 if (!gU()) window.location.href = '/';
