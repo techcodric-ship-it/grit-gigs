@@ -1,3 +1,5 @@
+import { db } from "../db";
+import { usersTable } from "../db/schema/users";
 import { logger } from "./logger";
 
 function htmlEscape(str: string): string {
@@ -170,4 +172,55 @@ export async function sendAdminEmail(to: string, subject: string, message: strin
     html: `<p>${htmlEscape(message).replace(/\n/g, "<br/>")}</p>`,
     replyTo,
   });
+}
+
+type ListingType = "barter" | "service" | "project";
+
+function getListingEmailContent(listingType: ListingType, posterName: string, title: string, linkUrl: string) {
+  const subjects = {
+    barter: "New skill exchange posted on Grit&Gigs!",
+    service: "New gig posted on Grit&Gigs!",
+    project: "New project posted on Grit&Gigs!",
+  };
+  const messages = {
+    barter: `${htmlEscape(posterName)} just posted a new skill exchange: "${htmlEscape(title)}". Find your next trade today!`,
+    service: `${htmlEscape(posterName)} just posted a new service: "${htmlEscape(title)}". Browse available gigs now.`,
+    project: `${htmlEscape(posterName)} is looking for talent: "${htmlEscape(title)}". Submit your proposal today.`,
+  };
+  return {
+    subject: subjects[listingType],
+    html: `<h1>${subjects[listingType]}</h1>
+      <p>${messages[listingType]}</p>
+      <p style="text-align:center;margin:24px 0;"><a href="${APP_URL}${linkUrl}" class="btn">View Details →</a></p>`,
+  };
+}
+
+export async function notifyAllUsersNewListing(
+  listingType: ListingType,
+  title: string,
+  posterName: string,
+  linkUrl: string,
+): Promise<void> {
+  if (!RESEND_API_KEY) {
+    logger.warn("Bulk email skipped — no RESEND_API_KEY set");
+    return;
+  }
+
+  try {
+    const users = await db.select({ email: usersTable.email }).from(usersTable);
+    const { subject, html } = getListingEmailContent(listingType, posterName, title, linkUrl);
+
+    await Promise.allSettled(
+      users.map((u) =>
+        sendResend({
+          to: u.email,
+          subject,
+          html,
+        }),
+      ),
+    );
+    logger.info({ listingType, title, recipients: users.length }, "Bulk listing notification sent");
+  } catch (err) {
+    logger.error({ err, listingType }, "Failed to send bulk listing notification");
+  }
 }

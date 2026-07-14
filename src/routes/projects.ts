@@ -11,6 +11,7 @@ import { getActivePlanForUser, getOrCreateSubscription, getPlan } from '../lib/s
 import { attachPlanBadge, attachPlanBadges } from '../lib/planBadge';
 import { uploadToSupabase } from '../lib/storage';
 import { PROJECT_ROOT } from '../lib/root';
+import { notifyAllUsersNewListing } from '../lib/email';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -291,6 +292,7 @@ router.post('/projects', authenticate, async (req: Request, res: Response) => {
     })
     .returning();
 
+  notifyAllUsersNewListing("project", project.title, req.user!.firstName, "/projects");
   return res.status(201).json({ success: true, data: { project } });
 });
 
