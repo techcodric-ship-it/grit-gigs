@@ -200,6 +200,7 @@ export async function notifyAllUsersNewListing(
   title: string,
   posterName: string,
   linkUrl: string,
+  posterEmail?: string,
 ): Promise<void> {
   if (!RESEND_API_KEY) {
     logger.warn("Bulk email skipped — no RESEND_API_KEY set");
@@ -207,19 +208,35 @@ export async function notifyAllUsersNewListing(
   }
 
   try {
-    const users = await db.select({ email: usersTable.email }).from(usersTable);
+    const allUsers = await db.select({ email: usersTable.email }).from(usersTable);
+    const recipients = posterEmail
+      ? allUsers.filter((u) => u.email !== posterEmail).map((u) => u.email)
+      : allUsers.map((u) => u.email);
+
+    if (!recipients.length) return;
+
     const { subject, html } = getListingEmailContent(listingType, posterName, title, linkUrl);
 
-    await Promise.allSettled(
-      users.map((u) =>
-        sendResend({
-          to: u.email,
-          subject,
-          html,
-        }),
-      ),
-    );
-    logger.info({ listingType, title, recipients: users.length }, "Bulk listing notification sent");
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: FROM_EMAIL,
+        to: recipients,
+        subject,
+        html: layout(html),
+      }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      logger.error({ status: res.status, body }, "Resend bulk email API error");
+    } else {
+      logger.info({ listingType, title, recipients: recipients.length }, "Bulk listing notification sent");
+    }
   } catch (err) {
     logger.error({ err, listingType }, "Failed to send bulk listing notification");
   }

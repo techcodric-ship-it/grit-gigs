@@ -292,7 +292,7 @@ router.post('/projects', authenticate, async (req: Request, res: Response) => {
     })
     .returning();
 
-  notifyAllUsersNewListing("project", project.title, req.user!.firstName, "/projects");
+  notifyAllUsersNewListing("project", project.title, req.user!.firstName, "/projects", req.user!.email);
   return res.status(201).json({ success: true, data: { project } });
 });
 

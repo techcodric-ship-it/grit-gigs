@@ -163,7 +163,7 @@ router.post("/barter/requests", authenticate, barterUpload.single("image"), asyn
     .where(eq(usersTable.id, req.user!.id));
 
   if (user) await attachPlanBadge(user);
-  notifyAllUsersNewListing("barter", `${request.skillOffered} ↔ ${request.skillNeeded}`, req.user!.firstName, "/barter");
+  notifyAllUsersNewListing("barter", `${request.skillOffered} ↔ ${request.skillNeeded}`, req.user!.firstName, "/barter", req.user!.email);
   res.status(201).json({ success: true, message: "Exchange request posted!", data: { request: { ...request, user } } });
 });
 
