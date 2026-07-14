@@ -216,27 +216,36 @@ export async function notifyAllUsersNewListing(
     if (!recipients.length) return;
 
     const { subject, html } = getListingEmailContent(listingType, posterName, title, linkUrl);
-
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: FROM_EMAIL,
-        to: recipients,
-        subject,
-        html: layout(html),
-      }),
-    });
-
-    if (!res.ok) {
-      const body = await res.text();
-      logger.error({ status: res.status, body }, "Resend bulk email API error");
-    } else {
-      logger.info({ listingType, title, recipients: recipients.length }, "Bulk listing notification sent");
+    const MAX_PER_CALL = 50;
+    const chunks: string[][] = [];
+    for (let i = 0; i < recipients.length; i += MAX_PER_CALL) {
+      chunks.push(recipients.slice(i, i + MAX_PER_CALL));
     }
+
+    await Promise.allSettled(
+      chunks.map((chunk) =>
+        fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${RESEND_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: FROM_EMAIL,
+            to: chunk,
+            subject,
+            html: layout(html),
+          }),
+        }).then(async (r) => {
+          if (!r.ok) {
+            const body = await r.text();
+            logger.error({ status: r.status, body }, "Resend chunk email API error");
+          }
+        }),
+      ),
+    );
+
+    logger.info({ listingType, title, recipients: recipients.length }, "Bulk listing notification sent");
   } catch (err) {
     logger.error({ err, listingType }, "Failed to send bulk listing notification");
   }
