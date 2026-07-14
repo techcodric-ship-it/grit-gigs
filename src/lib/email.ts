@@ -165,6 +165,24 @@ export async function sendNotificationEmail(to: string, title: string, message: 
   });
 }
 
+export async function sendCompleteProfileEmail(to: string, firstName: string): Promise<boolean> {
+  return sendResend({
+    to,
+    subject: `Complete your profile, ${firstName}!`,
+    html: `<h1>Thanks for joining Grit&amp;Gigs! 🙌</h1>
+      <p>Hey ${htmlEscape(firstName)},</p>
+      <p>Welcome to India's freelancing platform. We're excited to have you on board!</p>
+      <p>A complete profile gets <strong>10x more project opportunities.</strong> Here's what to do next:</p>
+      <table style="width:100%;margin-bottom:24px;">
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">✅ Add your photo &amp; tagline</td></tr>
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">✅ List your skills and services</td></tr>
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">✅ Browse projects and place your first bid</td></tr>
+      </table>
+      <p style="text-align:center;margin-bottom:0;"><a href="${APP_URL}/dashboard" class="btn">Complete Your Profile →</a></p>
+      <p style="margin-top:24px;">Need help? Reply to this email — we personally read every message.</p>`,
+  });
+}
+
 export async function sendAdminEmail(to: string, subject: string, message: string, replyTo?: string): Promise<boolean> {
   return sendResend({
     to,

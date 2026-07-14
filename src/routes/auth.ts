@@ -132,6 +132,8 @@ router.post("/auth/verify-signup", async (req, res): Promise<void> => {
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, reset.userId));
   if (!user) { res.status(500).json({ success: false, message: "User not found" }); return; }
 
+  sendWelcomeEmail(user.email, user.firstName);
+
   const accessToken = generateAccessToken(user.id);
   const refreshToken = await generateRefreshToken(user.id);
 
