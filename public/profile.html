@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Freelancer Profile — Grit&amp;Gigs</title>
+<title>Freelancer Profile — Grit&Gigs</title>
 <meta name="description" content="View freelancer profile on Grit&Gigs — skills, reviews, and contact information."/>
 <meta name="robots" content="index, follow"/>
 <link rel="canonical" href="https://www.gritandgigs.in/profile"/>
@@ -224,10 +224,10 @@ async function load() {
     ? `<a href="/dashboard?tab=my-profile"><button class="invite-btn">${icon('edit')} Edit Profile</button></a>`
     : (TOKEN ? `<button class="msg-btn" onclick="inviteToProject('${esc(user.id)}')">${icon('plus')} Invite to Project</button>` : '');
 
-  document.title = `${user.firstName} ${user.lastName} — Grit&amp;Gigs`;
+  document.title = `${user.firstName} ${user.lastName} — Grit&Gigs`;
   document.querySelector('meta[property="og:title"]')?.setAttribute('content', `${user.firstName} ${user.lastName} — Grit&Gigs`);
   document.querySelector('meta[name="twitter:title"]')?.setAttribute('content', `${user.firstName} ${user.lastName} — Grit&Gigs`);
-  const desc = `${user.firstName} ${user.lastName} — ${user.tagline || user.bio?.slice(0,120) || 'Freelancer on Grit&Gigs'}`;
+  const desc = `${user.firstName} ${user.lastName} — ${user.tagline || user.bio?.slice(0,120) || 'Member on Grit&Gigs'}`;
   document.querySelector('meta[name="description"]')?.setAttribute('content', desc);
   document.querySelector('meta[property="og:description"]')?.setAttribute('content', desc);
   document.querySelector('meta[name="twitter:description"]')?.setAttribute('content', desc);
@@ -254,16 +254,16 @@ async function load() {
           <div class="prof-header-info">
             <div class="prof-name">${esc(user.firstName)} ${esc(user.lastName)} ${planBadge} ${kycBadge}</div>
             <div style="font-size:.7rem;color:#9ca3af;margin-bottom:6px;letter-spacing:.03em;font-weight:500;">${esc(ggId)}</div>
-            <div class="prof-tagline">${esc(user.tagline || user.bio?.slice(0,120) || 'Freelancer on Grit&amp;Gigs')}</div>
+            <div class="prof-tagline">${esc(user.tagline || user.bio?.slice(0,120) || 'Member on Grit&Gigs')}</div>
             <div class="prof-meta">
               ${user.phone ? `<span class="prof-meta-item">${icon('phone')} ${esc(user.phone)}</span>` : ''}
               ${user.city ? `<span class="prof-meta-item">${icon('map')} ${esc(user.city)}${user.country ? ', ' + esc(user.country) : ''}</span>` : ''}
               ${user.hourlyRate ? `<span class="prof-meta-item">${icon('rupee')} ₹${user.hourlyRate}/hr</span>` : ''}
-              ${avgRating ? `<span class="prof-meta-item">${icon('star')} <span class="stars">${stars(avgRating)}</span> ${avgRating.toFixed(1)} (${reviewCount})</span>` : '<span class="prof-meta-item">No reviews yet</span>'}
+              ${avgRating ? `<span class="prof-meta-item">${icon('star')} <span class="stars">${stars(avgRating)}</span> ${avgRating.toFixed(1)} (${reviewCount})</span>` : ''}
               <span class="prof-meta-item">${icon('calendar')} Since ${new Date(user.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</span>
               ${availHtml}
             </div>
-            ${user.skillsOffered?.length ? `<div class="prof-skills">${user.skillsOffered.slice(0,10).map(s => `<span class="skill-chip">${icon('award')} ${esc(s)}</span>`).join('')}</div>` : ''}
+            <div class="prof-skills">${user.skillsOffered?.length ? user.skillsOffered.slice(0,10).map(s => `<span class="skill-chip">${icon('award')} ${esc(s)}</span>`).join('') : '<span style="color:#9ca3af;font-size:.78rem;">None listed</span>'}</div>
           </div>
         </div>
         <div class="prof-actions">${actionBtns}</div>
@@ -271,11 +271,10 @@ async function load() {
 
       <div class="prof-grid">
         <div>
-          ${user.bio ? `
           <div class="prof-card" style="margin-bottom:20px;">
             <div class="prof-section-title">${icon('briefcase')} About</div>
-            <p class="prof-bio">${esc(user.bio)}</p>
-          </div>` : ''}
+            ${user.bio ? `<p class="prof-bio">${esc(user.bio)}</p>` : '<p style="color:#9ca3af;font-size:.85rem;">No bio added yet.</p>'}
+          </div>
 
           ${gigs.length ? `
           <div class="prof-card" style="margin-bottom:20px;">
@@ -310,23 +309,20 @@ async function load() {
             </div>
           </div>
 
-          ${user.languages?.length ? `
           <div class="prof-card" style="margin-bottom:20px;">
             <div class="prof-section-title">${icon('search')} Languages</div>
-            <div style="display:flex;flex-wrap:wrap;gap:4px;">${user.languages.map(l => `<span class="lang-chip">${esc(l)}</span>`).join('')}</div>
-          </div>` : ''}
+            ${user.languages?.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px;">${user.languages.map(l => `<span class="lang-chip">${esc(l)}</span>`).join('')}</div>` : '<p style="color:#9ca3af;font-size:.85rem;">Not specified</p>'}
+          </div>
 
-          ${user.portfolioLinks?.length ? `
           <div class="prof-card" style="margin-bottom:20px;">
             <div class="prof-section-title">${icon('link')} Portfolio</div>
-            ${user.portfolioLinks.map(p => `<a class="portfolio-link" href="${esc(p.url)}" target="_blank" rel="noopener">${icon('link')} ${esc(p.label)}</a>`).join('')}
-          </div>` : ''}
+            ${user.portfolioLinks?.length ? user.portfolioLinks.map(p => `<a class="portfolio-link" href="${esc(p.url)}" target="_blank" rel="noopener">${icon('link')} ${esc(p.label)}</a>`).join('') : '<p style="color:#9ca3af;font-size:.85rem;">No portfolio links added.</p>'}
+          </div>
 
-          ${user.skillsNeeded?.length ? `
           <div class="prof-card">
             <div class="prof-section-title">${icon('search')} Looking for</div>
-            <div style="display:flex;flex-wrap:wrap;gap:6px;">${user.skillsNeeded.slice(0,8).map(s => `<span class="skill-chip-gold">${esc(s)}</span>`).join('')}</div>
-          </div>` : ''}
+            ${user.skillsNeeded?.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;">${user.skillsNeeded.slice(0,8).map(s => `<span class="skill-chip-gold">${esc(s)}</span>`).join('')}</div>` : '<p style="color:#9ca3af;font-size:.85rem;">None listed</p>'}
+          </div>
         </div>
       </div>
     </div>
