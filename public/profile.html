@@ -46,6 +46,7 @@
 .badge-plus{background:#1a7a5e;color:#fff;}
 .kyc-badge{display:inline-flex;align-items:center;gap:4px;background:#d1fae5;color:#065f46;font-size:.62rem;font-weight:700;padding:3px 10px;border-radius:99px;}
 .kyc-badge svg{width:12px;height:12px;}
+.kyc-badge-unverified{display:inline-flex;align-items:center;gap:4px;background:#fee2e2;color:#991b1b;font-size:.62rem;font-weight:700;padding:3px 10px;border-radius:99px;}
 .prof-tagline{color:#6b7280;font-size:.92rem;margin-bottom:12px;line-height:1.5;}
 .prof-meta{display:flex;flex-wrap:wrap;gap:16px;font-size:.82rem;color:#6b7280;}
 .prof-meta-item{display:flex;align-items:center;gap:5px;}
@@ -214,7 +215,7 @@ async function load() {
   const isMe = ME_ID === user.id;
 
   const planBadge = user.planBadge ? `<span class="prof-badge badge-${user.planBadge.toLowerCase()}">${user.planBadge}</span>` : '';
-  const kycBadge = user.kycVerified ? '<span class="kyc-badge">' + icon('check') + 'Verified</span>' : '';
+  const kycBadge = user.kycVerified ? '<span class="kyc-badge">' + icon('check') + 'Verified</span>' : '<span class="kyc-badge-unverified">KYC not verified</span>';
 
   const availHtml = user.isAvailable
     ? '<span class="prof-meta-item"><span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;"></span> Available</span>'
@@ -222,7 +223,7 @@ async function load() {
 
   const actionBtns = isMe
     ? `<a href="/dashboard?tab=my-profile"><button class="invite-btn">${icon('edit')} Edit Profile</button></a>`
-    : (TOKEN ? `<button class="msg-btn" onclick="inviteToProject('${esc(user.id)}')">${icon('plus')} Invite to Project</button>` : '');
+    : '';
 
   document.title = `${user.firstName} ${user.lastName} — Grit&Gigs`;
   document.querySelector('meta[property="og:title"]')?.setAttribute('content', `${user.firstName} ${user.lastName} — Grit&Gigs`);
