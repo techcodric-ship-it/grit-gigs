@@ -222,6 +222,7 @@ document.getElementById('signupForm')?.addEventListener('submit', async e => {
     lastName:  inputs[1].value.trim(),
     email:     inputs[2].value.trim(),
     password:  inputs[3].value,
+    phone:     inputs[4]?.value?.trim() || '',
   };
 
   const data = await api('/auth/register', { method: 'POST', body: JSON.stringify(payload) });

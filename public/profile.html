@@ -196,6 +196,7 @@ function icon(name) {
     link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>',
     award: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>',
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+    phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>',
   };
   return icons[name] || '';
 }
@@ -255,6 +256,7 @@ async function load() {
             <div style="font-size:.7rem;color:#9ca3af;margin-bottom:6px;letter-spacing:.03em;font-weight:500;">${esc(ggId)}</div>
             <div class="prof-tagline">${esc(user.tagline || user.bio?.slice(0,120) || 'Freelancer on Grit&amp;Gigs')}</div>
             <div class="prof-meta">
+              ${user.phone ? `<span class="prof-meta-item">${icon('phone')} ${esc(user.phone)}</span>` : ''}
               ${user.city ? `<span class="prof-meta-item">${icon('map')} ${esc(user.city)}${user.country ? ', ' + esc(user.country) : ''}</span>` : ''}
               ${user.hourlyRate ? `<span class="prof-meta-item">${icon('rupee')} ₹${user.hourlyRate}/hr</span>` : ''}
               ${avgRating ? `<span class="prof-meta-item">${icon('star')} <span class="stars">${stars(avgRating)}</span> ${avgRating.toFixed(1)} (${reviewCount})</span>` : '<span class="prof-meta-item">No reviews yet</span>'}

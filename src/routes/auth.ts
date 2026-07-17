@@ -22,9 +22,9 @@ const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { s
 const otpLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: { success: false, message: "Too many OTP requests. Try again in 15 minutes." } });
 
 router.post("/auth/register", registerLimiter, async (req, res): Promise<void> => {
-  const { firstName, lastName, email, password } = req.body;
+  const { firstName, lastName, email, password, phone } = req.body;
 
-  if (!firstName || !lastName || !email || !password) {
+  if (!firstName || !lastName || !email || !password || !phone) {
     res.status(400).json({ success: false, message: "Required fields missing" });
     return;
   }
@@ -48,6 +48,18 @@ router.post("/auth/register", registerLimiter, async (req, res): Promise<void> =
     return;
   }
 
+  if (phone) {
+    const [existingPhone] = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.phone, phone));
+
+    if (existingPhone) {
+      res.status(400).json({ success: false, message: "Phone number already registered" });
+      return;
+    }
+  }
+
   const passwordHash = await bcrypt.hash(password, 12);
 
   const seed = uuidv4().replace(/-/g, "").slice(0, 12);
@@ -60,6 +72,7 @@ router.post("/auth/register", registerLimiter, async (req, res): Promise<void> =
       lastName,
       email: email.toLowerCase(),
       passwordHash,
+      phone,
       city: null,
       profilePhoto: `https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}`,
       role: isAdminEmail ? "ADMIN" : undefined,
