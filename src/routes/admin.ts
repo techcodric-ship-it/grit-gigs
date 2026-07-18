@@ -620,12 +620,33 @@ router.post("/admin/announcement", async (req: Request, res: Response) => {
     if (!messageText?.trim()) return res.status(400).json({ success: false, message: "Message text required" });
     const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
     if (!admin) return res.status(500).json({ success: false, message: "Admin user not found" });
-    const allUsers = await db.select({ id: usersTable.id }).from(usersTable);
+    const allUsers = await db.select({ id: usersTable.id, email: usersTable.email }).from(usersTable);
     let sent = 0;
+    const emailRecipients: string[] = [];
     for (const user of allUsers) {
       if (user.id === admin.id) continue;
       await _adminSendMessage(admin.id, user.id, messageText.trim(), req, []);
+      emailRecipients.push(user.email);
       sent++;
+    }
+    // Send email to all users in chunks of 50 via Resend
+    const RESEND_API_KEY = process.env.RESEND_API_KEY;
+    const FROM_EMAIL = process.env.EMAIL_FROM || "Grit&Gigs <team@gritandgigs.in>";
+    if (RESEND_API_KEY && emailRecipients.length) {
+      const MAX_PER_CALL = 50;
+      const chunks: string[][] = [];
+      for (let i = 0; i < emailRecipients.length; i += MAX_PER_CALL) {
+        chunks.push(emailRecipients.slice(i, i + MAX_PER_CALL));
+      }
+      const subject = "Announcement from Grit&Gigs";
+      const html = `<p>${messageText.trim().replace(/\n/g, "<br/>")}</p>`;
+      await Promise.allSettled(chunks.map(chunk =>
+        fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ from: FROM_EMAIL, to: chunk, subject, html }),
+        })
+      ));
     }
     res.json({ success: true, data: { total: allUsers.length - 1, sent } });
   } catch (err) { console.error("admin announcement error:", err); res.status(500).json({ success: false, message: "Failed to send announcement" }); }
