@@ -417,7 +417,10 @@ a{text-decoration:none;color:inherit;}
       <label class="fl">Message <span style="color:var(--err)">*</span></label>
       <textarea class="fi" id="emailMessage" rows="8" placeholder="Write your message..." style="resize:vertical;"></textarea>
     </div>
-    <button class="btn bp" id="sendEmailBtn" onclick="sendAdminEmail()">Send Email</button>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn bp" id="sendEmailBtn" onclick="sendAdminEmail()">Send Email</button>
+      <button class="btn bs" id="sendEmailAllBtn" onclick="sendEmailToAll()">Send to All Users</button>
+    </div>
     <div id="emailStatus" style="margin-top:10px;font-size:.82rem;"></div>
   </div>
 </div>
@@ -720,6 +723,27 @@ async function sendAdminEmail() {
     status.innerHTML = '<span style="color:var(--err)">✗ Network error</span>';
   } finally {
     btn.disabled = false; btn.textContent = 'Send Email';
+  }
+}
+
+async function sendEmailToAll() {
+  const subject = document.getElementById('emailSubject').value.trim();
+  const message = document.getElementById('emailMessage').value.trim();
+  const btn = document.getElementById('sendEmailAllBtn');
+  const status = document.getElementById('emailStatus');
+  if (!subject || !message) { status.innerHTML = '<span style="color:var(--err)">Subject and message are required</span>'; return; }
+  if (!confirm('Send this email to ALL users? This cannot be undone.')) return;
+  const key = localStorage.getItem('admin_api_key');
+  if (!key) { showLogin(); return; }
+  btn.disabled = true; btn.textContent = 'Sending...';
+  try {
+    const r = await fetch('/api/admin/email-all', { method:'POST', headers:{'Content-Type':'application/json','X-Admin-Key':key}, body:JSON.stringify({subject,message}) });
+    const d = await r.json();
+    status.innerHTML = d.success ? '<span style="color:var(--ok)">✓ Email sent to '+d.data?.sent+' users</span>' : '<span style="color:var(--err)">✗ '+(d.message||'Failed')+'</span>';
+  } catch(e) {
+    status.innerHTML = '<span style="color:var(--err)">✗ Network error</span>';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Send to All Users';
   }
 }
 
