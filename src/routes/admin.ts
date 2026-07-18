@@ -28,7 +28,7 @@ import fs from "fs";
 import { uploadToSupabase, ensureBucketExists, UPLOADS_BUCKET } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
 import { getActivePlanForUser } from "../lib/subscriptions";
-import { sendAdminEmail } from "../lib/email";
+import { sendAdminEmail, layout } from "../lib/email";
 import { adminAuth } from "../middlewares/adminAuth";
 import { waitlistTable } from "./equity";
 
@@ -650,14 +650,21 @@ router.post("/admin/email-all", async (req: Request, res: Response) => {
       chunks.push(recipients.slice(i, i + MAX_PER_CALL));
     }
     const html = `<p>${message.trim().replace(/\n/g, "<br/>")}</p>`;
-    await Promise.allSettled(chunks.map(chunk =>
+    const results = await Promise.allSettled(chunks.map(chunk =>
       fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from: FROM_EMAIL, to: chunk, subject: subject.trim(), html }),
+        body: JSON.stringify({ from: FROM_EMAIL, to: chunk, subject: subject.trim(), html: layout(html) }),
+      }).then(async (r) => {
+        if (!r.ok) {
+          const body = await r.text();
+          console.error("=== email-all chunk error ===", { status: r.status, body: body.substring(0, 500) });
+        }
+        return r.ok;
       })
     ));
-    res.json({ success: true, data: { sent: recipients.length } });
+    const succeeded = results.filter(r => r.status === "fulfilled" && r.value === true).length;
+    res.json({ success: succeeded > 0, data: { sent: recipients.length, chunkSuccess: succeeded, chunkTotal: chunks.length } });
   } catch (err) { console.error("admin email-all error:", err); res.status(500).json({ success: false, message: "Failed to send email" }); }
 });
 

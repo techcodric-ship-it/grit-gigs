@@ -22,7 +22,7 @@ interface EmailOptions {
   replyTo?: string;
 }
 
-function layout(content: string): string {
+export function layout(content: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
