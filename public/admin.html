@@ -795,13 +795,14 @@ async function loadUsers(page) {
 function renderUsers(list) {
   const el = document.getElementById('usersList');
   if (!list.length) { el.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">No users found</div></div>`; return; }
-  el.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th></th><th>GG ID</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr></thead><tbody>${list.map(u => `<tr>
+  el.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th></th><th>GG ID</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Last Login</th><th>Joined</th><th></th></tr></thead><tbody>${list.map(u => `<tr>
     <td>${u.profilePhoto ? `<img src="${esc(u.profilePhoto)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;"/>` : `<div class="av" style="width:28px;height:28px;font-size:9px;flex-shrink:0;">${((u.firstName||'?')[0]).toUpperCase()}</div>`}</td>
     <td class="tdt" style="font-size:.7rem">${esc(ggId(u.id))}</td>
     <td class="tdt">${esc(u.firstName+' '+u.lastName)}</td>
     <td>${esc(u.email)}</td>
     <td>${badge(u.role)}</td>
     <td>${u.isActive===false?'<span class="pill pbanned">Banned</span>':'<span class="pill pd">Active</span>'}</td>
+    <td style="font-size:.7rem">${u.lastLoginAt?new Date(u.lastLoginAt).toLocaleString():'—'}</td>
     <td style="font-size:.7rem">${u.createdAt?new Date(u.createdAt).toLocaleDateString():'—'}</td>
     <td style="display:flex;gap:4px;"><button class="btn bp btn-xs" onclick="openUserDetail('${u.id}')">Full Control</button><button class="btn btn-xs" data-name="${esc(u.firstName+' '+u.lastName)}" style="border-color:var(--accent);color:var(--accent);" onclick="openMessageComposer('${u.id}',this.dataset.name)">Message</button></td>
   </tr>`).join('')}</tbody></table></div>`;
