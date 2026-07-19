@@ -831,7 +831,9 @@ function showPhonePrompt(data) {
       body: JSON.stringify({ phone: phone })
     }).then(function(r) { return r.json(); }).then(function(d) {
       if (d.success) {
-        var user = JSON.parse(localStorage.getItem('se_user') || '{}');
+        localStorage.setItem('se_token', data.data.accessToken);
+        localStorage.setItem('se_refresh', data.data.refreshToken);
+        var user = data.data.user;
         user.phone = phone;
         localStorage.setItem('se_user', JSON.stringify(user));
         ov.remove(); document.body.style.overflow = '';
@@ -854,12 +856,12 @@ window.addEventListener('message', function googleMessageHandler(e) {
   if (!data || typeof data.success === 'undefined') return;
 
   if (data.success && data.data) {
-    localStorage.setItem('se_token', data.data.accessToken);
-    localStorage.setItem('se_refresh', data.data.refreshToken);
-    localStorage.setItem('se_user', JSON.stringify(data.data.user));
     if (data.data.needsPhone) {
       showPhonePrompt(data);
     } else {
+      localStorage.setItem('se_token', data.data.accessToken);
+      localStorage.setItem('se_refresh', data.data.refreshToken);
+      localStorage.setItem('se_user', JSON.stringify(data.data.user));
       showToast('Welcome, ' + data.data.user.firstName + '!', 'success');
       setTimeout(function() { window.location.href = 'dashboard.html'; }, 600);
     }
