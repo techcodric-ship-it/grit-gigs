@@ -257,18 +257,6 @@ router.put("/users/me", authenticate, async (req, res): Promise<void> => {
       updates.portfolioLinks = arr;
     }
     if (socialLinks !== undefined) updates.socialLinks = socialLinks;
-    if (phone !== undefined) {
-      const cleaned = phone.trim();
-      if (cleaned) {
-        const digits = cleaned.replace(/\D/g, "");
-        if (digits.length !== 10 && digits.length !== 12) {
-          res.status(400).json({ success: false, message: "Please enter a valid 10-digit mobile number (e.g. +91 9876543210)." });
-          return;
-        }
-      }
-      updates.phone = cleaned || null;
-    }
-
     const [updated] = await db
       .update(usersTable)
       .set({ ...updates, updatedAt: new Date() })
