@@ -5493,7 +5493,7 @@ function renderPortfolio(items) {
     return "<div class=\"port-item\">" +
       "<button class=\"port-remove\" onclick=\"removePortItem(" + i + ")\">×</button>" +
       "<div class=\"port-item-title\">" + p.title + "</div>" +
-      "<a href=\"" + p.url + "\" target=\"_blank\" class=\"port-item-url\">" + p.url + "</a>" +
+      "<a href=\"" + safeUrl(p.url) + "\" target=\"_blank\" class=\"port-item-url\">" + p.url + "</a>" +
       (p.desc ? "<div class=\"port-item-desc\">" + p.desc + "</div>" : "") +
       "</div>";
   }).join("");
@@ -5520,7 +5520,7 @@ window.openAddPortfolio = function() {
   }
   inputModal('Add Portfolio Project', '', '', (vals) => {
     if (!vals.title || !vals.url) { showToast('Title and URL are required', 'err'); return; }
-    items.push({ title: vals.title, url: vals.url, desc: vals.desc || '' });
+    items.push({ title: vals.title, url: safeUrl(vals.url), desc: vals.desc || '' });
     api('/users/me', { method: 'PUT', body: JSON.stringify({ portfolioLinks: items }) }).then(function(d) {
       if (d.success) { sU(Object.assign({}, gU(), d.data.user)); renderPortfolio(items); showToast('Portfolio item added!', 'ok'); calcProfileCompletion(Object.assign({}, gU(), { portfolioLinks: items })); }
       else if (d._planLimitExceeded) { showToast(d.message, 'err'); setTimeout(function(){ showPage('plans'); }, 800); }

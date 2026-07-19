@@ -182,6 +182,7 @@ function stars(avg) {
 }
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function safeUrl(url) { if (!url) return '#'; const s = url.trim(); if (/^https?:\/\//i.test(s)) return s; return 'https://' + s; }
 
 function icon(name) {
   const icons = {
@@ -317,7 +318,7 @@ async function load() {
 
           <div class="prof-card" style="margin-bottom:20px;">
             <div class="prof-section-title">${icon('link')} Portfolio</div>
-            ${user.portfolioLinks?.length ? user.portfolioLinks.map(p => `<a class="portfolio-link" href="${esc(p.url)}" target="_blank" rel="noopener">${icon('link')} ${esc(p.label)}</a>`).join('') : '<p style="color:#9ca3af;font-size:.85rem;">No portfolio links added.</p>'}
+            ${user.portfolioLinks?.length ? user.portfolioLinks.map(p => `<a class="portfolio-link" href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener">${icon('link')} ${esc(p.label)}</a>`).join('') : '<p style="color:#9ca3af;font-size:.85rem;">No portfolio links added.</p>'}
           </div>
 
           <div class="prof-card">
