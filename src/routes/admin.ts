@@ -135,14 +135,15 @@ router.get("/admin/users/search", async (req: Request, res: Response) => {
     return res.json({ success: true, data: [] });
   }
   const cleanId = q.replace(/^g&g-/i, '').toLowerCase();
-  const users = await db.select().from(usersTable).where(
+  const users = await db.select().from(usersTable).where(and(
+    sql`${usersTable.phone} IS NOT NULL`,
     or(
       like(sql`LOWER(${usersTable.firstName})`, `%${q}%`),
       like(sql`LOWER(${usersTable.lastName})`, `%${q}%`),
       like(sql`LOWER(${usersTable.email})`, `%${q}%`),
       like(sql`LOWER(CAST(${usersTable.id} AS TEXT))`, `%${cleanId}%`),
     )
-  ).limit(20);
+  )).limit(20);
   const data = users.map(u => ({ ...u, ggId: _ggId(u.id) }));
   res.json({ success: true, data });
 });
@@ -153,8 +154,8 @@ router.get("/admin/users", async (req: Request, res: Response) => {
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
   const offset = (page - 1) * limit;
   const [users, [{ count }]] = await Promise.all([
-    db.select().from(usersTable).orderBy(desc(usersTable.createdAt)).limit(limit).offset(offset),
-    db.select({ count: sql<number>`count(*)` }).from(usersTable),
+    db.select().from(usersTable).where(sql`${usersTable.phone} IS NOT NULL`).orderBy(desc(usersTable.createdAt)).limit(limit).offset(offset),
+    db.select({ count: sql<number>`count(*)` }).from(usersTable).where(sql`${usersTable.phone} IS NOT NULL`),
   ]);
   const data = users.map(u => ({ ...u, ggId: _ggId(u.id) }));
   res.json({ success: true, data, total: Number(count) });
@@ -406,7 +407,7 @@ router.put("/admin/projects/:id", async (req: Request, res: Response) => {
 // ── Dashboard stats ──
 router.get("/admin/stats", async (req: Request, res: Response) => {
   const [[{ users }], [{ services }], [{ projects }], [{ barters }], [{ orders }], [{ disputes }], [{ kycPending }]] = await Promise.all([
-    db.select({ users: sql<number>`count(*)` }).from(usersTable),
+    db.select({ users: sql<number>`count(*)` }).from(usersTable).where(sql`${usersTable.phone} IS NOT NULL`),
     db.select({ services: sql<number>`count(*)` }).from(servicesTable),
     db.select({ projects: sql<number>`count(*)` }).from(projectsTable),
     db.select({ barters: sql<number>`count(*)` }).from(barterRequestsTable),
