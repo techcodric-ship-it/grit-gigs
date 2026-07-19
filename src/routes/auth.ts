@@ -10,12 +10,18 @@ import {
   rotateRefreshToken,
   deleteAllRefreshTokens,
 } from "../lib/auth";
+import jwt from "jsonwebtoken";
 import { authenticate } from "../middlewares/authenticate";
 import { sendWelcomeEmail, sendPasswordResetEmail, sendEmailVerificationEmail, sendOtpEmail } from "../lib/email";
 import { verifySupabaseToken, getSupabase } from "../lib/supabase";
 import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
 
 const router: IRouter = Router();
+
+function normalizePhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length === 12 ? digits.slice(2) : digits.length === 11 ? digits.slice(1) : digits;
+}
 
 const registerLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: { success: false, message: "Too many registration attempts. Try again in 15 minutes." } });
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { success: false, message: "Too many login attempts. Try again in 15 minutes." } });
@@ -49,12 +55,9 @@ router.post("/auth/register", registerLimiter, async (req, res): Promise<void> =
   }
 
   if (phone) {
-    const [existingPhone] = await db
-      .select({ id: usersTable.id })
-      .from(usersTable)
-      .where(eq(usersTable.phone, phone));
-
-    if (existingPhone) {
+    const normalized = normalizePhone(phone);
+    const allPhones = await db.select({ phone: usersTable.phone }).from(usersTable).where(sql`${usersTable.phone} IS NOT NULL`);
+    if (allPhones.some(p => p.phone && normalizePhone(p.phone) === normalized)) {
       res.status(400).json({ success: false, message: "Phone number already registered" });
       return;
     }
@@ -517,7 +520,7 @@ router.post("/auth/supabase", async (req, res): Promise<void> => {
 });
 
 // ── Set phone after Supabase signup ──
-router.post("/auth/supabase/phone", async (req: Request, res: Response): Promise<void> => {
+router.post("/auth/supabase/phone", async (req, res): Promise<void> => {
   const { phone } = req.body;
   if (!phone?.trim()) {
     res.status(400).json({ success: false, message: "Phone number required" });
@@ -530,8 +533,9 @@ router.post("/auth/supabase/phone", async (req: Request, res: Response): Promise
   }
   try {
     const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET || "fallback-dev-secret") as { userId: string };
-    const [existing] = await db.select().from(usersTable).where(eq(usersTable.phone, phone.trim()));
-    if (existing) {
+    const normalized = normalizePhone(phone);
+    const allPhones = await db.select({ phone: usersTable.phone }).from(usersTable).where(sql`${usersTable.phone} IS NOT NULL`);
+    if (allPhones.some(p => p.phone && normalizePhone(p.phone) === normalized)) {
       res.status(409).json({ success: false, message: "Phone number already in use" });
       return;
     }
@@ -594,6 +598,7 @@ async function findOrCreateGoogleUser(email: string, fullName: string, photo: st
   return {
     accessToken,
     refreshToken,
+    needsPhone: !user.phone,
     user: {
       id: user.id,
       firstName: user.firstName,
