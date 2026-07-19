@@ -785,7 +785,6 @@ function googleSignIn() {
 
 // Listen for postMessage from the popup
 window.addEventListener('message', function googleMessageHandler(e) {
-  // Accept from any origin for now (our own server anyway)
   var data = e.data;
   if (!data || typeof data.success === 'undefined') return;
 
@@ -793,8 +792,33 @@ window.addEventListener('message', function googleMessageHandler(e) {
     localStorage.setItem('se_token', data.data.accessToken);
     localStorage.setItem('se_refresh', data.data.refreshToken);
     localStorage.setItem('se_user', JSON.stringify(data.data.user));
-    showToast('Welcome, ' + data.data.user.firstName + '!', 'success');
-    setTimeout(function() { window.location.href = 'dashboard.html'; }, 600);
+    if (data.data.needsPhone) {
+      var phone = prompt('Please enter your phone number to complete signup:');
+      if (phone && phone.trim()) {
+        fetch('/api/auth/supabase/phone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + data.data.accessToken },
+          body: JSON.stringify({ phone: phone.trim() })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+          if (d.success) {
+            var user = JSON.parse(localStorage.getItem('se_user') || '{}');
+            user.phone = phone.trim();
+            localStorage.setItem('se_user', JSON.stringify(user));
+            showToast('Welcome, ' + data.data.user.firstName + '!', 'success');
+            setTimeout(function() { window.location.href = 'dashboard.html'; }, 600);
+          } else {
+            showToast(d.message || 'Failed to save phone', 'error');
+            setTimeout(function() { window.location.href = 'dashboard.html'; }, 1000);
+          }
+        });
+      } else {
+        showToast('Phone number is required', 'error');
+        setTimeout(function() { window.location.href = 'index.html'; }, 1000);
+      }
+    } else {
+      showToast('Welcome, ' + data.data.user.firstName + '!', 'success');
+      setTimeout(function() { window.location.href = 'dashboard.html'; }, 600);
+    }
   } else {
     showToast(data.message || 'Google sign-in failed', 'error');
   }

@@ -492,12 +492,14 @@ router.post("/auth/supabase", async (req, res): Promise<void> => {
   const accessToken2 = generateAccessToken(user.id);
   const refreshToken2 = await generateRefreshToken(user.id);
 
+  const needsPhone = !user.phone;
   res.json({
     success: true,
     message: "Authenticated via Supabase",
     data: {
       accessToken: accessToken2,
       refreshToken: refreshToken2,
+      needsPhone,
       user: {
         id: user.id,
         firstName: user.firstName,
@@ -512,6 +514,32 @@ router.post("/auth/supabase", async (req, res): Promise<void> => {
       },
     },
   });
+});
+
+// ── Set phone after Supabase signup ──
+router.post("/auth/supabase/phone", async (req: Request, res: Response): Promise<void> => {
+  const { phone } = req.body;
+  if (!phone?.trim()) {
+    res.status(400).json({ success: false, message: "Phone number required" });
+    return;
+  }
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) {
+    res.status(401).json({ success: false, message: "Unauthorized" });
+    return;
+  }
+  try {
+    const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET || "fallback-dev-secret") as { userId: string };
+    const [existing] = await db.select().from(usersTable).where(eq(usersTable.phone, phone.trim()));
+    if (existing) {
+      res.status(409).json({ success: false, message: "Phone number already in use" });
+      return;
+    }
+    await db.update(usersTable).set({ phone: phone.trim() }).where(eq(usersTable.id, payload.userId));
+    res.json({ success: true, message: "Phone number saved" });
+  } catch {
+    res.status(401).json({ success: false, message: "Unauthorized" });
+  }
 });
 
 // ── Google OAuth (server-side redirect flow) ──────────────────────────────
