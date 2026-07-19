@@ -783,6 +783,71 @@ function googleSignIn() {
   }
 }
 
+// ── Phone prompt modal (replaces unreliable browser prompt()) ──
+function showPhonePrompt(data) {
+  var existing = document.getElementById('phonePromptOverlay');
+  if (existing) existing.remove();
+
+  var ov = document.createElement('div');
+  ov.className = 'modal-overlay';
+  ov.id = 'phonePromptOverlay';
+  ov.style.cssText = 'opacity:0;pointer-events:none;';
+  ov.innerHTML =
+    '<div class="modal" style="max-width:400px;padding:30px 32px;cursor:default;text-align:center;" onclick="event.stopPropagation()">' +
+      '<button class="modal-close" onclick="document.getElementById(\'phonePromptOverlay\')?.remove();document.getElementById(\'phonePromptOverlay\')?.classList.remove(\'open\');document.body.style.overflow=\'\'">&times;</button>' +
+      '<div style="margin:8px 0 4px;font-size:1.2rem;font-weight:700;">Phone number required</div>' +
+      '<div style="font-size:0.85rem;color:var(--muted);margin-bottom:20px;">Enter your phone number to complete signup</div>' +
+      '<input id="phonePromptInput" type="tel" inputmode="numeric" placeholder="+91 98765 43210" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:0.95rem;background:var(--bg);color:var(--text);outline:none;box-sizing:border-box;" />' +
+      '<div id="phonePromptError" style="color:#C0392B;font-size:0.82rem;margin:6px 0 0;display:none;"></div>' +
+      '<div style="display:flex;gap:10px;margin-top:18px;">' +
+        '<button onclick="document.getElementById(\'phonePromptOverlay\')?.remove();document.body.style.overflow=\'\';localStorage.removeItem(\'se_token\');localStorage.removeItem(\'se_refresh\');localStorage.removeItem(\'se_user\');window.location.href=\'index.html\';" style="flex:1;padding:11px 0;border-radius:10px;border:1.5px solid var(--border);background:var(--bg);color:var(--muted);font-size:0.88rem;font-weight:600;cursor:pointer;">Cancel</button>' +
+        '<button id="phonePromptSubmit" style="flex:1;padding:11px 0;border-radius:10px;border:none;background:#6C3FE8;color:#fff;font-size:0.88rem;font-weight:600;cursor:pointer;">Continue</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(ov);
+  requestAnimationFrame(function() {
+    ov.style.opacity = '1'; ov.style.pointerEvents = 'all';
+    ov.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('phonePromptInput').focus();
+  });
+
+  document.getElementById('phonePromptSubmit').addEventListener('click', function() {
+    var inp = document.getElementById('phonePromptInput');
+    var phone = inp.value.trim();
+    var errEl = document.getElementById('phonePromptError');
+    if (!phone) {
+      errEl.textContent = 'Please enter your phone number';
+      errEl.style.display = 'block';
+      inp.style.borderColor = '#C0392B';
+      return;
+    }
+    inp.disabled = true;
+    document.getElementById('phonePromptSubmit').disabled = true;
+    document.getElementById('phonePromptSubmit').textContent = 'Saving...';
+    fetch('/api/auth/supabase/phone', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + data.data.accessToken },
+      body: JSON.stringify({ phone: phone })
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      if (d.success) {
+        var user = JSON.parse(localStorage.getItem('se_user') || '{}');
+        user.phone = phone;
+        localStorage.setItem('se_user', JSON.stringify(user));
+        ov.remove(); document.body.style.overflow = '';
+        showToast('Welcome, ' + data.data.user.firstName + '!', 'success');
+        setTimeout(function() { window.location.href = 'dashboard.html'; }, 600);
+      } else {
+        errEl.textContent = d.message || 'Failed to save phone';
+        errEl.style.display = 'block';
+        inp.disabled = false;
+        document.getElementById('phonePromptSubmit').disabled = false;
+        document.getElementById('phonePromptSubmit').textContent = 'Continue';
+      }
+    });
+  });
+}
+
 // Listen for postMessage from the popup
 window.addEventListener('message', function googleMessageHandler(e) {
   var data = e.data;
@@ -793,28 +858,7 @@ window.addEventListener('message', function googleMessageHandler(e) {
     localStorage.setItem('se_refresh', data.data.refreshToken);
     localStorage.setItem('se_user', JSON.stringify(data.data.user));
     if (data.data.needsPhone) {
-      var phone = prompt('Please enter your phone number to complete signup:');
-      if (phone && phone.trim()) {
-        fetch('/api/auth/supabase/phone', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + data.data.accessToken },
-          body: JSON.stringify({ phone: phone.trim() })
-        }).then(function(r) { return r.json(); }).then(function(d) {
-          if (d.success) {
-            var user = JSON.parse(localStorage.getItem('se_user') || '{}');
-            user.phone = phone.trim();
-            localStorage.setItem('se_user', JSON.stringify(user));
-            showToast('Welcome, ' + data.data.user.firstName + '!', 'success');
-            setTimeout(function() { window.location.href = 'dashboard.html'; }, 600);
-          } else {
-            showToast(d.message || 'Failed to save phone', 'error');
-            setTimeout(function() { window.location.href = 'index.html'; }, 1500);
-          }
-        });
-      } else {
-        showToast('Phone number is required', 'error');
-        setTimeout(function() { window.location.href = 'index.html'; }, 1000);
-      }
+      showPhonePrompt(data);
     } else {
       showToast('Welcome, ' + data.data.user.firstName + '!', 'success');
       setTimeout(function() { window.location.href = 'dashboard.html'; }, 600);
