@@ -808,7 +808,7 @@ window.addEventListener('message', function googleMessageHandler(e) {
             setTimeout(function() { window.location.href = 'dashboard.html'; }, 600);
           } else {
             showToast(d.message || 'Failed to save phone', 'error');
-            setTimeout(function() { window.location.href = 'dashboard.html'; }, 1000);
+            setTimeout(function() { window.location.href = 'index.html'; }, 1500);
           }
         });
       } else {
