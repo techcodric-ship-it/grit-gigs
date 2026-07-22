@@ -234,15 +234,10 @@ export async function notifyAllUsersNewListing(
     if (!recipients.length) return;
 
     const { subject, html } = getListingEmailContent(listingType, posterName, title, linkUrl);
-    const MAX_PER_CALL = 50;
-    const chunks: string[][] = [];
-    for (let i = 0; i < recipients.length; i += MAX_PER_CALL) {
-      chunks.push(recipients.slice(i, i + MAX_PER_CALL));
-    }
-
-    await Promise.allSettled(
-      chunks.map((chunk) =>
-        fetch("https://api.resend.com/emails", {
+    let sent = 0;
+    for (const email of recipients) {
+      try {
+        const r = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${RESEND_API_KEY}`,
@@ -250,20 +245,20 @@ export async function notifyAllUsersNewListing(
           },
           body: JSON.stringify({
             from: FROM_EMAIL,
-            to: chunk,
+            to: email,
             subject,
             html: layout(html),
           }),
-        }).then(async (r) => {
-          if (!r.ok) {
-            const body = await r.text();
-            logger.error({ status: r.status, body }, "Resend chunk email API error");
-          }
-        }),
-      ),
-    );
+        });
+        if (r.ok) sent++;
+        else {
+          const body = await r.text();
+          logger.error({ email, status: r.status, body }, "Resend individual email error");
+        }
+      } catch (e) { logger.error({ email, err: e }, "Resend individual email error"); }
+    }
 
-    logger.info({ listingType, title, recipients: recipients.length }, "Bulk listing notification sent");
+    logger.info({ listingType, title, recipients: recipients.length, sent }, "Bulk listing notification sent");
   } catch (err) {
     logger.error({ err, listingType }, "Failed to send bulk listing notification");
   }

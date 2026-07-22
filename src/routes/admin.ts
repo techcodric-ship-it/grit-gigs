@@ -644,27 +644,23 @@ router.post("/admin/email-all", async (req: Request, res: Response) => {
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
     const FROM_EMAIL = process.env.EMAIL_FROM || "Grit&Gigs <team@gritandgigs.in>";
     if (!RESEND_API_KEY) return res.status(500).json({ success: false, message: "Resend API key not configured" });
-    const MAX_PER_CALL = 50;
-    const chunks: string[][] = [];
-    for (let i = 0; i < recipients.length; i += MAX_PER_CALL) {
-      chunks.push(recipients.slice(i, i + MAX_PER_CALL));
-    }
     const html = `<p>${message.trim().replace(/\n/g, "<br/>")}</p>`;
-    const results = await Promise.allSettled(chunks.map(chunk =>
-      fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from: FROM_EMAIL, to: chunk, subject: subject.trim(), html: layout(html) }),
-      }).then(async (r) => {
-        if (!r.ok) {
+    let sent = 0;
+    for (const email of recipients) {
+      try {
+        const r = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ from: FROM_EMAIL, to: email, subject: subject.trim(), html: layout(html) }),
+        });
+        if (r.ok) sent++;
+        else {
           const body = await r.text();
-          console.error("=== email-all chunk error ===", { status: r.status, body: body.substring(0, 500) });
+          console.error("=== email-all individual error ===", { email, status: r.status, body: body.substring(0, 300) });
         }
-        return r.ok;
-      })
-    ));
-    const succeeded = results.filter(r => r.status === "fulfilled" && r.value === true).length;
-    res.json({ success: succeeded > 0, data: { sent: recipients.length, chunkSuccess: succeeded, chunkTotal: chunks.length } });
+      } catch (e) { console.error("=== email-all individual error ===", { email, error: e }); }
+    }
+    res.json({ success: sent > 0, data: { sent, total: recipients.length } });
   } catch (err) { console.error("admin email-all error:", err); res.status(500).json({ success: false, message: "Failed to send email" }); }
 });
 
