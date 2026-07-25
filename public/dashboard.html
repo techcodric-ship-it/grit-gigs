@@ -2482,11 +2482,14 @@ async function loadNotifDrawer() {
     (convRes.data.conversations || [])
       .filter(c => (c.unreadCount || 0) > 0)
       .forEach(c => {
-        const other = (c.participants || []).find(p => p.id !== u?.id);
+        const other = c.otherUser || (c.participants || []).find(p => p.id !== u?.id);
+        const senderName = other?.firstName || 'Someone';
+        const preview = c.lastMessage?.messageText || 'sent you a message';
+        const truncated = preview.length > 60 ? preview.slice(0, 60) + '…' : preview;
         items.push({
           icon: '💬', link: 'inbox',
-          title: 'New message',
-          msg: `${other?.firstName || 'Someone'} sent you a message`,
+          title: senderName,
+          msg: truncated,
           time: c.lastMessageAt || c.updatedAt,
         });
       });
