@@ -161,7 +161,7 @@ export async function sendNotificationEmail(to: string, title: string, message: 
     subject: title,
     html: `<h1>${htmlEscape(title)}</h1>
       <p>${htmlEscape(message)}</p>
-      ${linkUrl ? `<p style="text-align:center;margin:24px 0;"><a href="${htmlEscape(linkUrl)}" class="btn">View Details →</a></p>` : ''}`,
+      ${linkUrl ? `<p style="text-align:center;margin:24px 0;"><a href="${APP_URL}${htmlEscape(linkUrl)}" class="btn">View Details →</a></p>` : ''}`,
   });
 }
 
