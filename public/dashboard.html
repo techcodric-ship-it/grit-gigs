@@ -5699,11 +5699,6 @@ async function loadProfileReviews() {
     `).join('')}
   `;
 
-  // Update Rep stat in profile card if we have seller avg
-  if (avgSeller) {
-    const repEl = document.getElementById('pRep');
-    if (repEl) repEl.textContent = avgSeller + '★';
-  }
   // Update overall rating display from /users/:id data
   if (userRes.success) {
     const avg = userRes.data.avgRating;
