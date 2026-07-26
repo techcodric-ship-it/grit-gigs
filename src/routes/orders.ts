@@ -18,6 +18,7 @@ import { eq, or, and, desc, count, sql } from "drizzle-orm";
 import { authenticate } from "../middlewares/authenticate";
 import { getActivePlanForUser } from "../lib/subscriptions";
 import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
+import { sendNotificationEmail } from "../lib/email";
 
 
 
@@ -149,6 +150,11 @@ router.post("/orders", authenticate, async (req, res): Promise<void> => {
     message: `${req.user!.firstName} placed an order for "${service.title}"`,
     linkUrl: `/dashboard/orders/${order.id}`,
   });
+
+  const [seller] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, service.sellerId)).limit(1);
+  if (seller?.email) {
+    sendNotificationEmail(seller.email, "New order received!", `${req.user!.firstName} placed an order for "${service.title}"`, `/dashboard/orders/${order.id}`).catch(() => {});
+  }
 
   res.status(201).json({ success: true, message: "Order placed successfully!", data: { order } });
 });

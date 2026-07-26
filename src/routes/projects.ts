@@ -11,7 +11,7 @@ import { getActivePlanForUser, getOrCreateSubscription, getPlan } from '../lib/s
 import { attachPlanBadge, attachPlanBadges } from '../lib/planBadge';
 import { uploadToSupabase } from '../lib/storage';
 import { PROJECT_ROOT } from '../lib/root';
-import { notifyAllUsersNewListing } from '../lib/email';
+import { notifyAllUsersNewListing, sendNotificationEmail } from '../lib/email';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -435,6 +435,11 @@ router.post('/projects/:id/bids', authenticate, async (req: Request, res: Respon
     linkUrl: '/dashboard.html#my-projects',
   });
 
+  const [projectOwner] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, project.userId)).limit(1);
+  if (projectOwner?.email) {
+    sendNotificationEmail(projectOwner.email, 'New project proposal', `A freelancer submitted a proposal for "${project.title}".`, '/dashboard.html#my-projects').catch(() => {});
+  }
+
   return res.status(201).json({ success: true, data: { bid } });
 });
 
@@ -486,6 +491,27 @@ router.put('/projects/bids/:bidId/accept', authenticate, async (req: Request, re
       .where(eq(projectsTable.id, project.id));
   });
 
+  // Notify rejected bidders
+  const rejectedBids = await db
+    .select({ userId: projectBidsTable.userId })
+    .from(projectBidsTable)
+    .where(and(eq(projectBidsTable.projectId, project.id), eq(projectBidsTable.status, 'REJECTED')));
+
+  for (const rb of rejectedBids) {
+    await db.insert(notificationsTable).values({
+      userId: rb.userId,
+      type: 'PROJECT_BID_REJECTED',
+      title: 'Proposal not selected',
+      message: `Your proposal for "${project.title}" was not selected this time. Keep applying — the right project is out there!`,
+      linkUrl: '/dashboard.html#my-projects',
+    });
+
+    const [rejectedUser] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, rb.userId)).limit(1);
+    if (rejectedUser?.email) {
+      sendNotificationEmail(rejectedUser.email, 'Proposal not selected', `Your proposal for "${project.title}" was not selected this time. Keep applying — the right project is out there!`, '/dashboard.html#my-projects').catch(() => {});
+    }
+  }
+
   // Fetch freelancer info for the response
   const [freelancer] = await db
     .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified })
@@ -502,6 +528,11 @@ router.put('/projects/bids/:bidId/accept', authenticate, async (req: Request, re
     message: `Your proposal for "${project.title}" was accepted. Go to My Projects → My Bids to message the client.`,
     linkUrl: '/dashboard.html#my-projects',
   });
+
+  const [acceptedFreelancer] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, bid.userId)).limit(1);
+  if (acceptedFreelancer?.email) {
+    sendNotificationEmail(acceptedFreelancer.email, 'Proposal accepted! 🎉', `Your proposal for "${project.title}" was accepted. Go to My Projects → My Bids to message the client.`, '/dashboard.html#my-projects').catch(() => {});
+  }
 
   return res.json({
     success: true,
