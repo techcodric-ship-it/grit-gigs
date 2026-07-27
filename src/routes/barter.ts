@@ -15,7 +15,7 @@ import { getActivePlanForUser, getOrCreateSubscription } from "../lib/subscripti
 import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
 import { uploadToSupabase } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
-import { notifyAllUsersNewListing } from "../lib/email";
+import { notifyAllUsersNewListing, sendNotificationEmail } from "../lib/email";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -379,6 +379,11 @@ router.post("/barter/matches", authenticate, async (req, res): Promise<void> => 
     linkUrl: "/dashboard#my-exchanges",
   });
 
+  const [targetUser] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, targetRequest.userId)).limit(1);
+  if (targetUser?.email) {
+    sendNotificationEmail(targetUser.email, "New exchange match request!", `${req.user!.firstName} wants to exchange "${myRequest.skillOffered}" for "${myRequest.skillNeeded}"`, "/dashboard#my-exchanges").catch(() => {});
+  }
+
   res.status(201).json({ success: true, message: "Match request sent!", data: { match } });
 });
 
@@ -437,6 +442,11 @@ router.put("/barter/matches/:id/respond", authenticate, async (req, res): Promis
       message: `${req.user!.firstName} accepted your exchange request. Start chatting!`,
       linkUrl: "/dashboard#my-exchanges",
     });
+
+    const [requester] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, match.user1Id)).limit(1);
+    if (requester?.email) {
+      sendNotificationEmail(requester.email, "Match accepted!", `${req.user!.firstName} accepted your exchange request. Start chatting!`, "/dashboard#my-exchanges").catch(() => {});
+    }
   }
 
   res.json({ success: true, message: action === "accept" ? "Match accepted!" : "Match rejected", data: { match: updated, conversationId } });
