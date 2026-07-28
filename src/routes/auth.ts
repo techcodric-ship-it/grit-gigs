@@ -113,6 +113,9 @@ router.post("/auth/register", registerLimiter, async (req, res): Promise<void> =
 
   const otpSent = await sendOtpEmail(email.toLowerCase(), otp);
 
+  // Send welcome email immediately
+  sendWelcomeEmail(user.email, user.firstName);
+
   res.status(201).json({
     success: true,
     message: otpSent ? "Verification code sent to your email." : "Account created but email service unavailable. Contact support to verify your account.",
