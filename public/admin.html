@@ -421,7 +421,11 @@ a{text-decoration:none;color:inherit;}
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
       <button class="btn bp" id="sendEmailBtn" onclick="sendAdminEmail()">Send Email</button>
-      <button class="btn bs" id="sendEmailAllBtn" onclick="sendEmailToAll()">Send to All Users</button>
+      <select id="emailFilter" style="padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:0.88rem;">
+        <option value="all">All users</option>
+        <option value="no-kyc">Non-KYC only</option>
+      </select>
+      <button class="btn bs" id="sendEmailAllBtn" onclick="sendEmailToAll()">Send Email</button>
     </div>
     <div id="emailStatus" style="margin-top:10px;font-size:.82rem;"></div>
   </div>
@@ -734,12 +738,14 @@ async function sendEmailToAll() {
   const btn = document.getElementById('sendEmailAllBtn');
   const status = document.getElementById('emailStatus');
   if (!subject || !message) { status.innerHTML = '<span style="color:var(--err)">Subject and message are required</span>'; return; }
-  if (!confirm('Send this email to ALL users? This cannot be undone.')) return;
+  var filterLabel = document.getElementById('emailFilter').options[document.getElementById('emailFilter').selectedIndex].text;
+  if (!confirm('Send this email to ' + filterLabel + '? This cannot be undone.')) return;
   const key = localStorage.getItem('admin_api_key');
   if (!key) { showLogin(); return; }
+  const filter = document.getElementById('emailFilter').value;
   btn.disabled = true; btn.textContent = 'Sending...';
   try {
-    const r = await fetch('/api/admin/email-all', { method:'POST', headers:{'Content-Type':'application/json','X-Admin-Key':key}, body:JSON.stringify({subject,message}) });
+    const r = await fetch('/api/admin/email-all', { method:'POST', headers:{'Content-Type':'application/json','X-Admin-Key':key}, body:JSON.stringify({subject,message,filter}) });
     const d = await r.json();
     status.innerHTML = d.success ? '<span style="color:var(--ok)">✓ Email sent to '+d.data?.sent+' users</span>' : '<span style="color:var(--err)">✗ '+(d.message||'Failed')+'</span>';
   } catch(e) {
