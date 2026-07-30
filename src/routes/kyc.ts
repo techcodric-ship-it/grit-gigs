@@ -7,6 +7,7 @@ import path from "path";
 import fs from "fs";
 import { db, kycDocumentsTable, usersTable, notificationsTable } from "../db";
 import { authenticate } from "../middlewares/authenticate";
+import { sendNotificationEmail } from "../lib/email";
 
 const router: IRouter = Router();
 
@@ -117,6 +118,13 @@ router.put("/kyc/:userId/review", authenticate, async (req: Request, res: Respon
       : `Your KYC was not approved. ${reviewNotes ? "Note: " + reviewNotes : "Please re-submit with a clearer document."}`,
     linkUrl: "/dashboard.html?tab=my-profile",
   });
+
+  if (status === "APPROVED") {
+    const [kycUser] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, targetUserId)).limit(1);
+    if (kycUser?.email) {
+      sendNotificationEmail(kycUser.email, "KYC Approved — You're verified! ✅", "Your identity has been verified. A verified badge is now visible on your profile.", "/dashboard.html?tab=my-profile").catch(() => {});
+    }
+  }
 
   res.json({ success: true, message: `KYC ${status.toLowerCase()}` });
 });
