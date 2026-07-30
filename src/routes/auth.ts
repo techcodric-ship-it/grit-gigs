@@ -488,6 +488,7 @@ router.post("/auth/supabase", async (req, res): Promise<void> => {
       message: "Account created via Google. Complete your profile to get started.",
       linkUrl: "/dashboard",
     });
+    sendWelcomeEmail(user.email, user.firstName);
   } else {
     // Mark email as verified if logging in via Google
     if (!user.emailVerified) {
@@ -589,6 +590,7 @@ async function findOrCreateGoogleUser(email: string, fullName: string, photo: st
       message: "Account created via Google. Complete your profile to get started.",
       linkUrl: "/dashboard",
     });
+    sendWelcomeEmail(user.email, user.firstName);
   } else if (!user.emailVerified) {
     await db.update(usersTable).set({ emailVerified: true }).where(eq(usersTable.id, user.id));
   }
