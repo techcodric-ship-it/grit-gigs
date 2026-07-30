@@ -1,6 +1,7 @@
 import { db } from "../db";
 import { usersTable } from "../db/schema/users";
 import { logger } from "./logger";
+import { eq } from "drizzle-orm";
 
 function htmlEscape(str: string): string {
   return str
@@ -226,7 +227,7 @@ export async function notifyAllUsersNewListing(
   }
 
   try {
-    const allUsers = await db.select({ email: usersTable.email }).from(usersTable);
+    const allUsers = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.isActive, true));
     const recipients = posterEmail
       ? allUsers.filter((u) => u.email !== posterEmail).map((u) => u.email)
       : allUsers.map((u) => u.email);
