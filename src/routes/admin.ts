@@ -638,7 +638,7 @@ router.post("/admin/email-all", async (req: Request, res: Response) => {
     if (!subject?.trim() || !message?.trim()) return res.status(400).json({ success: false, message: "Subject and message required" });
     const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
     if (!admin) return res.status(500).json({ success: false, message: "Admin user not found" });
-    const allUsers = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.isActive, true));
+    const allUsers = await db.select({ email: usersTable.email }).from(usersTable).where(and(eq(usersTable.isActive, true), eq(usersTable.kycVerified, false)));
     const recipients = allUsers.filter(u => u.email !== "amuthavananfl@gmail.com").map(u => u.email);
     if (!recipients.length) return res.json({ success: true, data: { sent: 0 } });
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
