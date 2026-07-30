@@ -537,6 +537,15 @@ router.post("/auth/supabase/phone", async (req, res): Promise<void> => {
   }
   try {
     const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET || "fallback-dev-secret") as { userId: string };
+    const [existingUser] = await db.select({ phone: usersTable.phone }).from(usersTable).where(eq(usersTable.id, payload.userId)).limit(1);
+    if (existingUser?.phone) {
+      if (normalizePhone(existingUser.phone) !== normalizePhone(phone.trim())) {
+        res.status(403).json({ success: false, message: "Phone number cannot be changed. Contact support if you need to update it." });
+        return;
+      }
+      res.json({ success: true, message: "Phone number verified", data: { phone: existingUser.phone } });
+      return;
+    }
     const normalized = normalizePhone(phone);
     const allPhones = await db.select({ phone: usersTable.phone }).from(usersTable).where(sql`${usersTable.phone} IS NOT NULL`);
     if (allPhones.some(p => p.phone && normalizePhone(p.phone) === normalized)) {
