@@ -122,11 +122,7 @@ router.put("/kyc/:userId/review", authenticate, async (req: Request, res: Respon
   if (status === "APPROVED") {
     const [kycUser] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, targetUserId)).limit(1);
     if (kycUser?.email) {
-      try {
-        await sendNotificationEmail(kycUser.email, "KYC Approved — You're verified! ✅", "Your identity has been verified. A verified badge is now visible on your profile.", "/dashboard.html?tab=my-profile");
-      } catch (e) {
-        console.error("KYC email failed:", e);
-      }
+      sendNotificationEmail(kycUser.email, "KYC Approved — You're verified! ✅", "Your identity has been verified. A verified badge is now visible on your profile.", "/dashboard.html?tab=my-profile").catch(() => {});
     }
   }
 
