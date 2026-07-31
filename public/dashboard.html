@@ -762,6 +762,25 @@ textarea.fi{resize:vertical;}
         <div class="sc"><div class="sl">Active Exchanges</div><div class="sv" id="stEx">—</div><div class="sc2 nt">Skill barters</div></div>
         <div class="sc"><div class="sl">Reputation</div><div class="sv" id="stRp">—</div><div class="sc2 up">Platform score</div></div>
       </div>
+      <div style="background:linear-gradient(135deg,var(--ink2) 0%,#2D1F6E 100%);border-radius:var(--rl);padding:22px 24px;margin-bottom:16px;position:relative;overflow:hidden;">
+        <div style="position:absolute;width:170px;height:170px;border-radius:50%;background:rgba(108,63,232,.28);top:-55px;right:-35px;"></div>
+        <div style="position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+          <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+            <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🎁</div>
+            <div style="min-width:0;">
+              <div style="font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;color:#fff;">Refer &amp; Earn <span style="color:var(--gold);">₹500</span></div>
+              <div style="font-size:.72rem;color:rgba(255,255,255,.6);margin-top:2px;line-height:1.5;">Invite friends, earn ₹500 each. Your friends get ₹0 post + 0% commission on their first hire.</div>
+            </div>
+          </div>
+          <button class="btn" onclick="showPage('refer')" style="padding:9px 16px;font-size:.74rem;font-weight:700;border-radius:10px;border:none;background:var(--violet);color:#fff;cursor:pointer;flex-shrink:0;">View details →</button>
+        </div>
+        <div style="position:relative;z-index:1;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <input type="text" readonly id="referLinkOv" value="Loading..." onclick="this.select();" style="flex:1;min-width:200px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:10px 14px;font-size:.78rem;color:#fff;font-family:inherit;">
+          <button class="btn" onclick="copyReferLink('referLinkOv')" style="padding:10px 16px;font-size:.74rem;font-weight:700;border-radius:10px;border:none;background:#fff;color:var(--ink);cursor:pointer;flex-shrink:0;">Copy</button>
+          <button class="btn" onclick="shareRefer('wa','referLinkOv')" style="padding:10px 16px;font-size:.74rem;font-weight:700;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:transparent;color:#fff;cursor:pointer;flex-shrink:0;">WhatsApp</button>
+          <span style="font-size:.68rem;color:rgba(255,255,255,.55);flex-shrink:0;"><span id="referOvCount">0</span> friends joined · <span id="referOvEarned">₹0</span> earned</span>
+        </div>
+      </div>
       <div class="card" style="margin-bottom:16px;">
         <div class="card-hdr"><span class="card-title"><span class="emoji-live">📊</span> Plan Usage</span><span id="planNameBadge" style="font-size:.75rem;color:var(--muted);"></span></div>
         <div class="sg" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));padding:4px 0;">
@@ -1416,28 +1435,36 @@ textarea.fi{resize:vertical;}
 
     <!-- ── REFER & EARN ──────────────────────────────────── -->
     <div class="ps" id="ps-refer">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-        <h2 style="font-size:1.1rem;">Refer &amp; Earn</h2>
-        <span style="font-size:.72rem;color:var(--muted);background:var(--bg);padding:4px 12px;border-radius:99px;font-weight:500;" id="referRewardTag">₹500 per friend</span>
-      </div>
-      <p style="font-size:.8rem;color:var(--muted);margin-bottom:18px;">Invite friends, earn ₹500 each. Your friends get ₹0 post + 0% commission on their first hire.</p>
-
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
-        <div style="background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;">
-          <div style="font-size:.68rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Earned</div>
-          <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;margin-top:6px;" id="referEarned">₹0</div>
-        </div>
-        <div style="background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;">
-          <div style="font-size:.68rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Friends Joined</div>
-          <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;margin-top:6px;" id="referCount">0</div>
-        </div>
-        <div style="background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;">
-          <div style="font-size:.68rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Pending</div>
-          <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;margin-top:6px;" id="referPending">0</div>
-        </div>
-        <div style="background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;">
-          <div style="font-size:.68rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Reward</div>
-          <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;margin-top:6px;color:var(--gold);">₹500</div>
+      <div style="background:linear-gradient(135deg,var(--ink2) 0%,#2D1F6E 100%);border-radius:var(--rxl);padding:28px 30px;margin-bottom:20px;position:relative;overflow:hidden;">
+        <div style="position:absolute;width:220px;height:220px;border-radius:50%;background:rgba(108,63,232,.25);top:-70px;right:-50px;"></div>
+        <div style="position:absolute;width:120px;height:120px;border-radius:50%;background:rgba(232,160,32,.1);bottom:-30px;left:-20px;"></div>
+        <div style="position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+          <div style="min-width:0;">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+              <div style="width:46px;height:46px;border-radius:13px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:22px;">🎁</div>
+              <h2 style="font-size:1.4rem;font-weight:800;color:#fff;">Refer &amp; Earn</h2>
+              <span id="referRewardTag" style="font-size:.72rem;font-weight:700;color:var(--gold);background:rgba(232,160,32,.15);border:1px solid rgba(232,160,32,.35);padding:4px 12px;border-radius:99px;">₹500 per friend</span>
+            </div>
+            <p style="font-size:.82rem;color:rgba(255,255,255,.6);max-width:520px;line-height:1.6;margin:0;">Invite friends, earn ₹500 each. Your friends get ₹0 post + 0% commission on their first hire.</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <div style="text-align:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:10px 16px;">
+              <div style="font-size:.6rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em;">Earned</div>
+              <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;color:#fff;margin-top:2px;" id="referEarned">₹0</div>
+            </div>
+            <div style="text-align:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:10px 16px;">
+              <div style="font-size:.6rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em;">Friends Joined</div>
+              <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;color:#fff;margin-top:2px;" id="referCount">0</div>
+            </div>
+            <div style="text-align:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:10px 16px;">
+              <div style="font-size:.6rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em;">Pending</div>
+              <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;color:#fff;margin-top:2px;" id="referPending">0</div>
+            </div>
+            <div style="text-align:center;background:rgba(232,160,32,.15);border:1px solid rgba(232,160,32,.35);border-radius:12px;padding:10px 16px;">
+              <div style="font-size:.6rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.06em;">Reward</div>
+              <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;color:var(--gold);margin-top:2px;">₹500</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1446,9 +1473,9 @@ textarea.fi{resize:vertical;}
         <div style="font-size:.72rem;color:var(--muted);margin-bottom:12px;">Share this link — you get ₹500 when a friend who signs up posts their first project.</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <input type="text" readonly id="referLink" value="Loading..." style="flex:1;min-width:220px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:11px 14px;font-size:.82rem;color:var(--fg);font-family:inherit;" onclick="this.select();">
-          <button class="btn" onclick="copyReferLink()" style="padding:11px 18px;font-size:.8rem;font-weight:700;border-radius:10px;border:none;background:var(--fg);color:var(--bg);cursor:pointer;">Copy</button>
-          <button class="btn" onclick="shareRefer('wa')" style="padding:11px 18px;font-size:.8rem;font-weight:700;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--fg);cursor:pointer;">WhatsApp</button>
-          <button class="btn" onclick="shareRefer('telegram')" style="padding:11px 18px;font-size:.8rem;font-weight:700;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--fg);cursor:pointer;">Telegram</button>
+          <button class="btn" onclick="copyReferLink('referLink')" style="padding:11px 18px;font-size:.8rem;font-weight:700;border-radius:10px;border:none;background:var(--violet);color:#fff;cursor:pointer;">Copy</button>
+          <button class="btn" onclick="shareRefer('wa','referLink')" style="padding:11px 18px;font-size:.8rem;font-weight:700;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--fg);cursor:pointer;">WhatsApp</button>
+          <button class="btn" onclick="shareRefer('telegram','referLink')" style="padding:11px 18px;font-size:.8rem;font-weight:700;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--fg);cursor:pointer;">Telegram</button>
         </div>
       </div>
 
@@ -2779,6 +2806,7 @@ async function loadOverview() {
   if (buyerOrds.success) _notifCount += (buyerOrds.data.orders||[]).filter(o => o.status==='DELIVERED').length;
   if (conv.success) _notifCount += (conv.data.conversations||[]).filter(c => (c.unreadCount||0)>0).length;
   document.getElementById('notifDot').style.display = _notifCount > 0 ? 'block' : 'none';
+  if (!_referData) loadReferralPage();
 }
 
 async function loadWallet() {
@@ -2926,6 +2954,7 @@ function renderBarterCards(reqs, c, sentMatchIds = new Set()) {
             ? `<span class="pill pp" style="font-size:.6rem;cursor:pointer;" onclick="event.stopPropagation();openBarterDet('${r.id}')">⏳ Match Sent</span>`
             : `<button class="btn bp btn-xs" onclick="event.stopPropagation();sendMatch('${r.id}')">🤝 Match Me</button>`
         }
+        <button class="btn bs btn-xs" style="font-size:.65rem;padding:3px 8px;" onclick="event.stopPropagation();shareItem('barter','${r.id}','${(r.skillOffered + ' ⇄ ' + r.skillNeeded).replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">📤 Share</button>
       </div>
     </div>`;
   }).join('');
@@ -4445,7 +4474,10 @@ function renderGigCards(svcs, cId) {
         ${skillsHtml}
         <div class="gig-footer">
           <div class="gig-rating">${starHtml}</div>
-          <div class="gig-price">₹${price.toLocaleString('en-IN')}<span class="gig-price-sub"> starting</span></div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${cId === 'brGigGrid' ? `<button class="btn bs btn-xs" style="font-size:.62rem;padding:3px 8px;" onclick="event.stopPropagation();shareItem('freelance','${s.id}','${s.title.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">📤 Share</button>` : ''}
+            <div class="gig-price">₹${price.toLocaleString('en-IN')}<span class="gig-price-sub"> starting</span></div>
+          </div>
         </div>
         <div style="font-size:.65rem;color:var(--muted);margin-top:4px;">🕒 ${timeAgo(s.createdAt)}</div>
         ${isOwn ? `<div style="margin-top:8px;display:flex;gap:6px;"><button class="btn bs btn-xs" onclick="event.stopPropagation();openEditGigMod('${s.id}')">✏ Edit</button>${cId === 'brGigGrid' ? '' : `<button class="btn bs btn-xs" onclick="event.stopPropagation();toggleGig('${s.id}')">${s.status === 'ACTIVE' ? '⏸ Pause' : '▶ Activate'}</button>`}<button class="btn bs btn-xs" onclick="event.stopPropagation();openGigInvite('${s.id}')" style="border:1px solid #6C3DE0;color:#6C3DE0;background:#F5F0FF;">➕ Invite</button><button class="btn bs btn-xs" onclick="event.stopPropagation();deleteGig('${s.id}')" style="color:var(--err);">🗑 Delete</button></div>` : ''}
@@ -6223,6 +6255,7 @@ async function loadBrowseProjects(q = '') {
             ? `<span class="pill pp" style="font-size:.6rem;">✓ Proposal sent</span>`
             : `<button class="btn bp btn-xs" onclick="event.stopPropagation();openBidModal('${esc(p.id)}')">Submit Proposal</button>`
         }
+        <button class="btn bs btn-xs" style="font-size:.62rem;padding:3px 8px;" onclick="event.stopPropagation();shareItem('projects','${esc(p.id)}','${p.title.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">📤 Share</button>
       </div>
     </div>`;
   }).join('') + `<div class="pagination" style="display:flex;justify-content:center;align-items:center;gap:12px;margin-top:18px;padding-top:14px;border-top:1px solid var(--bd);grid-column:1/-1;">
@@ -6787,10 +6820,17 @@ async function loadReferralPage() {
   }
   _referData = d.data;
   linkEl.value = d.data.referralLink;
-  document.getElementById('referEarned').textContent = '\u20B9' + (d.data.totalEarned || 0).toLocaleString('en-IN');
+  const earnedTxt = '\u20B9' + (d.data.totalEarned || 0).toLocaleString('en-IN');
+  document.getElementById('referEarned').textContent = earnedTxt;
   document.getElementById('referCount').textContent = d.data.referredCount || 0;
   document.getElementById('referPending').textContent = d.data.pendingCount || 0;
   document.getElementById('referListCount').textContent = (d.data.referredCount || 0) + ' total';
+  const ovLink = document.getElementById('referLinkOv');
+  if (ovLink) ovLink.value = d.data.referralLink;
+  const ovCount = document.getElementById('referOvCount');
+  if (ovCount) ovCount.textContent = d.data.referredCount || 0;
+  const ovEarned = document.getElementById('referOvEarned');
+  if (ovEarned) ovEarned.textContent = earnedTxt;
   const statusStyle = { PENDING: ['var(--gl)', 'var(--gold)', 'Waiting for first project'], PAID: ['var(--okl)', 'var(--ok)', '\u2713 Reward paid'], VOIDED: ['var(--errl)', 'var(--err)', 'Voided'] };
   listEl.innerHTML = (d.data.referred || []).length
     ? d.data.referred.map(r => {
@@ -6811,9 +6851,9 @@ async function loadReferralPage() {
   document.getElementById('referPerks').style.display = d.data.myReferrer ? 'block' : 'none';
 }
 
-function copyReferLink() {
-  const el = document.getElementById('referLink');
-  if (!el.value || el.value === 'Loading...') return;
+function copyReferLink(elId) {
+  const el = document.getElementById(elId || 'referLink');
+  if (!el || !el.value || el.value === 'Loading...') return;
   if (navigator.clipboard) { navigator.clipboard.writeText(el.value).then(() => showToast('Referral link copied!', 'ok')).catch(() => fallbackCopy(el)); }
   else fallbackCopy(el);
 }
@@ -6821,8 +6861,10 @@ function fallbackCopy(el) {
   el.select(); el.setSelectionRange(0, 99999);
   try { document.execCommand('copy'); showToast('Referral link copied!', 'ok'); } catch (e) { showToast('Press Ctrl+C to copy', 'info'); }
 }
-function shareRefer(platform) {
-  const link = document.getElementById('referLink').value;
+function shareRefer(platform, elId) {
+  const el = document.getElementById(elId || 'referLink');
+  if (!el) return;
+  const link = el.value;
   if (!link || link === 'Loading...') return;
   const text = 'Join me on Grit&Gigs! \uD83D\uDE80 Post your first project for FREE with 0% commission on your first hire, and I earn \u20B9500 in platform credit. Sign up here: ' + link;
   if (platform === 'wa') window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
