@@ -756,6 +756,14 @@ textarea.fi{resize:vertical;}
           <button class="btn bs btn-sm" onclick="showPage('my-orders')">📦 Orders</button>
         </div>
       </div>
+      <div id="referPerkOv" style="display:none;background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(99,102,241,.08));border:1px solid var(--bd);border-radius:14px;padding:14px 18px;margin-bottom:16px;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="width:40px;height:40px;border-radius:11px;background:var(--okl);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;">🎁</div>
+        <div style="flex:1;min-width:200px;">
+          <div style="font-size:.82rem;font-weight:700;color:var(--ok);">Your first project is on us!</div>
+          <div style="font-size:.74rem;color:var(--muted);line-height:1.6;">You joined through a friend's referral — your first project post is <b>₹0</b> with <b>0% commission</b> on your first hire.</div>
+        </div>
+        <button class="btn bp btn-xs" onclick="showPage('post-project')">🚀 Post first project</button>
+      </div>
       <div class="sg">
         <div class="sc"><div class="sl">Wallet Balance</div><div class="sv" id="stCr">—</div><div class="sc2 up">Available</div></div>
         <div class="sc"><div class="sl">Total Earned</div><div class="sv" id="stEa">—</div><div class="sc2 up">Lifetime</div></div>
@@ -6849,6 +6857,8 @@ async function loadReferralPage() {
       }).join('')
     : '<div style="font-size:.8rem;color:var(--muted);padding:14px 0;">No one has joined with your link yet. Share it to start earning!</div>';
   document.getElementById('referPerks').style.display = d.data.myReferrer ? 'block' : 'none';
+  const ovPerk = document.getElementById('referPerkOv');
+  if (ovPerk) { ovPerk.style.display = d.data.myReferrer ? 'flex' : 'none'; }
 }
 
 function copyReferLink(elId) {
