@@ -55,7 +55,7 @@ router.get("/referrals/mine", authenticate, async (req: Request, res: Response) 
     if (ref) myReferrer = ref;
   }
 
-  const appUrl = process.env.APP_URL || "https://www.gritandgigs.in";
+  const appUrl = (process.env.APP_URL || "https://www.gritandgigs.in").trim().replace(/\/+$/, "");
 
   res.json({
     success: true,
