@@ -6870,6 +6870,17 @@ function shareRefer(platform, elId) {
   if (platform === 'wa') window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
   else window.open('https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent('Join me on Grit&Gigs! '), '_blank');
 }
+window.shareItem = function(page, id, title) {
+  const url = window.location.origin + '/' + page + '.html?id=' + encodeURIComponent(id);
+  const text = (title ? title + ' — ' : 'Check this out on Grit&Gigs — ') + url;
+  if (navigator.share) {
+    navigator.share({ title: title || 'Grit&Gigs', text, url }).catch(function(){});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function(){ showToast('Link copied — share it anywhere!', 'ok'); }).catch(function(){ window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank'); });
+  } else {
+    window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+  }
+};
 
 // ── Smart notification polling — only fires banner when something NEW happens ─
 let _notifPrev = { pendingMatches: -1, pendingOrds: -1, deliveredOrds: -1, unreadMsgs: -1 };
