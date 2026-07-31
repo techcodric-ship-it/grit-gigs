@@ -447,6 +447,19 @@ router.put("/barter/matches/:id/respond", authenticate, async (req, res): Promis
     if (requester?.email) {
       sendNotificationEmail(requester.email, "Match accepted!", `${req.user!.firstName} accepted your exchange request. Start chatting!`, "/dashboard#my-exchanges").catch(() => {});
     }
+  } else {
+    await db.insert(notificationsTable).values({
+      userId: match.user1Id,
+      type: "MATCH_REJECTED",
+      title: "Match request declined",
+      message: `${req.user!.firstName} declined your exchange request. Keep exploring — there are more matches waiting!`,
+      linkUrl: "/dashboard#my-exchanges",
+    });
+
+    const [requester] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, match.user1Id)).limit(1);
+    if (requester?.email) {
+      sendNotificationEmail(requester.email, "Match request declined", `${req.user!.firstName} declined your exchange request. Keep exploring — there are more matches waiting!`, "/dashboard#my-exchanges").catch(() => {});
+    }
   }
 
   res.json({ success: true, message: action === "accept" ? "Match accepted!" : "Match rejected", data: { match: updated, conversationId } });

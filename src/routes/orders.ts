@@ -167,6 +167,10 @@ router.put("/orders/:id/accept", authenticate, async (req, res): Promise<void> =
 
   await db.update(ordersTable).set({ status: "ACCEPTED", updatedAt: new Date() }).where(eq(ordersTable.id, order.id));
   await db.insert(notificationsTable).values({ userId: order.buyerId, type: "ORDER_ACCEPTED", title: "Order accepted!", message: "Your order has been accepted.", linkUrl: `/dashboard/orders/${order.id}` });
+  const [buyer] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, order.buyerId)).limit(1);
+  if (buyer?.email) {
+    sendNotificationEmail(buyer.email, "Order accepted!", "Your order has been accepted by the seller.", `/dashboard/orders/${order.id}`).catch(() => {});
+  }
   res.json({ success: true, message: "Order accepted" });
 });
 
@@ -225,6 +229,11 @@ router.put("/orders/:id/revision", authenticate, async (req, res): Promise<void>
 
   await db.update(ordersTable).set({ status: "REVISION_REQUESTED", updatedAt: new Date() }).where(eq(ordersTable.id, order.id));
   await db.insert(notificationsTable).values({ userId: order.sellerId, type: "REVISION_REQUESTED", title: "Revision requested", message: revisionNote ?? "The buyer requested a revision.", linkUrl: `/dashboard/orders/${order.id}` });
+
+  const [seller] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, order.sellerId)).limit(1);
+  if (seller?.email) {
+    sendNotificationEmail(seller.email, "Revision requested", revisionNote ? `The buyer requested a revision: ${revisionNote}` : "The buyer requested a revision on the delivered work.", `/dashboard/orders/${order.id}`).catch(() => {});
+  }
 
   // Send revision note as inbox message to seller
   const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.orderId, order.id)).limit(1);

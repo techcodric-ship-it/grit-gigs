@@ -5,8 +5,9 @@ import {
   barterDeliveriesTable,
 } from "../db/schema/barter";
 import { conversationsTable, messagesTable } from "../db/schema/messages";
-import { notificationsTable } from "../db/schema/users";
+import { notificationsTable, usersTable } from "../db/schema/users";
 import { authenticate } from "../middlewares/authenticate";
+import { sendNotificationEmail } from "../lib/email";
 import { eq, desc, and, sql } from "drizzle-orm";
 
 const router = Router();
@@ -536,6 +537,11 @@ router.put("/barter/matches/:id/request-revision", authenticate, async (req: Req
     message: revisionNote ? `"${revisionNote}"` : "Your partner has requested a revision on your deliverable.",
     linkUrl: "/dashboard#my-exchanges",
   });
+
+  const [deliverer] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, delivererId)).limit(1);
+  if (deliverer?.email) {
+    sendNotificationEmail(deliverer.email, "Revision requested", revisionNote ? `Your partner requested a revision: "${revisionNote}"` : "Your partner has requested a revision on your deliverable.", "/dashboard#my-exchanges").catch(() => {});
+  }
 
   const app = req.app;
   const io = app.get("io");

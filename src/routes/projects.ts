@@ -742,6 +742,12 @@ router.post('/projects/:id/request-revision', authenticate, async (req: Request,
     message: revisionNote ? `The client requested a revision: ${revisionNote}` : 'The client has requested a revision on the delivered work.',
     linkUrl: '/dashboard.html#my-projects',
   });
+  if (bidForNotify?.userId) {
+    const [freelancer] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, bidForNotify.userId)).limit(1);
+    if (freelancer?.email) {
+      sendNotificationEmail(freelancer.email, 'Revision requested', revisionNote ? `The client requested a revision: ${revisionNote}` : 'The client has requested a revision on the delivered work.', '/dashboard.html#my-projects').catch(() => {});
+    }
+  }
   return res.json({ success: true, message: 'Revision requested. Freelancer has been notified.' });
 });
 
