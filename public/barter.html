@@ -602,7 +602,10 @@ function renderCard(r){
     ${r.description?`<p class="bfc-desc">${esc(r.description.slice(0,120)+(r.description.length>120?'...':''))}</p>`:''}
     <div class="bfc-footer">
       <div class="bfc-tags"><span class="bfc-tag">${esc(r.timeline)}</span><span class="bfc-tag">${r.isRemote?'Remote':'Local'}</span></div>
-      ${btn}
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="btn btn-sm btn-secondary" style="padding:8px 12px;font-size:.72rem;" onclick="event.stopPropagation();shareItem('barter','${r.id}','${(r.skillOffered||'Skill swap').replace(/'/g,"\\'").replace(/"/g,"&quot;")}')">📤</button>
+        ${btn}
+      </div>
     </div>
   </div>`;
 }
@@ -660,7 +663,7 @@ function openBDet(id){
       <div><div style="font-size:.72rem;color:var(--text-muted);margin-bottom:3px;">Timeline</div><div style="font-size:.88rem;font-weight:600;color:var(--ink);">${esc(r.timeline)}</div></div>
       <div><div style="font-size:.72rem;color:var(--text-muted);margin-bottom:3px;">Location</div><div style="font-size:.88rem;font-weight:600;color:var(--ink);">${r.isRemote?'Remote':'Local'}</div></div>
     </div>
-    <div style="display:flex;gap:10px;">${act}<button class="btn btn-secondary" onclick="closeModal('detailModal')">Cancel</button></div>`;
+    <div style="display:flex;gap:10px;">${act}<button class="btn btn-secondary" onclick="shareItem('barter','${r.id}','${(r.skillOffered||'Skill swap').replace(/'/g,"\\'").replace(/"/g,"&quot;")}')">📤 Share</button><button class="btn btn-secondary" onclick="closeModal('detailModal')">Cancel</button></div>`;
   openModal('detailModal');
 }
 
@@ -708,6 +711,15 @@ document.addEventListener('DOMContentLoaded',()=>{
     const el=document.querySelector('.trending-pills');if(!el||!d.success||!d.data?.length)return;
     el.innerHTML=d.data.slice(0,10).map(s=>`<span class="trending-pill" style="cursor:pointer;" onclick="document.querySelector('.filter-search input').value='${esc(s.skill)}';document.querySelector('.filter-search input').dispatchEvent(new Event('input'));window.scrollTo({top:0,behavior:'smooth'});">${esc(s.skill.replace(/\b\w/g,c=>c.toUpperCase()))}</span>`).join('');
   });
+
+  // Deep link from share — open the exchange once loaded
+  const bdl = new URLSearchParams(window.location.search).get('id');
+  if (bdl) {
+    const t = setInterval(function() {
+      if (_exData && _exData[bdl]) { clearInterval(t); openBDet(bdl); }
+    }, 300);
+    setTimeout(function(){ clearInterval(t); }, 10000);
+  }
 });
 
 // Expose functions to global scope for inline onclick handlers

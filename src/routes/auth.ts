@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request } from "express";
 import rateLimit from "express-rate-limit";
 import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
@@ -15,6 +15,7 @@ import { authenticate } from "../middlewares/authenticate";
 import { sendWelcomeEmail, sendPasswordResetEmail, sendEmailVerificationEmail, sendOtpEmail } from "../lib/email";
 import { verifySupabaseToken, getSupabase } from "../lib/supabase";
 import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
+import { generateReferralCode, attachReferral } from "../lib/referrals";
 
 const router: IRouter = Router();
 
@@ -79,8 +80,11 @@ router.post("/auth/register", registerLimiter, async (req, res): Promise<void> =
       city: null,
       profilePhoto: `https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}`,
       role: isAdminEmail ? "ADMIN" : undefined,
+      referralCode: await generateReferralCode(),
     })
     .returning();
+
+  await attachReferral(req, user.id);
 
   await db.insert(notificationsTable).values({
     userId: user.id,
@@ -478,8 +482,11 @@ router.post("/auth/supabase", async (req, res): Promise<void> => {
         passwordHash: await bcrypt.hash(randomPass, 12),
         profilePhoto: photo || `https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}`,
         emailVerified: true,
+        referralCode: await generateReferralCode(),
       })
       .returning();
+
+    await attachReferral(req, user.id);
 
     await db.insert(notificationsTable).values({
       userId: user.id,
@@ -566,7 +573,7 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL || "http://localhost:5000/api/auth/google/callback";
 
 // Shared helper: find or create user from Google profile
-async function findOrCreateGoogleUser(email: string, fullName: string, photo: string | null) {
+async function findOrCreateGoogleUser(email: string, fullName: string, photo: string | null, req: Request) {
   const emailLower = email.toLowerCase();
   const nameParts = (fullName || emailLower.split("@")[0]).split(" ");
   const firstName = nameParts[0] || "User";
@@ -589,8 +596,11 @@ async function findOrCreateGoogleUser(email: string, fullName: string, photo: st
         passwordHash: await bcrypt.hash(randomPass, 12),
         profilePhoto: photo || `https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}`,
         emailVerified: true,
+        referralCode: await generateReferralCode(),
       })
       .returning();
+
+    await attachReferral(req, user.id);
 
     await db.insert(notificationsTable).values({
       userId: user.id,
@@ -718,7 +728,7 @@ router.get("/auth/google/callback", async (req, res): Promise<void> => {
       return;
     }
 
-    const result = await findOrCreateGoogleUser(payload.email, payload.name || "", payload.picture || null);
+    const result = await findOrCreateGoogleUser(payload.email, payload.name || "", payload.picture || null, req);
     if (!result) {
       res.status(401).send(googleCallbackHtml(null, "Account has been deactivated"));
       return;
@@ -872,8 +882,11 @@ router.post("/auth/phone/verify", async (req, res): Promise<void> => {
         passwordHash: await bcrypt.hash(randomPass, 12),
         phone,
         phoneVerified: true,
+        referralCode: await generateReferralCode(),
       })
       .returning();
+
+    await attachReferral(req, user.id);
 
     await db.insert(notificationsTable).values({
       userId: user.id,

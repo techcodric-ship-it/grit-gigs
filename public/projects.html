@@ -110,6 +110,8 @@
 .btn-propose.primary{background:var(--violet);color:white;}
 .btn-propose.primary:hover{background:#4A25B8;}
 .btn-propose.applied{background:rgba(26,122,94,.1);color:#1A7A5E;cursor:default;}
+.btn-share{padding:7px 10px;border-radius:8px;font-size:.85rem;cursor:pointer;border:1px solid var(--border);background:var(--surface);transition:all .18s;line-height:1;}
+.btn-share:hover{border-color:var(--violet);color:var(--violet);}
 
 /* ── SIDEBAR WIDGETS ── */
 .proj-sidebar{display:flex;flex-direction:column;gap:20px;}
@@ -940,6 +942,7 @@ renderProjects = function() {
           <span class="proj-client-name">${p.user?.firstName||'Client'}${kycBadge(p.user?.kycVerified)}${planBadge(p.user?.planBadge)} ${_starsHtml(p.user?.avgRating, p.user?.reviewCount)}</span>
         </div>
         <div class="proj-card-actions" onclick="event.stopPropagation()">
+          <button class="btn-share" onclick="shareItem('projects','${p.id}','${(p.title||'').replace(/'/g,"\\'").replace(/"/g,"&quot;")}')" title="Share">📤</button>
           ${isOwn
             ? '<span class="btn-propose applied">Your Project</span>'
             : alreadyBid
@@ -956,6 +959,9 @@ renderProjects = function() {
 
 // ── Init ──
 loadProjects();
+
+var projDeepLink = new URLSearchParams(window.location.search).get('id');
+if (projDeepLink) openProjectDetail(projDeepLink);
 
 function sendForgotPw() {
   var btn = document.getElementById('forgotPwBtn');

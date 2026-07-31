@@ -267,6 +267,10 @@ a{text-decoration:none;color:inherit;}
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
       Withdrawals
     </button>
+    <button class="ni" data-p="referrals">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><path d="M8 10h.01M12 10h.01M16 10h.01"/></svg>
+      Referrals
+    </button>
     <div class="ns">Session</div>
     <button class="ni danger" onclick="adminLogout()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -453,6 +457,18 @@ a{text-decoration:none;color:inherit;}
     <button class="btn bs btn-sm" onclick="loadPendingWithdrawals()">⟳ Refresh</button>
   </div>
   <div id="withdrawalsContent"><p style="font-size:.82rem;color:var(--muted);">Loading...</p></div>
+</div>
+
+<!-- ══════════ REFERRALS ══════════ -->
+<div class="ps" id="ps-referrals">
+  <div style="margin-bottom:16px;">
+    <h1 style="font-size:1.2rem;">Referrals</h1>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:3px;">Review referral signups — approve (pay ₹500) or void fake ones.</p>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;">
+    <button class="btn bs btn-sm" onclick="loadReferrals()">⟳ Refresh</button>
+  </div>
+  <div id="referralsContent"><p style="font-size:.82rem;color:var(--muted);">Loading...</p></div>
 </div>
 
   </div>
@@ -708,6 +724,7 @@ function loadPage(n) {
   else if (n==='email') {}
   else if (n==='equity') loadEquityWaitlist();
   else if (n==='withdrawals') loadPendingWithdrawals();
+  else if (n==='referrals') loadReferrals();
 }
 
 async function sendAdminEmail() {
@@ -1482,6 +1499,77 @@ function confirmAction(msg, fn) {
   document.getElementById('confirmMsg').textContent = msg;
   document.getElementById('confirmBtn').onclick = async () => { closeModal('confirmModal'); try { await fn(); } catch(e) { notify(e.message,'err'); } };
   openModal('confirmModal');
+}
+
+// ─── REFERRALS ───
+async function loadReferrals() {
+  try {
+    const r = await api('/admin/referrals');
+    const rows = Array.isArray(r.data) ? r.data : [];
+    const el = document.getElementById('referralsContent');
+    if (!rows.length) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">📣</div><div class="empty-title">No referrals yet</div><div class="empty-sub">Users haven't invited anyone yet.</div></div>`;
+      return;
+    }
+    const statusPill = {
+      PENDING: '<span style="background:var(--gl);color:var(--gold);padding:3px 10px;border-radius:99px;font-size:.68rem;font-weight:700;">Waiting</span>',
+      PAID: '<span style="background:var(--okl);color:var(--ok);padding:3px 10px;border-radius:99px;font-size:.68rem;font-weight:700;">✓ Paid</span>',
+      VOIDED: '<span style="background:var(--errl);color:var(--err);padding:3px 10px;border-radius:99px;font-size:.68rem;font-weight:700;">✕ Voided</span>',
+    };
+    el.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr>
+      <th>Referrer</th><th>Referred User</th><th>Signed Up</th><th>Project Posted</th><th>Reward</th><th>Status</th><th></th>
+    </tr></thead><tbody>${rows.map(w => {
+      const ref = w.referrer || {};
+      const ru = w.referredUser || {};
+      const proj = w.projectTitle ? esc(w.projectTitle) : (w.status === 'PAID' ? '—' : '<span style="color:var(--muted);">Not yet</span>');
+      const act = w.status === 'PENDING'
+        ? `<button class="btn bp btn-xs" onclick="payReferral('${w.id}')">✓ Pay ₹${Number(w.rewardAmount||500).toLocaleString('en-IN')}</button>
+           <button class="btn bs btn-xs" style="margin-left:4px;" onclick="voidReferral('${w.id}')">Void</button>`
+        : (w.status === 'PAID'
+            ? `<button class="btn bs btn-xs" onclick="voidReferral('${w.id}')">Void</button>`
+            : '<span style="font-size:.7rem;color:var(--muted);">—</span>');
+      return `<tr>
+        <td class="tdt">${esc(ref.firstName+' '+ref.lastName)}<div style="font-size:.65rem;color:var(--muted);">${esc(ref.email||'')}</div></td>
+        <td class="tdt">${esc(ru.firstName+' '+ru.lastName)}<div style="font-size:.65rem;color:var(--muted);">${esc(ru.email||'')}</div></td>
+        <td style="font-size:.7rem;color:var(--muted);">${new Date(w.createdAt).toLocaleDateString()}</td>
+        <td style="font-size:.78rem;">${proj}</td>
+        <td><strong>₹${Number(w.rewardAmount||500).toLocaleString('en-IN')}</strong></td>
+        <td>${statusPill[w.status]||statusPill.PENDING}</td>
+        <td style="white-space:nowrap;">${act}</td>
+      </tr>`;
+    }).join('')}</tbody></table></div>
+    <div style="margin-top:8px;font-size:.72rem;color:var(--muted);text-align:right;">Total: ${rows.length} | Paid: ${rows.filter(x=>x.status==='PAID').length} | Pending: ${rows.filter(x=>x.status==='PENDING').length} | Voided: ${rows.filter(x=>x.status==='VOIDED').length}</div>`;
+  } catch(e) {
+    document.getElementById('referralsContent').innerHTML = `<div class="empty"><div class="empty-sub">Failed to load referrals</div></div>`;
+  }
+}
+
+async function payReferral(id) {
+  if (!confirm('Approve this referral and credit ₹500 bonus to the referrer? Bonus can only be used on the platform (not withdrawable).')) return;
+  const btn = document.querySelector(`button[onclick*="payReferral('${id}')"]`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Paying...'; }
+  try {
+    const r = await api('/admin/referrals/'+id+'/pay', { method: 'POST' });
+    notify(r.message || 'Referral paid', 'ok');
+    loadReferrals();
+  } catch(e) {
+    notify(e.message || 'Failed to pay', 'err');
+    loadReferrals();
+  }
+}
+
+async function voidReferral(id) {
+  if (!confirm('Void this referral? If already paid, the ₹500 bonus will be reversed from the referrer wallet.')) return;
+  const btn = document.querySelector(`button[onclick*="voidReferral('${id}')"]`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Voiding...'; }
+  try {
+    const r = await api('/admin/referrals/'+id+'/void', { method: 'POST' });
+    notify(r.message || 'Referral voided', 'ok');
+    loadReferrals();
+  } catch(e) {
+    notify(e.message || 'Failed to void', 'err');
+    loadReferrals();
+  }
 }
 
 // ─── START ───

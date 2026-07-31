@@ -676,6 +676,10 @@ textarea.fi{resize:vertical;}
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 1 18"/><polyline points="16 7 22 7 22 13"/></svg>
       MicroEquity
     </button>
+    <button class="ni" data-p="refer">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><path d="M8 10h.01M12 10h.01M16 10h.01"/></svg>
+      Refer & Earn
+    </button>
     <div class="ns">Tools</div>
     <button class="ni" data-p="saved">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
@@ -1407,6 +1411,60 @@ textarea.fi{resize:vertical;}
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- ── REFER & EARN ──────────────────────────────────── -->
+    <div class="ps" id="ps-refer">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <h2 style="font-size:1.1rem;">Refer &amp; Earn</h2>
+        <span style="font-size:.72rem;color:var(--muted);background:var(--bg);padding:4px 12px;border-radius:99px;font-weight:500;" id="referRewardTag">₹500 per friend</span>
+      </div>
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:18px;">Invite friends, earn ₹500 each. Your friends get ₹0 post + 0% commission on their first hire.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
+        <div style="background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;">
+          <div style="font-size:.68rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Earned</div>
+          <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;margin-top:6px;" id="referEarned">₹0</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;">
+          <div style="font-size:.68rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Friends Joined</div>
+          <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;margin-top:6px;" id="referCount">0</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;">
+          <div style="font-size:.68rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Pending</div>
+          <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;margin-top:6px;" id="referPending">0</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;">
+          <div style="font-size:.68rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Reward</div>
+          <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;margin-top:6px;color:var(--gold);">₹500</div>
+        </div>
+      </div>
+
+      <div style="background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:20px;margin-bottom:20px;">
+        <div style="font-size:.78rem;font-weight:700;margin-bottom:4px;">Your referral link</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-bottom:12px;">Share this link — you get ₹500 when a friend who signs up posts their first project.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <input type="text" readonly id="referLink" value="Loading..." style="flex:1;min-width:220px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:11px 14px;font-size:.82rem;color:var(--fg);font-family:inherit;" onclick="this.select();">
+          <button class="btn" onclick="copyReferLink()" style="padding:11px 18px;font-size:.8rem;font-weight:700;border-radius:10px;border:none;background:var(--fg);color:var(--bg);cursor:pointer;">Copy</button>
+          <button class="btn" onclick="shareRefer('wa')" style="padding:11px 18px;font-size:.8rem;font-weight:700;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--fg);cursor:pointer;">WhatsApp</button>
+          <button class="btn" onclick="shareRefer('telegram')" style="padding:11px 18px;font-size:.8rem;font-weight:700;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--fg);cursor:pointer;">Telegram</button>
+        </div>
+      </div>
+
+      <div style="background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="font-size:.78rem;font-weight:700;">Friends you referred</div>
+          <span style="font-size:.68rem;color:var(--muted);" id="referListCount"></span>
+        </div>
+        <div id="referList" style="display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:.8rem;color:var(--muted);">Loading...</div>
+        </div>
+      </div>
+
+      <div id="referPerks" style="display:none;background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(99,102,241,.06));border:1px solid var(--bd);border-radius:14px;padding:18px 20px;margin-top:20px;">
+        <div style="font-size:.8rem;font-weight:700;margin-bottom:6px;">🎁 You're a referred member!</div>
+        <div style="font-size:.78rem;color:var(--muted);line-height:1.7;">Your first project has <b>₹0 posting fee</b> and <b>0% commission</b> on your first hire. Post a project to unlock this.</div>
       </div>
     </div>
 
@@ -2354,7 +2412,7 @@ const titles = {
   overview: 'Dashboard', wallet: 'Wallet', inbox: 'Inbox', 'my-exchanges': 'My Exchanges',
   'browse-barter': 'Browse Matches', 'post-exchange': 'Post Exchange',
   'my-gigs': 'My Gigs', 'my-orders': 'Orders', 'browse-gigs': 'Browse Gigs',
-  plans: 'Upgrade Plan', invest: 'MicroEquity', profile: 'My Profile',
+  plans: 'Upgrade Plan', invest: 'MicroEquity', refer: 'Refer & Earn', profile: 'My Profile',
   saved: 'Saved Items', invites: 'Project Invites',
   disputes: 'Disputes', kyc: 'KYC Verification',
 };
@@ -2735,10 +2793,11 @@ async function loadWallet() {
   }
   const w = d.data.wallet || {};
   const b = Math.floor(w.balance || 0);
+  const bonus = Math.floor(w.bonusBalance || 0);
   const feePct = planRes.success ? (planRes.data.plan?.serviceFeePercent || 5) : 5;
-  const withdrawable = Math.floor(b * (1 - feePct / 100));
+  const withdrawable = Math.floor((b - bonus) * (1 - feePct / 100));
   document.getElementById('wBal2').textContent = '\u20B9' + b.toLocaleString('en-IN');
-  document.getElementById('wSub2').innerHTML = '\u20B9' + withdrawable.toLocaleString('en-IN') + ' withdrawable <span style="font-size:.65rem;color:var(--muted);">(' + feePct + '% fee)</span>';
+  document.getElementById('wSub2').innerHTML = '\u20B9' + withdrawable.toLocaleString('en-IN') + ' withdrawable <span style="font-size:.65rem;color:var(--muted);">(' + feePct + '% fee)' + (bonus > 0 ? ' · \u20B9' + bonus.toLocaleString('en-IN') + ' bonus</span>' : '</span>');
   renderTxns(d.data.recentTransactions || [], 'wLTxn');
   const wc = document.getElementById('wLWith');
   const withdrawals = d.data.recentWithdrawals || [];
@@ -2763,9 +2822,9 @@ async function loadWallet() {
 function renderTxns(txns, cId) {
   const c = document.getElementById(cId);
   if (!c) return;
-  const cols = { SERVICE_EARNING: 'var(--okl)', CREDIT_PURCHASE: 'var(--vl)', CREDIT_WITHDRAWAL: 'var(--errl)', REFUND: 'var(--gl)', SERVICE_PAYMENT: 'var(--errl)' };
+  const cols = { SERVICE_EARNING: 'var(--okl)', CREDIT_PURCHASE: 'var(--vl)', CREDIT_WITHDRAWAL: 'var(--errl)', REFUND: 'var(--gl)', SERVICE_PAYMENT: 'var(--errl)', REFERRAL_REWARD: 'var(--gl)' };
   c.innerHTML = txns.length ? txns.map(t => {
-    const isIn = ['SERVICE_EARNING', 'REFUND', 'CREDIT_PURCHASE'].includes(t.type);
+    const isIn = ['SERVICE_EARNING', 'REFUND', 'CREDIT_PURCHASE', 'REFERRAL_REWARD'].includes(t.type);
     return `<div class="ti">
       <div class="tic" style="background:${cols[t.type] || 'var(--bg2)'};">${isIn ? '↑' : '↓'}</div>
       <div><div class="tit">${t.description || t.type}</div><div class="tis">${new Date(t.createdAt).toLocaleDateString('en-IN')}</div></div>
@@ -6706,12 +6765,68 @@ function loadPage(n) {
   else if (n === 'post-project') { /* form ready, no load needed */ }
   else if (n === 'wallet')    { loadWallet(); if (!_walletInterval) _walletInterval = setInterval(loadWallet, 30000); }
   else if (n === 'plans')     loadPlans();
+  else if (n === 'refer')     loadReferralPage();
   else if (n === 'profile')   { loadOverview(); loadProfileReviews(); }
   else if (n === 'saved')     loadSaved();
   else if (n === 'invites')   loadInvites();
   else if (n === 'disputes')  loadDisputes();
   else if (n === 'kyc')       loadKyc();
   else if (n === 'reports')   loadReports();
+}
+
+// ── Refer & Earn ──────────────────────────────────────────
+let _referData = null;
+async function loadReferralPage() {
+  const d = await api('/referrals/mine');
+  const linkEl = document.getElementById('referLink');
+  const listEl = document.getElementById('referList');
+  if (!d.success) {
+    linkEl.value = 'Login required';
+    listEl.innerHTML = '<div style="font-size:.8rem;color:var(--muted);">Could not load referral info.</div>';
+    return;
+  }
+  _referData = d.data;
+  linkEl.value = d.data.referralLink;
+  document.getElementById('referEarned').textContent = '\u20B9' + (d.data.totalEarned || 0).toLocaleString('en-IN');
+  document.getElementById('referCount').textContent = d.data.referredCount || 0;
+  document.getElementById('referPending').textContent = d.data.pendingCount || 0;
+  document.getElementById('referListCount').textContent = (d.data.referredCount || 0) + ' total';
+  const statusStyle = { PENDING: ['var(--gl)', 'var(--gold)', 'Waiting for first project'], PAID: ['var(--okl)', 'var(--ok)', '\u2713 Reward paid'], VOIDED: ['var(--errl)', 'var(--err)', 'Voided'] };
+  listEl.innerHTML = (d.data.referred || []).length
+    ? d.data.referred.map(r => {
+        const ru = r.referredUser || {};
+        const st = statusStyle[r.status] || statusStyle.PENDING;
+        const joined = r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-IN') : '';
+        const initial = (ru.firstName || 'U')[0];
+        return '<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg);border:1px solid var(--bd);border-radius:12px;">' +
+          '<div style="width:34px;height:34px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:var(--muted);flex-shrink:0;overflow:hidden;">' +
+          (ru.profilePhoto ? '<img src="' + esc(ru.profilePhoto) + '" alt="" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\';this.parentElement.textContent=\'' + esc(initial) + '\';">' : esc(initial)) +
+          '</div>' +
+          '<div style="flex:1;min-width:0;"><div style="font-size:.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(ru.firstName || 'Friend') + ' ' + esc(ru.lastName || '') + '</div>' +
+          '<div style="font-size:.68rem;color:var(--muted);">Joined ' + joined + '</div></div>' +
+          '<span class="pill" style="background:' + st[0] + ';color:' + st[1] + ';font-size:.66rem;flex-shrink:0;">' + st[2] + '</span>' +
+          '</div>';
+      }).join('')
+    : '<div style="font-size:.8rem;color:var(--muted);padding:14px 0;">No one has joined with your link yet. Share it to start earning!</div>';
+  document.getElementById('referPerks').style.display = d.data.myReferrer ? 'block' : 'none';
+}
+
+function copyReferLink() {
+  const el = document.getElementById('referLink');
+  if (!el.value || el.value === 'Loading...') return;
+  if (navigator.clipboard) { navigator.clipboard.writeText(el.value).then(() => showToast('Referral link copied!', 'ok')).catch(() => fallbackCopy(el)); }
+  else fallbackCopy(el);
+}
+function fallbackCopy(el) {
+  el.select(); el.setSelectionRange(0, 99999);
+  try { document.execCommand('copy'); showToast('Referral link copied!', 'ok'); } catch (e) { showToast('Press Ctrl+C to copy', 'info'); }
+}
+function shareRefer(platform) {
+  const link = document.getElementById('referLink').value;
+  if (!link || link === 'Loading...') return;
+  const text = 'Join me on Grit&Gigs! \uD83D\uDE80 Post your first project for FREE with 0% commission on your first hire, and I earn \u20B9500 in platform credit. Sign up here: ' + link;
+  if (platform === 'wa') window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+  else window.open('https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent('Join me on Grit&Gigs! '), '_blank');
 }
 
 // ── Smart notification polling — only fires banner when something NEW happens ─

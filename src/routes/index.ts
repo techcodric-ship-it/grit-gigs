@@ -23,6 +23,7 @@ import reportsRouter from "./reports";
 import invoiceRouter from "./invoice";
 import adminRouter from "./admin";
 import equityRouter from "./equity";
+import referralsRouter from "./referrals";
 
 const router: IRouter = Router();
 
@@ -50,6 +51,7 @@ router.use(creditsRouter);
 router.use(paymentsRouter);
 router.use(invoiceRouter);
 router.use(equityRouter);
+router.use(referralsRouter);
 router.use(adminRouter);
 
 router.use((_req: any, res: any) => {

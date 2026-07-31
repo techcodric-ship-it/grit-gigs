@@ -19,6 +19,7 @@ import {
   messagesTable,
   clientReviewsTable,
   refreshTokensTable, passwordResetsTable,
+  referralsTable,
 } from "../db";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -31,6 +32,7 @@ import { getActivePlanForUser } from "../lib/subscriptions";
 import { sendAdminEmail, layout } from "../lib/email";
 import { adminAuth } from "../middlewares/adminAuth";
 import { waitlistTable } from "./equity";
+import { creditReferrerReward, reverseReferrerReward } from "../lib/referrals";
 
 const uploadsDir = path.join(PROJECT_ROOT, "uploads", "messages");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
@@ -605,7 +607,7 @@ router.post("/admin/conversations/:id/reply", async (req: Request, res: Response
     if (!messageText?.trim()) return res.status(400).json({ success: false, message: "Message text required" });
     const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
     if (!admin) return res.status(500).json({ success: false, message: "Admin user not found" });
-    const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, req.params.id)).limit(1);
+    const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, req.params.id as string)).limit(1);
     if (!conv) return res.status(404).json({ success: false, message: "Conversation not found" });
     const otherUserId = conv.user1Id === admin.id ? conv.user2Id : conv.user1Id;
     const msg = await _adminSendMessage(admin.id, otherUserId, messageText.trim(), req, attachments || []);
@@ -891,6 +893,110 @@ router.post("/admin/send-email", adminAuth, async (req: Request, res: Response):
   } catch (err) {
     console.error("send email error:", err);
     res.status(500).json({ success: false, message: "Failed to send email" });
+  }
+});
+
+// ── Referrals (admin review: view / pay / void) ──────────────────────────────
+router.get("/admin/referrals", adminAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const rows = await db
+      .select()
+      .from(referralsTable)
+      .orderBy(desc(referralsTable.createdAt));
+
+    const enriched = await Promise.all(
+      rows.map(async (r) => {
+        const [referrer] = await db
+          .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, email: usersTable.email })
+          .from(usersTable)
+          .where(eq(usersTable.id, r.referrerId))
+          .limit(1);
+        const [referredUser] = await db
+          .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, email: usersTable.email })
+          .from(usersTable)
+          .where(eq(usersTable.id, r.referredUserId))
+          .limit(1);
+        let projectTitle: string | null = null;
+        if (r.projectId) {
+          const [p] = await db.select({ title: projectsTable.title }).from(projectsTable).where(eq(projectsTable.id, r.projectId)).limit(1);
+          projectTitle = p?.title || null;
+        }
+        return { ...r, referrer: referrer || null, referredUser: referredUser || null, projectTitle };
+      })
+    );
+
+    res.json({ success: true, data: enriched });
+  } catch (err) {
+    console.error("admin referrals error:", err);
+    res.status(500).json({ success: false, message: "Failed to load referrals" });
+  }
+});
+
+// POST /admin/referrals/:id/pay — manually credit the reward (PENDING → PAID)
+router.post("/admin/referrals/:id/pay", adminAuth, async (req: Request, res: Response): Promise<void> => {
+  const [ref] = await db.select().from(referralsTable).where(eq(referralsTable.id, req.params.id as string)).limit(1);
+  if (!ref) {
+    res.status(404).json({ success: false, message: "Referral not found" });
+    return;
+  }
+  if (ref.status !== "PENDING") {
+    res.status(400).json({ success: false, message: "Only pending referrals can be paid" });
+    return;
+  }
+  const amount = Number(ref.rewardAmount) || 500;
+  try {
+    await db.transaction(async (tx) => {
+      const [claimed] = await tx
+        .update(referralsTable)
+        .set({ status: "PAID", updatedAt: new Date() })
+        .where(and(eq(referralsTable.id, ref.id), eq(referralsTable.status, "PENDING")))
+        .returning();
+      if (!claimed) throw new Error("Referral already processed");
+      await creditReferrerReward(tx, claimed.referrerId, amount, "Referral reward (approved by admin)");
+    });
+    await db.insert(notificationsTable).values({
+      userId: ref.referrerId,
+      type: "REFERRAL_REWARD",
+      title: "Referral reward credited! 🎉",
+      message: `Your ₹${amount} referral bonus has been approved and credited. Use it on any service or project.`,
+      linkUrl: "/dashboard.html?tab=refer",
+    });
+    res.json({ success: true, message: `Referral paid — ₹${amount} credited to the referrer` });
+  } catch (err) {
+    console.error("pay referral error:", err);
+    res.status(500).json({ success: false, message: "Failed to pay referral" });
+  }
+});
+
+// POST /admin/referrals/:id/void — reject/reverse a fake referral
+router.post("/admin/referrals/:id/void", adminAuth, async (req: Request, res: Response): Promise<void> => {
+  const [ref] = await db.select().from(referralsTable).where(eq(referralsTable.id, req.params.id as string)).limit(1);
+  if (!ref) {
+    res.status(404).json({ success: false, message: "Referral not found" });
+    return;
+  }
+  if (ref.status === "VOIDED") {
+    res.status(400).json({ success: false, message: "Referral is already voided" });
+    return;
+  }
+  const amount = Number(ref.rewardAmount) || 500;
+  try {
+    await db.transaction(async (tx) => {
+      if (ref.status === "PAID") {
+        await reverseReferrerReward(tx, ref.referrerId, amount, "Referral reward reversed (voided by admin)");
+        if (ref.projectId) {
+          await tx.update(projectsTable).set({ zeroCommission: false, updatedAt: new Date() }).where(eq(projectsTable.id, ref.projectId));
+        }
+      }
+      await tx
+        .update(referralsTable)
+        .set({ status: "VOIDED", updatedAt: new Date() })
+        .where(eq(referralsTable.id, ref.id));
+    });
+    res.json({ success: true, message: ref.status === "PAID" ? "Referral voided — reward reversed" : "Referral voided" });
+  } catch (err) {
+    console.error("void referral error:", err);
+    res.status(500).json({ success: false, message: "Failed to void referral" });
   }
 });
 

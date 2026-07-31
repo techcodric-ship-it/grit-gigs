@@ -40,6 +40,7 @@ export const projectsTable = pgTable("projects", {
   imageUrl: text("image_url"),
   status: projectStatusEnum("status").default("OPEN").notNull(),
   acceptedBidId: uuid("accepted_bid_id"),
+  zeroCommission: boolean("zero_commission").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

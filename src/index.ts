@@ -79,6 +79,8 @@ app.set("io", io);
           DO $$ BEGIN CREATE TYPE report_target_type AS ENUM ('USER','SERVICE','BARTER','PROJECT'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
           DO $$ BEGIN CREATE TYPE report_status AS ENUM ('OPEN','RESOLVED','DISMISSED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
           DO $$ BEGIN CREATE TYPE kyc_status AS ENUM ('PENDING','APPROVED','REJECTED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE referral_status AS ENUM ('PENDING','PAID','VOIDED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          ALTER TYPE transaction_type ADD VALUE IF NOT EXISTS 'REFERRAL_REWARD';
         `);
         logger.info("migrate: enums ready");
 
@@ -473,6 +475,20 @@ app.set("io", io);
             user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
             created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
           );
+
+          CREATE TABLE IF NOT EXISTS referrals (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            referrer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            referred_user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+            project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
+            status referral_status DEFAULT 'PENDING' NOT NULL,
+            reward_amount NUMERIC(12,2) DEFAULT 500 NOT NULL,
+            zero_commission_applied BOOLEAN DEFAULT FALSE NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
+          CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id);
+          CREATE INDEX IF NOT EXISTS idx_referrals_status ON referrals(status);
         `);
       } catch (e: unknown) {
         logger.error({ err: e }, "migrate: table creation failed");
@@ -516,6 +532,13 @@ app.set("io", io);
       await col(`ALTER TABLE project_bids ADD COLUMN IF NOT EXISTS is_highlighted BOOLEAN DEFAULT FALSE NOT NULL`);
       await col(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS is_paused BOOLEAN DEFAULT FALSE NOT NULL`);
       await col(`ALTER TABLE order_deliveries ADD COLUMN IF NOT EXISTS revision_number INTEGER DEFAULT 0 NOT NULL`);
+
+      // ── Referral program columns ────────────────────────────────────────────
+      await col(`ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code VARCHAR(20)`);
+      await col(`ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by UUID REFERENCES users(id) ON DELETE SET NULL`);
+      await col(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code)`);
+      await col(`ALTER TABLE freelance_wallets ADD COLUMN IF NOT EXISTS bonus_balance NUMERIC(12,2) DEFAULT 0 NOT NULL`);
+      await col(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS zero_commission BOOLEAN DEFAULT FALSE NOT NULL`);
 
       // ── Table column fixes (Drizzle schema vs raw migration mismatches) ───
       await col(`ALTER TABLE freelance_wallets ADD COLUMN IF NOT EXISTS total_spent NUMERIC(12,2) DEFAULT 0 NOT NULL`);

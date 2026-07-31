@@ -17,6 +17,7 @@ export const transactionTypeEnum = pgEnum("transaction_type", [
   "SERVICE_EARNING",
   "COMMISSION",
   "REFUND",
+  "REFERRAL_REWARD",
 ]);
 
 export const txnStatusEnum = pgEnum("txn_status", [
@@ -40,6 +41,7 @@ export const freelanceWalletsTable = pgTable("freelance_wallets", {
     .unique()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   balance: real("balance").default(0).notNull(),
+  bonusBalance: real("bonus_balance").default(0).notNull(),
   totalEarned: real("total_earned").default(0).notNull(),
   totalSpent: real("total_spent").default(0).notNull(),
   totalWithdrawn: real("total_withdrawn").default(0).notNull(),

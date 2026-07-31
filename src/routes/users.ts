@@ -134,8 +134,9 @@ router.post("/users/me/wallet/withdraw", authenticate, async (req: Request, res:
     res.status(400).json({ success: false, message: "No wallet found. Please add funds to your wallet first." });
     return;
   }
-  if (wallet.balance < amount) {
-    res.status(400).json({ success: false, message: "Insufficient balance" });
+  const withdrawableBalance = Number(wallet.balance) - Number(wallet.bonusBalance || 0);
+  if (withdrawableBalance < amount) {
+    res.status(400).json({ success: false, message: "Insufficient withdrawable balance. Referral bonuses can only be used on the platform." });
     return;
   }
 
@@ -146,7 +147,7 @@ router.post("/users/me/wallet/withdraw", authenticate, async (req: Request, res:
   try {
     await db.transaction(async (tx) => {
       const deductResult = await tx.execute(
-        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${amount}, total_withdrawn = COALESCE(total_withdrawn, 0) + ${amount}, updated_at = NOW() WHERE id = ${wallet.id} AND balance >= ${amount}`
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${amount}, total_withdrawn = COALESCE(total_withdrawn, 0) + ${amount}, updated_at = NOW() WHERE id = ${wallet.id} AND balance - COALESCE(bonus_balance, 0) >= ${amount}`
       );
       if (deductResult.rowCount === 0) throw new Error("Insufficient balance");
 

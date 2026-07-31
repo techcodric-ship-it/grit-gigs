@@ -407,7 +407,9 @@ async function loadLiveServices() {
     const initials = ((s.seller?.firstName || '?')[0] + (s.seller?.lastName || '')[0]).toUpperCase();
     const pp = s.seller?.profilePhoto || '';
     const ppEnc = encodeURIComponent(pp);
-    const img = s.images?.[0] || getDefaultImg(s.category);
+  const img = s.images?.[0] || getDefaultImg(s.category);
+  if (!sellerName && s.seller) sellerName = (s.seller.firstName + ' ' + (s.seller.lastName || '')).trim();
+  if (!profilePhoto && s.seller?.profilePhoto) profilePhoto = encodeURIComponent(s.seller.profilePhoto);
     const price = s.packages?.[0]?.priceInr || 0;
     const levelBadge = s.orderCount > 200 ? 'Top Rated' : s.orderCount > 50 ? 'Level 2' : s.orderCount > 10 ? 'Level 1' : 'New';
     const levelClass = levelBadge === 'Top Rated' ? 'badge-violet' : levelBadge === 'Level 2' ? 'badge-gold' : 'badge-surface';
@@ -439,6 +441,18 @@ async function loadLiveServices() {
 // ═══════════════════════════════════════════════════════
 //  SERVICE DETAIL MODAL (real — buy or login)
 // ═══════════════════════════════════════════════════════
+window.shareItem = function(page, id, title) {
+  const url = window.location.origin + '/' + page + '.html?id=' + encodeURIComponent(id);
+  const text = (title ? title + ' — ' : 'Check this out on Grit&Gigs — ') + url;
+  if (navigator.share) {
+    navigator.share({ title: title || 'Grit&Gigs', text, url }).catch(function(){});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function(){ showToast('Link copied — share it anywhere!', 'success'); }).catch(function(){ window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank'); });
+  } else {
+    window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+  }
+};
+
 window.openServiceModal = async function(serviceId, title, price, profilePhoto, sellerName) {
   // Fetch full service details
   const data = await api('/services/' + serviceId);
@@ -497,6 +511,9 @@ window.openServiceModal = async function(serviceId, title, price, profilePhoto, 
     <div style="margin-bottom:18px;"><div style="font-weight:600;margin-bottom:10px;font-size:0.9rem;">Your requirements</div><textarea id="orderRequirements" style="width:100%;padding:10px 12px;border-radius:8px;border:1.5px solid rgba(10,10,15,0.15);font-family:'DM Sans',sans-serif;font-size:0.86rem;outline:none;resize:vertical;" rows="3" placeholder="Describe what you need specifically..."></textarea></div>
     <button class="btn btn-primary btn-lg" style="width:100%;justify-content:center;" onclick="placeOrder()">
       Continue — ₹<span id="modalPrice">${(s.packages?.[0]?.priceInr||0).toLocaleString('en-IN')}</span>
+    </button>
+    <button class="btn" style="width:100%;justify-content:center;margin-top:8px;border:1px solid var(--border);background:var(--surface);color:var(--ink);" onclick="shareItem('freelance','${s.id}','${s.title.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">
+      📤 Share this gig
     </button>
     <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px;"><div style="font-weight:600;margin-bottom:8px;font-size:0.9rem;">Reviews</div>${reviewsHtml}</div>`;
 

@@ -9,6 +9,7 @@ import { clientReviewsTable } from '../db/schema/client-reviews';
 import { authenticate, optionalAuth } from '../middlewares/authenticate';
 import { getActivePlanForUser, getOrCreateSubscription, getPlan } from '../lib/subscriptions';
 import { attachPlanBadge, attachPlanBadges } from '../lib/planBadge';
+import { processProjectReferral } from '../lib/referrals';
 import { uploadToSupabase } from '../lib/storage';
 import { PROJECT_ROOT } from '../lib/root';
 import { notifyAllUsersNewListing, sendNotificationEmail } from '../lib/email';
@@ -293,6 +294,7 @@ router.post('/projects', authenticate, async (req: Request, res: Response) => {
     .returning();
 
   notifyAllUsersNewListing("project", project.title, req.user!.firstName, "/projects", req.user!.email);
+  processProjectReferral(userId, project.id);
   return res.status(201).json({ success: true, data: { project } });
 });
 
@@ -763,9 +765,9 @@ router.post('/projects/:id/release-payment', authenticate, async (req: Request, 
     return res.status(409).json({ success: false, message: 'Payment already released' });
   }
 
-  // Calculate commission based on freelancer's plan
+  // Calculate commission based on freelancer's plan (0% for referred clients' first project)
   const plan = await getActivePlanForUser(_ab.userId);
-  const commissionPct = plan.serviceFeePercent;
+  const commissionPct = project.zeroCommission ? 0 : plan.serviceFeePercent;
   const commission = Math.round(_pay * commissionPct / 100);
   const netAmount = _pay - commission;
 
