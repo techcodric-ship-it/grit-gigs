@@ -264,3 +264,35 @@ export async function notifyAllUsersNewListing(
     logger.error({ err, listingType }, "Failed to send bulk listing notification");
   }
 }
+
+// ── Free tool (Rate & Budget Calculator) lead emails ──────────────────────
+export async function sendToolReportEmail(to: string, firstName: string | undefined, role: "freelancer" | "client", lines: string[], ctaText: string, ctaUrl: string): Promise<boolean> {
+  const heading = role === "freelancer" ? "Your personalized rate report" : "Your project budget estimate";
+  const rows = lines
+    .map((l) => `<tr><td style="padding:8px 12px;border:1px solid #eee;font-size:0.9rem;color:#333;">${l}</td></tr>`)
+    .join("");
+  return sendResend({
+    to,
+    subject: `${heading} is ready — Grit&Gigs`,
+    html: `<h1>${heading}</h1>
+      <p>Hi${firstName ? " " + htmlEscape(firstName) : ""},</p>
+      <p>Here's what you asked for. This is based on current market rates for freelancers across India — your actual price depends on your portfolio, reviews, and how quickly you deliver.</p>
+      <table style="width:100%;border-collapse:collapse;margin:20px 0;border:1px solid #eee;border-radius:12px;overflow:hidden;">
+        ${rows}
+      </table>
+      ${role === "freelancer"
+        ? `<p>🚀 <strong>Make it easy for clients to find you.</strong> Post a service on Grit&Gigs — the free platform where Indian clients hire vetted freelancers.</p>`
+        : `<p>👀 <strong>Ready to hire?</strong> Post your project for free on Grit&Gigs and let freelancers come to you with quotes.</p>`}
+      <p style="text-align:center;margin:24px 0;"><a href="${ctaUrl}" class="btn">${ctaText}</a></p>
+      <div class="meta"><p>You're receiving this because you used the Grit&Gigs Rate Calculator. <a href="${APP_URL}/rate-calculator?unsubscribe=${encodeURIComponent(to)}">Unsubscribe</a> anytime.</p></div>`,
+  });
+}
+
+export async function sendToolFollowupEmail(to: string, firstName: string | undefined, subject: string, htmlBody: string): Promise<boolean> {
+  return sendResend({
+    to,
+    subject,
+    html: `${htmlBody}
+      <div class="meta" style="margin-top:20px;"><p>You're receiving this because you used the Grit&Gigs Rate Calculator. <a href="${APP_URL}/rate-calculator?unsubscribe=${encodeURIComponent(to)}">Unsubscribe</a> anytime.</p></div>`,
+  });
+}

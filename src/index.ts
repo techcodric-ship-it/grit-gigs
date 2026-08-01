@@ -3,8 +3,10 @@ import http from "http";
 import app from "./app";
 import { setupSocket } from "./lib/socket";
 import { logger } from "./lib/logger";
-import { pool } from "./db";
+import { pool, db, toolLeadsTable } from "./db";
+import { lte, eq, and } from "drizzle-orm";
 import { ensureBucket } from "./lib/storage";
+import { sendToolFollowupEmail } from "./lib/email";
 
 process.on("unhandledRejection", (reason) => {
   logger.error({ err: reason }, "Unhandled promise rejection — exiting");
@@ -36,6 +38,93 @@ function shutdown(signal: string) {
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
+
+// ── Free tool follow-up emails (lead magnet nurture sequence) ─────────────
+// Every 30 min, send the next nurture email to calculator leads that are due.
+const APP_URL = (process.env.APP_URL || "https://www.gritandgigs.in").trim();
+
+const TOOL_FOLLOWUP_STEPS = [
+  // stage 1 (sent ~day 2)
+  {
+    stage: 1,
+    days: 3,
+    subject: "The #1 mistake freelancers make (and how to avoid it)",
+    body: (firstName: string | undefined) => `
+      <h1>Most freelancers underprice themselves</h1>
+      <p>Hi${firstName ? " " + firstName : ""},</p>
+      <p>When you used the <strong>Grit&Gigs Rate Calculator</strong>, you got a market-based number. The #1 mistake we see is charging <em>below</em> that — because it feels safer. It isn't. Low prices attract price-shoppers, not good clients.</p>
+      <p>Instead:</p>
+      <table style="width:100%;margin-bottom:20px;">
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">✅ Show your past work in a portfolio</td></tr>
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">✅ Charge a fixed project price, not hourly</td></tr>
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">✅ Get a couple of client reviews early — they compound</td></tr>
+      </table>
+      <p style="text-align:center;margin:20px 0;"><a href="${APP_URL}/signup" class="btn">Start earning on Grit&Gigs →</a></p>`,
+  },
+  // stage 2 (sent ~day 5)
+  {
+    stage: 2,
+    days: 4,
+    subject: "Your next client could already be waiting",
+    body: (firstName: string | undefined) => `
+      <h1>Clients are hiring right now</h1>
+      <p>Hi${firstName ? " " + firstName : ""},</p>
+      <p>On Grit&Gigs, freelancers create a service listing and Indian clients hire them directly — no bidding, no fees to browse.</p>
+      <p>Three things that make a listing get hired fast:</p>
+      <table style="width:100%;margin-bottom:20px;">
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">1️⃣ A clear title with your skill + outcome</td></tr>
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">2️⃣ 3 example photos or links of past work</td></tr>
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">3️⃣ Fast delivery time (2-5 days works best)</td></tr>
+      </table>
+      <p style="text-align:center;margin:20px 0;"><a href="${APP_URL}/dashboard" class="btn">Create your free listing →</a></p>`,
+  },
+  // stage 3 (sent ~day 9)
+  {
+    stage: 3,
+    days: 0,
+    subject: "One last thing — a special offer for you",
+    body: (firstName: string | undefined) => `
+      <h1>Your first project on us</h1>
+      <p>Hi${firstName ? " " + firstName : ""},</p>
+      <p>Because you used our calculator, here's a head start: <strong>your first project on Grit&Gigs comes with 0% commission</strong> — you keep 100% of what you earn.</p>
+      <p>It takes 2 minutes to set up your profile and post your first service. That's it.</p>
+      <p style="text-align:center;margin:20px 0;"><a href="${APP_URL}/signup" class="btn">Claim your 0% commission →</a></p>`,
+  },
+];
+
+async function processToolFollowups(): Promise<void> {
+  try {
+    const due = await db
+      .select()
+      .from(toolLeadsTable)
+      .where(and(eq(toolLeadsTable.unsubscribed, false), lte(toolLeadsTable.nextFollowupAt, new Date())))
+      .limit(50);
+
+    for (const lead of due) {
+      const step = TOOL_FOLLOWUP_STEPS.find((s) => s.stage === lead.followupStage + 1);
+      if (!step) {
+        await db.update(toolLeadsTable).set({ nextFollowupAt: null }).where(eq(toolLeadsTable.id, lead.id));
+        continue;
+      }
+      const sent = await sendToolFollowupEmail(lead.email, lead.firstName ?? undefined, step.subject, step.body(lead.firstName ?? undefined));
+      await db
+        .update(toolLeadsTable)
+        .set({
+          followupStage: step.stage,
+          nextFollowupAt: step.days > 0 ? new Date(Date.now() + step.days * 24 * 60 * 60 * 1000) : null,
+        })
+        .where(eq(toolLeadsTable.id, lead.id));
+      if (sent) logger.info({ leadId: lead.id, stage: step.stage }, "Tool follow-up email sent");
+    }
+  } catch (err) {
+    logger.error({ err }, "Tool follow-up processing failed");
+  }
+}
+
+function startToolFollowUpCron(): void {
+  setTimeout(() => processToolFollowups(), 60 * 1000);
+  setInterval(() => processToolFollowups(), 30 * 60 * 1000).unref();
+}
 
 const rawPort = process.env["PORT"];
 if (!rawPort) {
@@ -489,6 +578,23 @@ app.set("io", io);
           );
           CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id);
           CREATE INDEX IF NOT EXISTS idx_referrals_status ON referrals(status);
+
+          CREATE TABLE IF NOT EXISTS tool_leads (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            email TEXT NOT NULL,
+            first_name TEXT,
+            role TEXT NOT NULL,
+            service TEXT NOT NULL,
+            experience TEXT,
+            hours INTEGER,
+            result JSONB DEFAULT '{}',
+            followup_stage INTEGER DEFAULT 0 NOT NULL,
+            next_followup_at TIMESTAMPTZ,
+            unsubscribed BOOLEAN DEFAULT FALSE NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
+          CREATE INDEX IF NOT EXISTS idx_tool_leads_next_followup ON tool_leads(next_followup_at);
+          CREATE INDEX IF NOT EXISTS idx_tool_leads_email ON tool_leads(email);
         `);
       } catch (e: unknown) {
         logger.error({ err: e }, "migrate: table creation failed");
@@ -632,6 +738,7 @@ app.set("io", io);
 
   httpServer.listen(port, () => {
     logger.info({ port }, "SwiftExchange API server listening");
+    startToolFollowUpCron();
   });
 })();
 
