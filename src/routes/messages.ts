@@ -291,29 +291,36 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
 
   if (!messageText?.trim()) { res.status(400).json({ success: false, message: "Message cannot be empty" }); return; }
 
-  // Auto-censor contact info (email, phone) before saving
-  const contactPattern = /(?:\b\d{7,}\b)|(?:\+?\d{1,3}[-.\s]?\d{7,})|(?:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
-  const censoredText = messageText.trim().replace(contactPattern, '[hidden]');
-
   const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, convId));
   if (!conv) { res.status(404).json({ success: false, message: "Conversation not found" }); return; }
   if (conv.user1Id !== req.user!.id && conv.user2Id !== req.user!.id) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
 
+  const recipientId = conv.user1Id === req.user!.id ? conv.user2Id : conv.user1Id;
+
+  // Contact info (email, phone) is censored for normal conversations. In support
+  // conversations with an admin recipient, the real details are kept so the
+  // platform can help — admins see the original, other users never do.
+  let finalText = messageText.trim();
+  const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
+  if (!(admin && admin.id === recipientId)) {
+    const contactPattern = /(?:\+?\d{1,3}[-.\s]?\d{5}[-.\s]?\d{4,})|(?:\d{5}[-.\s]?\d{4,})|(?:\b\d{7,15}\b)|(?:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+    finalText = finalText.replace(contactPattern, '[hidden]');
+  }
+
   const [message] = await db.insert(messagesTable).values({
     conversationId: convId,
     senderId: req.user!.id,
-    messageText: censoredText,
+    messageText: finalText,
     attachments: attachments ?? [],
   }).returning();
 
   await db.update(conversationsTable).set({ lastMessageAt: new Date() }).where(eq(conversationsTable.id, convId));
 
-  const recipientId = conv.user1Id === req.user!.id ? conv.user2Id : conv.user1Id;
   await db.insert(notificationsTable).values({
     userId: recipientId,
     type: "NEW_MESSAGE",
     title: `New message from ${req.user!.firstName}`,
-    message: censoredText.slice(0, 80),
+    message: finalText.slice(0, 80),
     linkUrl: "/dashboard#inbox",
   });
 
@@ -326,7 +333,7 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
     io.to(`user:${recipientId}`).emit("notification:new", {
       type: "NEW_MESSAGE",
       title: req.user!.firstName,
-      message: censoredText.slice(0, 60),
+      message: finalText.slice(0, 60),
       conversationId: convId,
     });
   }
