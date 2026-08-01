@@ -409,9 +409,7 @@ async function loadLiveServices() {
     const pp = s.seller?.profilePhoto || '';
     const ppEnc = encodeURIComponent(pp);
   const img = s.images?.[0] || getDefaultImg(s.category);
-  if (!sellerName && s.seller) sellerName = (s.seller.firstName + ' ' + (s.seller.lastName || '')).trim();
-  if (!profilePhoto && s.seller?.profilePhoto) profilePhoto = encodeURIComponent(s.seller.profilePhoto);
-    const price = s.packages?.[0]?.priceInr || 0;
+  const price = s.packages?.[0]?.priceInr || 0;
     const levelBadge = s.orderCount > 200 ? 'Top Rated' : s.orderCount > 50 ? 'Level 2' : s.orderCount > 10 ? 'Level 1' : 'New';
     const levelClass = levelBadge === 'Top Rated' ? 'badge-violet' : levelBadge === 'Level 2' ? 'badge-gold' : 'badge-surface';
     const sellerAv = pp ? `<img src="${pp}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;"/>` : `<div class="avatar-placeholder avatar-v" style="width:24px;height:24px;font-size:10px;">${initials}</div>`;
