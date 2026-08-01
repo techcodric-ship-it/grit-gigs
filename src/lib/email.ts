@@ -15,6 +15,7 @@ function htmlEscape(str: string): string {
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM_EMAIL = process.env.EMAIL_FROM || "Grit&Gigs <team@gritandgigs.in>";
 const APP_URL = (process.env.APP_URL || "https://www.gritandgigs.in").trim();
+const DEFAULT_REPLY_TO = process.env.REPLY_TO_EMAIL || "gritandgigsofficial@gmail.com";
 
 interface EmailOptions {
   to: string;
@@ -78,7 +79,7 @@ async function sendResend({ to, subject, html, replyTo }: EmailOptions): Promise
 
   try {
     const body = { from: FROM_EMAIL, to, subject, html: layout(html) } as any;
-    if (replyTo) body.reply_to = replyTo;
+    body.reply_to = replyTo || DEFAULT_REPLY_TO;
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -249,6 +250,7 @@ export async function notifyAllUsersNewListing(
             to: email,
             subject,
             html: layout(html),
+            reply_to: DEFAULT_REPLY_TO,
           }),
         });
         if (r.ok) sent++;
