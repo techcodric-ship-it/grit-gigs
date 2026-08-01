@@ -362,7 +362,7 @@ async function loadLiveBarterCards() {
         <div class="barter-card-top">
           <div class="barter-user-info">
             ${avHtml}
-            <div><div class="barter-name">${r.user?.firstName || '?'} ${r.user?.lastName || ''}</div><div class="barter-loc">${r.city || 'India'}</div></div>
+            <div><div class="barter-name">${r.user?.firstName || '?'} ${r.user?.lastName || ''}${kycBadge(r.user?.kycVerified)}${planBadge(r.user?.planBadge)}</div><div class="barter-loc">${r.city || 'India'}</div></div>
           </div>
           <span class="badge badge-surface">Active</span>
         </div>
