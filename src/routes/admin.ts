@@ -192,6 +192,36 @@ router.get("/admin/users/:id", async (req: Request, res: Response) => {
   });
 });
 
+// ── Admin: update a user's phone number (users cannot change their own) ──
+router.put("/admin/users/:id/phone", async (req: Request, res: Response) => {
+  const { phone } = req.body ?? {};
+  if (!phone || typeof phone !== "string" || !phone.trim()) {
+    res.status(400).json({ success: false, message: "A phone number is required" });
+    return;
+  }
+  const normalized = phone.replace(/\D/g, "");
+  if (normalized.length < 8 || normalized.length > 15) {
+    res.status(400).json({ success: false, message: "Enter a valid phone number" });
+    return;
+  }
+  const [target] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, req.params.id as string)).limit(1);
+  if (!target) {
+    res.status(404).json({ success: false, message: "User not found" });
+    return;
+  }
+  const allPhones = await db.select({ id: usersTable.id, phone: usersTable.phone }).from(usersTable).where(sql`${usersTable.phone} IS NOT NULL`);
+  const dup = allPhones.find((p) => p.id !== target.id && p.phone && p.phone.replace(/\D/g, "") === normalized);
+  if (dup) {
+    res.status(409).json({ success: false, message: "This phone number is already registered to another account" });
+    return;
+  }
+  await db
+    .update(usersTable)
+    .set({ phone: phone.trim(), phoneVerified: true, updatedAt: new Date() })
+    .where(eq(usersTable.id, target.id));
+  res.json({ success: true, message: "Phone number updated" });
+});
+
 // ── Ban / Unban user ──
 router.put("/admin/users/:id/ban", async (req: Request, res: Response) => {
   await db.update(usersTable).set({ isActive: false, updatedAt: new Date() }).where(eq(usersTable.id, req.params.id as string));

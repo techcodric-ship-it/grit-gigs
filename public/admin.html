@@ -956,7 +956,7 @@ function renderOverviewTab(el, u) {
     <div class="info-grid">
       <div class="ig"><div class="igl">GG ID</div><div class="igv">${esc(ggId(u.id))}</div></div>
       <div class="ig"><div class="igl">Email</div><div class="igv">${esc(u.email)}</div></div>
-      <div class="ig"><div class="igl">Phone</div><div class="igv">${esc(u.phone||'—')}</div></div>
+      <div class="ig"><div class="igl">Phone <span style="font-weight:400;color:var(--muted);font-size:.64rem;">(admin-only)</span></div><div class="igv" id="adminPhoneCell">${esc(u.phone||'—')} <button class="btn bs btn-xs" style="margin-left:4px;" onclick="editAdminPhone()">Edit</button></div></div>
       <div class="ig"><div class="igl">Role</div><div class="igv">${badge(u.role)}</div></div>
       <div class="ig"><div class="igl">Status</div><div class="igv">${u.isActive===false?'<span class="pill pbanned">Banned</span>':'<span class="pill pd">Active</span>'}</div></div>
       <div class="ig"><div class="igl">City / Country</div><div class="igv">${esc(u.city||'—')} / ${esc(u.country||'—')}</div></div>
@@ -983,6 +983,33 @@ function renderOverviewTab(el, u) {
 
 async function fetchTabData(endpoint) {
   try { const r = await api(endpoint); return r.data||r; } catch(e) { return []; }
+}
+
+function editAdminPhone() {
+  const u = _tabData.user;
+  if (!u) return;
+  const cell = document.getElementById('adminPhoneCell');
+  if (!cell) return;
+  cell.innerHTML = `<input id="adminPhoneInput" value="${esc(u.phone||'')}" placeholder="+91 98765 43210" style="width:100%;padding:7px 9px;border-radius:6px;border:1.5px solid var(--bd2);font-size:.78rem;margin-bottom:6px;"/>` +
+    `<div><button class="btn bp btn-xs" onclick="saveAdminPhone()">Save</button> <button class="btn bs btn-xs" onclick="openUserDetail('${u.id}')">Cancel</button></div>`;
+  const inp = document.getElementById('adminPhoneInput');
+  if (inp) {
+    inp.focus();
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveAdminPhone(); });
+  }
+}
+
+async function saveAdminPhone() {
+  const u = _tabData.user;
+  if (!u) return;
+  const inp = document.getElementById('adminPhoneInput');
+  const phone = inp ? inp.value.trim() : '';
+  if (!phone) { notify('Enter a phone number', 'err'); return; }
+  try {
+    const r = await api('/admin/users/' + u.id + '/phone', { method: 'PUT', body: JSON.stringify({ phone }) });
+    notify(r.message || 'Phone updated', 'ok');
+    openUserDetail(u.id);
+  } catch(e) { notify(e.message, 'err'); }
 }
 
 function renderMiniTable(el, rows, cols) {
