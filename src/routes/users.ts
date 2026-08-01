@@ -5,6 +5,7 @@ import {
   usersTable,
   notificationsTable,
   servicesTable,
+  servicePackagesTable,
   reviewsTable,
   clientReviewsTable,
   freelanceWalletsTable,
@@ -400,6 +401,15 @@ router.get("/users/:id", optionalAuth, async (req, res): Promise<void> => {
 
     // Active gigs
     const gigs = await db.select().from(servicesTable).where(and(eq(servicesTable.sellerId, user.id), eq(servicesTable.status, "ACTIVE")));
+    const gigIds = gigs.map(g => g.id);
+    const minPriceMap: Record<string, number> = {};
+    if (gigIds.length) {
+      const pkgRows = await db.select({ serviceId: servicePackagesTable.serviceId, priceInr: servicePackagesTable.priceInr }).from(servicePackagesTable).where(inArray(servicePackagesTable.serviceId, gigIds));
+      for (const p of pkgRows) {
+        minPriceMap[p.serviceId] = Math.min(minPriceMap[p.serviceId] ?? Number.MAX_SAFE_INTEGER, p.priceInr);
+      }
+    }
+    const gigsWithPrice = gigs.map(g => ({ ...g, startingPrice: minPriceMap[g.id] ?? null }));
 
     // Review summary — fetch reviews from both tables
     const allReviews: { id: string; reviewerId: string; rating: number; reviewText: string | null; createdAt: Date; type: string }[] = [];
@@ -532,7 +542,7 @@ router.get("/users/:id", optionalAuth, async (req, res): Promise<void> => {
       success: true,
       data: {
         user: profileUser,
-        gigs,
+        gigs: gigsWithPrice,
         reviewCount: allReviews.length,
         avgRating,
         reviews,
