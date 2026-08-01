@@ -103,18 +103,23 @@ router.get("/services", optionalAuth, async (req, res): Promise<void> => {
   const sellersMap: Record<string, { id: string; firstName: string; lastName: string; profilePhoto: string | null; city: string | null; reputationScore: number }> = {};
   const packagesMap: Record<string, typeof servicePackagesTable.$inferSelect[]> = {};
 
-  for (const svc of services) {
-    const [seller] = await db
-      .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified })
-      .from(usersTable)
-      .where(eq(usersTable.id, svc.sellerId));
-    if (seller) sellersMap[svc.sellerId] = seller;
+  const sellerIds = [...new Set(services.map((s) => s.sellerId))];
+  const serviceIds = services.map((s) => s.id);
 
-    const pkgs = await db
-      .select()
-      .from(servicePackagesTable)
-      .where(eq(servicePackagesTable.serviceId, svc.id));
-    packagesMap[svc.id] = pkgs;
+  if (serviceIds.length) {
+    const [sellers, allPackages] = await Promise.all([
+      sellerIds.length
+        ? db
+            .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified })
+            .from(usersTable)
+            .where(inArray(usersTable.id, sellerIds))
+        : Promise.resolve([]),
+      db.select().from(servicePackagesTable).where(inArray(servicePackagesTable.serviceId, serviceIds)),
+    ]);
+    for (const seller of sellers) sellersMap[seller.id] = seller;
+    for (const pkg of allPackages) {
+      (packagesMap[pkg.serviceId] ??= []).push(pkg);
+    }
   }
 
   const result = services.map((s) => ({

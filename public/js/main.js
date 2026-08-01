@@ -397,11 +397,12 @@ window.matchOrLogin = async function(requestId) {
 async function loadLiveServices() {
   const grid = document.querySelector('.services-grid');
   if (!grid) return;
-  const data = await api('/services?limit=4');
-  if (!data.success || !data.data.services?.length) {
-    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">No services yet. <a href=\"dashboard.html\" style=\"color:var(--violet);font-weight:600;\">Be the first to post one!</a></div>';
-    return;
-  }
+  try {
+    const data = await api('/services?limit=4');
+    if (!data.success || !data.data.services?.length) {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">No services yet. <a href=\"dashboard.html\" style=\"color:var(--violet);font-weight:600;\">Be the first to post one!</a></div>';
+      return;
+    }
 
   grid.innerHTML = data.data.services.map(s => {
     const initials = ((s.seller?.firstName || '?')[0] + (s.seller?.lastName || '')[0]).toUpperCase();
@@ -436,6 +437,9 @@ async function loadLiveServices() {
         </div>
       </div>`;
   }).join('');
+  } catch (err) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">Couldn\'t load services right now. <a href="/freelance" style="color:var(--violet);font-weight:600;">Browse the freelance page →</a></div>';
+  }
 }
 
 // ═══════════════════════════════════════════════════════
