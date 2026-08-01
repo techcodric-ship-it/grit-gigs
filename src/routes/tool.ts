@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { db, toolLeadsTable } from "../db";
-import { authenticate, requireAdmin } from "../middlewares/authenticate";
+import { adminAuth } from "../middlewares/adminAuth";
 import { TOOL_SKILLS, calcFreelancer, calcClient, formatINR, type ToolResult } from "../lib/tool-pricing";
 import { sendToolReportEmail } from "../lib/email";
 import { logger } from "../lib/logger";
@@ -88,7 +88,7 @@ router.post("/tool/unsubscribe", async (req: Request, res: Response): Promise<vo
 });
 
 // GET /tool/leads — admin: view all captured leads
-router.get("/tool/leads", authenticate, requireAdmin, async (req: Request, res: Response): Promise<void> => {
+router.get("/tool/leads", adminAuth, async (req: Request, res: Response): Promise<void> => {
   const leads = await db.select().from(toolLeadsTable).orderBy(desc(toolLeadsTable.createdAt)).limit(200);
   res.json({ success: true, data: leads });
 });

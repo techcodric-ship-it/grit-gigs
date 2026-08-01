@@ -271,6 +271,10 @@ a{text-decoration:none;color:inherit;}
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><path d="M8 10h.01M12 10h.01M16 10h.01"/></svg>
       Referrals
     </button>
+    <button class="ni" data-p="tool-leads">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
+      Calculator Leads
+    </button>
     <div class="ns">Session</div>
     <button class="ni danger" onclick="adminLogout()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -469,6 +473,20 @@ a{text-decoration:none;color:inherit;}
     <button class="btn bs btn-sm" onclick="loadReferrals()">⟳ Refresh</button>
   </div>
   <div id="referralsContent"><p style="font-size:.82rem;color:var(--muted);">Loading...</p></div>
+</div>
+
+<!-- ══════════ TOOL LEADS ══════════ -->
+<div class="ps" id="ps-tool-leads">
+  <div style="margin-bottom:16px;">
+    <h1 style="font-size:1.2rem;">Calculator Leads</h1>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:3px;">Emails captured from the free Rate &amp; Budget Calculator — see who is looking for freelance work or hiring, and what service they care about.</p>
+  </div>
+  <div id="toolLeadsSummary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px;"></div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+    <button class="btn bs btn-sm" onclick="loadToolLeads()">⟳ Refresh</button>
+    <button class="btn bs btn-sm" onclick="exportToolLeads()">⭳ Export CSV</button>
+  </div>
+  <div id="toolLeadsContent"><p style="font-size:.82rem;color:var(--muted);">Loading...</p></div>
 </div>
 
   </div>
@@ -725,6 +743,7 @@ function loadPage(n) {
   else if (n==='equity') loadEquityWaitlist();
   else if (n==='withdrawals') loadPendingWithdrawals();
   else if (n==='referrals') loadReferrals();
+  else if (n==='tool-leads') loadToolLeads();
 }
 
 async function sendAdminEmail() {
@@ -1570,6 +1589,94 @@ async function voidReferral(id) {
     notify(e.message || 'Failed to void', 'err');
     loadReferrals();
   }
+}
+
+// ─── TOOL LEADS ───
+let _toolLeads = [];
+
+async function loadToolLeads() {
+  try {
+    const r = await api('/tool/leads');
+    _toolLeads = Array.isArray(r.data) ? r.data : [];
+    renderToolLeads();
+  } catch(e) {
+    document.getElementById('toolLeadsContent').innerHTML = `<div class="empty"><div class="empty-sub">Failed to load calculator leads</div></div>`;
+  }
+}
+
+function toolRate(r) {
+  const res = r.result || {};
+  if (r.role === 'freelancer' && res.hourlyLow) {
+    return '₹' + Number(res.hourlyLow).toLocaleString('en-IN') + ' – ₹' + Number(res.hourlyHigh).toLocaleString('en-IN') + '/hr';
+  }
+  if (r.role === 'client' && res.budgetLow) {
+    return '₹' + Number(res.budgetLow).toLocaleString('en-IN') + ' – ₹' + Number(res.budgetHigh).toLocaleString('en-IN');
+  }
+  return '—';
+}
+
+function renderToolLeads() {
+  const el = document.getElementById('toolLeadsContent');
+  const sum = document.getElementById('toolLeadsSummary');
+  const total = _toolLeads.length;
+  const freelancers = _toolLeads.filter(x => x.role === 'freelancer').length;
+  const clients = _toolLeads.filter(x => x.role === 'client').length;
+  const unsub = _toolLeads.filter(x => x.unsubscribed).length;
+  const services = {};
+  _toolLeads.forEach(x => { services[x.service] = (services[x.service] || 0) + 1; });
+  const top = Object.entries(services).sort((a,b) => b[1] - a[1]).slice(0, 3).map(([k,v]) => `${esc(k)} ×${v}`).join(' · ') || '—';
+
+  sum.innerHTML =
+    `<div style="background:var(--white);border:1px solid var(--bd);border-radius:var(--rm);padding:14px;"><div style="font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);">Total emails</div><div style="font-size:1.5rem;font-weight:800;margin-top:2px;">${total}</div></div>` +
+    `<div style="background:var(--white);border:1px solid var(--bd);border-radius:var(--rm);padding:14px;"><div style="font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);">Freelancers</div><div style="font-size:1.5rem;font-weight:800;margin-top:2px;color:var(--violet);">${freelancers}</div></div>` +
+    `<div style="background:var(--white);border:1px solid var(--bd);border-radius:var(--rm);padding:14px;"><div style="font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);">Clients</div><div style="font-size:1.5rem;font-weight:800;margin-top:2px;color:var(--ok);">${clients}</div></div>` +
+    `<div style="background:var(--white);border:1px solid var(--bd);border-radius:var(--rm);padding:14px;"><div style="font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);">Unsubscribed</div><div style="font-size:1.5rem;font-weight:800;margin-top:2px;color:var(--muted);">${unsub}</div></div>` +
+    `<div style="background:var(--white);border:1px solid var(--bd);border-radius:var(--rm);padding:14px;grid-column:span 2;"><div style="font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);">Top services wanted</div><div style="font-size:.9rem;font-weight:700;margin-top:4px;">${top}</div></div>`;
+
+  if (!_toolLeads.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">🧮</div><div class="empty-title">No calculator leads yet</div><div class="empty-sub">People who use the free Rate &amp; Budget Calculator appear here.</div></div>`;
+    return;
+  }
+
+  const rolePill = r => r.role === 'freelancer'
+    ? '<span style="background:var(--vl);color:var(--violet);padding:3px 10px;border-radius:99px;font-size:.68rem;font-weight:700;">Freelancer</span>'
+    : '<span style="background:var(--okl);color:var(--ok);padding:3px 10px;border-radius:99px;font-size:.68rem;font-weight:700;">Client</span>';
+
+  el.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr>
+    <th>Name</th><th>Email</th><th>Role</th><th>Service</th><th>Hours</th><th>Exp.</th><th>Rate/Budget</th><th>Captured</th><th>Status</th>
+  </tr></thead><tbody>${_toolLeads.map(l => {
+    const st = l.unsubscribed
+      ? '<span style="background:var(--errl);color:var(--err);padding:3px 10px;border-radius:99px;font-size:.68rem;font-weight:700;">Unsubscribed</span>'
+      : '<span style="background:var(--okl);color:var(--ok);padding:3px 10px;border-radius:99px;font-size:.68rem;font-weight:700;">Active</span>';
+    return `<tr>
+      <td class="tdt">${esc(l.firstName || '—')}</td>
+      <td class="tdt"><a href="mailto:${esc(l.email)}" style="color:var(--violet);">${esc(l.email)}</a></td>
+      <td>${rolePill(l)}</td>
+      <td>${esc(l.service)}</td>
+      <td style="font-size:.78rem;">${l.hours != null ? l.hours : '—'}</td>
+      <td style="font-size:.78rem;">${esc(l.experience || '—')}</td>
+      <td style="font-size:.78rem;font-weight:600;">${toolRate(l)}</td>
+      <td style="font-size:.7rem;color:var(--muted);">${new Date(l.createdAt).toLocaleString()}</td>
+      <td>${st}</td>
+    </tr>`;
+  }).join('')}</tbody></table></div>
+  <div style="margin-top:8px;font-size:.72rem;color:var(--muted);text-align:right;">Showing ${_toolLeads.length} most recent</div>`;
+}
+
+function exportToolLeads() {
+  if (!_toolLeads.length) { notify('No leads to export', 'err'); return; }
+  const head = ['Name','Email','Role','Service','Hours','Experience','Rate/Budget','Captured','Status'];
+  const rows = _toolLeads.map(l => [
+    l.firstName || '', l.email, l.role, l.service, l.hours != null ? l.hours : '',
+    l.experience || '', toolRate(l), new Date(l.createdAt).toISOString(), l.unsubscribed ? 'Unsubscribed' : 'Active'
+  ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+  const csv = head.join(',') + '\n' + rows.join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'calculator-leads.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
 }
 
 // ─── START ───
