@@ -49,6 +49,29 @@
       <button class="btn btn-secondary btn-sm" onclick="location.href='/?login=1'">Sign in</button>
       <button class="btn btn-primary btn-sm" onclick="location.href='/?signup=1'">Join free</button>
     </div>
+<script>
+      // Logged-in nav sync (same as index.html) - instant from localStorage, no main.js needed
+      (function () {
+        try {
+          var t = localStorage.getItem('se_token');
+          var u = t && (function () { try { return JSON.parse(localStorage.getItem('se_user') || 'null'); } catch (e) { return null; } })();
+          var el = document.getElementById('siteNavActions');
+          if (u && u.firstName && el) {
+            el.innerHTML = '<a href="/dashboard" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
+              '<button class="btn btn-primary btn-sm" onclick="window.doLogout && window.doLogout()">Sign out</button>';
+          }
+        } catch (e) {}
+      })();
+      if (!window.doLogout) {
+        window.doLogout = function () {
+          var rt = null;
+          try { rt = localStorage.getItem('se_refresh'); } catch (e) {}
+          try { fetch('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken: rt }) }); } catch (e) {}
+          try { localStorage.removeItem('se_token'); localStorage.removeItem('se_refresh'); localStorage.removeItem('se_user'); } catch (e) {}
+          window.location.href = '/';
+        };
+      }
+    </script>
     <div class="nav-hamburger" aria-label="Menu">
       <span></span><span></span><span></span>
     </div>
