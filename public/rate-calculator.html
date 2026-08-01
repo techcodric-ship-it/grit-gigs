@@ -42,7 +42,7 @@
   .privacy-note{text-align:center;font-size:0.74rem;color:#aaa;margin-top:8px;}
   .calc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:26px;}
   .calc-stat{background:#fff;border:1px solid #e8e6f2;border-radius:14px;padding:16px 12px;text-align:center;box-shadow:0 4px 16px rgba(26,26,46,.04);}
-  .calc-stat .cs-icon{font-size:1.3rem;margin-bottom:6px;}
+  .calc-stat .cs-icon{font-size:1.3rem;margin-bottom:6px;display:flex;align-items:center;justify-content:center;line-height:1;}
   .calc-stat .cs-label{font-size:0.78rem;font-weight:700;color:var(--ink);}
   .calc-stat .cs-sub{font-size:0.7rem;color:var(--text-muted);margin-top:2px;}
   @media(max-width:600px){.calc-stats{grid-template-columns:1fr 1fr;}}
@@ -185,10 +185,10 @@
     </div>
 
     <div class="calc-stats">
-      <div class="calc-stat"><div class="cs-icon">🇮🇳</div><div class="cs-label">India-based rates</div><div class="cs-sub">not US rates</div></div>
-      <div class="calc-stat"><div class="cs-icon">⚡</div><div class="cs-label">Instant preview</div><div class="cs-sub">in under 10 seconds</div></div>
-      <div class="calc-stat"><div class="cs-icon">📧</div><div class="cs-label">Free email report</div><div class="cs-sub">full breakdown + tips</div></div>
-      <div class="calc-stat"><div class="cs-icon">🆓</div><div class="cs-label">Free forever</div><div class="cs-sub">no credit card</div></div>
+      <div class="calc-stat"><div class="cs-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#6C3DE0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="26" height="26"><path d="M20 10c0 4.99-5.54 10.19-7.4 11.7a1 1 0 0 1-1.2 0C9.54 20.19 4 14.99 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg></div><div class="cs-label">India-based rates</div><div class="cs-sub">not US rates</div></div>
+      <div class="calc-stat"><div class="cs-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#6C3DE0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="26" height="26"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><div class="cs-label">Instant preview</div><div class="cs-sub">in under 10 seconds</div></div>
+      <div class="calc-stat"><div class="cs-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#6C3DE0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="26" height="26"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div><div class="cs-label">Free email report</div><div class="cs-sub">full breakdown + tips</div></div>
+      <div class="calc-stat"><div class="cs-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#6C3DE0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="26" height="26"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg></div><div class="cs-label">Free forever</div><div class="cs-sub">no credit card</div></div>
     </div>
   </div>
 </div>
@@ -333,7 +333,7 @@
 
     document.getElementById("resultTitle").textContent = title;
     document.getElementById("resultSub").textContent = sub;
-    document.getElementById("emailCheck").textContent = "✓ Full report emailed to you";
+    document.getElementById("emailCheck").innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" style="vertical-align:-2px;margin-right:5px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg> Full report emailed to you';
     document.getElementById("result").classList.add("show");
     document.getElementById("result").scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
