@@ -421,7 +421,7 @@ async function loadLiveServices() {
         <div class="service-card-body">
           <div class="service-card-seller">
             ${sellerAv}
-            <span class="service-card-seller-name">${s.seller?.firstName || '?'} ${s.seller?.lastName || ''}</span>
+            <span class="service-card-seller-name">${s.seller?.firstName || '?'} ${s.seller?.lastName || ''}${kycBadge(s.seller?.kycVerified)}${planBadge(s.seller?.planBadge)}</span>
             <span class="badge ${levelClass}" style="font-size:0.68rem;padding:2px 7px;">${levelBadge}</span>
           </div>
           <div class="service-card-title">${s.title}</div>
