@@ -660,9 +660,11 @@ async function openProjectDetail(projectId) {
         </div>
         ${isOwn
           ? '<div style="background:rgba(108,63,232,.08);border-radius:12px;padding:14px 16px;font-size:.84rem;color:var(--violet);text-align:center;">This is your project — view proposals in your <a href="/dashboard#my-projects" style="font-weight:700;color:var(--violet);text-decoration:underline;">Dashboard</a></div>'
-          : alreadyBid
-            ? `<div style="background:rgba(26,122,94,.08);border:1px solid rgba(26,122,94,.2);border-radius:12px;padding:14px 16px;font-size:.84rem;color:#1A7A5E;text-align:center;">✓ You have submitted a proposal of <strong>₹${alreadyBid.amount?.toLocaleString('en-IN')}</strong> for this project</div>`
-            : `<button class="btn-submit-prop" style="border-radius:12px;background:linear-gradient(135deg,#6C3FE8,#2980b9);box-shadow:0 3px 14px rgba(108,63,232,.35);font-size:.9rem;" onclick="this.closest('.proposal-mo').remove();document.body.style.overflow='';openProposalModal('${p.id}','${(p.title||'').replace(/'/g,"\\'").replace(/"/g,"&quot;")}',${p.budgetMin||0},${p.budgetMax||0})">📨 Submit Proposal</button>`
+          : p.status !== 'OPEN'
+            ? `<div style="background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.2);border-radius:12px;padding:14px 16px;font-size:.84rem;color:#16A34A;text-align:center;">${p.status === 'COMPLETED' ? '✅ This project has been completed' : p.status === 'IN_PROGRESS' || p.status === 'REVISION_REQUESTED' ? '⏳ This project is already in progress' : p.status === 'DELIVERED' ? '⏳ Work delivered — pending approval' : 'This project is no longer accepting proposals'}</div>`
+            : alreadyBid
+              ? `<div style="background:rgba(26,122,94,.08);border:1px solid rgba(26,122,94,.2);border-radius:12px;padding:14px 16px;font-size:.84rem;color:#1A7A5E;text-align:center;">✓ You have submitted a proposal of <strong>₹${alreadyBid.amount?.toLocaleString('en-IN')}</strong> for this project</div>`
+              : `<button class="btn-submit-prop" style="border-radius:12px;background:linear-gradient(135deg,#6C3FE8,#2980b9);box-shadow:0 3px 14px rgba(108,63,232,.35);font-size:.9rem;" onclick="this.closest('.proposal-mo').remove();document.body.style.overflow='';openProposalModal('${p.id}','${(p.title||'').replace(/'/g,"\\'").replace(/"/g,"&quot;")}',${p.budgetMin||0},${p.budgetMax||0})">📨 Submit Proposal</button>`
         }
       </div>
     </div>`;
@@ -945,9 +947,11 @@ renderProjects = function() {
           <button class="btn-share" onclick="shareItem('projects','${p.id}','${(p.title||'').replace(/'/g,"\\'").replace(/"/g,"&quot;")}')" title="Share">📤</button>
           ${isOwn
             ? '<span class="btn-propose applied">Your Project</span>'
-            : alreadyBid
-              ? '<span class="btn-propose applied">✓ Applied</span>'
-              : `<button class="btn-propose primary" onclick="openProposalModal('${p.id}','${(p.title||'').replace(/'/g,"\\'").replace(/"/g,"&quot;")}',${p.budgetMin||0},${p.budgetMax||0})">Submit Proposal</button>`
+            : p.status !== 'OPEN'
+              ? `<span class="btn-propose applied" style="color:#16A34A;border-color:rgba(22,163,74,.35);">${p.status === 'COMPLETED' ? '✅ Completed' : p.status === 'IN_PROGRESS' || p.status === 'REVISION_REQUESTED' ? 'In Progress' : p.status === 'DELIVERED' ? 'Awaiting Approval' : esc(p.status)}</span>`
+              : alreadyBid
+                ? '<span class="btn-propose applied">✓ Applied</span>'
+                : `<button class="btn-propose primary" onclick="openProposalModal('${p.id}','${(p.title||'').replace(/'/g,"\\'").replace(/"/g,"&quot;")}',${p.budgetMin||0},${p.budgetMax||0})">Submit Proposal</button>`
           }
         </div>
       </div>

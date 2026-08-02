@@ -3,7 +3,7 @@ import { db, userSubscriptionsTable } from '../db';
 import { projectsTable, projectBidsTable, projectDeliveriesTable } from '../db/schema/projects';
 import { notificationsTable, usersTable } from '../db/schema/users';
 import { freelanceWalletsTable, transactionsTable } from '../db/schema/wallet';
-import { eq, desc, and, not, or, count, sql, inArray } from 'drizzle-orm';
+import { eq, desc, and, not, or, count, sql, inArray, isNull } from 'drizzle-orm';
 import { reviewsTable } from '../db/schema/orders';
 import { clientReviewsTable } from '../db/schema/client-reviews';
 import { authenticate, optionalAuth } from '../middlewares/authenticate';
@@ -117,14 +117,17 @@ router.get('/projects', optionalAuth, async (req: Request, res: Response) => {
   const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 50);
   const offset = (safePage - 1) * safeLimit;
 
-  const [totalResult] = await db.select({ value: count() }).from(projectsTable).where(eq(projectsTable.status, 'OPEN'));
+  const [totalResult] = await db
+    .select({ value: count() })
+    .from(projectsTable)
+    .where(and(eq(projectsTable.status, 'OPEN'), isNull(projectsTable.acceptedBidId)));
   const total = Number(totalResult?.value ?? 0);
   const totalPages = Math.ceil(total / safeLimit);
 
   const projects = await db
     .select()
     .from(projectsTable)
-    .where(eq(projectsTable.status, 'OPEN'))
+    .where(and(eq(projectsTable.status, 'OPEN'), isNull(projectsTable.acceptedBidId)))
     .orderBy(desc(projectsTable.createdAt))
     .limit(safeLimit)
     .offset(offset);

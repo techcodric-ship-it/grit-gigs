@@ -6259,9 +6259,11 @@ async function loadBrowseProjects(q = '') {
       <div class="project-card-foot">
         ${isOwn
           ? `<span class="pill pa" style="font-size:.6rem;">Your project</span>`
-          : alreadyBid
-            ? `<span class="pill pp" style="font-size:.6rem;">✓ Proposal sent</span>`
-            : `<button class="btn bp btn-xs" onclick="event.stopPropagation();openBidModal('${esc(p.id)}')">Submit Proposal</button>`
+          : p.status !== 'OPEN'
+            ? `<span class="pill pd" style="font-size:.6rem;">${p.status === 'COMPLETED' ? '✅ Completed' : p.status === 'IN_PROGRESS' || p.status === 'REVISION_REQUESTED' ? 'In Progress' : p.status === 'DELIVERED' ? 'Awaiting Approval' : esc(p.status)}</span>`
+            : alreadyBid
+              ? `<span class="pill pp" style="font-size:.6rem;">✓ Proposal sent</span>`
+              : `<button class="btn bp btn-xs" onclick="event.stopPropagation();openBidModal('${esc(p.id)}')">Submit Proposal</button>`
         }
         <button class="btn bs btn-xs" style="font-size:.62rem;padding:3px 8px;" onclick="event.stopPropagation();shareItem('projects','${esc(p.id)}','${p.title.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">📤 Share</button>
       </div>
@@ -6421,6 +6423,11 @@ async function openProjectDet(projectId, viewAs, myBidId = null) {
           </label>
         </div>
         <button class="btn bp btn-lg" style="width:100%;justify-content:center;" onclick="submitBid('${esc(p.id)}',this.closest('.mo'))">📨 Submit Proposal</button>
+      </div>`;
+    } else if (p.status !== 'OPEN') {
+      bidForm = `<div style="background:var(--bg);border-radius:var(--rm);padding:14px;text-align:center;border:1px solid var(--bd);">
+        <div style="font-size:.85rem;font-weight:700;color:var(--ink);">${p.status === 'COMPLETED' ? '✅ Project completed' : p.status === 'IN_PROGRESS' || p.status === 'REVISION_REQUESTED' ? '⏳ Project already in progress' : p.status === 'DELIVERED' ? '⏳ Work delivered — pending approval' : 'Project ' + esc(p.status)}</div>
+        <div style="font-size:.74rem;color:var(--muted);margin-top:4px;">This project is no longer accepting proposals.</div>
       </div>`;
     }
   }
