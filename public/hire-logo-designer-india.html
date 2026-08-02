@@ -536,11 +536,18 @@
   window.loadLogoServices = async function(query) {
     grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">Loading logo designers…</div>';
     var q = (query || '').trim();
-    var data = null, fallback = null;
-    try { data = await api('/services?q=' + encodeURIComponent(q || 'logo') + '&limit=6&sort=rating'); } catch (e) {}
-    if (data && data.success && data.data.services && data.data.services.length) { render(data.data.services, q); return; }
-    try { fallback = await api('/services?category=Design%20%26%20Creative&limit=6&sort=rating'); } catch (e) {}
-    if (fallback && fallback.success && fallback.data.services && fallback.data.services.length) { render(fallback.data.services, q); return; }
+    var seen = {};
+    var all = [];
+    var byId = function(s) { if (!seen[s.id]) { seen[s.id] = true; all.push(s); } };
+    try {
+      var data = await api('/services?q=' + encodeURIComponent(q || 'logo') + '&limit=6&sort=rating');
+      if (data && data.success && data.data.services) data.data.services.forEach(byId);
+    } catch (e) {}
+    try {
+      var fallback = await api('/services?category=Design%20%26%20Creative&limit=6&sort=rating');
+      if (fallback && fallback.success && fallback.data.services) fallback.data.services.forEach(byId);
+    } catch (e) {}
+    if (all.length) { render(all.slice(0, 6), q); return; }
     render(null, q);
   };
 
