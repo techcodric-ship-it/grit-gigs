@@ -29,7 +29,7 @@ import fs from "fs";
 import { uploadToSupabase, ensureBucketExists, UPLOADS_BUCKET } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
 import { getActivePlanForUser } from "../lib/subscriptions";
-import { sendAdminEmail, layout } from "../lib/email";
+import { sendAdminEmail, sendNotificationEmail, layout } from "../lib/email";
 import { adminAuth } from "../middlewares/adminAuth";
 import { waitlistTable } from "./equity";
 import { creditReferrerReward, reverseReferrerReward } from "../lib/referrals";
@@ -377,7 +377,20 @@ router.put("/admin/kyc/:userId/review", async (req: Request, res: Response) => {
   const [doc] = await db.update(kycDocumentsTable).set({ status, reviewNotes: reviewNotes || null, reviewedAt: new Date() }).where(eq(kycDocumentsTable.userId, req.params.userId as string)).returning();
   if (status === "APPROVED") {
     await db.update(usersTable).set({ kycVerified: true }).where(eq(usersTable.id, req.params.userId as string));
+    const [kycUser] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, req.params.userId as string)).limit(1);
+    if (kycUser?.email) {
+      sendNotificationEmail(kycUser.email, "KYC Approved — You're verified! ✅", "Your identity has been verified. A verified badge is now visible on your profile.", "/dashboard.html?tab=my-profile").catch(() => {});
+    }
   }
+  await db.insert(notificationsTable).values({
+    userId: req.params.userId as string, type: "KYC",
+    title: status === "APPROVED" ? "KYC Approved — You're verified!" : "KYC Review: Action required",
+    message: status === "APPROVED"
+      ? "Your identity has been verified. A verified badge is now visible on your profile."
+      : `Your KYC was not approved. ${reviewNotes ? "Note: " + reviewNotes : "Please re-submit with a clearer document."}`,
+    linkUrl: "/dashboard.html?tab=my-profile",
+  });
+  try { req.app?.get("io")?.emit("profile:updated", { userId: req.params.userId as string }); } catch {}
   res.json({ success: true, data: doc });
 });
 
