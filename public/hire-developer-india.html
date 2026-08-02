@@ -593,20 +593,5 @@ function sendForgotPw() {
     .finally(function(){ btn.disabled = false; btn.textContent = 'Send reset link'; });
 }
 </script>
-<script>
-(function () {
-  try {
-    var params = new URLSearchParams(window.location.search);
-    var ref = params.get('ref');
-    if (ref && /^[A-Z0-9]{6,20}$/i.test(ref)) {
-      document.cookie = 'gg_ref=' + encodeURIComponent(ref) + '; path=/; max-age=' + (60 * 60 * 24 * 30) + '; SameSite=Lax';
-    }
-    if (ref) {
-      var clean = window.location.origin + window.location.pathname;
-      window.history.replaceState({}, document.title, clean);
-    }
-  } catch (e) {}
-})();
-</script>
 </body>
 </html>
