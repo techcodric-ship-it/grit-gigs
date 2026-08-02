@@ -111,9 +111,9 @@ router.post("/milestones/:id/approve", authenticate, async (req: Request, res: R
     return;
   }
 
-  // Calculate commission based on freelancer's plan
+  // Calculate commission based on freelancer's plan (0% for referred clients' first project)
   const plan = await getActivePlanForUser(bid.userId);
-  const commissionPct = plan.serviceFeePercent;
+  const commissionPct = project.zeroCommission ? 0 : plan.serviceFeePercent;
   const milestoneAmount = Number(ms.amount) || 0;
   const commission = Math.round(milestoneAmount * commissionPct / 100);
   const netAmount = milestoneAmount - commission;
