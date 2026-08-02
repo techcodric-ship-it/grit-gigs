@@ -290,7 +290,7 @@ a { text-decoration: none; color: inherit; }
 .how-card-desc { font-size: 0.9rem; line-height: 1.65; color: var(--text-secondary); }
 
 /* ── SYSTEMS ── */
-.systems-tabs { display: flex; gap: 8px; background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 6px; margin-bottom: 40px; max-width: 500px; }
+.systems-tabs { display: flex; flex-wrap: wrap; gap: 8px; background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 6px; margin-bottom: 40px; max-width: 500px; }
 .sys-tab {
   flex: 1; padding: 10px 20px; border-radius: var(--radius-md);
   font-family: var(--font-body); font-size: 0.9rem; font-weight: 500;
@@ -601,6 +601,7 @@ a { text-decoration: none; color: inherit; }
   .services-grid { grid-template-columns: 1fr; }
   .form-row { grid-template-columns: 1fr; }
   .hero-stats { gap: 24px; }
+  .sys-tab { padding: 9px 6px; font-size: 0.78rem; }
 }
 
 /* ── NOTIFICATION TOAST ── */
