@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, count, and, sql } from "drizzle-orm";
-import { db, notificationsTable, transactionsTable, userSubscriptionsTable, servicesTable, projectsTable, projectBidsTable } from "../db";
+import { db, notificationsTable, transactionsTable, userSubscriptionsTable, projectBidsTable } from "../db";
 import { authenticate } from "../middlewares/authenticate";
 import { PLANS, getPlan, getOrCreateSubscription, type PlanConfig } from "../lib/subscriptions";
 
@@ -28,14 +28,14 @@ function planToClientJson(plan: PlanConfig) {
       ? "Unlimited free proposal credits/month"
       : `${plan.monthlyProposalCredits} free proposal credits/month`,
     plan.maxActiveGigs === -1
-      ? "Unlimited active gig listings"
-      : `${plan.maxActiveGigs} active gig listings`,
+      ? "Unlimited new gig listings per month"
+      : `${plan.maxActiveGigs} new gig listings per month`,
     plan.portfolioSlots === -1
       ? "Unlimited portfolio items"
       : `${plan.portfolioSlots} portfolio items`,
     plan.maxActiveProjects === -1
-      ? "Unlimited active project listings"
-      : `${plan.maxActiveProjects} active project listings`,
+      ? "Unlimited new project listings per month"
+      : `${plan.maxActiveProjects} new project listings per month`,
     `${plan.serviceFeePercent}% platform fee on completed work`,
   ];
   if (plan.badge) features.push(`${plan.badge} verified badge on your profile`);
@@ -70,19 +70,10 @@ router.get("/subscriptions/my-plan", authenticate, async (req: Request, res: Res
     ? Math.max(0, Math.ceil((sub.expiresAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
     : null;
 
-  const userId = req.user!.id;
-  const [gigCount] = await db
-    .select({ value: count() })
-    .from(servicesTable)
-    .where(and(eq(servicesTable.sellerId, userId), eq(servicesTable.status, "ACTIVE")));
-  const [projectCount] = await db
-    .select({ value: count() })
-    .from(projectsTable)
-    .where(and(eq(projectsTable.userId, userId), eq(projectsTable.status, "OPEN")));
   const [bidCount] = await db
     .select({ value: count() })
     .from(projectBidsTable)
-    .where(and(eq(projectBidsTable.userId, userId), eq(projectBidsTable.status, "PENDING")));
+    .where(and(eq(projectBidsTable.userId, req.user!.id), eq(projectBidsTable.status, "PENDING")));
 
   res.json({
     success: true,
@@ -94,10 +85,10 @@ router.get("/subscriptions/my-plan", authenticate, async (req: Request, res: Res
       planExpiresAt: sub.expiresAt,
       proposalCreditsRemaining: sub.proposalCreditsRemaining,
       usage: {
-        activeGigs: gigCount.value,
-        maxActiveGigs: plan.maxActiveGigs,
-        openProjects: projectCount.value,
-        maxActiveProjects: plan.maxActiveProjects,
+        gigsCreatedThisCycle: sub.gigsCreatedThisCycle,
+        maxGigsThisCycle: plan.maxActiveGigs,
+        projectsCreatedThisCycle: sub.projectsCreatedThisCycle,
+        maxProjectsThisCycle: plan.maxActiveProjects,
         pendingBids: bidCount.value,
       },
     },
@@ -252,7 +243,7 @@ router.post("/subscriptions/verify-payment", authenticate, async (req: Request, 
     userId,
     type: "SUBSCRIPTION",
     title: `${plan.name} plan activated!`,
-    message: `You now get ${plan.monthlyProposalCredits === -1 ? "unlimited" : plan.monthlyProposalCredits} free proposals/month, ${plan.serviceFeePercent}% platform fee, and ${plan.maxActiveGigs === -1 ? "unlimited" : plan.maxActiveGigs} active gig listings.`,
+    message: `You now get ${plan.monthlyProposalCredits === -1 ? "unlimited" : plan.monthlyProposalCredits} free proposals/month, ${plan.serviceFeePercent}% platform fee, and ${plan.maxActiveGigs === -1 ? "unlimited" : plan.maxActiveGigs} new gig listings/month.`,
     linkUrl: "/dashboard.html",
   });
 

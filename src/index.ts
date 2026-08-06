@@ -646,6 +646,10 @@ app.set("io", io);
       await col(`ALTER TABLE freelance_wallets ADD COLUMN IF NOT EXISTS bonus_balance NUMERIC(12,2) DEFAULT 0 NOT NULL`);
       await col(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS zero_commission BOOLEAN DEFAULT FALSE NOT NULL`);
 
+      // ── Monthly creation quota columns (gigs/projects created per 30-day cycle) ──
+      await col(`ALTER TABLE user_subscriptions ADD COLUMN IF NOT EXISTS gigs_created_this_cycle INTEGER DEFAULT 0 NOT NULL`);
+      await col(`ALTER TABLE user_subscriptions ADD COLUMN IF NOT EXISTS projects_created_this_cycle INTEGER DEFAULT 0 NOT NULL`);
+
       // ── Table column fixes (Drizzle schema vs raw migration mismatches) ───
       await col(`ALTER TABLE freelance_wallets ADD COLUMN IF NOT EXISTS total_spent NUMERIC(12,2) DEFAULT 0 NOT NULL`);
       await col(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'INR' NOT NULL`);

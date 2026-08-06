@@ -7,10 +7,11 @@ import {
   usersTable,
   reviewsTable,
   notificationsTable,
+  userSubscriptionsTable,
 } from "../db";
 import { eq, ilike, or, and, desc, ne, sql, asc, count, inArray } from "drizzle-orm";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
-import { getActivePlanForUser } from "../lib/subscriptions";
+import { getActivePlanForUser, getOrCreateSubscription, consumeGigCreation } from "../lib/subscriptions";
 import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
 import { uploadToSupabase } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
@@ -222,21 +223,16 @@ router.post("/services", authenticate, upload.array("images", 5), async (req, re
     parsedTags = tags ? [tags] : [];
   }
 
-  // ── Plan-based active gig listing cap ────────────────────────────────────
+  // ── Plan-based monthly gig creation quota ───────────────────────────────
   const plan = await getActivePlanForUser(req.user!.id);
-  if (plan.maxActiveGigs !== -1) {
-    const [{ value: activeCount }] = await db
-      .select({ value: count() })
-      .from(servicesTable)
-      .where(and(eq(servicesTable.sellerId, req.user!.id), eq(servicesTable.status, "ACTIVE")));
-    if (activeCount >= plan.maxActiveGigs) {
-      res.status(403).json({
-        success: false,
-        message: `Your ${plan.name} plan allows up to ${plan.maxActiveGigs} active gig listings. Pause an existing gig or upgrade your plan to list more.`,
-        _planLimitExceeded: true,
-      });
-      return;
-    }
+  const gigAllowed = await consumeGigCreation(req.user!.id, plan.maxActiveGigs);
+  if (!gigAllowed) {
+    res.status(403).json({
+      success: false,
+      message: `Your ${plan.name} plan allows ${plan.maxActiveGigs} new gig${plan.maxActiveGigs === 1 ? '' : 's'} per month and this month's quota is used up. It resets every 30 days, or upgrade your plan to get more.`,
+      _planLimitExceeded: true,
+    });
+    return;
   }
 
   const files = (req.files as Express.Multer.File[]) ?? [];
@@ -250,26 +246,41 @@ router.post("/services", authenticate, upload.array("images", 5), async (req, re
     }
   }
 
-  const [service] = await db
-    .insert(servicesTable)
-    .values({ sellerId: req.user!.id, title: String(title).trim(), category, subcategory: subcategory ?? null, description: String(description).trim(), images: imageUrls, tags: parsedTags })
-    .returning();
+  try {
+    const [service] = await db
+      .insert(servicesTable)
+      .values({ sellerId: req.user!.id, title: String(title).trim(), category, subcategory: subcategory ?? null, description: String(description).trim(), images: imageUrls, tags: parsedTags })
+      .returning();
 
-  await db.insert(servicePackagesTable).values(
-    parsedPackages.map((p) => ({
-      serviceId: service.id,
-      packageType: p.packageType ?? "basic",
-      priceInr: Number(p.priceInr),
-      description: p.description,
-      deliveryDays: Number(p.deliveryDays),
-      revisions: Number(p.revisions ?? 2),
-      features: Array.isArray(p.features) ? p.features : [],
-    })),
-  );
+    await db.insert(servicePackagesTable).values(
+      parsedPackages.map((p) => ({
+        serviceId: service.id,
+        packageType: p.packageType ?? "basic",
+        priceInr: Number(p.priceInr),
+        description: p.description,
+        deliveryDays: Number(p.deliveryDays),
+        revisions: Number(p.revisions ?? 2),
+        features: Array.isArray(p.features) ? p.features : [],
+      })),
+    );
 
-  const pkgs = await db.select().from(servicePackagesTable).where(eq(servicePackagesTable.serviceId, service.id));
-  notifyAllUsersNewListing("service", service.title, req.user!.firstName, "/freelance", req.user!.email);
-  res.status(201).json({ success: true, message: "Service created!", data: { service: { ...service, packages: pkgs } } });
+    const pkgs = await db.select().from(servicePackagesTable).where(eq(servicePackagesTable.serviceId, service.id));
+    notifyAllUsersNewListing("service", service.title, req.user!.firstName, "/freelance", req.user!.email);
+    res.status(201).json({ success: true, message: "Service created!", data: { service: { ...service, packages: pkgs } } });
+  } catch (err) {
+    // Give the gig-creation slot back if the insert failed, so a failed
+    // request doesn't waste the user's monthly quota.
+    try {
+      const sub = await getOrCreateSubscription(req.user!.id);
+      if (sub.gigsCreatedThisCycle > 0) {
+        await db.execute(
+          sql`UPDATE ${userSubscriptionsTable} SET gigs_created_this_cycle = GREATEST(gigs_created_this_cycle - 1, 0), updated_at = NOW() WHERE ${userSubscriptionsTable}.id = ${sub.id}`
+        );
+      }
+    } catch {}
+    console.error("Error creating service:", err);
+    res.status(500).json({ success: false, message: "Failed to create service. Please try again." });
+  }
 });
 
 router.post("/services/:id/images", authenticate, upload.array("images", 5), async (req, res): Promise<void> => {
@@ -316,19 +327,6 @@ router.put("/services/:id", authenticate, async (req, res): Promise<void> => {
   if (description) updates.description = description;
   if (tags) updates.tags = Array.isArray(tags) ? tags : [tags];
   if (status && service.status !== status) {
-    if (status === "ACTIVE") {
-      const plan = await getActivePlanForUser(req.user!.id);
-      if (plan.maxActiveGigs !== -1) {
-        const [{ value: activeCount }] = await db
-          .select({ value: count() })
-          .from(servicesTable)
-          .where(and(eq(servicesTable.sellerId, req.user!.id), eq(servicesTable.status, "ACTIVE")));
-        if (activeCount >= plan.maxActiveGigs) {
-          res.status(403).json({ success: false, message: `Your ${plan.name} plan allows up to ${plan.maxActiveGigs} active gig listings. Pause another gig first or upgrade your plan.`, _planLimitExceeded: true });
-          return;
-        }
-      }
-    }
     updates.status = status;
   }
 
@@ -359,20 +357,6 @@ router.put("/services/:id/toggle", authenticate, async (req, res): Promise<void>
   if (!service) { res.status(404).json({ success: false, message: "Service not found" }); return; }
   if (service.sellerId !== req.user!.id) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
   const newStatus = service.status === "ACTIVE" ? "PAUSED" : "ACTIVE";
-  // Check maxActiveGigs when reactivating
-  if (newStatus === "ACTIVE") {
-    const plan = await getActivePlanForUser(req.user!.id);
-    if (plan.maxActiveGigs !== -1) {
-      const [{ value: activeCount }] = await db
-        .select({ value: count() })
-        .from(servicesTable)
-        .where(and(eq(servicesTable.sellerId, req.user!.id), eq(servicesTable.status, "ACTIVE")));
-      if (activeCount >= plan.maxActiveGigs) {
-        res.status(403).json({ success: false, message: `Your ${plan.name} plan allows up to ${plan.maxActiveGigs} active gig listings. Pause another gig first or upgrade your plan.`, _planLimitExceeded: true });
-        return;
-      }
-    }
-  }
   await db.update(servicesTable).set({ status: newStatus }).where(eq(servicesTable.id, service.id));
   res.json({ success: true, data: { status: newStatus }, message: `Service ${newStatus === "ACTIVE" ? "activated" : "paused"}` });
 });

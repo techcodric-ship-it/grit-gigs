@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db, userSubscriptionsTable } from "../db";
 import type { UserSubscription } from "../db/schema/plans";
 
@@ -106,7 +106,8 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
  *   1. If a paid plan's expiresAt has passed, the user is silently
  *      downgraded back to "free".
  *   2. If creditsResetAt is more than 30 days old, proposal/featured
- *      credits are topped back up to the current plan's monthly allowance.
+ *      credits are topped back up to the current plan's monthly allowance
+ *      and the gig/project creation counters are reset to 0.
  */
 export async function getOrCreateSubscription(userId: string): Promise<UserSubscription> {
   let [sub] = await db
@@ -150,6 +151,8 @@ export async function getOrCreateSubscription(userId: string): Promise<UserSubsc
     const effectivePlan = getPlan((patch.planId as PlanId) ?? sub.planId);
     patch.proposalCreditsRemaining = effectivePlan.monthlyProposalCredits;
     patch.featuredProposalsRemaining = effectivePlan.featuredProposalsPerMonth;
+    patch.gigsCreatedThisCycle = 0;
+    patch.projectsCreatedThisCycle = 0;
     patch.creditsResetAt = new Date();
     needsUpdate = true;
   }
@@ -169,4 +172,32 @@ export async function getOrCreateSubscription(userId: string): Promise<UserSubsc
 export async function getActivePlanForUser(userId: string): Promise<PlanConfig> {
   const sub = await getOrCreateSubscription(userId);
   return getPlan(sub.planId);
+}
+
+/**
+ * Atomically consumes one gig-creation slot for the current 30-day cycle.
+ * Returns true when the slot is granted (or the plan allows unlimited),
+ * false when the plan's monthly gig quota is exhausted. limit = -1 means
+ * unlimited.
+ */
+export async function consumeGigCreation(userId: string, limit: number): Promise<boolean> {
+  if (limit === -1) return true;
+  const res = await db.execute(
+    sql`UPDATE ${userSubscriptionsTable} SET gigs_created_this_cycle = gigs_created_this_cycle + 1, updated_at = NOW() WHERE ${userSubscriptionsTable.userId} = ${userId} AND gigs_created_this_cycle < ${limit}`
+  );
+  return Number(res.rowCount) > 0;
+}
+
+/**
+ * Atomically consumes one project-creation slot for the current 30-day cycle.
+ * Returns true when the slot is granted (or the plan allows unlimited),
+ * false when the plan's monthly project quota is exhausted. limit = -1 means
+ * unlimited.
+ */
+export async function consumeProjectCreation(userId: string, limit: number): Promise<boolean> {
+  if (limit === -1) return true;
+  const res = await db.execute(
+    sql`UPDATE ${userSubscriptionsTable} SET projects_created_this_cycle = projects_created_this_cycle + 1, updated_at = NOW() WHERE ${userSubscriptionsTable.userId} = ${userId} AND projects_created_this_cycle < ${limit}`
+  );
+  return Number(res.rowCount) > 0;
 }

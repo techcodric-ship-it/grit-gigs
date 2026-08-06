@@ -7,7 +7,7 @@ import { eq, desc, and, not, or, count, sql, inArray, isNull } from 'drizzle-orm
 import { reviewsTable } from '../db/schema/orders';
 import { clientReviewsTable } from '../db/schema/client-reviews';
 import { authenticate, optionalAuth } from '../middlewares/authenticate';
-import { getActivePlanForUser, getOrCreateSubscription, getPlan } from '../lib/subscriptions';
+import { getActivePlanForUser, getOrCreateSubscription, getPlan, consumeProjectCreation } from '../lib/subscriptions';
 import { attachPlanBadge, attachPlanBadges } from '../lib/planBadge';
 import { processProjectReferral } from '../lib/referrals';
 import { uploadToSupabase } from '../lib/storage';
@@ -265,40 +265,50 @@ router.post('/projects', authenticate, async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, message: 'Title, description, and category are required' });
   }
 
-  // Subscription plan: check max active projects
+  // Subscription plan: check monthly project creation quota
   const plan = await getActivePlanForUser(userId);
-  if (plan.maxActiveProjects !== -1) {
-    const [{ value: projectCount }] = await db
-      .select({ value: sql<number>`count(*)` })
-      .from(projectsTable)
-      .where(and(eq(projectsTable.userId, userId), eq(projectsTable.status, 'OPEN')));
-    if (Number(projectCount) >= plan.maxActiveProjects) {
-      return res.status(403).json({
-        success: false,
-        message: `Your ${plan.name} plan allows max ${plan.maxActiveProjects} active project${plan.maxActiveProjects === 1 ? '' : 's'}. Upgrade your plan to post more.`,
-        _planLimitExceeded: true,
-      });
-    }
+  const projectAllowed = await consumeProjectCreation(userId, plan.maxActiveProjects);
+  if (!projectAllowed) {
+    return res.status(403).json({
+      success: false,
+      message: `Your ${plan.name} plan allows ${plan.maxActiveProjects} new project${plan.maxActiveProjects === 1 ? '' : 's'} per month and this month's quota is used up. It resets every 30 days, or upgrade your plan to post more.`,
+      _planLimitExceeded: true,
+    });
   }
 
-  const [project] = await db
-    .insert(projectsTable)
-    .values({
-      userId,
-      title: String(title).trim(),
-      description: String(description).trim(),
-      category,
-      skills: skills || null,
-      deadline: (() => { const _dl = deadline; if (!_dl || typeof _dl !== 'string' || !_dl.trim() || _dl === 'dd-mm-yyyy' || _dl === 'mm/dd/yyyy') return null; const _d1 = new Date(_dl.trim()); if (!isNaN(_d1.getTime())) return _d1; const _m = _dl.trim().match(/^(\d{2})-(\d{2})-(\d{4})$/); if (_m) { const _d2 = new Date(_m[3]+'-'+_m[2]+'-'+_m[1]); if (!isNaN(_d2.getTime())) return _d2; } return null; })(),
-      budgetMin: toPositiveInt(budgetMin),
-      budgetMax: toPositiveInt(budgetMax),
-      imageUrl: typeof imageUrl === 'string' && imageUrl.trim() ? imageUrl.trim() : null,
-    })
-    .returning();
+  try {
+    const [project] = await db
+      .insert(projectsTable)
+      .values({
+        userId,
+        title: String(title).trim(),
+        description: String(description).trim(),
+        category,
+        skills: skills || null,
+        deadline: (() => { const _dl = deadline; if (!_dl || typeof _dl !== 'string' || !_dl.trim() || _dl === 'dd-mm-yyyy' || _dl === 'mm/dd/yyyy') return null; const _d1 = new Date(_dl.trim()); if (!isNaN(_d1.getTime())) return _d1; const _m = _dl.trim().match(/^(\d{2})-(\d{2})-(\d{4})$/); if (_m) { const _d2 = new Date(_m[3]+'-'+_m[2]+'-'+_m[1]); if (!isNaN(_d2.getTime())) return _d2; } return null; })(),
+        budgetMin: toPositiveInt(budgetMin),
+        budgetMax: toPositiveInt(budgetMax),
+        imageUrl: typeof imageUrl === 'string' && imageUrl.trim() ? imageUrl.trim() : null,
+      })
+      .returning();
 
-  notifyAllUsersNewListing("project", project.title, req.user!.firstName, "/projects", req.user!.email);
-  processProjectReferral(userId, project.id);
-  return res.status(201).json({ success: true, data: { project } });
+    notifyAllUsersNewListing("project", project.title, req.user!.firstName, "/projects", req.user!.email);
+    processProjectReferral(userId, project.id);
+    return res.status(201).json({ success: true, data: { project } });
+  } catch (err) {
+    // Give the project-creation slot back if the insert failed, so a failed
+    // request doesn't waste the user's monthly quota.
+    try {
+      const sub = await getOrCreateSubscription(userId);
+      if (sub.projectsCreatedThisCycle > 0) {
+        await db.execute(
+          sql`UPDATE ${userSubscriptionsTable} SET projects_created_this_cycle = GREATEST(projects_created_this_cycle - 1, 0), updated_at = NOW() WHERE ${userSubscriptionsTable}.id = ${sub.id}`
+        );
+      }
+    } catch {}
+    console.error('Error creating project:', err);
+    return res.status(500).json({ success: false, message: 'Failed to create project. Please try again.' });
+  }
 });
 
 // ── POST /projects/:id/bids — submit a bid ───────────────────────────────────

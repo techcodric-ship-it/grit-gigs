@@ -22,9 +22,15 @@ export const userSubscriptionsTable = pgTable("user_subscriptions", {
   expiresAt: timestamp("expires_at"),
   proposalCreditsRemaining: integer("proposal_credits_remaining").default(3).notNull(),
   featuredProposalsRemaining: integer("featured_proposals_remaining").default(0).notNull(),
+  // Monthly creation quota counters. Gigs and projects are a monthly
+  // allowance (per 30-day cycle), not a concurrent active cap — e.g. a Free
+  // user can CREATE up to 3 gigs and 3 projects per cycle. Existing active
+  // items stay; the counters reset to 0 on the monthly refresh.
+  gigsCreatedThisCycle: integer("gigs_created_this_cycle").default(0).notNull(),
+  projectsCreatedThisCycle: integer("projects_created_this_cycle").default(0).notNull(),
   // When the monthly allowance was last topped up — used to auto-refresh
-  // proposalCreditsRemaining/featuredProposalsRemaining every 30 days
-  // without needing a cron job.
+  // proposalCreditsRemaining/featuredProposalsRemaining and reset the
+  // creation counters every 30 days without needing a cron job.
   creditsResetAt: timestamp("credits_reset_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
