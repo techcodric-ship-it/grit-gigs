@@ -135,6 +135,11 @@ router.post("/users/me/wallet/withdraw", authenticate, async (req: Request, res:
     res.status(400).json({ success: false, message: "No wallet found. Please add funds to your wallet first." });
     return;
   }
+  const [kycUser] = await db.select({ kycVerified: usersTable.kycVerified }).from(usersTable).where(eq(usersTable.id, req.user!.id)).limit(1);
+  if (!kycUser?.kycVerified) {
+    res.status(400).json({ success: false, message: "Complete KYC verification before withdrawing. Submit a government ID from your profile." });
+    return;
+  }
   const withdrawableBalance = Number(wallet.balance) - Number(wallet.bonusBalance || 0);
   if (withdrawableBalance < amount) {
     res.status(400).json({ success: false, message: "Insufficient withdrawable balance. Referral bonuses can only be used on the platform." });

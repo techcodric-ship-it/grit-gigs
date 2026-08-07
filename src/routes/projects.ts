@@ -9,7 +9,6 @@ import { clientReviewsTable } from '../db/schema/client-reviews';
 import { authenticate, optionalAuth } from '../middlewares/authenticate';
 import { getActivePlanForUser, getOrCreateSubscription, getPlan, consumeProjectCreation } from '../lib/subscriptions';
 import { attachPlanBadge, attachPlanBadges } from '../lib/planBadge';
-import { processProjectReferral } from '../lib/referrals';
 import { uploadToSupabase } from '../lib/storage';
 import { PROJECT_ROOT } from '../lib/root';
 import { notifyAllUsersNewListing, sendNotificationEmail } from '../lib/email';
@@ -293,7 +292,6 @@ router.post('/projects', authenticate, async (req: Request, res: Response) => {
       .returning();
 
     notifyAllUsersNewListing("project", project.title, req.user!.firstName, "/projects", req.user!.email);
-    processProjectReferral(userId, project.id);
     return res.status(201).json({ success: true, data: { project } });
   } catch (err) {
     // Give the project-creation slot back if the insert failed, so a failed

@@ -7,6 +7,7 @@ import {
 } from "../db";
 import { authenticate } from "../middlewares/authenticate";
 import { getActivePlanForUser } from "../lib/subscriptions";
+import { maybeGrantReferralOnFirstPayment } from "../lib/referrals";
 
 const router: IRouter = Router();
 
@@ -111,12 +112,13 @@ router.post("/milestones/:id/approve", authenticate, async (req: Request, res: R
     return;
   }
 
-  // Calculate commission based on freelancer's plan (0% for referred clients' first project)
+  // Calculate commission based on freelancer's plan (0% for referred clients' first hire)
   const plan = await getActivePlanForUser(bid.userId);
-  const commissionPct = project.zeroCommission ? 0 : plan.serviceFeePercent;
   const milestoneAmount = Number(ms.amount) || 0;
-  const commission = Math.round(milestoneAmount * commissionPct / 100);
-  const netAmount = milestoneAmount - commission;
+
+  let commissionPct = 0;
+  let commission = 0;
+  let netAmount = 0;
 
   // Wallet operations + transaction records in a DB transaction
   try {
@@ -127,6 +129,14 @@ router.post("/milestones/:id/approve", authenticate, async (req: Request, res: R
       if (deductResult.rowCount === 0) {
         throw new Error("Insufficient funds");
       }
+
+      // Grant the ₹500 referral reward + 0% commission only on the referred
+      // user's first real payment (fraud-checked, atomic with this payment).
+      const referralGranted = await maybeGrantReferralOnFirstPayment(tx, project.userId, project.id, ms.id);
+
+      commissionPct = project.zeroCommission || referralGranted ? 0 : plan.serviceFeePercent;
+      commission = Math.round(milestoneAmount * commissionPct / 100);
+      netAmount = milestoneAmount - commission;
 
       const creditResult = await tx.execute(
         sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${netAmount}, total_earned = COALESCE(total_earned, 0) + ${netAmount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${bid.userId}`
