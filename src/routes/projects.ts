@@ -73,7 +73,7 @@ async function getProjectWithBids(projectId: string, currentUserId?: string) {
   if (!project) return null;
 
   const [owner] = await db
-    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified })
+    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified, isActive: usersTable.isActive })
     .from(usersTable)
     .where(eq(usersTable.id, project.userId))
     .limit(1);
@@ -134,7 +134,7 @@ router.get('/projects', optionalAuth, async (req: Request, res: Response) => {
   const result = await Promise.all(
     projects.map(async (p) => {
       const [owner] = await db
-        .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified })
+        .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified, isActive: usersTable.isActive })
         .from(usersTable)
         .where(eq(usersTable.id, p.userId))
         .limit(1);

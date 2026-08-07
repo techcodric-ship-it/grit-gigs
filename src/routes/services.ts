@@ -109,9 +109,9 @@ router.get("/services", optionalAuth, async (req, res): Promise<void> => {
 
   if (serviceIds.length) {
     const [sellers, allPackages] = await Promise.all([
-      sellerIds.length
+          sellerIds.length
         ? db
-            .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified })
+            .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified, isActive: usersTable.isActive })
             .from(usersTable)
             .where(inArray(usersTable.id, sellerIds))
         : Promise.resolve([]),
@@ -163,7 +163,7 @@ router.get("/services/:id", optionalAuth, async (req, res): Promise<void> => {
   }
 
   const [seller] = await db
-    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, bio: usersTable.bio, city: usersTable.city, reputationScore: usersTable.reputationScore, createdAt: usersTable.createdAt, kycVerified: usersTable.kycVerified })
+    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, bio: usersTable.bio, city: usersTable.city, reputationScore: usersTable.reputationScore, createdAt: usersTable.createdAt, kycVerified: usersTable.kycVerified, isActive: usersTable.isActive })
     .from(usersTable)
     .where(eq(usersTable.id, service.sellerId));
 
