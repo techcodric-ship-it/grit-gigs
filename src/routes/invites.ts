@@ -73,7 +73,7 @@ router.get("/invites/mine", authenticate, async (req: Request, res: Response): P
     }
     let fromUser: any = null;
     if (inv.fromUserId) {
-      const [u] = await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto }).from(usersTable).where(eq(usersTable.id, inv.fromUserId)).limit(1);
+      const [u] = await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, kycVerified: usersTable.kycVerified, isActive: usersTable.isActive }).from(usersTable).where(eq(usersTable.id, inv.fromUserId)).limit(1);
       fromUser = u;
     }
     return { ...inv, target, fromUser };

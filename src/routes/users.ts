@@ -392,6 +392,7 @@ router.get("/users/:id", optionalAuth, async (req, res): Promise<void> => {
         reputationScore: usersTable.reputationScore,
         emailVerified: usersTable.emailVerified,
         kycVerified: usersTable.kycVerified,
+        isActive: usersTable.isActive,
         createdAt: usersTable.createdAt,
         email: usersTable.email,
         phone: usersTable.phone,

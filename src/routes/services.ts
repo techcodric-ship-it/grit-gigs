@@ -141,7 +141,7 @@ router.get("/services/mine", authenticate, async (req, res): Promise<void> => {
     .orderBy(desc(servicesTable.createdAt));
 
   const [seller] = await db
-    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified })
+    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified, isActive: usersTable.isActive })
     .from(usersTable)
     .where(eq(usersTable.id, req.user!.id));
   const result = await Promise.all(

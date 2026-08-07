@@ -269,7 +269,7 @@ router.get("/barter/matches", authenticate, async (req, res): Promise<void> => {
   }
 
   const [users, reqs, convs, deliveries] = await Promise.all([
-    db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified }).from(usersTable).where(inArray(usersTable.id, [...userIds])),
+    db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified, isActive: usersTable.isActive }).from(usersTable).where(inArray(usersTable.id, [...userIds])),
     db.select({ id: barterRequestsTable.id, skillOffered: barterRequestsTable.skillOffered, skillNeeded: barterRequestsTable.skillNeeded }).from(barterRequestsTable).where(inArray(barterRequestsTable.id, [...reqIds])),
     db.select({ id: conversationsTable.id, matchId: conversationsTable.matchId }).from(conversationsTable).where(inArray(conversationsTable.matchId, matchIds)),
     db.select().from(barterDeliveriesTable).where(inArray(barterDeliveriesTable.matchId, matchIds)).orderBy(desc(barterDeliveriesTable.createdAt)),

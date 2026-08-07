@@ -98,7 +98,7 @@ router.get("/messages/conversations", authenticate, async (req, res): Promise<vo
   const convIds = conversations.map(c => c.id);
 
   const [users, lastMsgs, unreadCounts] = await Promise.all([
-    db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, kycVerified: usersTable.kycVerified, role: usersTable.role })
+    db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, kycVerified: usersTable.kycVerified, role: usersTable.role, isActive: usersTable.isActive })
       .from(usersTable).where(inArray(usersTable.id, otherIds)),
     (async () => {
       const res = await pool.query(
