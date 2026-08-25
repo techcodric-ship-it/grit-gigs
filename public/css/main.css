@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
 
 :root {
   --ink: #0A0A0F;
@@ -25,7 +25,7 @@
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
-  --font-display: 'DM Sans', sans-serif;
+  --font-display: 'Syne', sans-serif;
   --font-body: 'DM Sans', sans-serif;
 }
 
