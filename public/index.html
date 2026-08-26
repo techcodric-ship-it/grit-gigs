@@ -916,13 +916,50 @@
 </div>
 
 <!-- ═══════════════════════════════════════════════════════ -->
+<!--  WELCOME SPLASH POPUP                                   -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="welcomeSplashModal">
+  <div class="modal" style="max-width:480px;padding:0;overflow:hidden;border-radius:var(--radius-xl);">
+    <div style="background:linear-gradient(135deg,#6C3FE8 0%,#9B6DFF 50%,#C4A1FF 100%);padding:48px 36px 32px;text-align:center;position:relative;">
+      <div style="width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.2);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:36px;box-shadow:0 8px 32px rgba(0,0,0,0.15);">
+        &#127942;
+      </div>
+      <h2 style="color:#fff;font-size:1.6rem;margin:0 0 8px;font-family:var(--font-display);">Welcome to Grit&amp;Gigs!</h2>
+      <p style="color:rgba(255,255,255,0.85);font-size:0.92rem;margin:0;line-height:1.5;">You're one step away from getting noticed<br/>by clients and talent across India.</p>
+    </div>
+    <div style="padding:28px 36px 32px;text-align:center;">
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;gap:12px;text-align:left;padding:10px 14px;background:var(--surface-2);border-radius:10px;">
+          <span style="font-size:20px;flex-shrink:0;">&#9989;</span>
+          <span style="font-size:0.85rem;color:var(--text-secondary);">Get matched with relevant projects</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;text-align:left;padding:10px 14px;background:var(--surface-2);border-radius:10px;">
+          <span style="font-size:20px;flex-shrink:0;">&#128176;</span>
+          <span style="font-size:0.85rem;color:var(--text-secondary);">Start earning or hire top talent</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;text-align:left;padding:10px 14px;background:var(--surface-2);border-radius:10px;">
+          <span style="font-size:20px;flex-shrink:0;">&#128640;</span>
+          <span style="font-size:0.85rem;color:var(--text-secondary);">Complete profiles get 5x more views</span>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:14px;font-size:1rem;font-weight:700;border-radius:12px;" onclick="closeModal('welcomeSplashModal');openModal('onboardingModal');updateObStep();">
+        Complete your profile &#8594;
+      </button>
+      <button onclick="skipFullOnboarding()" style="width:100%;padding:10px;margin-top:6px;background:none;border:none;color:var(--text-muted);font-size:0.82rem;cursor:pointer;font-weight:500;letter-spacing:0.3px;">
+        I'll do this later
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
 <!--  ONBOARDING MODAL                                      -->
 <!-- ═══════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="onboardingModal">
   <div class="modal" style="max-width:520px;max-height:90vh;overflow-y:auto;padding:36px 32px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
       <h2 style="margin:0;">Set up your profile</h2>
-      <button class="modal-close" onclick="skipOnboarding()" style="font-size:0.82rem;color:var(--text-muted);cursor:pointer;background:none;border:none;padding:4px 8px;">Skip for now</button>
+      <button onclick="skipObStep()" style="font-size:0.82rem;color:var(--violet);cursor:pointer;background:none;border:1.5px solid var(--violet);padding:6px 14px;border-radius:99px;font-weight:600;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='var(--violet)';this.style.color='#fff'" onmouseout="this.style.background='none';this.style.color='var(--violet)'">Skip for now</button>
     </div>
     <p class="modal-sub" id="onboardingStepLabel">Step 1 of 4 — Basic Info</p>
 
@@ -977,7 +1014,7 @@
 
     <!-- Step 4: Role -->
     <div id="onboardingStep4" style="display:none;">
-      <p style="font-size:0.92rem;color:var(--text-secondary);margin-bottom:18px;line-height:1.6;">What best describes how you want to use Grit&Gigs?</p>
+      <p style="font-size:0.92rem;color:var(--text-secondary);margin-bottom:18px;line-height:1.6;">What best describes how you want to use Grit&amp;Gigs?</p>
       <div style="display:flex;flex-direction:column;gap:12px;">
         <button type="button" class="ob-role-btn" data-role="freelancer" onclick="selectObRole(this)" style="display:flex;align-items:center;gap:14px;padding:18px 20px;border:2px solid var(--border);border-radius:12px;background:var(--bg);cursor:pointer;text-align:left;transition:all .2s;">
           <span style="font-size:24px;line-height:1;">&#128187;</span>

@@ -906,17 +906,10 @@ var _obRole = '';
 
 function goToDashboard(user) {
   if (user && user.onboardingComplete === false) {
-    showOnboardingModal();
+    openModal('welcomeSplashModal');
   } else {
     window.location.href = 'dashboard.html';
   }
-}
-
-function showOnboardingModal() {
-  _obStep = 1;
-  _obRole = '';
-  openModal('onboardingModal');
-  updateObStep();
 }
 
 function updateObStep() {
@@ -957,14 +950,23 @@ function selectObRole(btn) {
   _obRole = btn.getAttribute('data-role');
 }
 
-function skipOnboarding() {
-  closeModal('onboardingModal');
+function skipObStep() {
+  if (_obStep < 4) {
+    _obStep++;
+    updateObStep();
+  } else {
+    submitOnboarding();
+  }
+}
+
+function skipFullOnboarding() {
+  closeModal('welcomeSplashModal');
   window.location.href = 'dashboard.html';
 }
 
 async function submitOnboarding() {
   var err = document.getElementById('onboardingError');
-  if (!_obRole) {
+  if (_obStep === 4 && !_obRole) {
     if (err) { err.textContent = 'Please select one option to continue.'; err.style.display = 'block'; }
     return;
   }
@@ -994,7 +996,7 @@ async function submitOnboarding() {
 
   var data = await api('/auth/onboarding', {
     method: 'POST',
-    body: JSON.stringify({ tagline, bio, city, skillsOffered, skillsNeeded, portfolioLinks, socialLinks, seekingTo: _obRole })
+    body: JSON.stringify({ tagline, bio, city, skillsOffered, skillsNeeded, portfolioLinks, socialLinks, seekingTo: _obRole || 'both' })
   });
 
   btn.textContent = orig; btn.disabled = false;
