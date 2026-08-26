@@ -314,6 +314,8 @@ router.get("/auth/me", authenticate, async (req, res): Promise<void> => {
       phoneVerified: usersTable.phoneVerified,
       kycVerified: usersTable.kycVerified,
       role: usersTable.role,
+      seekingTo: usersTable.seekingTo,
+      onboardingComplete: usersTable.onboardingComplete,
       createdAt: usersTable.createdAt,
     })
     .from(usersTable)
@@ -930,7 +932,7 @@ router.post("/auth/phone/verify", async (req, res): Promise<void> => {
 
 router.post("/auth/onboarding", authenticate, async (req: any, res): Promise<void> => {
   const { tagline, bio, city, skillsOffered, skillsNeeded, portfolioLinks, socialLinks, seekingTo } = req.body;
-  const userId = req.userId;
+  const userId = req.user?.id || req.userId;
 
   if (!seekingTo || !["freelancer", "client", "both"].includes(seekingTo)) {
     res.status(400).json({ success: false, message: "Please select what you're seeking (freelancer, client, or both)" });
