@@ -574,6 +574,13 @@ function badge(s) {
   const m = { ACTIVE:'bdg-ok',PAUSED:'bdg-g',DELETED:'bdg-err',PENDING:'bdg-g',COMPLETED:'bdg-ok',CANCELLED:'bdg-err',OPEN:'bdg-v',IN_PROGRESS:'bdg-g','APPROVED':'bdg-ok','REJECTED':'bdg-err',PENDING_REVIEW:'bdg-g',RESOLVED:'bdg-ok',DISMISSED:'bdg-ink' };
   return `<span class="bdg ${m[s] || 'bdg-ink'}">${esc(s)}</span>`;
 }
+function seekingBadge(s) {
+  if (!s) return '';
+  const m = { freelancer: { bg: '#EDE9FE', color: '#6C3FE8', label: 'Freelancer' }, client: { bg: '#DCFCE7', color: '#15803D', label: 'Client' }, both: { bg: '#FEF3C7', color: '#B45309', label: 'Both' } };
+  const c = m[s];
+  if (!c) return '';
+  return `<span style="display:inline-flex;align-items:center;gap:3px;background:${c.bg};color:${c.color};font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:99px;white-space:nowrap;">${c.label}</span>`;
+}
 function statusPill(s) {
   if (s === false || s === 'BANNED') return '<span class="pill pbanned">Banned</span>';
   if (s === true || s === 'ACTIVE') return '<span class="pill pd">Active</span>';
@@ -842,7 +849,7 @@ function renderUsers(list) {
   el.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th></th><th>GG ID</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Last Login</th><th>Joined</th><th></th></tr></thead><tbody>${list.map(u => `<tr>
     <td>${u.profilePhoto ? `<img src="${esc(u.profilePhoto)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;"/>` : `<div class="av" style="width:28px;height:28px;font-size:9px;flex-shrink:0;">${((u.firstName||'?')[0]).toUpperCase()}</div>`}</td>
     <td class="tdt" style="font-size:.7rem">${esc(ggId(u.id))}</td>
-    <td class="tdt">${esc(u.firstName+' '+u.lastName)}</td>
+    <td class="tdt">${esc(u.firstName+' '+u.lastName)} ${seekingBadge(u.seekingTo)}</td>
     <td>${esc(u.email)}</td>
     <td>${badge(u.role)}</td>
     <td>${u.isActive===false?'<span class="pill pbanned">Banned</span>':'<span class="pill pd">Active</span>'}</td>
@@ -878,7 +885,7 @@ function renderUserHeader(u) {
       <div class="uhc-content">
         <div class="uhc-av">${u.profilePhoto ? `<img src="${esc(u.profilePhoto)}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;"/>` : (u.firstName||'?')[0].toUpperCase()}</div>
         <div class="uhc-info">
-          <div class="uhc-name">${esc(u.firstName+' '+u.lastName)}</div>
+          <div class="uhc-name">${esc(u.firstName+' '+u.lastName)} ${seekingBadge(u.seekingTo)}</div>
           <div class="uhc-email">${esc(u.email)} · ${esc(ggId(u.id))}</div>
         </div>
         <div class="uhc-badges">
