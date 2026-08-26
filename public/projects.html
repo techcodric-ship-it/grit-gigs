@@ -620,7 +620,7 @@ async function openProjectDetail(projectId) {
     const skills = (p.skills||'').split(',').map(s => s.trim()).filter(Boolean);
     const budgetStr = p.budgetMin || p.budgetMax
       ? '₹' + (p.budgetMin||0).toLocaleString('en-IN') + (p.budgetMax ? ' – ₹' + p.budgetMax.toLocaleString('en-IN') : '+')
-      : 'Budget TBD';
+      : 'Negotiable';
 
     const overlay = document.createElement('div');
     overlay.className = 'proposal-mo open';
@@ -920,7 +920,7 @@ renderProjects = function() {
     const skills = (p.skills||'').split(',').map(s => s.trim()).filter(Boolean);
     const budgetStr = p.budgetMin || p.budgetMax
       ? '₹' + (p.budgetMin||0).toLocaleString('en-IN') + (p.budgetMax ? ' – ₹' + p.budgetMax.toLocaleString('en-IN') : '+')
-      : 'Budget TBD';
+      : 'Negotiable';
 
     return `<div class="proj-card" onclick="openProjectDetail('${p.id}')">
       ${p.imageUrl ? `<div style="margin:-20px -22px 18px;height:170px;overflow:hidden;border-radius:13px 13px 0 0;"><img src="${p.imageUrl}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s;" onmouseenter="this.style.transform='scale(1.04)'" onmouseleave="this.style.transform='scale(1)'"/></div>` : ''}
