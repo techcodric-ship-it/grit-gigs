@@ -915,9 +915,7 @@ function goToDashboard(user) {
 function showOnboardingModal() {
   _obStep = 1;
   _obRole = '';
-  var m = document.getElementById('onboardingModal');
-  if (m) m.style.display = 'flex';
-  document.body.style.overflow = 'hidden';
+  openModal('onboardingModal');
   updateObStep();
 }
 
@@ -960,9 +958,7 @@ function selectObRole(btn) {
 }
 
 function skipOnboarding() {
-  var m = document.getElementById('onboardingModal');
-  if (m) m.style.display = 'none';
-  document.body.style.overflow = '';
+  closeModal('onboardingModal');
   window.location.href = 'dashboard.html';
 }
 
@@ -1006,9 +1002,7 @@ async function submitOnboarding() {
   if (data.success) {
     var user = data.data.user;
     sU(user);
-    var m = document.getElementById('onboardingModal');
-    if (m) m.style.display = 'none';
-    document.body.style.overflow = '';
+    closeModal('onboardingModal');
     showToast('Profile setup complete!', 'success');
     setTimeout(function() { window.location.href = 'dashboard.html'; }, 600);
   } else {
