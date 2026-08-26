@@ -46,6 +46,8 @@ export const usersTable = pgTable("users", {
   lastLoginAt: timestamp("last_login_at"),
   referralCode: varchar("referral_code", { length: 20 }),
   referredBy: uuid("referred_by").references(() => usersTable.id, { onDelete: "set null" }),
+  onboardingComplete: boolean("onboarding_complete").default(false).notNull(),
+  seekingTo: varchar("seeking_to", { length: 50 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

@@ -686,3 +686,15 @@ a { text-decoration: none; color: inherit; }
   flex-direction: column;
   gap: 16px;
 }
+
+/* ── ONBOARDING MODAL ── */
+.ob-role-btn:hover {
+  border-color: var(--violet) !important;
+  background: rgba(108,63,232,0.04) !important;
+}
+.ob-role-btn.selected,
+.ob-role-btn:focus {
+  border-color: var(--violet) !important;
+  background: rgba(108,63,232,0.06) !important;
+  outline: none;
+}

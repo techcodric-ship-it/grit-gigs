@@ -259,7 +259,7 @@ document.getElementById('verifyOtpBtn')?.addEventListener('click', async () => {
     document.getElementById('signupOtpStep').style.display = 'none';
     _signupData = null;
     showToast('Welcome to Grit&Gigs!', 'success');
-    setTimeout(() => window.location.href = 'dashboard.html', 1000);
+    setTimeout(() => goToDashboard(data.data.user), 1000);
   } else {
     showToast(data.message || 'Invalid code. Try again.', 'error');
   }
@@ -300,7 +300,7 @@ document.getElementById('loginForm')?.addEventListener('submit', async e => {
     updateNav(data.data.user);
     closeModal('loginModal');
     showToast(`Welcome back, ${data.data.user.firstName}!`, 'success');
-    setTimeout(() => window.location.href = 'dashboard.html', 1000);
+    setTimeout(() => goToDashboard(data.data.user), 1000);
   } else {
     showToast(data.message || 'Invalid email or password.', 'error');
   }
@@ -858,7 +858,7 @@ function showPhonePrompt(data) {
         localStorage.setItem('se_user', JSON.stringify(user));
         ov.remove(); document.body.style.overflow = '';
         showToast('Welcome, ' + data.data.user.firstName + '!', 'success');
-        setTimeout(function() { window.location.href = 'dashboard.html'; }, 600);
+        setTimeout(function() { goToDashboard(data.data.user); }, 600);
       } else {
         errEl.textContent = d.message || 'Failed to save phone';
         errEl.style.display = 'block';
@@ -883,7 +883,7 @@ window.addEventListener('message', function googleMessageHandler(e) {
       localStorage.setItem('se_refresh', data.data.refreshToken);
       localStorage.setItem('se_user', JSON.stringify(data.data.user));
       showToast('Welcome, ' + data.data.user.firstName + '!', 'success');
-      setTimeout(function() { window.location.href = 'dashboard.html'; }, 600);
+      setTimeout(function() { goToDashboard(data.data.user); }, 600);
     }
   } else {
     showToast(data.message || 'Google sign-in failed', 'error');
@@ -897,4 +897,122 @@ $$('.btn-google').forEach(function(btn) {
     googleSignIn();
   });
 });
+
+// ═══════════════════════════════════════════════════════
+//  ONBOARDING MODAL
+// ═══════════════════════════════════════════════════════
+var _obStep = 1;
+var _obRole = '';
+
+function goToDashboard(user) {
+  if (user && user.onboardingComplete === false) {
+    showOnboardingModal();
+  } else {
+    window.location.href = 'dashboard.html';
+  }
+}
+
+function showOnboardingModal() {
+  _obStep = 1;
+  _obRole = '';
+  var m = document.getElementById('onboardingModal');
+  if (m) m.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  updateObStep();
+}
+
+function updateObStep() {
+  for (var i = 1; i <= 4; i++) {
+    var el = document.getElementById('onboardingStep' + i);
+    if (el) el.style.display = i === _obStep ? '' : 'none';
+  }
+  var labels = ['', 'Basic Info', 'Your Links', 'Your Skills', 'Your Role'];
+  var lbl = document.getElementById('onboardingStepLabel');
+  if (lbl) lbl.textContent = 'Step ' + _obStep + ' of 4 — ' + labels[_obStep];
+  var prog = document.getElementById('onboardingProgress');
+  if (prog) prog.style.width = (_obStep * 25) + '%';
+  var back = document.getElementById('obBackBtn');
+  if (back) back.style.display = _obStep > 1 ? '' : 'none';
+  var next = document.getElementById('obNextBtn');
+  if (next) next.textContent = _obStep === 4 ? 'Complete setup' : 'Continue';
+  var err = document.getElementById('onboardingError');
+  if (err) err.style.display = 'none';
+}
+
+function onboardingNext() {
+  if (_obStep === 4) {
+    submitOnboarding();
+    return;
+  }
+  _obStep++;
+  updateObStep();
+}
+
+function onboardingPrev() {
+  if (_obStep > 1) { _obStep--; updateObStep(); }
+}
+
+function selectObRole(btn) {
+  $$(' .ob-role-btn').forEach(function(b) { b.style.borderColor = 'var(--border)'; b.style.background = 'var(--bg)'; });
+  btn.style.borderColor = 'var(--violet)';
+  btn.style.background = 'rgba(108,63,232,0.06)';
+  _obRole = btn.getAttribute('data-role');
+}
+
+function skipOnboarding() {
+  var m = document.getElementById('onboardingModal');
+  if (m) m.style.display = 'none';
+  document.body.style.overflow = '';
+  window.location.href = 'dashboard.html';
+}
+
+async function submitOnboarding() {
+  var err = document.getElementById('onboardingError');
+  if (!_obRole) {
+    if (err) { err.textContent = 'Please select one option to continue.'; err.style.display = 'block'; }
+    return;
+  }
+
+  var tagline = (document.getElementById('obTagline') || {}).value || '';
+  var bio = (document.getElementById('obBio') || {}).value || '';
+  var city = (document.getElementById('obCity') || {}).value || '';
+  var portfolioUrl = (document.getElementById('obPortfolioUrl') || {}).value || '';
+  var linkedin = (document.getElementById('obLinkedin') || {}).value || '';
+  var otherSocial = (document.getElementById('obOtherSocial') || {}).value || '';
+  var skillsOfferedRaw = (document.getElementById('obSkillsOffered') || {}).value || '';
+  var skillsNeededRaw = (document.getElementById('obSkillsNeeded') || {}).value || '';
+
+  var portfolioLinks = [];
+  if (portfolioUrl) portfolioLinks.push({ label: 'Portfolio', url: portfolioUrl });
+
+  var socialLinks = {};
+  if (linkedin) socialLinks.linkedin = linkedin;
+  if (otherSocial) socialLinks.other = otherSocial;
+
+  var skillsOffered = skillsOfferedRaw.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+  var skillsNeeded = skillsNeededRaw.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+
+  var btn = document.getElementById('obNextBtn');
+  var orig = btn.textContent;
+  btn.textContent = 'Saving...'; btn.disabled = true;
+
+  var data = await api('/auth/onboarding', {
+    method: 'POST',
+    body: JSON.stringify({ tagline, bio, city, skillsOffered, skillsNeeded, portfolioLinks, socialLinks, seekingTo: _obRole })
+  });
+
+  btn.textContent = orig; btn.disabled = false;
+
+  if (data.success) {
+    var user = data.data.user;
+    sU(user);
+    var m = document.getElementById('onboardingModal');
+    if (m) m.style.display = 'none';
+    document.body.style.overflow = '';
+    showToast('Profile setup complete!', 'success');
+    setTimeout(function() { window.location.href = 'dashboard.html'; }, 600);
+  } else {
+    if (err) { err.textContent = data.message || 'Something went wrong. Please try again.'; err.style.display = 'block'; }
+  }
+}
 

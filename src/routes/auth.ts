@@ -169,7 +169,7 @@ router.post("/auth/verify-signup", async (req, res): Promise<void> => {
       user: {
         id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email,
         phone: user.phone, profilePhoto: user.profilePhoto, city: user.city, role: user.role,
-        reputationScore: user.reputationScore, emailVerified: true,
+        reputationScore: user.reputationScore, emailVerified: true, onboardingComplete: user.onboardingComplete,
         ggId: 'G&G-' + user.id.replace(/-/g, '').slice(0, 8).toUpperCase(),
       },
     },
@@ -248,6 +248,7 @@ router.post("/auth/login", loginLimiter, async (req, res): Promise<void> => {
         role: user.role,
         reputationScore: user.reputationScore,
         emailVerified: user.emailVerified,
+        onboardingComplete: user.onboardingComplete,
         ggId: 'G&G-' + user.id.replace(/-/g, '').slice(0, 8).toUpperCase(),
       },
     },
@@ -445,6 +446,7 @@ router.post("/auth/supabase", async (req, res): Promise<void> => {
               city: existing.city,
               role: existing.role,
               reputationScore: existing.reputationScore,
+              onboardingComplete: existing.onboardingComplete,
               ggId: 'G&G-' + existing.id.replace(/-/g, '').slice(0, 8).toUpperCase(),
             },
           },
@@ -524,6 +526,7 @@ router.post("/auth/supabase", async (req, res): Promise<void> => {
         role: user.role,
         reputationScore: user.reputationScore,
         emailVerified: user.emailVerified,
+        onboardingComplete: user.onboardingComplete,
         ggId: 'G&G-' + user.id.replace(/-/g, '').slice(0, 8).toUpperCase(),
       },
     },
@@ -633,6 +636,7 @@ async function findOrCreateGoogleUser(email: string, fullName: string, photo: st
       role: user.role,
       reputationScore: user.reputationScore,
       emailVerified: user.emailVerified,
+      onboardingComplete: user.onboardingComplete,
       ggId: 'G&G-' + user.id.replace(/-/g, '').slice(0, 8).toUpperCase(),
     },
   };
@@ -917,10 +921,52 @@ router.post("/auth/phone/verify", async (req, res): Promise<void> => {
         city: user.city,
         role: user.role,
         phoneVerified: user.phoneVerified,
+        onboardingComplete: user.onboardingComplete,
         ggId: 'G&G-' + user.id.replace(/-/g, '').slice(0, 8).toUpperCase(),
       },
     },
   });
+});
+
+router.post("/auth/onboarding", authenticate, async (req: any, res): Promise<void> => {
+  const { tagline, bio, city, skillsOffered, skillsNeeded, portfolioLinks, socialLinks, seekingTo } = req.body;
+  const userId = req.userId;
+
+  if (!seekingTo || !["freelancer", "client", "both"].includes(seekingTo)) {
+    res.status(400).json({ success: false, message: "Please select what you're seeking (freelancer, client, or both)" });
+    return;
+  }
+
+  const updateData: any = { onboardingComplete: true, seekingTo, updatedAt: new Date() };
+  if (tagline) updateData.tagline = tagline;
+  if (bio) updateData.bio = bio;
+  if (city) updateData.city = city;
+  if (skillsOffered && Array.isArray(skillsOffered)) updateData.skillsOffered = skillsOffered;
+  if (skillsNeeded && Array.isArray(skillsNeeded)) updateData.skillsNeeded = skillsNeeded;
+  if (portfolioLinks && Array.isArray(portfolioLinks)) updateData.portfolioLinks = portfolioLinks;
+  if (socialLinks && typeof socialLinks === "object") updateData.socialLinks = socialLinks;
+
+  const [updated] = await db.update(usersTable).set(updateData).where(eq(usersTable.id, userId)).returning({
+    id: usersTable.id,
+    firstName: usersTable.firstName,
+    lastName: usersTable.lastName,
+    email: usersTable.email,
+    phone: usersTable.phone,
+    profilePhoto: usersTable.profilePhoto,
+    city: usersTable.city,
+    role: usersTable.role,
+    reputationScore: usersTable.reputationScore,
+    onboardingComplete: usersTable.onboardingComplete,
+    seekingTo: usersTable.seekingTo,
+    skillsOffered: usersTable.skillsOffered,
+    skillsNeeded: usersTable.skillsNeeded,
+    bio: usersTable.bio,
+    tagline: usersTable.tagline,
+    portfolioLinks: usersTable.portfolioLinks,
+    socialLinks: usersTable.socialLinks,
+  });
+
+  res.json({ success: true, message: "Profile setup complete!", data: { user: updated } });
 });
 
 export default router;

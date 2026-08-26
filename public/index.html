@@ -915,6 +915,94 @@
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  ONBOARDING MODAL                                      -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="onboardingModal" style="display:none;">
+  <div class="modal" style="max-width:520px;max-height:90vh;overflow-y:auto;padding:36px 32px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <h2 style="margin:0;">Set up your profile</h2>
+      <button class="modal-close" onclick="skipOnboarding()" style="font-size:0.82rem;color:var(--text-muted);cursor:pointer;background:none;border:none;padding:4px 8px;">Skip for now</button>
+    </div>
+    <p class="modal-sub" id="onboardingStepLabel">Step 1 of 4 — Basic Info</p>
+
+    <!-- Progress bar -->
+    <div style="height:4px;background:var(--border);border-radius:4px;margin-bottom:24px;overflow:hidden;">
+      <div id="onboardingProgress" style="height:100%;width:25%;background:var(--violet);border-radius:4px;transition:width .3s ease;"></div>
+    </div>
+
+    <!-- Step 1: Basic Info -->
+    <div id="onboardingStep1">
+      <div class="form-group">
+        <label class="form-label">Tagline (what do you do in one line?)</label>
+        <input class="form-input" id="obTagline" type="text" placeholder="e.g. Full-stack developer & UI designer" maxlength="150"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Short bio</label>
+        <textarea class="form-input" id="obBio" rows="3" placeholder="Tell people a bit about yourself, your experience, and what you're great at..." style="resize:vertical;"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">City</label>
+        <input class="form-input" id="obCity" type="text" placeholder="e.g. Bangalore, Mumbai, Delhi"/>
+      </div>
+    </div>
+
+    <!-- Step 2: Links -->
+    <div id="onboardingStep2" style="display:none;">
+      <div class="form-group">
+        <label class="form-label">Portfolio link</label>
+        <input class="form-input" id="obPortfolioUrl" type="url" placeholder="https://yourportfolio.com"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">LinkedIn (optional)</label>
+        <input class="form-input" id="obLinkedin" type="url" placeholder="https://linkedin.com/in/yourname"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Instagram / Twitter / Other (optional)</label>
+        <input class="form-input" id="obOtherSocial" type="url" placeholder="https://twitter.com/yourname"/>
+      </div>
+    </div>
+
+    <!-- Step 3: Skills -->
+    <div id="onboardingStep3" style="display:none;">
+      <div class="form-group">
+        <label class="form-label">Skills you offer <span style="color:var(--text-muted);font-weight:400;">(comma separated)</span></label>
+        <input class="form-input" id="obSkillsOffered" type="text" placeholder="e.g. React, Node.js, Figma, Copywriting"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Skills you need <span style="color:var(--text-muted);font-weight:400;">(comma separated)</span></label>
+        <input class="form-input" id="obSkillsNeeded" type="text" placeholder="e.g. Video editing, SEO, Illustration"/>
+      </div>
+    </div>
+
+    <!-- Step 4: Role -->
+    <div id="onboardingStep4" style="display:none;">
+      <p style="font-size:0.92rem;color:var(--text-secondary);margin-bottom:18px;line-height:1.6;">What best describes how you want to use Grit&Gigs?</p>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <button type="button" class="ob-role-btn" data-role="freelancer" onclick="selectObRole(this)" style="display:flex;align-items:center;gap:14px;padding:18px 20px;border:2px solid var(--border);border-radius:12px;background:var(--bg);cursor:pointer;text-align:left;transition:all .2s;">
+          <span style="font-size:24px;line-height:1;">&#128187;</span>
+          <div><strong style="font-size:0.95rem;">I'm a freelancer</strong><br/><span style="font-size:0.82rem;color:var(--text-muted);">I want to offer my skills and get paid</span></div>
+        </button>
+        <button type="button" class="ob-role-btn" data-role="client" onclick="selectObRole(this)" style="display:flex;align-items:center;gap:14px;padding:18px 20px;border:2px solid var(--border);border-radius:12px;background:var(--bg);cursor:pointer;text-align:left;transition:all .2s;">
+          <span style="font-size:24px;line-height:1;">&#128176;</span>
+          <div><strong style="font-size:0.95rem;">I'm a client</strong><br/><span style="font-size:0.82rem;color:var(--text-muted);">I want to hire talented people for my projects</span></div>
+        </button>
+        <button type="button" class="ob-role-btn" data-role="both" onclick="selectObRole(this)" style="display:flex;align-items:center;gap:14px;padding:18px 20px;border:2px solid var(--border);border-radius:12px;background:var(--bg);cursor:pointer;text-align:left;transition:all .2s;">
+          <span style="font-size:24px;line-height:1;">&#129309;</span>
+          <div><strong style="font-size:0.95rem;">Both</strong><br/><span style="font-size:0.82rem;color:var(--text-muted);">I want to offer skills and also hire others</span></div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div style="display:flex;gap:10px;margin-top:24px;">
+      <button id="obBackBtn" class="btn btn-secondary" style="display:none;flex:1;justify-content:center;padding:12px;" onclick="onboardingPrev()">Back</button>
+      <button id="obNextBtn" class="btn btn-primary" style="flex:2;justify-content:center;padding:12px;" onclick="onboardingNext()">Continue</button>
+    </div>
+    <p id="onboardingError" style="color:#C0392B;font-size:0.82rem;margin-top:10px;display:none;"></p>
+  </div>
+</div>
+
 <!-- Barter Post Modal -->
 <div class="modal-overlay" id="barterModal">
   <div class="modal" style="max-width:500px;">
