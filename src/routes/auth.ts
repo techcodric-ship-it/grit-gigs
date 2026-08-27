@@ -930,6 +930,13 @@ router.post("/auth/phone/verify", async (req, res): Promise<void> => {
   });
 });
 
+router.post("/auth/skip-onboarding", authenticate, async (req: any, res): Promise<void> => {
+  const userId = req.user?.id || req.userId;
+  await db.update(usersTable).set({ onboardingComplete: true, updatedAt: new Date() }).where(eq(usersTable.id, userId));
+  const [updated] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+  res.json({ success: true, data: { user: updated } });
+});
+
 router.post("/auth/onboarding", authenticate, async (req: any, res): Promise<void> => {
   const { tagline, bio, city, skillsOffered, skillsNeeded, portfolioLinks, socialLinks, seekingTo } = req.body;
   const userId = req.user?.id || req.userId;

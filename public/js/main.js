@@ -951,15 +951,19 @@ function selectObRole(btn) {
 }
 
 function skipObStep() {
-  if (_obStep < 4) {
-    _obStep++;
-    updateObStep();
-  } else {
+  if (_obStep >= 4) {
     submitOnboarding();
+    return;
   }
+  _obStep++;
+  updateObStep();
 }
 
-function skipFullOnboarding() {
+async function skipFullOnboarding() {
+  try {
+    var data = await api('/auth/skip-onboarding', { method: 'POST', body: '{}' });
+    if (data.success && data.data && data.data.user) sU(data.data.user);
+  } catch (e) { /* ignore */ }
   closeModal('welcomeSplashModal');
   window.location.href = 'dashboard.html';
 }
