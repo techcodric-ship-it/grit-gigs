@@ -259,7 +259,7 @@ document.getElementById('verifyOtpBtn')?.addEventListener('click', async () => {
     document.getElementById('signupOtpStep').style.display = 'none';
     _signupData = null;
     showToast('Welcome to Grit&Gigs!', 'success');
-    setTimeout(() => goToDashboard(data.data.user), 1000);
+    setTimeout(() => goToDashboard(data.data.user, true), 1000);
   } else {
     showToast(data.message || 'Invalid code. Try again.', 'error');
   }
@@ -300,7 +300,7 @@ document.getElementById('loginForm')?.addEventListener('submit', async e => {
     updateNav(data.data.user);
     closeModal('loginModal');
     showToast(`Welcome back, ${data.data.user.firstName}!`, 'success');
-    setTimeout(() => goToDashboard(data.data.user), 1000);
+    setTimeout(() => goToDashboard(data.data.user, false), 1000);
   } else {
     showToast(data.message || 'Invalid email or password.', 'error');
   }
@@ -858,7 +858,7 @@ function showPhonePrompt(data) {
         localStorage.setItem('se_user', JSON.stringify(user));
         ov.remove(); document.body.style.overflow = '';
         showToast('Welcome, ' + data.data.user.firstName + '!', 'success');
-        setTimeout(function() { goToDashboard(data.data.user); }, 600);
+        setTimeout(function() { goToDashboard(data.data.user, true); }, 600);
       } else {
         errEl.textContent = d.message || 'Failed to save phone';
         errEl.style.display = 'block';
@@ -883,7 +883,7 @@ window.addEventListener('message', function googleMessageHandler(e) {
       localStorage.setItem('se_refresh', data.data.refreshToken);
       localStorage.setItem('se_user', JSON.stringify(data.data.user));
       showToast('Welcome, ' + data.data.user.firstName + '!', 'success');
-      setTimeout(function() { goToDashboard(data.data.user); }, 600);
+      setTimeout(function() { goToDashboard(data.data.user, false); }, 600);
     }
   } else {
     showToast(data.message || 'Google sign-in failed', 'error');
@@ -904,8 +904,8 @@ $$('.btn-google').forEach(function(btn) {
 var _obStep = 1;
 var _obRole = '';
 
-function goToDashboard(user) {
-  if (user && user.onboardingComplete === false) {
+function goToDashboard(user, isNewSignup) {
+  if (isNewSignup && user && user.onboardingComplete === false) {
     openModal('welcomeSplashModal');
   } else {
     window.location.href = 'dashboard.html';
@@ -926,6 +926,8 @@ function updateObStep() {
   if (back) back.style.display = _obStep > 1 ? '' : 'none';
   var next = document.getElementById('obNextBtn');
   if (next) next.textContent = _obStep === 4 ? 'Complete setup' : 'Continue';
+  var skip = document.getElementById('obSkipBtn');
+  if (skip) skip.style.display = _obStep === 4 ? 'none' : '';
   var err = document.getElementById('onboardingError');
   if (err) err.style.display = 'none';
 }
