@@ -1,0 +1,30 @@
+# Grit&Gigs — Fly.io configuration (always-on, never sleeps)
+# Deploy:  fly launch  (once)  →  fly deploy
+# Upgrade to paid (UPI / Indian card):  fly billing create
+
+app = "grit-gigs"
+primary_region = "bom"   # Mumbai (best latency for India). Also: "sin" (Singapore)
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+
+[http_service]
+  internal_port = 5000          # matches the app's required PORT
+  force_https = true
+  auto_stop_machines = false    # KEEP AWAKE — never sleep/downscale
+  auto_start_machines = true
+  min_machines_running = 1
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 250
+    soft_limit = 200
+
+# Realtime (socket.io) — ensure websockets are allowed end-to-end.
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+
+[mounts]   # commented out — no persistent local disk needed (Neon DB + Supabase are external)
