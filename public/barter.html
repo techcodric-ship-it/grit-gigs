@@ -276,7 +276,7 @@
         x.open('GET', '/api/subscriptions/my-plan', false);
         x.setRequestHeader('Authorization', 'Bearer ' + t);
         x.setRequestHeader('Content-Type', 'application/json');
-        try { x.send(); var pr = JSON.parse(x.responseText); if (pr.success && pr.data.plan) { var b = pr.data.plan.badge;           planBadge = b ? (function(){var g={STARTER:'#059669',PRO:'#7C3AED',ELITE:'#D97706'};return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+(g[b]||'#6C3FE8')+';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">'+b+'</span>';})() : '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Free</span>'; try{localStorage.setItem('se_plan_cache',JSON.stringify({badge:b||null}));}catch(e){} } } catch(e) {}
+        try { x.send(); var pr = JSON.parse(x.responseText); if (pr.success && pr.data.plan) { var b = pr.data.plan.badge;           planBadge = b ? (function(){var g={STARTER:'#059669',PRO:'#7C3AED',SQUAD:'#D97706'};return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+(g[b]||'#6C3FE8')+';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">'+b+'</span>';})() : '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Starter</span>'; try{localStorage.setItem('se_plan_cache',JSON.stringify({badge:b||null}));}catch(e){} } } catch(e) {}
         el.innerHTML = planBadge + '<a href="/dashboard" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
           '<button class="btn btn-primary btn-sm" onclick="window.doLogout();">Sign out</button>';
       }
@@ -537,7 +537,7 @@ function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/<
 function tsince(d){const s=Math.floor((Date.now()-new Date(d))/1000);if(s<60)return'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago';}
 function _starsHtml(avg,cnt){if(cnt===undefined||cnt===null)return'';return cnt>0?'<span style="color:#F59E0B;letter-spacing:1px;font-size:.6rem;">★★★★★</span> '+ (+avg||0).toFixed(1)+' <span style="color:var(--text-muted);font-weight:400;font-size:.6rem;">('+cnt+')</span>':'<span style="color:var(--text-muted);font-size:.6rem;">No reviews</span>';}
 function kycBadge(v){return v?'<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">✓ KYC</span>':'';}
-  function planBadge(v) { if (!v) return ''; var g={STARTER:'#059669',PRO:'#7C3AED',ELITE:'#D97706'}; return '<span style="display:inline-flex;align-items:center;gap:2px;background:' + (g[v]||'#6C3FE8') + ';color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>'; }
+  function planBadge(v) { if (!v) return ''; var g={STARTER:'#059669',PRO:'#7C3AED',SQUAD:'#D97706'}; return '<span style="display:inline-flex;align-items:center;gap:2px;background:' + (g[v]||'#6C3FE8') + ';color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>'; }
 async function apix(ep,o={}){try{const isRaw=o.raw||o.body instanceof FormData;const hdrs=isRaw?{...(gT()&&{'Authorization':'Bearer '+gT()})}:{'Content-Type':'application/json',...(gT()&&{'Authorization':'Bearer '+gT()}),...(o.headers||{})};const{raw:_r,...rest}=o;const r=await fetch(API+ep,{...rest,headers:hdrs});return r.json();}catch(e){return{success:false,message:'Cannot reach server'};}}
 function showBT(msg,type='info'){let t=document.getElementById('toast');if(!t)return;t.style.cssText='position:fixed;bottom:24px;right:24px;z-index:9999;padding:13px 18px;border-radius:12px;font-size:.86rem;max-width:300px;line-height:1.5;box-shadow:0 8px 32px rgba(0,0,0,.18);transform:translateY(80px);opacity:0;transition:all .32s ease;';t.style.background=type==='error'?'#C0392B':type==='success'?'#1A7A5E':'#1C1C2E';t.style.color='white';t.innerHTML=msg;requestAnimationFrame(()=>{t.style.transform='translateY(0)';t.style.opacity='1';});setTimeout(()=>{t.style.transform='translateY(80px)';t.style.opacity='0';},3500);}
 window._openPlanPage=function(){window.location.href='/dashboard?tab=plans';};
@@ -578,8 +578,8 @@ function renderCard(r){
   const ini=((r.user?.firstName||'?')[0]+(r.user?.lastName||'')[0]||'').toUpperCase();
   let btn;
   if(isOwn)btn='<span style="font-size:.72rem;padding:3px 10px;border-radius:100px;background:var(--violet-light,#ede9fe);color:var(--violet,#6C3DE0);font-weight:600;">Your post</span>';
-  else if(accepted)btn='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();location.href=\'/dashboard\'">✅ Matched</button>';
-  else if(sent)btn='<span style="font-size:.72rem;padding:3px 10px;border-radius:100px;background:#FFF3CD;color:#856404;font-weight:600;">⏳ Sent</span>';
+  else if(accepted)btn='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();location.href=\'/dashboard\'"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12.5l2.5 2.5L16 9"/></svg>Matched</button>';
+  else if(sent)btn='<span style="font-size:.72rem;padding:3px 10px;border-radius:100px;background:#FFF3CD;color:#856404;font-weight:600;display:inline-flex;align-items:center;gap:6px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9B5E00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Sent</span>';
   else if(!gT())btn='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openModal(\'loginModal\')">Send match request</button>';
   else btn='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();doSendMatch(\''+r.id+'\',this)">Send match request</button>';
   const ownStyle=isOwn?'border:2px solid var(--violet,#6C3DE0);':'';
@@ -603,7 +603,7 @@ function renderCard(r){
     <div class="bfc-footer">
       <div class="bfc-tags"><span class="bfc-tag">${esc(r.timeline)}</span><span class="bfc-tag">${r.isRemote?'Remote':'Local'}</span></div>
       <div style="display:flex;align-items:center;gap:8px;">
-        <button class="btn btn-sm btn-secondary" style="padding:8px 12px;font-size:.72rem;" onclick="event.stopPropagation();shareItem('barter','${r.id}','${(r.skillOffered||'Skill swap').replace(/'/g,"\\'").replace(/"/g,"&quot;")}')">📤</button>
+        <button class="btn btn-sm btn-secondary" style="padding:8px 12px;font-size:.72rem;" onclick="event.stopPropagation();shareItem('barter','${r.id}','${(r.skillOffered||'Skill swap').replace(/'/g,"\\'").replace(/"/g,"&quot;")}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;" aria-hidden="true"><path d="M12 21V9M7 14l5-5 5 5M5 21h14"/></svg></button>
         ${btn}
       </div>
     </div>
@@ -617,8 +617,8 @@ async function doSendMatch(rid,btn){
   const d=await apix('/barter/matches',{method:'POST',body:JSON.stringify({targetRequestId:rid})});
   if(d.success){
     _sentIds.add(rid);
-    btn.outerHTML='<span style="font-size:.72rem;padding:3px 10px;border-radius:100px;background:#FFF3CD;color:#856404;font-weight:600;">⏳ Sent</span>';
-    showBT('✅ Match request sent! They will be notified.','success');
+    btn.outerHTML='<span style="font-size:.72rem;padding:3px 10px;border-radius:100px;background:#FFF3CD;color:#856404;font-weight:600;display:inline-flex;align-items:center;gap:6px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9B5E00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Sent</span>';
+    showBT('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12.5l2.5 2.5L16 9"/></svg>Match request sent! They will be notified.','success');
   }else if(d._planLimitExceeded){
     btn.disabled=false;btn.textContent='Send match request';
     showBT(d.message,'error');
@@ -638,8 +638,8 @@ function openBDet(id){
   const ini=((r.user?.firstName||'?')[0]+(r.user?.lastName||'')[0]||'').toUpperCase();
   let act;
   if(isOwn)act=`<div style="background:#ede9fe;border-radius:8px;padding:12px 16px;color:#6C3DE0;font-size:.85rem;font-weight:600;">✦ This is your post — others can send you match requests</div>`;
-  else if(accepted)act=`<button class="btn btn-primary" style="flex:1;justify-content:center;" onclick="location.href='/dashboard'">✅ Match accepted — go to Inbox</button>`;
-  else if(sent)act=`<button class="btn btn-secondary" style="flex:1;justify-content:center;opacity:.7;cursor:default;" disabled>⏳ Match request already sent</button>`;
+  else if(accepted)act=`<button class="btn btn-primary" style="flex:1;justify-content:center;" onclick="location.href='/dashboard'"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12.5l2.5 2.5L16 9"/></svg>Match accepted — go to Inbox</button>`;
+  else if(sent)act=`<button class="btn btn-secondary" style="flex:1;justify-content:center;opacity:.7;cursor:default;" disabled><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9B5E00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Match request already sent</button>`;
   else if(!gT())act=`<button class="btn btn-primary" style="flex:1;justify-content:center;" onclick="closeModal('detailModal');openModal('loginModal')">Sign in to send match request</button>`;
   else act=`<button class="btn btn-primary" style="flex:1;justify-content:center;" id="dtlMatchBtn" onclick="doSendMatchDtl('${r.id}')">Send match request</button>`;
   document.getElementById('detailModalInner').innerHTML=`
@@ -663,7 +663,7 @@ function openBDet(id){
       <div><div style="font-size:.72rem;color:var(--text-muted);margin-bottom:3px;">Timeline</div><div style="font-size:.88rem;font-weight:600;color:var(--ink);">${esc(r.timeline)}</div></div>
       <div><div style="font-size:.72rem;color:var(--text-muted);margin-bottom:3px;">Location</div><div style="font-size:.88rem;font-weight:600;color:var(--ink);">${r.isRemote?'Remote':'Local'}</div></div>
     </div>
-    <div style="display:flex;gap:10px;">${act}<button class="btn btn-secondary" onclick="shareItem('barter','${r.id}','${(r.skillOffered||'Skill swap').replace(/'/g,"\\'").replace(/"/g,"&quot;")}')">📤 Share</button><button class="btn btn-secondary" onclick="closeModal('detailModal')">Cancel</button></div>`;
+    <div style="display:flex;gap:10px;">${act}<button class="btn btn-secondary" onclick="shareItem('barter','${r.id}','${(r.skillOffered||'Skill swap').replace(/'/g,"\\'").replace(/"/g,"&quot;")}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;" aria-hidden="true"><path d="M12 21V9M7 14l5-5 5 5M5 21h14"/></svg>Share</button><button class="btn btn-secondary" onclick="closeModal('detailModal')">Cancel</button></div>`;
   openModal('detailModal');
 }
 
@@ -674,8 +674,8 @@ async function doSendMatchDtl(rid){
   const d=await apix('/barter/matches',{method:'POST',body:JSON.stringify({targetRequestId:rid})});
   if(d.success){
     _sentIds.add(rid);
-    if(btn){btn.textContent='⏳ Request sent';btn.disabled=true;btn.style.opacity='.7';}
-    showBT('✅ Match request sent!','success');
+    if(btn){btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Request sent';btn.disabled=true;btn.style.opacity='.7';}
+    showBT('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12.5l2.5 2.5L16 9"/></svg>Match request sent!','success');
     loadBPage(_page);
   }else if(d._planLimitExceeded){
     if(btn){btn.disabled=false;btn.textContent='Send match request';}

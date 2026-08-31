@@ -376,13 +376,13 @@ router.post('/projects/:id/bids', authenticate, async (req: Request, res: Respon
     isHighlighted = true;
   }
 
-  // Subscription plan: deduct a proposal credit (skip for Elite / unlimited)
+  // Subscription plan: deduct a project-bid credit (skip when unlimited)
   const sub = await getOrCreateSubscription(userId);
   if (sub.proposalCreditsRemaining !== -1) {
     if (sub.proposalCreditsRemaining <= 0) {
       return res.status(403).json({
         success: false,
-        message: 'You\'ve used all your free proposal credits this month. Upgrade your plan for more credits.',
+        message: "You've used all your project bids for this week. Upgrade your plan for unlimited bids.",
         _creditsExhausted: true,
       });
     }
@@ -632,10 +632,10 @@ router.delete('/projects/bids/:bidId', authenticate, async (req: Request, res: R
   if (bid.status !== 'PENDING') return res.status(400).json({ success: false, message: 'Only PENDING bids can be withdrawn' });
   await db.transaction(async (tx) => {
     await tx.delete(projectBidsTable).where(eq(projectBidsTable.id, bid.id));
-    // Restore proposal credit if plan tracks credits
+    // Restore proposal bid credit if plan tracks credits
     const sub = await getOrCreateSubscription(userId);
     const plan = getPlan(sub.planId);
-    if (plan.monthlyProposalCredits !== -1 && sub.proposalCreditsRemaining < plan.monthlyProposalCredits) {
+    if (plan.weeklyBidCredits !== -1 && sub.proposalCreditsRemaining < plan.weeklyBidCredits) {
       await tx.update(userSubscriptionsTable)
         .set({ proposalCreditsRemaining: sub.proposalCreditsRemaining + 1, updatedAt: new Date() })
         .where(eq(userSubscriptionsTable.id, sub.id));

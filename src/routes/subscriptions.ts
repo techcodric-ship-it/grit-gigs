@@ -24,32 +24,39 @@ const router: IRouter = Router();
 // for actual enforcement.
 function planToClientJson(plan: PlanConfig) {
   const features: string[] = [
-    plan.monthlyProposalCredits === -1
-      ? "Unlimited free proposal credits/month"
-      : `${plan.monthlyProposalCredits} free proposal credits/month`,
+    plan.weeklyBidCredits === -1
+      ? "Unlimited project bids"
+      : `${plan.weeklyBidCredits} project bids / week`,
     plan.maxActiveGigs === -1
       ? "Unlimited new gig listings per month"
       : `${plan.maxActiveGigs} new gig listings per month`,
-    plan.portfolioSlots === -1
-      ? "Unlimited portfolio items"
-      : `${plan.portfolioSlots} portfolio items`,
     plan.maxActiveProjects === -1
       ? "Unlimited new project listings per month"
       : `${plan.maxActiveProjects} new project listings per month`,
+    plan.walletLimit === -1
+      ? "Unlimited wallet balance"
+      : `₹${plan.walletLimit.toLocaleString("en-IN")} wallet limit`,
     `${plan.serviceFeePercent}% platform fee on completed work`,
+    plan.portfolioSlots === -1
+      ? "Unlimited portfolio items"
+      : `${plan.portfolioSlots} portfolio items`,
   ];
-  if (plan.badge) features.push(`${plan.badge} verified badge on your profile`);
+  if (plan.squadMembers >= 2) features.push(`Up to ${plan.squadMembers} squad members`);
+  if (plan.badge) features.push(`${plan.badge} badge on your profile`);
 
   return {
     id: plan.id,
     name: plan.name,
     price: plan.priceInr,
-    billingCycle: plan.id === "free" ? "forever" : "monthly",
+    billingCycle: plan.id === "starter" ? "free" : "monthly",
     commission: plan.serviceFeePercent,
     serviceFeePercent: plan.serviceFeePercent,
-    monthlyProposalCredits: plan.monthlyProposalCredits,
+    weeklyBidCredits: plan.weeklyBidCredits,
     maxActiveGigs: plan.maxActiveGigs,
+    maxActiveProjects: plan.maxActiveProjects,
     portfolioSlots: plan.portfolioSlots,
+    walletLimit: plan.walletLimit,
+    squadMembers: plan.squadMembers,
     featuredProposalsPerMonth: plan.featuredProposalsPerMonth,
     badge: plan.badge,
     description: plan.description,
@@ -83,7 +90,7 @@ router.get("/subscriptions/my-plan", authenticate, async (req: Request, res: Res
       daysLeft,
       planActivatedAt: sub.startedAt,
       planExpiresAt: sub.expiresAt,
-      proposalCreditsRemaining: sub.proposalCreditsRemaining,
+      bidCreditsRemaining: sub.proposalCreditsRemaining,
       usage: {
         gigsCreatedThisCycle: sub.gigsCreatedThisCycle,
         maxGigsThisCycle: plan.maxActiveGigs,
@@ -231,8 +238,9 @@ router.post("/subscriptions/verify-payment", authenticate, async (req: Request, 
         planId: plan.id,
         startedAt: now,
         expiresAt,
-        proposalCreditsRemaining: plan.monthlyProposalCredits,
+        proposalCreditsRemaining: plan.weeklyBidCredits,
         featuredProposalsRemaining: plan.featuredProposalsPerMonth,
+        bidsResetAt: now,
         creditsResetAt: now,
         updatedAt: now,
       })
@@ -243,7 +251,7 @@ router.post("/subscriptions/verify-payment", authenticate, async (req: Request, 
     userId,
     type: "SUBSCRIPTION",
     title: `${plan.name} plan activated!`,
-    message: `You now get ${plan.monthlyProposalCredits === -1 ? "unlimited" : plan.monthlyProposalCredits} free proposals/month, ${plan.serviceFeePercent}% platform fee, and ${plan.maxActiveGigs === -1 ? "unlimited" : plan.maxActiveGigs} new gig listings/month.`,
+    message: `You now get ${plan.weeklyBidCredits === -1 ? "unlimited" : plan.weeklyBidCredits} project bids per week, ${plan.serviceFeePercent}% platform fee, and ${plan.maxActiveGigs === -1 ? "unlimited" : plan.maxActiveGigs} new gig listings/month.`,
     linkUrl: "/dashboard.html",
   });
 
@@ -274,8 +282,8 @@ router.post("/subscriptions/subscribe", authenticate, async (req: Request, res: 
   const userId = req.user!.id;
   const sub = await getOrCreateSubscription(userId);
 
-  if (sub.planId === "free") {
-    res.status(400).json({ success: false, message: "You're already on the Free plan." });
+  if (sub.planId === "starter") {
+    res.status(400).json({ success: false, message: "You're already on the Starter plan." });
     return;
   }
 
@@ -283,11 +291,12 @@ router.post("/subscriptions/subscribe", authenticate, async (req: Request, res: 
   await db
     .update(userSubscriptionsTable)
     .set({
-      planId: "free",
+      planId: "starter",
       startedAt: now,
       expiresAt: null,
-      proposalCreditsRemaining: plan.monthlyProposalCredits,
+      proposalCreditsRemaining: plan.weeklyBidCredits,
       featuredProposalsRemaining: plan.featuredProposalsPerMonth,
+      bidsResetAt: now,
       creditsResetAt: now,
       updatedAt: now,
     })
@@ -296,8 +305,8 @@ router.post("/subscriptions/subscribe", authenticate, async (req: Request, res: 
   await db.insert(notificationsTable).values({
     userId,
     type: "SUBSCRIPTION",
-    title: `Free plan activated`,
-    message: "You're back on the Free plan.",
+    title: `Starter plan activated`,
+    message: "You're back on the Starter plan.",
     linkUrl: "/dashboard.html",
   });
 
@@ -305,8 +314,8 @@ router.post("/subscriptions/subscribe", authenticate, async (req: Request, res: 
 
   res.json({
     success: true,
-    message: "Downgraded to Free plan",
-    data: { planId: "free", planActivatedAt: now, planExpiresAt: null, plan: planToClientJson(plan) },
+    message: "Downgraded to Starter plan",
+    data: { planId: "starter", planActivatedAt: now, planExpiresAt: null, plan: planToClientJson(plan) },
   });
 });
 

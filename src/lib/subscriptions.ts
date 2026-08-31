@@ -2,22 +2,22 @@ import { eq, sql } from "drizzle-orm";
 import { db, userSubscriptionsTable } from "../db";
 import type { UserSubscription } from "../db/schema/plans";
 
-export type PlanId = "free" | "starter" | "pro" | "elite";
+export type PlanId = "starter" | "pro" | "squad";
 
 export interface PlanConfig {
   id: PlanId;
   name: string;
-  /** Cost in ₹ to subscribe for 30 days. 0 = free. */
+  /** Cost in ₹ to subscribe for 30 days. 0 = free tier. */
   priceInr: number;
   /** Platform commission charged on completed project payouts / gig orders for sellers on this plan. */
   serviceFeePercent: number;
-  /** Free proposal credits granted per 30-day cycle. -1 = unlimited. */
-  monthlyProposalCredits: number;
-  /** Max number of ACTIVE gig listings allowed at once. -1 = unlimited. */
+  /** Project proposal / bid credits granted per week. -1 = unlimited. */
+  weeklyBidCredits: number;
+  /** Number of ACTIVE gig listings a single member can hold at once. -1 = unlimited. */
   maxActiveGigs: number;
   /** Max number of ACTIVE barter exchange requests allowed at once. -1 = unlimited. */
   maxActiveBarterRequests: number;
-  /** Monthly barter match request credits granted per 30-day cycle. -1 = unlimited. */
+  /** Barter match request credits granted per cycle. -1 = unlimited. */
   monthlyBarterMatchCredits: number;
   /** Max number of ACTIVE project listings allowed at once. -1 = unlimited. */
   maxActiveProjects: number;
@@ -25,70 +25,65 @@ export interface PlanConfig {
   portfolioSlots: number;
   /** "Featured" proposal placements granted per 30-day cycle (highlighted at the top of a project's bid list). */
   featuredProposalsPerMonth: number;
-  badge: "STARTER" | "PRO" | "ELITE" | null;
+  /** Wallet balance cap in ₹. -1 = unlimited. */
+  walletLimit: number;
+  /** Max squad members permitted on the plan. 0 = no squad access, 1 = solo only. */
+  squadMembers: number;
+  badge: "STARTER" | "PRO" | "SQUAD" | null;
   description: string;
 }
 
 export const PLANS: PlanConfig[] = [
   {
-    id: "free",
-    name: "Free",
+    id: "starter",
+    name: "Starter",
     priceInr: 0,
     serviceFeePercent: 10,
-    monthlyProposalCredits: 3,
+    weeklyBidCredits: 2,
     maxActiveGigs: 3,
     maxActiveBarterRequests: -1,
     monthlyBarterMatchCredits: -1,
     maxActiveProjects: 3,
     portfolioSlots: 3,
     featuredProposalsPerMonth: 0,
+    walletLimit: 100000,
+    squadMembers: 0,
     badge: null,
     description: "Get started with the basics — no cost, no card.",
   },
   {
-    id: "starter",
-    name: "Starter",
-    priceInr: 210,
-    serviceFeePercent: 9,
-    monthlyProposalCredits: 10,
-    maxActiveGigs: 8,
-    maxActiveBarterRequests: -1,
-    monthlyBarterMatchCredits: -1,
-    maxActiveProjects: 8,
-    portfolioSlots: 8,
-    featuredProposalsPerMonth: 1,
-    badge: "STARTER",
-    description: "For freelancers picking up momentum.",
-  },
-  {
     id: "pro",
     name: "Pro",
-    priceInr: 525,
-    serviceFeePercent: 8,
-    monthlyProposalCredits: 30,
-    maxActiveGigs: 20,
+    priceInr: 499,
+    serviceFeePercent: 5,
+    weeklyBidCredits: -1,
+    maxActiveGigs: -1,
     maxActiveBarterRequests: -1,
     monthlyBarterMatchCredits: -1,
-    maxActiveProjects: 20,
+    maxActiveProjects: -1,
     portfolioSlots: 20,
-    featuredProposalsPerMonth: 5,
+    featuredProposalsPerMonth: 3,
+    walletLimit: -1,
+    squadMembers: 1,
     badge: "PRO",
-    description: "More proposals, lower fees, a verified badge on your profile.",
+    description: "Unlimited gigs and bids, lower fees, a verified badge on your profile.",
   },
   {
-    id: "elite",
-    name: "Elite",
-    priceInr: 1470,
-    serviceFeePercent: 5,
-    monthlyProposalCredits: -1,
+    id: "squad",
+    name: "Squad",
+    priceInr: 1499,
+    serviceFeePercent: 1,
+    weeklyBidCredits: -1,
     maxActiveGigs: -1,
     maxActiveBarterRequests: -1,
     monthlyBarterMatchCredits: -1,
     maxActiveProjects: -1,
     portfolioSlots: -1,
-    featuredProposalsPerMonth: 15,
-    badge: "ELITE",
-    description: "Unlimited proposals and listings, the lowest fees, top visibility.",
+    featuredProposalsPerMonth: 8,
+    walletLimit: -1,
+    squadMembers: 6,
+    badge: "SQUAD",
+    description: "Everything in Pro, up to 6 squad members, 1% commission.",
   },
 ];
 
@@ -97,17 +92,19 @@ export function getPlan(planId: string | null | undefined): PlanConfig {
 }
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
- * Fetches the user's subscription row, creating a default "free" row the
+ * Fetches the user's subscription row, creating a default "starter" row the
  * first time a user is seen (handles every existing user transparently —
- * nobody needs a manual migration). Also handles two pieces of monthly
- * housekeeping with no cron job required:
+ * nobody needs a manual migration). Also handles two pieces of housekeeping
+ * with no cron job required:
  *   1. If a paid plan's expiresAt has passed, the user is silently
- *      downgraded back to "free".
- *   2. If creditsResetAt is more than 30 days old, proposal/featured
- *      credits are topped back up to the current plan's monthly allowance
- *      and the gig/project creation counters are reset to 0.
+ *      downgraded back to "starter".
+ *   2. Weekly: project-bid credits are topped back up to the current plan's
+ *      weekly allowance (bidsResetAt).
+ *   3. Monthly (every 30 days): featured-proposal credits are topped up and
+ *      the gig/project creation counters are reset to 0.
  */
 export async function getOrCreateSubscription(userId: string): Promise<UserSubscription> {
   let [sub] = await db
@@ -117,13 +114,13 @@ export async function getOrCreateSubscription(userId: string): Promise<UserSubsc
     .limit(1);
 
   if (!sub) {
-    const defaultPlan = getPlan("free");
+    const defaultPlan = getPlan("starter");
     [sub] = await db
       .insert(userSubscriptionsTable)
       .values({
         userId,
-        planId: "free",
-        proposalCreditsRemaining: defaultPlan.monthlyProposalCredits,
+        planId: "starter",
+        proposalCreditsRemaining: defaultPlan.weeklyBidCredits,
         featuredProposalsRemaining: defaultPlan.featuredProposalsPerMonth,
       })
       .returning();
@@ -134,22 +131,31 @@ export async function getOrCreateSubscription(userId: string): Promise<UserSubsc
   let needsUpdate = false;
   const patch: Partial<typeof userSubscriptionsTable.$inferInsert> = {};
 
-  // Expired paid plan → fall back to free, reset credits to Free plan's limits.
-  if (sub.planId !== "free" && sub.expiresAt && sub.expiresAt.getTime() < now) {
-    const freePlan = getPlan("free");
-    patch.planId = "free";
+  // Expired paid plan → fall back to Starter, reset credits to Starter's limits.
+  if (sub.planId !== "starter" && sub.expiresAt && sub.expiresAt.getTime() < now) {
+    const starterPlan = getPlan("starter");
+    patch.planId = "starter";
     patch.expiresAt = null;
-    patch.proposalCreditsRemaining = freePlan.monthlyProposalCredits;
-    patch.featuredProposalsRemaining = freePlan.featuredProposalsPerMonth;
+    patch.proposalCreditsRemaining = starterPlan.weeklyBidCredits;
+    patch.featuredProposalsRemaining = starterPlan.featuredProposalsPerMonth;
+    patch.bidsResetAt = new Date();
     patch.creditsResetAt = new Date();
     needsUpdate = true;
   }
 
-  // Monthly credit refresh.
+  // Weekly project-bid credit refresh.
+  const bidsResetAt = sub.bidsResetAt;
+  if (bidsResetAt && now - bidsResetAt.getTime() >= SEVEN_DAYS_MS) {
+    const effectivePlan = getPlan((patch.planId as PlanId) ?? sub.planId);
+    patch.proposalCreditsRemaining = effectivePlan.weeklyBidCredits;
+    patch.bidsResetAt = new Date();
+    needsUpdate = true;
+  }
+
+  // Monthly credit + creation-counter refresh.
   const creditsResetAt = sub.creditsResetAt;
   if (creditsResetAt && now - creditsResetAt.getTime() >= THIRTY_DAYS_MS) {
     const effectivePlan = getPlan((patch.planId as PlanId) ?? sub.planId);
-    patch.proposalCreditsRemaining = effectivePlan.monthlyProposalCredits;
     patch.featuredProposalsRemaining = effectivePlan.featuredProposalsPerMonth;
     patch.gigsCreatedThisCycle = 0;
     patch.projectsCreatedThisCycle = 0;

@@ -4,3 +4,7 @@ package-lock.json
 
 # local scratch
 *.tmp
+
+# user data exports (PII)
+users-export.csv
+*.csv

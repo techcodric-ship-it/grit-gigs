@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Grit&Gigs — New Clean Design Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ink:#0A0A0F;--ink-soft:#1C1C2E;--surface:#fff;--surface-2:#F7F7F9;--surface-3:#F2F2F5;
+  --violet:#6C3FE8;--violet-deep:#5430C9;--violet-light:#F0ECFD;--gold:#E8A020;--gold-light:#FDF3E0;
+  --ok:#1A7A5E;--ok-light:#E6F3EE;--text-muted:#7A7A85;--text-secondary:#40404A;--text-body:#2E2E38;
+  --border:rgba(0,0,0,0.07);--border-strong:rgba(0,0,0,0.12);
+  --shadow-xs:0 1px 2px rgba(0,0,0,.03);--shadow-sm:0 2px 8px rgba(0,0,0,.04);--shadow-md:0 8px 24px rgba(0,0,0,.06);--shadow-lg:0 20px 48px rgba(0,0,0,.08);
+  --r:10px;--rm:14px;--rl:18px;--rxl:26px;--pill:100px;
+  --font-display:'Syne',sans-serif;--font-body:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--surface);color:var(--ink);line-height:1.7;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--font-display);letter-spacing:-.02em;line-height:1.2;color:var(--ink)}
+a{text-decoration:none;color:inherit}
+.container{max-width:1100px;margin:0 auto;padding:0 24px}
+
+/* STICKY HEADER */
+.nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.85);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid var(--border)}
+.nav-inner{max-width:1100px;margin:0 auto;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 24px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-mark{width:44px;height:44px;border-radius:12px;background:#fff;border:1px solid var(--border-strong);display:flex;align-items:center;justify-content:center;gap:1px;font-family:var(--font-display);font-weight:800;font-size:18px;letter-spacing:-.04em;box-shadow:var(--shadow-xs)}
+.logo-g-b{color:#0A0A0F}.logo-g-p{color:var(--violet)}
+.logo-text{font-family:var(--font-display);font-weight:800;font-size:1.1rem;letter-spacing:-.04em}
+.logo-text .p{color:var(--violet)}
+.nav-links{display:flex;gap:30px}.nav-links a{font-size:.9rem;font-weight:500;color:var(--text-secondary);position:relative;transition:color .2s}
+.nav-links a::after{content:'';position:absolute;left:0;bottom:-6px;height:2px;width:0;background:var(--violet);border-radius:2px;transition:width .25s}
+.nav-links a:hover{color:var(--violet)}.nav-links a:hover::after{width:100%}
+.nav-actions{display:flex;gap:10px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 22px;border-radius:var(--rm);font-family:var(--font-body);font-weight:600;font-size:.92rem;cursor:pointer;border:none;transition:all .2s;white-space:nowrap;line-height:1.2}
+.btn-primary{background:var(--violet);color:#fff;box-shadow:0 2px 8px rgba(108,63,232,.2)}
+.btn-primary:hover{background:var(--violet-deep);transform:translateY(-1px);box-shadow:0 6px 18px rgba(108,63,232,.28)}
+.btn-secondary{background:#fff;color:var(--ink);border:1px solid var(--border-strong)}
+.btn-secondary:hover{border-color:var(--violet);color:var(--violet);transform:translateY(-1px);background:#FCFBFE}
+.btn-lg{padding:15px 30px;font-size:1rem}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:var(--pill);font-size:.8rem;font-weight:600}
+.badge-violet{background:var(--violet-light);color:var(--violet)}
+.badge-gold{background:var(--gold-light);color:#9B5E00}
+.badge-coming{background:var(--gold-light);color:#9B5E00;border:1px dashed var(--gold)}
+
+/* HERO */
+.hero{position:relative;overflow:hidden;padding:120px 24px 90px;background:var(--surface)}
+.hero-grid{position:absolute;inset:0;opacity:.018;background-image:linear-gradient(var(--ink) 1px,transparent 1px),linear-gradient(90deg,var(--ink) 1px,transparent 1px);background-size:72px 72px;mask-image:radial-gradient(ellipse 70% 60% at 50% 40%,#000 30%,transparent 75%);-webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 40%,#000 30%,transparent 75%)}
+.hero-glow{position:absolute;border-radius:50%;filter:blur(70px);opacity:.5;pointer-events:none}
+.hero-glow.g1{width:460px;height:460px;background:rgba(108,63,232,.12);top:-120px;right:-80px}
+.hero-glow.g2{width:380px;height:380px;background:rgba(232,160,32,.08);bottom:-100px;left:-60px}
+.hero-inner{max-width:1100px;margin:0 auto;position:relative;z-index:1;display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.hero-eyebrow{margin-bottom:20px}
+.hero h1{font-size:clamp(2.3rem,5vw,3.6rem);font-weight:700;margin-bottom:18px}.hero h1 .accent{color:var(--violet)}
+.hero-sub{font-size:1.18rem;margin-bottom:32px;max-width:500px;line-height:1.8;color:var(--text-body)}
+.hero-actions{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:44px}
+.hero-stats{display:flex;gap:44px;flex-wrap:wrap}
+.stat-num{font-family:var(--font-display);font-size:1.7rem;font-weight:700}
+.stat-label{font-size:.85rem;color:var(--text-muted);margin-top:4px}
+
+/* CARD (hero visual) */
+.hero-visual{position:relative;height:470px}
+.main-card{background:#fff;border-radius:var(--rxl);box-shadow:var(--shadow-lg);overflow:hidden;border:1px solid var(--border);height:340px}
+.card-media{height:150px;background:linear-gradient(135deg,#1a1a2e 0%,#2A1E5C 50%,#4A25B8 100%);position:relative}
+.play-btn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.95);box-shadow:0 8px 24px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center}
+.card-body{padding:18px 22px}
+.card-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.card-user{display:flex;align-items:center;gap:10px}
+.av{width:36px;height:36px;border-radius:50%;background:var(--violet-light);color:var(--violet);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:13px}
+.un{font-size:.85rem;font-weight:700}.um{font-size:.75rem;color:var(--text-muted)}
+.stars{color:#F59E0B;font-size:.8rem}
+.float-card{position:absolute;background:#fff;border-radius:var(--rl);padding:14px 18px;box-shadow:var(--shadow-md);border:1px solid var(--border);animation:float 4s ease-in-out infinite}
+.float-card.f1{bottom:120px;right:-18px;width:180px}
+.float-card.f2{bottom:10px;left:-18px;width:185px}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.fl{font-size:.72rem;color:var(--text-muted);margin-bottom:4px}.fv{font-family:var(--font-display);font-size:1.1rem;font-weight:700}.fs{font-size:.72rem;color:var(--ok);font-weight:600}
+
+/* SECTION HEADER */
+.sec-header{text-align:center;max-width:600px;margin:80px auto 48px}
+.sec-header .badge{margin-bottom:14px}.sec-header h2{margin-bottom:12px}.sec-header p{color:var(--text-secondary);font-size:1.05rem}
+
+/* CARDS GRID */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.card{background:#fff;border-radius:var(--rl);border:1px solid var(--border);padding:24px;transition:all .25s}
+.card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md);border-color:rgba(108,63,232,.18)}
+.card-ic{width:44px;height:44px;border-radius:12px;background:var(--violet-light);color:var(--violet);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.card h3{font-size:1.1rem;margin-bottom:8px}.card p{font-size:.9rem;color:var(--text-secondary);line-height:1.65}
+.card .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+.tag{font-size:.72rem;font-weight:600;padding:4px 10px;border-radius:var(--pill);background:var(--surface-2);color:var(--text-secondary)}
+
+/* CTA */
+.cta{max-width:1100px;margin:80px auto 60px;padding:88px 40px;text-align:center;background:linear-gradient(135deg,#0A0A0F 0%,#1A1030 60%,#2A1E52 100%);border-radius:var(--rxl);position:relative;overflow:hidden;border:1px solid rgba(108,63,232,.15)}
+.cta::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 90% at 50% 0,rgba(108,63,232,.28) 0,transparent 70%)}
+.cta h2{color:#fff;margin-bottom:14px}.cta p{color:rgba(255,255,255,.72);font-size:1.1rem;margin-bottom:28px}
+.cta .btn-white{background:#fff;color:var(--violet);font-weight:700;box-shadow:var(--shadow-sm)}
+.cta .btn-white:hover{background:var(--violet-light);transform:translateY(-1px)}
+
+/* FOOTER */
+.footer{background:#0A0A0F;color:rgba(255,255,255,.6);padding:56px 24px 32px}
+.footer-top{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;margin-bottom:36px}
+.footer p{font-size:.9rem;line-height:1.8;color:rgba(255,255,255,.5)}
+.footer h4{color:#fff;font-size:.9rem;margin-bottom:16px;font-family:var(--font-display)}
+.footer a{display:block;font-size:.9rem;color:rgba(255,255,255,.5);margin-bottom:12px}.footer a:hover{color:#fff}
+.footer-bottom{max-width:1100px;margin:0 auto;padding-top:24px;border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;font-size:.85rem;flex-wrap:wrap;gap:10px}
+
+@media(max-width:900px){.hero-inner{grid-template-columns:1fr}.hero-visual{display:none}.grid{grid-template-columns:repeat(2,1fr)}.footer-top{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.grid{grid-template-columns:1fr}.footer-top{grid-template-columns:1fr}.nav-links{display:none}}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="nav">
+  <div class="nav-inner">
+    <a class="logo" href="#">
+      <div class="logo-mark"><span class="logo-g-b">G</span><span class="logo-g-p">&amp;G</span></div>
+      <div class="logo-text">Grit<span class="p">&amp;Gigs</span></div>
+    </a>
+    <div class="nav-links">
+      <a href="#systems">How it works</a>
+      <a href="#exchange">Skill Exchange</a>
+      <a href="#freelance">Freelance</a>
+      <a href="#">Browse Projects</a>
+    </div>
+    <div class="nav-actions">
+      <button class="btn btn-secondary">Sign in</button>
+      <button class="btn btn-primary">Join free</button>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow g1"></div><div class="hero-glow g2"></div>
+  <div class="hero-inner">
+    <div>
+      <div class="hero-eyebrow"><span class="badge badge-violet">India's first all-in-one skills platform</span></div>
+      <h1>Exchange skills.<br/><span class="accent">Earn freely.</span><br/>Build wealth.</h1>
+      <p class="hero-sub">Trade your skills without money, work as a freelancer to earn real income, or invest in local businesses — all from one clean platform built for India.</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary btn-lg">Start for free</button>
+        <button class="btn btn-secondary btn-lg">See how it works</button>
+      </div>
+      <div class="hero-stats">
+        <div><div class="stat-num">28,000+</div><div class="stat-label">Active members</div></div>
+        <div><div class="stat-num">9,400+</div><div class="stat-label">Exchanges completed</div></div>
+        <div><div class="stat-num">₹4 Cr+</div><div class="stat-label">Paid to freelancers</div></div>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="main-card">
+        <div class="card-media"><div class="play-btn">▶</div></div>
+        <div class="card-body">
+          <div class="card-meta">
+            <div class="card-user">
+              <div class="av">PK</div>
+              <div><div class="un">Priya K.</div><div class="um">UI Designer — Chennai</div></div>
+            </div>
+            <div><div class="stars">★★★★★</div><div style="font-size:.72rem;color:var(--text-muted)">4.9 (142)</div></div>
+          </div>
+          <p style="font-size:.85rem;color:var(--text-secondary);line-height:1.55">"Exchanged my design skills for web development help — saved ₹30,000 and made a great connection."</p>
+        </div>
+      </div>
+      <div class="float-card f1">
+        <div class="fl">This week's earnings</div>
+        <div class="fv">₹18,400</div>
+        <div class="fs">+23% vs last week</div>
+      </div>
+      <div class="float-card f2">
+        <div class="fl">New match found</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <div class="av" style="width:28px;height:28px;font-size:11px;background:var(--ok-light);color:var(--ok)">RV</div>
+          <div><div style="font-size:.82rem;font-weight:600">Ravi V.</div><div style="font-size:.72rem;color:var(--text-muted)">React Dev — Bangalore</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<div class="sec-header" id="systems" style="margin-top:20px">
+  <span class="badge badge-violet">How it works</span>
+  <h2>One platform, all the ways to earn</h2>
+  <p>A clean, calm experience — exactly like the messaging apps you already use every day.</p>
+</div>
+<div class="container">
+  <div class="grid">
+    <div class="card">
+      <div class="card-ic">⇄</div>
+      <span class="badge badge-violet" style="margin-bottom:12px">Free &amp; zero money</span>
+      <h3>Skill Exchange</h3>
+      <p>Post what you need and what you offer. We match you with the right person — no credits, no cash, no barriers.</p>
+      <div class="tags"><span class="tag">Design</span><span class="tag">Code</span><span class="tag">Writing</span></div>
+    </div>
+    <div class="card">
+      <div class="card-ic">₹</div>
+      <span class="badge badge-gold" style="margin-bottom:12px">Earn real money</span>
+      <h3>Freelance Marketplace</h3>
+      <p>List your services, get hired, get paid securely through escrow. Withdraw straight to your bank.</p>
+      <div class="tags"><span class="tag">Escrow</span><span class="tag">Wallet</span><span class="tag">Verified</span></div>
+    </div>
+    <div class="card">
+      <div class="card-ic">◆</div>
+      <span class="badge badge-coming" style="margin-bottom:12px">Coming soon</span>
+      <h3>MicroEquity</h3>
+      <p>Invest from ₹10,000 in verified local businesses and earn quarterly dividends.</p>
+      <div class="tags"><span class="tag">Soon</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta">
+  <h2>Start exchanging today.<br/>It's completely free.</h2>
+  <p>No credit card. No hidden fees. Just sign up and start trading your skills.</p>
+  <button class="btn btn-white btn-lg">Create free account →</button>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-top">
+    <div>
+      <a class="logo" href="#" style="margin-bottom:14px">
+        <div class="logo-mark" style="background:#fff"><span class="logo-g-b">G</span><span class="logo-g-p">&amp;G</span></div>
+        <div class="logo-text">Grit<span class="p">&amp;Gigs</span></div>
+      </a>
+      <p>India's first platform that combines skill barter, freelancing, and business investment.</p>
+    </div>
+    <div><h4>Platform</h4><a href="#">Skill Exchange</a><a href="#">Freelance</a><a href="#">Projects</a><a href="#">Pricing</a></div>
+    <div><h4>Company</h4><a href="#">About us</a><a href="#">Blog</a><a href="#">FAQ</a><a href="#">Careers</a></div>
+    <div><h4>Support</h4><a href="#">Contact</a><a href="#">Refund</a><a href="#">Terms</a><a href="#">Privacy</a></div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 Grit&Gigs Technologies Pvt. Ltd.</p>
+    <p>Built with love in Chennai, India</p>
+  </div>
+</footer>
+
+</body>
+</html>

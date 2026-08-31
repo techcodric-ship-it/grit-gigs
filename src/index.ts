@@ -159,7 +159,7 @@ app.set("io", io);
           ALTER TYPE project_status ADD VALUE IF NOT EXISTS 'DELIVERED';
           ALTER TYPE project_status ADD VALUE IF NOT EXISTS 'REVISION_REQUESTED';
           DO $$ BEGIN CREATE TYPE bid_status AS ENUM ('PENDING','ACCEPTED','REJECTED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-          DO $$ BEGIN CREATE TYPE plan_id AS ENUM ('free','starter','pro','elite'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE plan_id AS ENUM ('starter','pro','squad'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
           DO $$ BEGIN CREATE TYPE dispute_status AS ENUM ('OPEN','UNDER_REVIEW','RESOLVED_BUYER','RESOLVED_SELLER','CLOSED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
           DO $$ BEGIN CREATE TYPE saved_item_type AS ENUM ('SERVICE','PROJECT','BARTER'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
           DO $$ BEGIN CREATE TYPE dispute_target AS ENUM ('ORDER','PROJECT','BARTER'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
@@ -169,6 +169,7 @@ app.set("io", io);
           DO $$ BEGIN CREATE TYPE report_status AS ENUM ('OPEN','RESOLVED','DISMISSED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
           DO $$ BEGIN CREATE TYPE kyc_status AS ENUM ('PENDING','APPROVED','REJECTED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
           DO $$ BEGIN CREATE TYPE referral_status AS ENUM ('PENDING','PAID','VOIDED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE job_application_status AS ENUM ('PENDING','REVIEWED','ACCEPTED','REJECTED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
           ALTER TYPE transaction_type ADD VALUE IF NOT EXISTS 'REFERRAL_REWARD';
         `);
         logger.info("migrate: enums ready");
@@ -234,14 +235,16 @@ app.set("io", io);
           CREATE TABLE IF NOT EXISTS user_subscriptions (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-            plan_id plan_id NOT NULL DEFAULT 'free',
+            plan_id plan_id NOT NULL DEFAULT 'starter',
             started_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
             expires_at TIMESTAMPTZ,
-            proposal_credits_remaining INTEGER NOT NULL DEFAULT 3,
+            proposal_credits_remaining INTEGER NOT NULL DEFAULT 2,
             featured_proposals_remaining INTEGER NOT NULL DEFAULT 0,
             credits_reset_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            bids_reset_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
             updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
           );
+          ALTER TABLE user_subscriptions ADD COLUMN IF NOT EXISTS bids_reset_at TIMESTAMPTZ DEFAULT NOW() NOT NULL;
 
           CREATE TABLE IF NOT EXISTS freelance_wallets (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -595,6 +598,34 @@ app.set("io", io);
           );
           CREATE INDEX IF NOT EXISTS idx_tool_leads_next_followup ON tool_leads(next_followup_at);
           CREATE INDEX IF NOT EXISTS idx_tool_leads_email ON tool_leads(email);
+
+          CREATE TABLE IF NOT EXISTS jobs (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            title TEXT NOT NULL,
+            company TEXT NOT NULL,
+            location TEXT,
+            type TEXT DEFAULT 'Full-time' NOT NULL,
+            salary_range TEXT,
+            description TEXT NOT NULL,
+            skills TEXT[] DEFAULT '{}',
+            posted_by_id UUID REFERENCES users(id) ON DELETE SET NULL,
+            is_active BOOLEAN DEFAULT TRUE NOT NULL,
+            application_deadline TIMESTAMPTZ,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
+
+          CREATE TABLE IF NOT EXISTS job_applications (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            job_id UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+            applicant_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            message TEXT,
+            status job_application_status DEFAULT 'PENDING' NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
+          CREATE INDEX IF NOT EXISTS idx_jobs_active_created ON jobs(is_active, created_at DESC);
+          CREATE INDEX IF NOT EXISTS idx_job_applications_job ON job_applications(job_id);
+          CREATE INDEX IF NOT EXISTS idx_job_applications_applicant ON job_applications(applicant_id);
         `);
       } catch (e: unknown) {
         logger.error({ err: e }, "migrate: table creation failed");

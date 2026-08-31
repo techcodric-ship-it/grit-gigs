@@ -247,6 +247,10 @@ a{text-decoration:none;color:inherit;}
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       Reports
     </button>
+    <button class="ni" data-p="jobs">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      Jobs
+    </button>
     <button class="ni" data-p="kyc">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
       KYC Reviews
@@ -362,6 +366,26 @@ a{text-decoration:none;color:inherit;}
     <span style="font-size:.78rem;color:var(--muted)" id="reportPageInfo">Page 1</span>
     <button class="btn bs btn-sm" id="reportNextPage" onclick="loadReports(currentReportPage+1)">Next →</button>
   </div>
+</div>
+
+<!-- ═══ JOBS ═══ -->
+<div class="ps" id="ps-jobs">
+  <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+    <div>
+      <h1 style="font-size:1.2rem;">Manage Jobs</h1>
+      <p style="font-size:.82rem;color:var(--muted);margin-top:3px;">Full-time job listings and their applications.</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <select class="fi" id="jobStatusFilter" onchange="loadAdminJobs()" style="width:auto;padding:6px 10px;font-size:.76rem;">
+        <option value="">All Jobs</option>
+        <option value="active">Active</option>
+        <option value="paused">Paused</option>
+      </select>
+      <button class="btn bs btn-sm" onclick="loadAdminJobs()">⟳ Refresh</button>
+      <button class="btn bp btn-sm" onclick="openJobModal()">+ Post Job</button>
+    </div>
+  </div>
+  <div id="adminJobsList"></div>
 </div>
 
 <!-- ═══ KYC ═══ -->
@@ -561,6 +585,76 @@ a{text-decoration:none;color:inherit;}
   </div>
 </div>
 
+<!-- ═══ JOB MODAL ═══ -->
+<div class="mo" id="jobModal">
+  <div class="md" style="max-width:560px;">
+    <button class="mc" onclick="closeModal('jobModal')">✕</button>
+    <h2 class="mh" id="jobModalTitle">Post a Job</h2>
+    <p class="ms" style="font-size:.82rem;color:var(--muted);margin-bottom:12px;">Create or update a full-time job listing shown on the user dashboard.</p>
+    <input type="hidden" id="jobId"/>
+    <div class="fg">
+      <label class="fl">Job title</label>
+      <input class="fi" id="jobTitle" placeholder="e.g. Senior React Developer"/>
+    </div>
+    <div class="fg">
+      <label class="fl">Company</label>
+      <input class="fi" id="jobCompany" placeholder="e.g. Acme Corp"/>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="fg" style="margin:0;">
+        <label class="fl">Location</label>
+        <input class="fi" id="jobLocation" placeholder="e.g. Remote / Bangalore"/>
+      </div>
+      <div class="fg" style="margin:0;">
+        <label class="fl">Job type</label>
+        <select class="fi" id="jobType">
+          <option value="Full-time">Full-time</option>
+          <option value="Part-time">Part-time</option>
+          <option value="Contract">Contract</option>
+          <option value="Internship">Internship</option>
+          <option value="Remote">Remote</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+      <div class="fg" style="margin:0;">
+        <label class="fl">Salary (₹)</label>
+        <input class="fi" id="jobSalary" placeholder="e.g. 1200000"/>
+      </div>
+      <div class="fg" style="margin:0;">
+        <label class="fl">Application deadline</label>
+        <input class="fi" type="date" id="jobDeadline"/>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">Skills (comma separated)</label>
+      <input class="fi" id="jobSkills" placeholder="e.g. React, Node.js, TypeScript"/>
+    </div>
+    <div class="fg">
+      <label class="fl">Description</label>
+      <textarea class="fi" id="jobDescription" rows="4" placeholder="Role description, responsibilities, requirements..." style="resize:vertical;"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
+      <button class="btn bs" onclick="closeModal('jobModal')">Cancel</button>
+      <button class="btn bp" id="saveJobBtn" onclick="saveJob()">Post Job</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ JOB APPLICANTS MODAL ═══ -->
+<div class="mo" id="jobAppModal">
+  <div class="md" style="max-width:640px;">
+    <button class="mc" onclick="closeModal('jobAppModal')">✕</button>
+    <h2 class="mh" id="jobAppModalTitle">Applications</h2>
+    <div class="tbl-wrap" style="max-height:60vh;overflow:auto;">
+      <table class="tbl"><thead><tr><th></th><th>Applicant</th><th>Message</th><th>Status</th><th>Update</th></tr></thead><tbody id="jobApplicantsList"></tbody></table>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+      <button class="btn bs" onclick="closeModal('jobAppModal')">Close</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const API = '/api';
 const KEY_STORE = 'admin_api_key';
@@ -744,6 +838,7 @@ function loadPage(n) {
   if (n==='overview') loadStats();
   else if (n==='users') loadUsers(1);
   else if (n==='reports') loadReports(1);
+  else if (n==='jobs') loadAdminJobs();
   else if (n==='kyc') loadKyc();
   else if (n==='messages') { loadAdminConversations(); }
   else if (n==='email') {}
@@ -752,6 +847,159 @@ function loadPage(n) {
   else if (n==='referrals') loadReferrals();
   else if (n==='tool-leads') loadToolLeads();
 }
+
+// ─── JOBS MANAGEMENT ───
+let activeJobAppJobId = null, activeJobAppJobTitle = '';
+async function loadAdminJobs() {
+  const list = document.getElementById('adminJobsList');
+  list.innerHTML = `<div class="empty"><div class="empty-title">Loading...</div></div>`;
+  const filter = document.getElementById('jobStatusFilter').value;
+  try {
+    const r = await api('/admin/jobs');
+    let jobs = Array.isArray(r.data) ? r.data : [];
+    if (filter === 'active') jobs = jobs.filter(j => j.isActive);
+    else if (filter === 'paused') jobs = jobs.filter(j => !j.isActive);
+    if (!jobs.length) {
+      list.innerHTML = `<div class="empty"><div class="empty-title">No jobs posted yet</div><div class="empty-sub">Click "Post Job" to create the first listing.</div></div>`;
+      return;
+    }
+    list.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Job</th><th>Company</th><th>Type</th><th>Salary</th><th>Deadline</th><th>Applicants</th><th>Status</th><th></th></tr></thead><tbody>${jobs.map(j => {
+      const brand = j.company ? j.company[0] : (j.title||'J')[0];
+      const active = j.isActive;
+      return `<tr>
+        <td class="tdt"><strong>${esc(j.title)}</strong><div style="font-size:.68rem;color:var(--muted);">${esc(j.location||'')}</div></td>
+        <td class="tdt">${esc(j.company||'')}</td>
+        <td>${esc(j.type||'Full-time')}</td>
+        <td>${esc(j.salaryRange||'—')}</td>
+        <td>${j.applicationDeadline ? new Date(j.applicationDeadline).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '—'}</td>
+        <td><button class="btn bs btn-sm" onclick="openJobApplicants('${j.id}',this.dataset.t)" data-t="${esc(j.title)}">${j.applicants||0} view</button></td>
+        <td>${active?'<span style="color:var(--ok);font-weight:600;">Active</span>':'<span style="color:var(--err);font-weight:600;">Paused</span>'}</td>
+        <td style="white-space:nowrap;">
+          <button class="btn bs btn-xs" onclick="openJobModal('${j.id}')">Edit</button>
+          <button class="btn bs btn-xs" onclick="toggleJob('${j.id}',${active})">${active?'Pause':'Activate'}</button>
+          <button class="btn bs btn-xs" style="color:var(--err);" onclick="deleteJob('${j.id}')">Delete</button>
+        </td>
+      </tr>`;
+    }).join('')}</tbody></table></div>`;
+  } catch(e) { list.innerHTML = `<div class="empty"><div class="empty-title">Failed to load jobs</div><div class="empty-sub">${esc(e.message)}</div></div>`; }
+}
+
+async function openJobModal(id) {
+  document.getElementById('jobId').value = '';
+  document.getElementById('jobTitle').value = '';
+  document.getElementById('jobCompany').value = '';
+  document.getElementById('jobLocation').value = '';
+  document.getElementById('jobType').value = 'Full-time';
+  document.getElementById('jobSalary').value = '';
+  document.getElementById('jobDeadline').value = '';
+  document.getElementById('jobSkills').value = '';
+  document.getElementById('jobDescription').value = '';
+  document.getElementById('jobModalTitle').textContent = 'Post a Job';
+  document.getElementById('saveJobBtn').textContent = 'Post Job';
+  if (id) {
+    try {
+      const r = await api('/admin/jobs');
+      const jobs = Array.isArray(r.data) ? r.data : [];
+      const j = jobs.find(x => x.id === id);
+      if (!j) { notify('Job not found','err'); return; }
+      document.getElementById('jobId').value = j.id;
+      document.getElementById('jobTitle').value = j.title||'';
+      document.getElementById('jobCompany').value = j.company||'';
+      document.getElementById('jobLocation').value = j.location||'';
+      document.getElementById('jobType').value = j.type||'Full-time';
+      document.getElementById('jobSalary').value = j.salaryRange||'';
+      document.getElementById('jobDeadline').value = j.applicationDeadline ? new Date(j.applicationDeadline).toISOString().slice(0,10) : '';
+      document.getElementById('jobSkills').value = (Array.isArray(j.skills)?j.skills:[]).join(', ');
+      document.getElementById('jobDescription').value = j.description||'';
+      document.getElementById('jobModalTitle').textContent = 'Edit Job';
+      document.getElementById('saveJobBtn').textContent = 'Save Changes';
+    } catch(e) { notify(e.message||'Failed to load job','err'); return; }
+  }
+  openModal('jobModal');
+}
+
+async function saveJob() {
+  const id = document.getElementById('jobId').value;
+  const title = document.getElementById('jobTitle').value.trim();
+  const company = document.getElementById('jobCompany').value.trim();
+  const location = document.getElementById('jobLocation').value.trim();
+  const type = document.getElementById('jobType').value;
+  const salaryRange = document.getElementById('jobSalary').value.trim();
+  const deadlineVal = document.getElementById('jobDeadline').value;
+  const skillsStr = document.getElementById('jobSkills').value.trim();
+  const description = document.getElementById('jobDescription').value.trim();
+  if (!title || !company || !description) { notify('Title, company, and description are required','err'); return; }
+  const skills = skillsStr ? skillsStr.split(',').map(s=>s.trim()).filter(Boolean) : [];
+  const payload = { title, company, location, type, salaryRange, description, skills, applicationDeadline: deadlineVal || null };
+  const btn = document.getElementById('saveJobBtn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    if (id) {
+      await api('/admin/jobs/' + id, { method:'PUT', body:JSON.stringify(payload) });
+      notify('Job updated','ok');
+    } else {
+      await api('/admin/jobs', { method:'POST', body:JSON.stringify(payload) });
+      notify('Job posted','ok');
+    }
+    closeModal('jobModal');
+    loadAdminJobs();
+  } catch(e) { notify(e.message||'Failed to save', 'err'); }
+  finally { btn.disabled = false; btn.textContent = id ? 'Save Changes' : 'Post Job'; }
+}
+
+async function toggleJob(id, currentlyActive) {
+  try {
+    await api('/admin/jobs/' + id, { method:'PUT', body:JSON.stringify({ isActive: !currentlyActive }) });
+    notify(currentlyActive ? 'Job paused' : 'Job activated', 'ok');
+    loadAdminJobs();
+  } catch(e) { notify(e.message||'Failed','err'); }
+}
+
+function deleteJob(id) {
+  if (!confirm('Delete this job permanently? All its applications will also be removed.')) return;
+  api('/admin/jobs/' + id, { method:'DELETE' }).then(() => { notify('Job deleted','ok'); loadAdminJobs(); }).catch(e => notify(e.message||'Failed','err'));
+}
+
+async function openJobApplicants(jobId, title) {
+  activeJobAppJobId = jobId;
+  activeJobAppJobTitle = title || 'Job';
+  const el = document.getElementById('jobApplicantsList');
+  el.innerHTML = `<tr><td colspan="5"><div class="empty"><div class="empty-title">Loading applications...</div></div></td></tr>`;
+  document.getElementById('jobAppModalTitle').textContent = 'Applications - ' + (activeJobAppJobTitle);
+  openModal('jobAppModal');
+  try {
+    const r = await api('/admin/jobs/' + jobId + '/applications');
+    const rows = Array.isArray(r.data) ? r.data : [];
+    el.innerHTML = !rows.length ? `<tr><td colspan="5"><div class="empty"><div class="empty-title">No applications yet</div></div></td></tr>` : rows.map(row => {
+      const a = row.applicant || {};
+      const app = row.application || {};
+      const st = app.status || 'PENDING';
+      return `<tr>
+        <td>${a.profilePhoto ? `<img src="${esc(a.profilePhoto)}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;"/>` : `<div class="av" style="width:30px;height:30px;font-size:10px;flex-shrink:0;">${((a.firstName||'?')[0]).toUpperCase()}</div>`}</td>
+        <td class="tdt">${esc((a.firstName||'')+' '+(a.lastName||''))}<div style="font-size:.68rem;color:var(--muted);">${esc(a.email||'')}</div>${a.kycVerified?'<span style="font-size:.62rem;color:var(--ok);">KYC verified</span>':''}</td>
+        <td class="tdt" style="font-size:.74rem;">${esc(app.message||'—')}</td>
+        <td><span style="font-weight:600;color:${st==='ACCEPTED'?'var(--ok)':st==='REJECTED'?'var(--err)':st==='REVIEWED'?'var(--gold)':'var(--muted)'};">${st}</span></td>
+        <td>
+          <select class="fi" style="width:auto;padding:4px 6px;font-size:.7rem;" onchange="updateJobApplication('${app.id}',this.value)">
+            <option value="PENDING" ${st==='PENDING'?'selected':''}>Pending</option>
+            <option value="REVIEWED" ${st==='REVIEWED'?'selected':''}>Reviewed</option>
+            <option value="ACCEPTED" ${st==='ACCEPTED'?'selected':''}>Accept</option>
+            <option value="REJECTED" ${st==='REJECTED'?'selected':''}>Reject</option>
+          </select>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch(e) { el.innerHTML = `<tr><td colspan="5"><div class="empty"><div class="empty-sub">${esc(e.message)}</div></div></td></tr>`; }
+}
+
+async function updateJobApplication(applicationId, status) {
+  try {
+    await api('/admin/jobs/' + activeJobAppJobId + '/applications/' + applicationId, { method:'PUT', body:JSON.stringify({ status }) });
+    notify('Application updated','ok');
+  } catch(e) { notify(e.message||'Failed to update','err'); }
+}
+
+
 
 async function sendAdminEmail() {
   const to = document.getElementById('emailTo').value.trim();

@@ -203,7 +203,7 @@
         x.open('GET', '/api/subscriptions/my-plan', false);
         x.setRequestHeader('Authorization', 'Bearer ' + t);
         x.setRequestHeader('Content-Type', 'application/json');
-        try { x.send(); var pr = JSON.parse(x.responseText); if (pr.success && pr.data.plan) { var b = pr.data.plan.badge;           planBadge = b ? (function(){var g={STARTER:'#059669',PRO:'#7C3AED',ELITE:'#D97706'};return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+(g[b]||'#6C3FE8')+';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">'+b+'</span>';})() : '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Free</span>'; try{localStorage.setItem('se_plan_cache',JSON.stringify({badge:b||null}));}catch(e){} } } catch(e) {}
+        try { x.send(); var pr = JSON.parse(x.responseText); if (pr.success && pr.data.plan) { var b = pr.data.plan.badge;           planBadge = b ? (function(){var g={STARTER:'#059669',PRO:'#7C3AED',SQUAD:'#D97706'};return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+(g[b]||'#6C3FE8')+';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">'+b+'</span>';})() : '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Starter</span>'; try{localStorage.setItem('se_plan_cache',JSON.stringify({badge:b||null}));}catch(e){} } } catch(e) {}
         el.innerHTML = planBadge + '<a href="/dashboard" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
           '<button class="btn btn-primary btn-sm" onclick="window.doLogout();">Sign out</button>';
       }
@@ -262,34 +262,34 @@
 <div class="cat-pills-wrap">
   <div class="cat-pills-inner">
     <button class="cat-pill-btn active" data-cat="">
-      <span class="cat-pill-icon">🌐</span> All Projects
+      <span class="cat-pill-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg></span> All Projects
     </button>
     <button class="cat-pill-btn" data-cat="Design &amp; Creative">
-      <span class="cat-pill-icon">🎨</span> Design
+      <span class="cat-pill-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;" aria-hidden="true"><circle cx="13.5" cy="6.5" r="2.5"/><path d="M13.5 2.5c-5 0-9 3.5-9 8a7 7 0 0 0 9 6.7V19a1.5 1.5 0 0 1-3 0v-.8c-2.5.7-3 .9-5 2.3 2.6 1.9 6 2 8.7.6A7 7 0 0 0 22.5 10.2c0-4.5-4-7.7-9-7.7z"/></svg></span> Design
     </button>
     <button class="cat-pill-btn" data-cat="Development">
-      <span class="cat-pill-icon">💻</span> Development
+      <span class="cat-pill-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;" aria-hidden="true"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 9l-3 3 3 3M16 9l3 3-3 3M13 6l-2 10"/></svg></span> Development
     </button>
     <button class="cat-pill-btn" data-cat="Writing &amp; Content">
-      <span class="cat-pill-icon">✍️</span> Writing
+      <span class="cat-pill-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span> Writing
     </button>
     <button class="cat-pill-btn" data-cat="Digital Marketing">
-      <span class="cat-pill-icon">📣</span> Marketing
+      <span class="cat-pill-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;" aria-hidden="true"><path d="M3 11v2h3l4 4V5L6 9H3z"/><path d="M14 8a5 5 0 0 1 0 8M17 5a9 9 0 0 1 0 14"/></svg></span> Marketing
     </button>
     <button class="cat-pill-btn" data-cat="Video &amp; Animation">
-      <span class="cat-pill-icon">🎬</span> Video
+      <span class="cat-pill-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;" aria-hidden="true"><rect x="2" y="5" width="14" height="14" rx="2"/><path d="M16 10l6-3v10l-6-3"/></svg></span> Video
     </button>
     <button class="cat-pill-btn" data-cat="Business">
-      <span class="cat-pill-icon">💼</span> Business
+      <span class="cat-pill-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></span> Business
     </button>
     <button class="cat-pill-btn" data-cat="Music &amp; Audio">
-      <span class="cat-pill-icon">🎵</span> Audio
+      <span class="cat-pill-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span> Audio
     </button>
     <button class="cat-pill-btn" data-cat="Data &amp; Analytics">
-      <span class="cat-pill-icon">📊</span> Data
+      <span class="cat-pill-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;" aria-hidden="true"><path d="M18 20V10M12 20V4M6 20v-5"/></svg></span> Data
     </button>
     <button class="cat-pill-btn" data-cat="Education">
-      <span class="cat-pill-icon">🎓</span> Education
+      <span class="cat-pill-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;" aria-hidden="true"><path d="M22 9L12 4 2 9l10 5 10-5z"/><path d="M6 11v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5M22 9v6"/></svg></span> Education
     </button>
   </div>
 </div>
@@ -361,7 +361,7 @@
       </select>
     </div>
     <div class="proj-list" id="projList">
-      <div class="proj-empty"><div class="proj-empty-icon">⏳</div><div class="proj-empty-title">Loading projects...</div></div>
+      <div class="proj-empty"><div class="proj-empty-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9B5E00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div><div class="proj-empty-title">Loading projects...</div></div>
     </div>
     <div id="projPagination"></div>
   </div>
@@ -389,7 +389,7 @@
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;">
         <input type="checkbox" id="propHighlight" style="width:16px;height:16px;accent-color:#F59E0B;cursor:pointer;flex-shrink:0;margin-top:1px;"/>
         <div>
-          <div style="font-weight:600;font-size:.82rem;color:#1C1C2E;">🌟 Highlight your proposal</div>
+          <div style="font-weight:600;font-size:.82rem;color:#1C1C2E;display:flex;align-items:center;gap:6px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#E8A020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0;" aria-hidden="true"><path d="M12 2l3 6 6.5.9-4.7 4.6 1.1 6.5L12 17.8 6.1 20l1.1-6.5L2.5 8.9 9 8z"/></svg>Highlight your proposal</div>
           <div style="font-size:.72rem;color:#6B6880;margin-top:2px;">Stand out — your bid appears at the top with a gold badge.</div>
         </div>
       </label>
@@ -402,7 +402,7 @@
       <label class="form-lbl">Portfolio / Relevant Work URL</label>
       <input type="url" class="form-inp" id="propPortfolio" placeholder="https://..."/>
     </div>
-    <button class="btn-submit-prop" id="propSubmitBtn" onclick="submitProposal()">📨 Submit Proposal</button>
+    <button class="btn-submit-prop" id="propSubmitBtn" onclick="submitProposal()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 6 10-6"/></svg>Submit Proposal</button>
     <p style="font-size:.72rem;color:#6B6880;text-align:center;margin-top:10px;">Your proposal will be visible to the client immediately</p>
   </div>
 </div>
@@ -510,7 +510,7 @@ async function _api(ep, opts = {}) {
 
 function _toast(msg, type = 'info') {
   const t = document.getElementById('toast');
-  t.textContent = msg;
+  t.innerHTML = msg;
   t.style.background = type === 'error' ? '#C0392B' : type === 'success' ? '#1A7A5E' : '#1C1C2E';
   t.style.transform = 'translateY(0)'; t.style.opacity = '1';
   setTimeout(() => { t.style.transform = 'translateY(80px)'; t.style.opacity = '0'; }, 3500);
@@ -518,7 +518,7 @@ function _toast(msg, type = 'info') {
 
 function _starsHtml(avg, cnt) { if (cnt === undefined || cnt === null) return ''; return cnt > 0 ? '<span style="color:#F59E0B;letter-spacing:1px;font-size:.6rem;">★★★★★</span> ' + (+avg||0).toFixed(1) + ' <span style="color:var(--text-muted);font-weight:400;font-size:.6rem;">(' + cnt + ')</span>' : '<span style="color:var(--text-muted);font-size:.6rem;">No reviews</span>'; }
 function kycBadge(v) { return v ? '<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">✓ KYC</span>' : ''; }
-  function planBadge(v) { if (!v) return ''; var g={STARTER:'#059669',PRO:'#7C3AED',ELITE:'#D97706'}; return '<span style="display:inline-flex;align-items:center;gap:2px;background:' + (g[v]||'#6C3FE8') + ';color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>'; }
+  function planBadge(v) { if (!v) return ''; var g={STARTER:'#059669',PRO:'#7C3AED',SQUAD:'#D97706'}; return '<span style="display:inline-flex;align-items:center;gap:2px;background:' + (g[v]||'#6C3FE8') + ';color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>'; }
 function _timeAgo(d) {
   if (!d) return '';
   const diff = Date.now() - new Date(d).getTime();
@@ -590,10 +590,10 @@ document.getElementById('heroSearch').addEventListener('keydown', e => {
 
 // ── Load from API ──
 async function loadProjects() {
-  document.getElementById('projList').innerHTML = '<div class="proj-empty"><div class="proj-empty-icon">⏳</div><div class="proj-empty-title">Loading projects...</div></div>';
+  document.getElementById('projList').innerHTML = '<div class="proj-empty"><div class="proj-empty-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9B5E00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div><div class="proj-empty-title">Loading projects...</div></div>';
   const d = await _api('/projects?limit=50');
   if (!d.success) {
-    document.getElementById('projList').innerHTML = '<div class="proj-empty"><div class="proj-empty-icon">⚠️</div><div class="proj-empty-title">Could not load projects</div><div class="proj-empty-sub">Make sure the server is running on port 5000.</div></div>';
+    document.getElementById('projList').innerHTML = '<div class="proj-empty"><div class="proj-empty-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#B7791F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;" aria-hidden="true"><path d="M10.3 3.1L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.1a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></div><div class="proj-empty-title">Could not load projects</div><div class="proj-empty-sub">Make sure the server is running on port 5000.</div></div>';
     return;
   }
   _state.allProjects = d.data.projects || [];
@@ -661,10 +661,10 @@ async function openProjectDetail(projectId) {
         ${isOwn
           ? '<div style="background:rgba(108,63,232,.08);border-radius:12px;padding:14px 16px;font-size:.84rem;color:var(--violet);text-align:center;">This is your project — view proposals in your <a href="/dashboard#my-projects" style="font-weight:700;color:var(--violet);text-decoration:underline;">Dashboard</a></div>'
           : p.status !== 'OPEN'
-            ? `<div style="background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.2);border-radius:12px;padding:14px 16px;font-size:.84rem;color:#16A34A;text-align:center;">${p.status === 'COMPLETED' ? '✅ This project has been completed' : p.status === 'IN_PROGRESS' || p.status === 'REVISION_REQUESTED' ? '⏳ This project is already in progress' : p.status === 'DELIVERED' ? '⏳ Work delivered — pending approval' : 'This project is no longer accepting proposals'}</div>`
+            ? `<div style="background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.2);border-radius:12px;padding:14px 16px;font-size:.84rem;color:#16A34A;text-align:center;">${p.status === 'COMPLETED' ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12.5l2.5 2.5L16 9"/></svg>This project has been completed' : p.status === 'IN_PROGRESS' || p.status === 'REVISION_REQUESTED' ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>This project is already in progress' : p.status === 'DELIVERED' ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Work delivered — pending approval' : 'This project is no longer accepting proposals'}</div>`
             : alreadyBid
               ? `<div style="background:rgba(26,122,94,.08);border:1px solid rgba(26,122,94,.2);border-radius:12px;padding:14px 16px;font-size:.84rem;color:#1A7A5E;text-align:center;">✓ You have submitted a proposal of <strong>₹${alreadyBid.amount?.toLocaleString('en-IN')}</strong> for this project</div>`
-              : `<button class="btn-submit-prop" style="border-radius:12px;background:linear-gradient(135deg,#6C3FE8,#2980b9);box-shadow:0 3px 14px rgba(108,63,232,.35);font-size:.9rem;" onclick="this.closest('.proposal-mo').remove();document.body.style.overflow='';openProposalModal('${p.id}','${(p.title||'').replace(/'/g,"\\'").replace(/"/g,"&quot;")}',${p.budgetMin||0},${p.budgetMax||0})">📨 Submit Proposal</button>`
+              : `<button class="btn-submit-prop" style="border-radius:12px;background:linear-gradient(135deg,#6C3FE8,#2980b9);box-shadow:0 3px 14px rgba(108,63,232,.35);font-size:.9rem;" onclick="this.closest('.proposal-mo').remove();document.body.style.overflow='';openProposalModal('${p.id}','${(p.title||'').replace(/'/g,"\\'").replace(/"/g,"&quot;")}',${p.budgetMin||0},${p.budgetMax||0})"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 6 10-6"/></svg>Submit Proposal</button>`
         }
       </div>
     </div>`;
@@ -696,20 +696,20 @@ async function openProposalModal(projectId, title, budgetMin, budgetMax) {
     const planRes = await _api('/subscriptions/my-plan');
     if (planRes.success) {
       const p = planRes.data;
-      const propLeft = p.proposalCreditsRemaining;
+      const propLeft = p.bidCreditsRemaining;
       const propUnlimited = propLeft === -1;
-      const planName = p.plan?.name || 'Free';
+      const planName = p.plan?.name || 'Starter';
       const planBadge = p.plan?.badge || '';
       const planLabel = planBadge
-        ? (function(){var g={STARTER:'#059669',PRO:'#7C3AED',ELITE:'#D97706'};return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+(g[planBadge]||'#6C3FE8')+';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;vertical-align:middle;">${planBadge}</span>';})()
+        ? (function(){var g={STARTER:'#059669',PRO:'#7C3AED',SQUAD:'#D97706'};return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+(g[planBadge]||'#6C3FE8')+';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;vertical-align:middle;">${planBadge}</span>';})()
         : `<span style="font-size:.65rem;color:var(--violet);font-weight:600;vertical-align:middle;">${planName}</span>`;
       const propText = propUnlimited
-        ? '<span style="color:#1A7A5E;font-weight:600;">♾️ Unlimited proposals</span>'
-        : `<span style="font-weight:600;color:${propLeft > 0 ? 'var(--ink)' : '#C0392B'};">📝 ${propLeft} proposal credit${propLeft !== 1 ? 's' : ''}</span>`;
+        ? '<span style="color:#1A7A5E;font-weight:600;display:inline-flex;align-items:center;gap:6px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0;" aria-hidden="true"><path d="M18 8c1.7 0 3 1.2 3 3s-1 3-3 3c-4 0-3-6-7-6S8 14 7 14c-2 0-3-1.2-3-3s1.3-3 3-3c4 0 3 6 7 6s3-6 4-6z"/></svg>Unlimited project bids</span>'
+        : `<span style="font-weight:600;color:${propLeft > 0 ? 'var(--ink)' : '#C0392B'};display:inline-flex;align-items:center;gap:6px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0;" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>${propLeft} project bid${propLeft !== 1 ? 's' : ''} left this week</span>`;
       const upgradeLink = (!propUnlimited && propLeft <= 0)
-        ? '<div style="margin-top:6px;"><a href="/dashboard?tab=plans" style="color:var(--violet);font-weight:600;font-size:.78rem;">⬆ Upgrade your plan</a></div>'
+        ? '<div style="margin-top:6px;"><a href="/dashboard?tab=plans" style="color:var(--violet);font-weight:600;font-size:.78rem;display:inline-flex;align-items:center;gap:6px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0;" aria-hidden="true"><path d="M12 19V9M7 14l5-5 5 5M5 21h14"/></svg>Upgrade your plan</a></div>'
         : '';
-      const highlightHint = `<div style="margin-top:4px;font-size:.7rem;color:#D69E2E;">🌟 Highlight costs ₹50 from wallet</div>`;
+      const highlightHint = `<div style="margin-top:4px;font-size:.7rem;color:#D69E2E;display:flex;align-items:center;gap:6px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D69E2E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0;" aria-hidden="true"><path d="M12 2l3 6 6.5.9-4.7 4.6 1.1 6.5L12 17.8 6.1 20l1.1-6.5L2.5 8.9 9 8z"/></svg>Highlight costs ₹50 from wallet</div>`;
       const creditsBlocked = !propUnlimited && propLeft <= 0;
       planHtml = `<div style="background:rgba(10,10,15,.03);border:1px solid rgba(10,10,15,.07);border-radius:10px;padding:10px 14px;margin-bottom:14px;">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;font-size:.8rem;">
@@ -717,7 +717,7 @@ async function openProposalModal(projectId, title, budgetMin, budgetMax) {
           ${upgradeLink}
         </div>
         ${highlightHint}
-        ${creditsBlocked ? '<div style="margin-top:6px;font-size:.7rem;color:#C0392B;font-weight:600;">⬆ No proposal credits left — upgrade to submit proposals</div>' : ''}
+        ${creditsBlocked ? '<div style="margin-top:6px;font-size:.7rem;color:#C0392B;font-weight:600;display:inline-flex;align-items:center;gap:6px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0;" aria-hidden="true"><path d="M12 19V9M7 14l5-5 5 5M5 21h14"/></svg>No project bids left — upgrade to submit bids</div>' : ''}
       </div>`;
       // Disable submit button when no credits
       const submitBtn = document.getElementById('propSubmitBtn');
@@ -760,19 +760,19 @@ async function submitProposal() {
     body: JSON.stringify(body)
   });
 
-  btn.disabled = false; btn.textContent = '📨 Submit Proposal';
+  btn.disabled = false; btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 6 10-6"/></svg>Submit Proposal';
 
   if (d.success) {
     closeProposalModal();
-    var msg = '🎉 Proposal submitted!';
-    if (highlight && d.data?.bid?.isHighlighted) msg += ' 🌟 Highlighted!';
+    var msg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;" aria-hidden="true"><path d="M20.8 4.2a2 2 0 0 0-3-3l-8.6 8.6a6 6 0 0 0 2 5.4L20.8 7.2"/></svg>Proposal submitted!';
+    if (highlight && d.data?.bid?.isHighlighted) msg += ' <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#E8A020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;" aria-hidden="true"><path d="M12 2l3 6 6.5.9-4.7 4.6 1.1 6.5L12 17.8 6.1 20l1.1-6.5L2.5 8.9 9 8z"/></svg>Highlighted!';
     _toast(msg, 'success');
     await loadProjects(); // Refresh to update "Applied" state
   } else if (d._highlightFailed) {
     _toast(d.message, 'error');
   } else if (d._creditsExhausted) {
-    _toast('No proposal credits left. Upgrade your plan!', 'error');
-    document.getElementById('proposalPlanInfo').innerHTML = '<div style="background:#FFF0F0;border:1px solid #F5C6C6;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:.8rem;color:#C0392B;text-align:center;">You\'ve used all your free proposal credits. <a href="/dashboard?tab=plans" style="color:var(--violet);font-weight:700;">Upgrade your plan →</a></div>';
+    _toast('No project bids left. Upgrade your plan!', 'error');
+    document.getElementById('proposalPlanInfo').innerHTML = '<div style="background:#FFF0F0;border:1px solid #F5C6C6;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:.8rem;color:#C0392B;text-align:center;">You\'ve used all your free project bids. <a href="/dashboard?tab=plans" style="color:var(--violet);font-weight:700;">Upgrade your plan →</a></div>';
   } else {
     _toast(d.message || 'Failed to submit proposal', 'error');
   }
@@ -811,8 +811,8 @@ async function _refreshNavWithPlan(u) {
     if (pr.success && pr.data.plan) {
       const b = pr.data.plan.badge;
       planBadge = b
-        ? (function(){var g={STARTER:'#059669',PRO:'#7C3AED',ELITE:'#D97706'};return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+(g[b]||'#6C3FE8')+';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">'+b+'</span>';})()
-        : '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Free</span>';
+        ? (function(){var g={STARTER:'#059669',PRO:'#7C3AED',SQUAD:'#D97706'};return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+(g[b]||'#6C3FE8')+';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">'+b+'</span>';})()
+        : '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Starter</span>';
     }
   } catch(e) {}
   el.innerHTML = planBadge + '<a href="/dashboard" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' + '<button class="btn btn-primary btn-sm" onclick="window.doLogout();">Sign out</button>';
@@ -908,7 +908,7 @@ renderProjects = function() {
   document.getElementById('projCount').innerHTML = `Showing <strong>${totalFiltered}</strong> open project${totalFiltered !== 1 ? 's' : ''}${_state.cat ? ' in <strong>' + _state.cat + '</strong>' : ''}${_state.q ? ' for "<strong>' + _state.q + '</strong>"' : ''}${totalPages > 1 ? ' · Page ' + _projPage + ' of ' + totalPages : ''}`;
 
   if (!pageProjects.length) {
-    document.getElementById('projList').innerHTML = '<div class="proj-empty"><div class="proj-empty-icon">🔍</div><div class="proj-empty-title">No projects found</div><div class="proj-empty-sub">Try a different search or clear the filters.</div><button class="btn btn-primary btn-sm" onclick="clearFilters()" style="margin:0 auto;">Clear Filters</button></div>';
+    document.getElementById('projList').innerHTML = '<div class="proj-empty"><div class="proj-empty-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg></div><div class="proj-empty-title">No projects found</div><div class="proj-empty-sub">Try a different search or clear the filters.</div><button class="btn btn-primary btn-sm" onclick="clearFilters()" style="margin:0 auto;">Clear Filters</button></div>';
     document.getElementById('projPagination').innerHTML = '';
     return;
   }
@@ -937,18 +937,18 @@ renderProjects = function() {
       <div class="proj-card-footer">
         <div>
           <div class="proj-card-budget">${budgetStr}</div>
-          ${p.deadline ? `<div class="proj-card-deadline">📅 Due ${new Date(p.deadline).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>` : ''}
+          ${p.deadline ? `<div class="proj-card-deadline" style="display:inline-flex;align-items:center;gap:4px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0;" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Due ${new Date(p.deadline).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>` : ''}
         </div>
         <div class="proj-card-client">
           ${p.user?.profilePhoto ? `<img src="${p.user.profilePhoto}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;"/>` : `<div class="proj-client-av">${clientInitials}</div>`}
           <span class="proj-client-name">${p.user?.firstName||'Client'}${kycBadge(p.user?.kycVerified)}${planBadge(p.user?.planBadge)}${banBadge(p.user)} ${_starsHtml(p.user?.avgRating, p.user?.reviewCount)}</span>
         </div>
         <div class="proj-card-actions" onclick="event.stopPropagation()">
-          <button class="btn-share" onclick="shareItem('projects','${p.id}','${(p.title||'').replace(/'/g,"\\'").replace(/"/g,"&quot;")}')" title="Share">📤</button>
+          <button class="btn-share" onclick="shareItem('projects','${p.id}','${(p.title||'').replace(/'/g,"\\'").replace(/"/g,"&quot;")}')" title="Share"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;" aria-hidden="true"><path d="M12 21V9M7 14l5-5 5 5M5 21h14"/></svg></button>
           ${isOwn
             ? '<span class="btn-propose applied">Your Project</span>'
             : p.status !== 'OPEN'
-              ? `<span class="btn-propose applied" style="color:#16A34A;border-color:rgba(22,163,74,.35);">${p.status === 'COMPLETED' ? '✅ Completed' : p.status === 'IN_PROGRESS' || p.status === 'REVISION_REQUESTED' ? 'In Progress' : p.status === 'DELIVERED' ? 'Awaiting Approval' : esc(p.status)}</span>`
+              ? `<span class="btn-propose applied" style="color:#16A34A;border-color:rgba(22,163,74,.35);display:inline-flex;align-items:center;gap:6px;">${p.status === 'COMPLETED' ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12.5l2.5 2.5L16 9"/></svg>Completed' : p.status === 'IN_PROGRESS' || p.status === 'REVISION_REQUESTED' ? 'In Progress' : p.status === 'DELIVERED' ? 'Awaiting Approval' : esc(p.status)}</span>`
               : alreadyBid
                 ? '<span class="btn-propose applied">✓ Applied</span>'
                 : `<button class="btn-propose primary" onclick="openProposalModal('${p.id}','${(p.title||'').replace(/'/g,"\\'").replace(/"/g,"&quot;")}',${p.budgetMin||0},${p.budgetMax||0})">Submit Proposal</button>`

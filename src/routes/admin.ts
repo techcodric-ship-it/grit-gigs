@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { eq, like, desc, or, and, sql, isNull, inArray } from "drizzle-orm";
+import { eq, like, desc, or, and, sql, isNull, inArray, count } from "drizzle-orm";
 import {
   db, pool,
   usersTable, notificationsTable,
@@ -20,6 +20,7 @@ import {
   clientReviewsTable,
   refreshTokensTable, passwordResetsTable,
   referralsTable,
+  jobsTable, jobApplicationsTable,
 } from "../db";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -1041,6 +1042,141 @@ router.post("/admin/referrals/:id/void", adminAuth, async (req: Request, res: Re
     console.error("void referral error:", err);
     res.status(500).json({ success: false, message: "Failed to void referral" });
   }
+});
+
+// ── Full-time Jobs management ───────────────────────────────────────────────
+// GET /admin/jobs — list all jobs (active + paused) with application counts.
+router.get("/admin/jobs", async (req: Request, res: Response): Promise<void> => {
+  const rows = await db
+    .select({
+      job: jobsTable,
+      applicants: sql<number>`(SELECT count(*) FROM ${jobApplicationsTable} WHERE ${jobApplicationsTable.jobId} = ${jobsTable.id})`,
+    })
+    .from(jobsTable)
+    .orderBy(desc(jobsTable.createdAt));
+
+  res.json({
+    success: true,
+    data: rows.map((r) => ({ ...r.job, applicants: Number(r.applicants) })),
+  });
+});
+
+// POST /admin/jobs — create a job posting.
+router.post("/admin/jobs", async (req: Request, res: Response): Promise<void> => {
+  const { title, company, location, type, salaryRange, description, skills, isActive, applicationDeadline } = req.body || {};
+  if (!title || !company || !description) {
+    res.status(400).json({ success: false, message: "Title, company, and description are required" });
+    return;
+  }
+  const adminUser = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
+
+  const [job] = await db
+    .insert(jobsTable)
+    .values({
+      title,
+      company,
+      location: location || null,
+      type: type || "Full-time",
+      salaryRange: salaryRange || null,
+      description,
+      skills: Array.isArray(skills) ? skills : String(skills || "").split(",").map((s: string) => s.trim()).filter(Boolean),
+      postedById: adminUser[0]?.id,
+      isActive: isActive !== false,
+      applicationDeadline: applicationDeadline ? new Date(applicationDeadline) : null,
+    })
+    .returning();
+
+  res.status(201).json({ success: true, message: "Job posted", data: job });
+});
+
+// PUT /admin/jobs/:id — edit a job or toggle active/paused.
+router.put("/admin/jobs/:id", async (req: Request, res: Response): Promise<void> => {
+  const id = String(req.params.id);
+  const { title, company, location, type, salaryRange, description, skills, isActive, applicationDeadline } = req.body || {};
+
+  const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, id)).limit(1);
+  if (!job) {
+    res.status(404).json({ success: false, message: "Job not found" });
+    return;
+  }
+
+  const [updated] = await db
+    .update(jobsTable)
+    .set({
+      title: title ?? job.title,
+      company: company ?? job.company,
+      location: location !== undefined ? location : job.location,
+      type: type ?? job.type,
+      salaryRange: salaryRange !== undefined ? salaryRange : job.salaryRange,
+      description: description ?? job.description,
+      skills: Array.isArray(skills) ? skills : job.skills,
+      isActive: isActive !== undefined ? !!isActive : job.isActive,
+      applicationDeadline: applicationDeadline !== undefined ? (applicationDeadline ? new Date(applicationDeadline) : null) : job.applicationDeadline,
+      updatedAt: new Date(),
+    })
+    .where(eq(jobsTable.id, id))
+    .returning();
+
+  res.json({ success: true, message: "Job updated", data: updated });
+});
+
+// DELETE /admin/jobs/:id — remove a job (its applications cascade).
+router.delete("/admin/jobs/:id", async (req: Request, res: Response): Promise<void> => {
+  const id = String(req.params.id);
+  const [job] = await db.select({ id: jobsTable.id }).from(jobsTable).where(eq(jobsTable.id, id)).limit(1);
+  if (!job) {
+    res.status(404).json({ success: false, message: "Job not found" });
+    return;
+  }
+  await db.delete(jobsTable).where(eq(jobsTable.id, id));
+  res.json({ success: true, message: "Job deleted" });
+});
+
+// GET /admin/jobs/:id/applications — applicants for a job with their details.
+router.get("/admin/jobs/:id/applications", async (req: Request, res: Response): Promise<void> => {
+  const id = String(req.params.id);
+  const rows = await db
+    .select({
+      application: jobApplicationsTable,
+      applicant: {
+        id: usersTable.id,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+        email: usersTable.email,
+        city: usersTable.city,
+        profilePhoto: usersTable.profilePhoto,
+        tagline: usersTable.tagline,
+        kycVerified: usersTable.kycVerified,
+      },
+    })
+    .from(jobApplicationsTable)
+    .innerJoin(usersTable, eq(jobApplicationsTable.applicantId, usersTable.id))
+    .where(eq(jobApplicationsTable.jobId, id))
+    .orderBy(desc(jobApplicationsTable.createdAt));
+
+  res.json({ success: true, data: rows });
+});
+
+// PUT /admin/jobs/:id/applications/:applicationId — update application status.
+router.put("/admin/jobs/:id/applications/:applicationId", async (req: Request, res: Response): Promise<void> => {
+  const applicationId = String(req.params.applicationId);
+  const { status } = req.body || {};
+  const valid = ["PENDING", "REVIEWED", "ACCEPTED", "REJECTED"];
+  if (!valid.includes(status)) {
+    res.status(400).json({ success: false, message: "Invalid status" });
+    return;
+  }
+  const [app] = await db.select().from(jobApplicationsTable).where(eq(jobApplicationsTable.id, applicationId)).limit(1);
+  if (!app) {
+    res.status(404).json({ success: false, message: "Application not found" });
+    return;
+  }
+  const [updated] = await db
+    .update(jobApplicationsTable)
+    .set({ status })
+    .where(eq(jobApplicationsTable.id, applicationId))
+    .returning();
+  res.json({ success: true, message: "Application updated", data: updated });
 });
 
 export default router;

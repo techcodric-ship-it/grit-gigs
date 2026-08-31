@@ -304,7 +304,7 @@
         x.open('GET', '/api/subscriptions/my-plan', false);
         x.setRequestHeader('Authorization', 'Bearer ' + t);
         x.setRequestHeader('Content-Type', 'application/json');
-        try { x.send(); var pr = JSON.parse(x.responseText); if (pr.success && pr.data.plan) { var b = pr.data.plan.badge;           planBadge = b ? (function(){var g={STARTER:'#059669',PRO:'#7C3AED',ELITE:'#D97706'};return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+(g[b]||'#6C3FE8')+';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">'+b+'</span>';})() : '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Free</span>'; try{localStorage.setItem('se_plan_cache',JSON.stringify({badge:b||null}));}catch(e){} } } catch(e) {}
+        try { x.send(); var pr = JSON.parse(x.responseText); if (pr.success && pr.data.plan) { var b = pr.data.plan.badge;           planBadge = b ? (function(){var g={STARTER:'#059669',PRO:'#7C3AED',SQUAD:'#D97706'};return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+(g[b]||'#6C3FE8')+';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">'+b+'</span>';})() : '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Starter</span>'; try{localStorage.setItem('se_plan_cache',JSON.stringify({badge:b||null}));}catch(e){} } } catch(e) {}
         el.innerHTML = planBadge + '<a href="/dashboard" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
           '<a href="/dashboard?tab=my-gigs" class="btn btn-primary btn-sm">Dashboard</a>' +
           '<button class="btn btn-primary btn-sm" onclick="window.doLogout();">Sign out</button>';
@@ -682,7 +682,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function escAttr(s) { return escHtml(String(s ?? '')).replace(/'/g, '&#39;'); }
   function escJsStr(s) { return String(s ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r'); }
   function kycBadge(v) { return v ? '<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">✓ KYC</span>' : ''; }
-  function planBadge(v) { if (!v) return ''; var g={STARTER:'#059669',PRO:'#7C3AED',ELITE:'#D97706'}; return '<span style="display:inline-flex;align-items:center;gap:2px;background:' + (g[v]||'#6C3FE8') + ';color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>'; }
+  function planBadge(v) { if (!v) return ''; var g={STARTER:'#059669',PRO:'#7C3AED',SQUAD:'#D97706'}; return '<span style="display:inline-flex;align-items:center;gap:2px;background:' + (g[v]||'#6C3FE8') + ';color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>'; }
 
   var gigPage = 1;
 
@@ -737,7 +737,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var levelClass = levelBadge === 'Top Rated' ? 'badge-violet' : levelBadge === 'Level 2' ? 'badge-gold' : 'badge-surface';
       var titleEsc = s.title ? s.title.replace(/'/g, "\\'") : '';
       var sellerNameEsc = sellerName.replace(/'/g, "\\'");
-      var ago = s.createdAt ? ' &nbsp;·&nbsp; 🕒 ' + timeAgo(s.createdAt) : '';
+      var ago = s.createdAt ? ' &nbsp;·&nbsp; <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;display:inline-block;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> ' + timeAgo(s.createdAt) : '';
       var desc = s.description ? escHtml(s.description.slice(0, 120)) : '';
       var sellerAv = pp ? '<img src="' + escAttr(pp) + '" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;"/>' : '<div class="avatar-placeholder avatar-v" style="width:28px;height:28px;font-size:11px;">' + initials + '</div>';
 
@@ -758,11 +758,11 @@ document.addEventListener('DOMContentLoaded', function() {
               '<span class="slc-rating-count">(' + reviews + ')</span>' +
             '</div>' +
             '<div class="slc-meta">' +
-              '<span class="slc-meta-item">⏱ ' + delivery + ' day delivery' + ago + '</span>' +
+              '<span class="slc-meta-item"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;display:inline-block;margin-right:4px;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>' + delivery + ' day delivery' + ago + '</span>' +
             '</div>' +
           '</div>' +
           '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-top:1px solid var(--border);">' +
-            '<button class="btn btn-sm" style="border:1px solid var(--border);padding:6px 12px;font-size:.72rem;" onclick="event.stopPropagation();shareItem(\'freelance\',\'' + escJsStr(s.id) + '\',\'' + titleEsc + '\')">📤 Share</button>' +
+            '<button class="btn btn-sm" style="border:1px solid var(--border);padding:6px 12px;font-size:.72rem;" onclick="event.stopPropagation();shareItem(\'freelance\',\'' + escJsStr(s.id) + '\',\'' + titleEsc + '\')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;" aria-hidden="true"><path d="M12 21V9M7 14l5-5 5 5M5 21h14"/></svg>Share</button>' +
           '</div>' +
         '</div>' +
         '<div class="slc-price-area">' +
