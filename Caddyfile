@@ -1,0 +1,24 @@
+# Grit&Gigs — Caddy reverse proxy (automatic HTTPS)
+# ------------------------------------------------------------------
+# Caddy terminates HTTPS on 443 and proxies to the app on :5000 (our internal PORT).
+# The Node/Express app behind it serves BOTH the API and the public/ static assets,
+# so we reverse-proxy everything. socket.io websockets work automatically.
+#
+# Install Caddy on the VPS (as root):
+#   apt-get update && apt-get install -y debian-keyring debian-archive-keyring apt-transport-https curl
+#   curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+#   curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
+#   apt-get update && apt-get install -y caddy
+#
+# Edit the file below (replace api.example.com with your real domain, or use the
+# http block if you have no domain yet), then:  systemctl reload caddy
+
+# ── With a domain + free automatic HTTPS ──
+api.example.com {
+	reverse_proxy 127.0.0.1:5000
+}
+
+# ── No domain yet: plain HTTP on port 80 (open http://<server-ip>:80) ──
+# :80 {
+# 	reverse_proxy 127.0.0.1:5000
+# }

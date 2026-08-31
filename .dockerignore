@@ -1,0 +1,16 @@
+node_modules
+npm-debug.log
+.env
+.env.*
+!.env.example
+users-export.csv
+*.log
+logs
+.dockerignore
+Dockerfile
+.docker
+.git
+.gitignore
+coverage
+dist
+*.tsbuildinfo
