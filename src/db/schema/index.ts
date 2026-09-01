@@ -11,3 +11,4 @@ export * from "./extras";
 export * from "./referrals";
 export * from "./tool-leads";
 export * from "./jobs";
+export * from "./squads";

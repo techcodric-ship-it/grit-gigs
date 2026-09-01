@@ -170,6 +170,9 @@ app.set("io", io);
           DO $$ BEGIN CREATE TYPE kyc_status AS ENUM ('PENDING','APPROVED','REJECTED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
           DO $$ BEGIN CREATE TYPE referral_status AS ENUM ('PENDING','PAID','VOIDED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
           DO $$ BEGIN CREATE TYPE job_application_status AS ENUM ('PENDING','REVIEWED','ACCEPTED','REJECTED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE squad_role AS ENUM ('LEADER','MEMBER'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE squad_invite_status AS ENUM ('PENDING','ACCEPTED','DECLINED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE squad_service_status AS ENUM ('ACTIVE','PAUSED','DELETED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
           ALTER TYPE transaction_type ADD VALUE IF NOT EXISTS 'REFERRAL_REWARD';
         `);
         logger.info("migrate: enums ready");
@@ -608,12 +611,14 @@ app.set("io", io);
             salary_range TEXT,
             description TEXT NOT NULL,
             skills TEXT[] DEFAULT '{}',
+            link TEXT,
             posted_by_id UUID REFERENCES users(id) ON DELETE SET NULL,
             is_active BOOLEAN DEFAULT TRUE NOT NULL,
             application_deadline TIMESTAMPTZ,
             created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
             updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
           );
+          ALTER TABLE jobs ADD COLUMN IF NOT EXISTS link TEXT;
 
           CREATE TABLE IF NOT EXISTS job_applications (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -626,6 +631,56 @@ app.set("io", io);
           CREATE INDEX IF NOT EXISTS idx_jobs_active_created ON jobs(is_active, created_at DESC);
           CREATE INDEX IF NOT EXISTS idx_job_applications_job ON job_applications(job_id);
           CREATE INDEX IF NOT EXISTS idx_job_applications_applicant ON job_applications(applicant_id);
+
+          CREATE TABLE IF NOT EXISTS squads (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            name TEXT NOT NULL,
+            tagline TEXT,
+            category TEXT,
+            description TEXT,
+            avatar TEXT,
+            skills TEXT[] DEFAULT '{}',
+            leader_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            is_active BOOLEAN DEFAULT TRUE NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
+          CREATE TABLE IF NOT EXISTS squad_members (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            squad_id UUID NOT NULL REFERENCES squads(id) ON DELETE CASCADE,
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            role squad_role DEFAULT 'MEMBER' NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            UNIQUE (squad_id, user_id)
+          );
+          CREATE TABLE IF NOT EXISTS squad_invites (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            squad_id UUID NOT NULL REFERENCES squads(id) ON DELETE CASCADE,
+            invited_email TEXT NOT NULL,
+            invited_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+            message TEXT,
+            status squad_invite_status DEFAULT 'PENDING' NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            responded_at TIMESTAMPTZ
+          );
+          CREATE TABLE IF NOT EXISTS squad_services (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            squad_id UUID NOT NULL REFERENCES squads(id) ON DELETE CASCADE,
+            title TEXT NOT NULL,
+            description TEXT NOT NULL,
+            category TEXT,
+            price_inr INTEGER NOT NULL,
+            delivery_days INTEGER DEFAULT 7 NOT NULL,
+            skills TEXT[] DEFAULT '{}',
+            status squad_service_status DEFAULT 'ACTIVE' NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
+          CREATE INDEX IF NOT EXISTS idx_squad_members_squad ON squad_members(squad_id);
+          CREATE INDEX IF NOT EXISTS idx_squad_members_user ON squad_members(user_id);
+          CREATE INDEX IF NOT EXISTS idx_squad_invites_squad ON squad_invites(squad_id);
+          CREATE INDEX IF NOT EXISTS idx_squad_invites_user ON squad_invites(invited_user_id);
+          CREATE INDEX IF NOT EXISTS idx_squad_services_squad ON squad_services(squad_id);
         `);
       } catch (e: unknown) {
         logger.error({ err: e }, "migrate: table creation failed");

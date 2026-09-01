@@ -16,6 +16,7 @@ function jobToClientJson(job: typeof jobsTable.$inferSelect & { applicants?: num
     salaryRange: job.salaryRange,
     description: job.description,
     skills: job.skills,
+    link: job.link ?? null,
     applicationDeadline: job.applicationDeadline,
     createdAt: job.createdAt,
     applicants: job.applicants ?? 0,
@@ -113,7 +114,14 @@ router.post("/jobs/:id/apply", authenticate, async (req: Request, res: Response)
       message: `${req.user!.firstName} ${req.user!.lastName} applied to "${job.title}".`,
       linkUrl: "/admin?tab=jobs",
     });
-    try { req.app?.get("io")?.emit("notification:new", { userId: job.postedById }); } catch {}
+    try {
+      req.app?.get("io")?.to(`user:${job.postedById}`).emit("notification:new", {
+        type: "JOB_APPLICATION",
+        title: "New job application",
+        message: `${req.user!.firstName} ${req.user!.lastName} applied to "${job.title}".`,
+        linkUrl: "/admin?tab=jobs",
+      });
+    } catch {}
   }
 
   res.status(201).json({ success: true, message: "Application submitted", data: { applicationId: application.id, status: application.status } });

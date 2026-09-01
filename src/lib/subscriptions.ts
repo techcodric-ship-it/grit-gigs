@@ -115,6 +115,7 @@ export async function getOrCreateSubscription(userId: string): Promise<UserSubsc
 
   if (!sub) {
     const defaultPlan = getPlan("starter");
+    const now = new Date();
     [sub] = await db
       .insert(userSubscriptionsTable)
       .values({
@@ -122,6 +123,8 @@ export async function getOrCreateSubscription(userId: string): Promise<UserSubsc
         planId: "starter",
         proposalCreditsRemaining: defaultPlan.weeklyBidCredits,
         featuredProposalsRemaining: defaultPlan.featuredProposalsPerMonth,
+        bidsResetAt: now,
+        creditsResetAt: now,
       })
       .returning();
     return sub;
@@ -143,12 +146,23 @@ export async function getOrCreateSubscription(userId: string): Promise<UserSubsc
     needsUpdate = true;
   }
 
-  // Weekly project-bid credit refresh.
+  const effectivePlan = getPlan((patch.planId as PlanId) ?? sub.planId);
+
+  // Weekly project-bid credit refresh. A missing bidsResetAt (legacy rows or
+  // freshly created rows before the field was seeded) is treated as due so
+  // credits always top back up each week.
   const bidsResetAt = sub.bidsResetAt;
-  if (bidsResetAt && now - bidsResetAt.getTime() >= SEVEN_DAYS_MS) {
-    const effectivePlan = getPlan((patch.planId as PlanId) ?? sub.planId);
+  if ((!bidsResetAt || now - bidsResetAt.getTime() >= SEVEN_DAYS_MS)) {
     patch.proposalCreditsRemaining = effectivePlan.weeklyBidCredits;
     patch.bidsResetAt = new Date();
+    needsUpdate = true;
+  }
+
+  // Clamp leftover credits to the plan's weekly allowance. Older builds seeded
+  // some Starter rows above their 2-credit max, which used to show as
+  // "3 / 2" in the dashboard even when the member never bid that week.
+  if (effectivePlan.weeklyBidCredits !== -1 && (patch.proposalCreditsRemaining ?? sub.proposalCreditsRemaining) > effectivePlan.weeklyBidCredits) {
+    patch.proposalCreditsRemaining = effectivePlan.weeklyBidCredits;
     needsUpdate = true;
   }
 

@@ -21,6 +21,7 @@ import {
   refreshTokensTable, passwordResetsTable,
   referralsTable,
   jobsTable, jobApplicationsTable,
+  squadsTable, squadMembersTable, squadInvitesTable, squadServicesTable,
 } from "../db";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -1063,7 +1064,7 @@ router.get("/admin/jobs", async (req: Request, res: Response): Promise<void> => 
 
 // POST /admin/jobs — create a job posting.
 router.post("/admin/jobs", async (req: Request, res: Response): Promise<void> => {
-  const { title, company, location, type, salaryRange, description, skills, isActive, applicationDeadline } = req.body || {};
+  const { title, company, location, type, salaryRange, description, skills, isActive, applicationDeadline, link } = req.body || {};
   if (!title || !company || !description) {
     res.status(400).json({ success: false, message: "Title, company, and description are required" });
     return;
@@ -1080,6 +1081,7 @@ router.post("/admin/jobs", async (req: Request, res: Response): Promise<void> =>
       salaryRange: salaryRange || null,
       description,
       skills: Array.isArray(skills) ? skills : String(skills || "").split(",").map((s: string) => s.trim()).filter(Boolean),
+      link: link || null,
       postedById: adminUser[0]?.id,
       isActive: isActive !== false,
       applicationDeadline: applicationDeadline ? new Date(applicationDeadline) : null,
@@ -1092,7 +1094,7 @@ router.post("/admin/jobs", async (req: Request, res: Response): Promise<void> =>
 // PUT /admin/jobs/:id — edit a job or toggle active/paused.
 router.put("/admin/jobs/:id", async (req: Request, res: Response): Promise<void> => {
   const id = String(req.params.id);
-  const { title, company, location, type, salaryRange, description, skills, isActive, applicationDeadline } = req.body || {};
+  const { title, company, location, type, salaryRange, description, skills, isActive, applicationDeadline, link } = req.body || {};
 
   const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, id)).limit(1);
   if (!job) {
@@ -1110,6 +1112,7 @@ router.put("/admin/jobs/:id", async (req: Request, res: Response): Promise<void>
       salaryRange: salaryRange !== undefined ? salaryRange : job.salaryRange,
       description: description ?? job.description,
       skills: Array.isArray(skills) ? skills : job.skills,
+      link: link !== undefined ? link : job.link,
       isActive: isActive !== undefined ? !!isActive : job.isActive,
       applicationDeadline: applicationDeadline !== undefined ? (applicationDeadline ? new Date(applicationDeadline) : null) : job.applicationDeadline,
       updatedAt: new Date(),
@@ -1177,6 +1180,189 @@ router.put("/admin/jobs/:id/applications/:applicationId", async (req: Request, r
     .where(eq(jobApplicationsTable.id, applicationId))
     .returning();
   res.json({ success: true, message: "Application updated", data: updated });
+});
+
+// ── Grit Circles / Squads management ──────────────────────────────────────
+// GET /admin/squads — all squads (active + archived) with leader and counts.
+router.get("/admin/squads", async (_req: Request, res: Response): Promise<void> => {
+  const rows = await db
+    .select({
+      squad: squadsTable,
+      leader: {
+        id: usersTable.id,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+        email: usersTable.email,
+        profilePhoto: usersTable.profilePhoto,
+      },
+      memberCount: sql<number>`(SELECT count(*) FROM ${squadMembersTable} WHERE ${squadMembersTable.squadId} = ${squadsTable.id})`,
+      serviceCount: sql<number>`(SELECT count(*) FROM ${squadServicesTable} WHERE ${squadServicesTable.squadId} = ${squadsTable.id} AND ${squadServicesTable.status} <> 'DELETED')`,
+      activeServiceCount: sql<number>`(SELECT count(*) FROM ${squadServicesTable} WHERE ${squadServicesTable.squadId} = ${squadsTable.id} AND ${squadServicesTable.status} = 'ACTIVE')`,
+      inviteCount: sql<number>`(SELECT count(*) FROM ${squadInvitesTable} WHERE ${squadInvitesTable.squadId} = ${squadsTable.id} AND ${squadInvitesTable.status} = 'PENDING')`,
+    })
+    .from(squadsTable)
+    .innerJoin(usersTable, eq(squadsTable.leaderId, usersTable.id))
+    .orderBy(desc(squadsTable.createdAt));
+
+  res.json({
+    success: true,
+    data: rows.map((r) => ({
+      ...r.squad,
+      memberCount: Number(r.memberCount),
+      serviceCount: Number(r.serviceCount),
+      activeServiceCount: Number(r.activeServiceCount),
+      inviteCount: Number(r.inviteCount),
+      leader: r.leader
+        ? { id: r.leader.id, firstName: r.leader.firstName, lastName: r.leader.lastName ?? "", email: r.leader.email, profilePhoto: r.leader.profilePhoto ?? null }
+        : null,
+    })),
+  });
+});
+
+// GET /admin/squads/:id — full detail: members, invites, services.
+router.get("/admin/squads/:id", async (req: Request, res: Response): Promise<void> => {
+  const id = String(req.params.id);
+  const [squad] = await db.select().from(squadsTable).where(eq(squadsTable.id, id)).limit(1);
+  if (!squad) {
+    res.status(404).json({ success: false, message: "Squad not found" });
+    return;
+  }
+  const [leader] = await db
+    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, email: usersTable.email, profilePhoto: usersTable.profilePhoto, tagline: usersTable.tagline })
+    .from(usersTable)
+    .where(eq(usersTable.id, squad.leaderId))
+    .limit(1);
+
+  const members = await db
+    .select({ member: squadMembersTable, user: usersTable })
+    .from(squadMembersTable)
+    .innerJoin(usersTable, eq(squadMembersTable.userId, usersTable.id))
+    .where(eq(squadMembersTable.squadId, id))
+    .orderBy(desc(squadMembersTable.role), desc(squadMembersTable.createdAt));
+
+  const invites = await db
+    .select({ invite: squadInvitesTable, user: usersTable })
+    .from(squadInvitesTable)
+    .leftJoin(usersTable, eq(squadInvitesTable.invitedUserId, usersTable.id))
+    .where(eq(squadInvitesTable.squadId, id))
+    .orderBy(desc(squadInvitesTable.createdAt));
+
+  const services = await db
+    .select()
+    .from(squadServicesTable)
+    .where(eq(squadServicesTable.squadId, id))
+    .orderBy(desc(squadServicesTable.createdAt));
+
+  res.json({
+    success: true,
+    data: {
+      ...squad,
+      leader: leader ? { id: leader.id, firstName: leader.firstName, lastName: leader.lastName ?? "", email: leader.email, profilePhoto: leader.profilePhoto ?? null, tagline: leader.tagline ?? null } : null,
+      members: members.map((m) => ({ role: m.member.role, joinedAt: m.member.createdAt, user: { id: m.user.id, firstName: m.user.firstName, lastName: m.user.lastName ?? "", email: m.user.email, profilePhoto: m.user.profilePhoto ?? null, tagline: m.user.tagline ?? null } })),
+      invites: invites.map((r) => ({ id: r.invite.id, invitedEmail: r.invite.invitedEmail, message: r.invite.message ?? null, status: r.invite.status, createdAt: r.invite.createdAt, respondedAt: r.invite.respondedAt, user: r.user ? { id: r.user.id, firstName: r.user.firstName, lastName: r.user.lastName ?? "", email: r.user.email, profilePhoto: r.user.profilePhoto ?? null } : null })),
+      services: services.map((s) => ({ id: s.id, title: s.title, description: s.description, category: s.category ?? null, priceInr: s.priceInr, deliveryDays: s.deliveryDays, skills: s.skills ?? [], status: s.status, createdAt: s.createdAt, updatedAt: s.updatedAt })),
+    },
+  });
+});
+
+// PUT /admin/squads/:id — restore / archive a squad.
+router.put("/admin/squads/:id", async (req: Request, res: Response): Promise<void> => {
+  const id = String(req.params.id);
+  const { isActive } = req.body || {};
+  if (typeof isActive !== "boolean") {
+    res.status(400).json({ success: false, message: "isActive (boolean) is required" });
+    return;
+  }
+  const [updated] = await db
+    .update(squadsTable)
+    .set({ isActive, updatedAt: new Date() })
+    .where(eq(squadsTable.id, id))
+    .returning({ id: squadsTable.id, isActive: squadsTable.isActive });
+  if (!updated) {
+    res.status(404).json({ success: false, message: "Squad not found" });
+    return;
+  }
+  res.json({ success: true, message: isActive ? "Squad restored" : "Squad archived", data: updated });
+});
+
+// DELETE /admin/squads/:id — archive a squad and notify all members.
+router.delete("/admin/squads/:id", async (req: Request, res: Response): Promise<void> => {
+  const id = String(req.params.id);
+  const [squad] = await db.select().from(squadsTable).where(eq(squadsTable.id, id)).limit(1);
+  if (!squad) {
+    res.status(404).json({ success: false, message: "Squad not found" });
+    return;
+  }
+  await db.update(squadsTable).set({ isActive: false, updatedAt: new Date() }).where(eq(squadsTable.id, id));
+
+  const memberIds: string[] = [];
+  if (squad.leaderId) memberIds.push(squad.leaderId);
+  const members = await db.select({ userId: squadMembersTable.userId }).from(squadMembersTable).where(eq(squadMembersTable.squadId, id));
+  members.forEach((m) => memberIds.push(m.userId));
+
+  if (memberIds.length) {
+    const notif = { type: "SQUAD_CLOSED", title: `${squad.name} was closed`, message: "The Grit Circle was closed by the team at Grit&Gigs.", linkUrl: "/dashboard#grit-circle" };
+    await db
+      .insert(notificationsTable)
+      .values(memberIds.map((userId) => ({ userId, ...notif })));
+    memberIds.forEach((userId) => {
+      try {
+        req.app?.get("io")?.to(`user:${userId}`).emit("notification:new", notif);
+      } catch {}
+    });
+  }
+
+  res.json({ success: true, message: "Squad archived and members notified" });
+});
+
+// DELETE /admin/squads/:id/members/:memberId — remove a member from a squad.
+router.delete("/admin/squads/:id/members/:memberId", async (req: Request, res: Response): Promise<void> => {
+  const squadId = String(req.params.id);
+  const memberId = String(req.params.memberId);
+
+  const [target] = await db
+    .select({ member: squadMembersTable, user: usersTable })
+    .from(squadMembersTable)
+    .innerJoin(usersTable, eq(squadMembersTable.userId, usersTable.id))
+    .where(and(eq(squadMembersTable.squadId, squadId), eq(squadMembersTable.userId, memberId)))
+    .limit(1);
+  if (!target) {
+    res.status(404).json({ success: false, message: "Member not found in this squad" });
+    return;
+  }
+  if (target.member.role === "LEADER") {
+    res.status(400).json({ success: false, message: "The leader can't be removed — archive the squad instead" });
+    return;
+  }
+  await db.delete(squadMembersTable).where(eq(squadMembersTable.id, target.member.id));
+
+  const notif = { type: "SQUAD_REMOVED", title: "You were removed from a circle", message: "An admin removed you from your Grit Circle.", linkUrl: "/dashboard#grit-circle" };
+  await db.insert(notificationsTable).values({ userId: target.user.id, ...notif });
+  try {
+    req.app?.get("io")?.to(`user:${target.user.id}`).emit("notification:new", notif);
+  } catch {}
+
+  res.json({ success: true, message: "Member removed" });
+});
+
+// PUT /admin/squads/services/:serviceId — set status ACTIVE / PAUSED / DELETED.
+router.put("/admin/squads/services/:serviceId", async (req: Request, res: Response): Promise<void> => {
+  const serviceId = String(req.params.serviceId);
+  const { status } = req.body || {};
+  if (!["ACTIVE", "PAUSED", "DELETED"].includes(status)) {
+    res.status(400).json({ success: false, message: "Invalid status" });
+    return;
+  }
+  const [updated] = await db
+    .update(squadServicesTable)
+    .set({ status, updatedAt: new Date() })
+    .where(eq(squadServicesTable.id, serviceId))
+    .returning();
+  if (!updated) {
+    res.status(404).json({ success: false, message: "Service not found" });
+    return;
+  }
+  res.json({ success: true, message: "Service updated", data: updated });
 });
 
 export default router;

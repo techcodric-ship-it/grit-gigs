@@ -251,6 +251,11 @@ a{text-decoration:none;color:inherit;}
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
       Jobs
     </button>
+    <button class="ni" data-p="squads">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2"/><circle cx="17" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>
+      Grit Circles
+      <span class="stg" style="display:none" id="squadNavBadge">0</span>
+    </button>
     <button class="ni" data-p="kyc">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
       KYC Reviews
@@ -386,6 +391,25 @@ a{text-decoration:none;color:inherit;}
     </div>
   </div>
   <div id="adminJobsList"></div>
+</div>
+
+<!-- ═══ GRIT CIRCLES / SQUADS ═══ -->
+<div class="ps" id="ps-squads">
+  <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+    <div>
+      <h1 style="font-size:1.2rem;">Grit Circles</h1>
+      <p style="font-size:.82rem;color:var(--muted);margin-top:3px;">Every squad on the platform — leaders, members, invites, and squad services.</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <select class="fi" id="squadStatusFilter" onchange="loadAdminSquads()" style="width:auto;padding:6px 10px;font-size:.76rem;">
+        <option value="">All Circles</option>
+        <option value="active">Active</option>
+        <option value="archived">Archived</option>
+      </select>
+      <button class="btn bs btn-sm" onclick="loadAdminSquads()">⟳ Refresh</button>
+    </div>
+  </div>
+  <div id="adminSquadsList"><div class="empty"><div class="empty-sub">Loading circles...</div></div></div>
 </div>
 
 <!-- ═══ KYC ═══ -->
@@ -631,6 +655,11 @@ a{text-decoration:none;color:inherit;}
       <input class="fi" id="jobSkills" placeholder="e.g. React, Node.js, TypeScript"/>
     </div>
     <div class="fg">
+      <label class="fl">Apply link</label>
+      <input class="fi" id="jobLink" placeholder="e.g. https://example.com/careers/senior-developer"/>
+      <div style="font-size:.7rem;color:var(--muted);margin-top:3px;">Optional external URL where candidates apply (LinkedIn, career page, form).</div>
+    </div>
+    <div class="fg">
       <label class="fl">Description</label>
       <textarea class="fi" id="jobDescription" rows="4" placeholder="Role description, responsibilities, requirements..." style="resize:vertical;"></textarea>
     </div>
@@ -655,6 +684,18 @@ a{text-decoration:none;color:inherit;}
   </div>
 </div>
 
+<!-- ═══ SQUAD DETAIL MODAL ═══ -->
+<div class="mo" id="squadModal">
+  <div class="md" style="max-width:760px;">
+    <button class="mc" onclick="closeModal('squadModal')">✕</button>
+    <div id="squadModalHeader"></div>
+    <div id="squadModalBody"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+      <button class="btn bs" onclick="closeModal('squadModal')">Close</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const API = '/api';
 const KEY_STORE = 'admin_api_key';
@@ -665,7 +706,7 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 
 function badge(s) {
-  const m = { ACTIVE:'bdg-ok',PAUSED:'bdg-g',DELETED:'bdg-err',PENDING:'bdg-g',COMPLETED:'bdg-ok',CANCELLED:'bdg-err',OPEN:'bdg-v',IN_PROGRESS:'bdg-g','APPROVED':'bdg-ok','REJECTED':'bdg-err',PENDING_REVIEW:'bdg-g',RESOLVED:'bdg-ok',DISMISSED:'bdg-ink' };
+  const m = { ACTIVE:'bdg-ok',PAUSED:'bdg-g',DELETED:'bdg-err',PENDING:'bdg-g',COMPLETED:'bdg-ok',CANCELLED:'bdg-err',OPEN:'bdg-v',IN_PROGRESS:'bdg-g','APPROVED':'bdg-ok','REJECTED':'bdg-err',PENDING_REVIEW:'bdg-g',RESOLVED:'bdg-ok',DISMISSED:'bdg-ink',LEADER:'bdg-v',MEMBER:'bdg-g',ACCEPTED:'bdg-ok',DECLINED:'bdg-err',ARCHIVED:'bdg-err' };
   return `<span class="bdg ${m[s] || 'bdg-ink'}">${esc(s)}</span>`;
 }
 function seekingBadge(s) {
@@ -839,6 +880,7 @@ function loadPage(n) {
   else if (n==='users') loadUsers(1);
   else if (n==='reports') loadReports(1);
   else if (n==='jobs') loadAdminJobs();
+  else if (n==='squads') loadAdminSquads();
   else if (n==='kyc') loadKyc();
   else if (n==='messages') { loadAdminConversations(); }
   else if (n==='email') {}
@@ -846,6 +888,157 @@ function loadPage(n) {
   else if (n==='withdrawals') loadPendingWithdrawals();
   else if (n==='referrals') loadReferrals();
   else if (n==='tool-leads') loadToolLeads();
+}
+
+// ─── GRIT CIRCLES / SQUADS MANAGEMENT ───
+function sqDate(v) { if (!v) return '—'; try { return new Date(v).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}); } catch(e) { return '—'; } }
+function sqInr(n) { return '₹' + Number(n||0).toLocaleString('en-IN'); }
+function sqTime(v) { if (!v) return '—'; try { return new Date(v).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}); } catch(e) { return '—'; } }
+
+async function loadAdminSquads() {
+  const list = document.getElementById('adminSquadsList');
+  const filter = document.getElementById('squadStatusFilter').value;
+  list.innerHTML = `<div class="empty"><div class="empty-sub">Loading circles...</div></div>`;
+  try {
+    const r = await api('/admin/squads');
+    let rows = Array.isArray(r.data) ? r.data : [];
+    const badgeEl = document.getElementById('squadNavBadge');
+    if (badgeEl) { const n = rows.filter(s => s.isActive).length; badgeEl.style.display = n ? '' : 'none'; badgeEl.textContent = n; }
+    if (filter === 'active') rows = rows.filter(s => s.isActive);
+    else if (filter === 'archived') rows = rows.filter(s => !s.isActive);
+    if (!rows.length) {
+      const emptyLabel = filter === 'active' ? 'active ' : filter === 'archived' ? 'archived ' : '';
+      list.innerHTML = `<div class="empty"><div class="empty-title">No ${emptyLabel}circles yet</div><div class="empty-sub">${filter === 'archived' ? 'No archived circles right now.' : 'Members form Grit Circles from the dashboard.'}</div></div>`;
+      return;
+    }
+    list.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Circle</th><th>Leader</th><th>Members</th><th>Services</th><th>Invites</th><th>Created</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(s => {
+      const l = s.leader || {};
+      return `<tr>
+        <td class="tdt"><strong>${esc(s.name)}</strong><div style="font-size:.68rem;color:var(--muted);">${esc(s.tagline||'')}${s.category ? ' · '+esc(s.category) : ''}</div></td>
+        <td class="tdt">${esc((l.firstName||'') + ' ' + (l.lastName||''))}<div style="font-size:.68rem;color:var(--muted);">${esc(l.email||'')}</div></td>
+        <td>${s.memberCount||0}</td>
+        <td>${s.activeServiceCount||0} active / ${s.serviceCount||0} total</td>
+        <td>${s.inviteCount||0}</td>
+        <td>${sqDate(s.createdAt)}</td>
+        <td>${s.isActive ? '<span style="color:var(--ok);font-weight:600;">Active</span>' : '<span style="color:var(--err);font-weight:600;">Archived</span>'}</td>
+        <td style="white-space:nowrap;">
+          <button class="btn bs btn-xs" onclick="openSquadDetail('${s.id}')">Manage</button>
+          ${s.isActive
+            ? `<button class="btn bs btn-xs" style="color:var(--err);" onclick="archiveSquad('${s.id}')">Archive</button>`
+            : `<button class="btn bs btn-xs" onclick="restoreSquad('${s.id}')">Restore</button>`}
+        </td>
+      </tr>`;
+    }).join('')}</tbody></table></div>`;
+  } catch(e) {
+    list.innerHTML = `<div class="empty"><div class="empty-sub">${esc(e.message||'Failed to load circles')}</div></div>`;
+  }
+}
+
+async function openSquadDetail(id) {
+  _activeSquadModalId = id;
+  const h = document.getElementById('squadModalHeader');
+  const b = document.getElementById('squadModalBody');
+  h.innerHTML = `<h2 class="mh" style="margin-bottom:4px;">Loading circle…</h2>`;
+  b.innerHTML = `<div class="empty"><div class="empty-sub">Loading…</div></div>`;
+  openModal('squadModal');
+  try {
+    const r = await api('/admin/squads/' + id);
+    const d = r.data;
+    const l = d.leader || {};
+    const members = Array.isArray(d.members) ? d.members : [];
+    const invites = Array.isArray(d.invites) ? d.invites : [];
+    const services = Array.isArray(d.services) ? d.services : [];
+    const activeSvc = services.filter(s => s.status === 'ACTIVE').length;
+    const pendingInv = invites.filter(i => i.status === 'PENDING').length;
+
+    h.innerHTML = `<h2 class="mh" style="margin-bottom:4px;">${esc(d.name)} ${d.isActive ? '<span class="bdg bdg-ok">Active</span>' : '<span class="bdg bdg-err">Archived</span>'}</h2>
+      <div style="font-size:.78rem;color:var(--muted);">${esc(d.tagline||'')}${d.category ? ' · '+esc(d.category) : ''} · created ${sqDate(d.createdAt)}</div>`;
+
+    const servicesHtml = services.length
+      ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Service</th><th>Price</th><th>Delivery</th><th>Status</th><th></th></tr></thead><tbody>${services.map(s => `<tr>
+          <td class="tdt"><strong>${esc(s.title)}</strong><div style="font-size:.68rem;color:var(--muted);">${esc((s.skills||[]).join(', '))}</div></td>
+          <td>${sqInr(s.priceInr)}</td>
+          <td>${s.deliveryDays||7}d</td>
+          <td>${badge(s.status)}</td>
+          <td style="white-space:nowrap;">
+            <button class="btn bs btn-xs" onclick="setSquadServiceStatus('${s.id}','${s.status === 'ACTIVE' ? 'PAUSED' : 'ACTIVE'}')">${s.status === 'ACTIVE' ? 'Pause' : 'Resume'}</button>
+            ${s.status !== 'DELETED' ? `<button class="btn bs btn-xs" style="color:var(--err);" onclick="deleteSquadService('${s.id}')">Delete</button>` : ''}
+          </td>
+        </tr>`).join('')}</tbody></table></div>`
+      : '<div class="empty"><div class="empty-sub">No services yet.</div></div>';
+
+    const invitesHtml = invites.length
+      ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Invited</th><th>Message</th><th>Status</th><th>Sent</th></tr></thead><tbody>${invites.map(i => `<tr>
+          <td class="tdt">${esc(i.invitedEmail)}${i.user ? '<div style="font-size:.68rem;color:var(--muted);">'+esc((i.user.firstName||'')+' '+(i.user.lastName||''))+'</div>' : '<div style="font-size:.68rem;color:var(--muted);">Not a member yet</div>'}</td>
+          <td style="font-size:.72rem;color:var(--sec);max-width:200px;">${esc(i.message || '—')}</td>
+          <td>${badge(i.status)}</td>
+          <td>${sqTime(i.createdAt)}</td>
+        </tr>`).join('')}</tbody></table></div>`
+      : '<div class="empty"><div class="empty-sub">No invites.</div></div>';
+
+    b.innerHTML = `
+      <div class="stat-mini-grid" style="grid-template-columns:repeat(4,1fr);">
+        <div class="smc"><div class="n">${members.length||0}</div><div class="l">Members</div></div>
+        <div class="smc"><div class="n">${activeSvc||0}</div><div class="l">Active services</div></div>
+        <div class="smc"><div class="n">${pendingInv||0}</div><div class="l">Pending invites</div></div>
+        <div class="smc"><div class="n">${services.filter(s => s.status !== 'DELETED').length||0}</div><div class="l">Total services</div></div>
+      </div>
+      ${d.description ? `<div style="font-size:.8rem;color:var(--sec);background:var(--bg);border-radius:var(--rm);padding:12px 14px;margin:12px 0;">${esc(d.description)}</div>` : ''}
+      <h3 class="mh" style="font-size:.85rem;margin:14px 0 6px;">Leader</h3>
+      <div class="tbl-wrap"><table class="tbl"><tbody><tr>
+        <td class="tdt" style="white-space:nowrap;">${esc((l.firstName||'') + ' ' + (l.lastName||''))}<div style="font-size:.68rem;color:var(--muted);">${esc(l.email||'')}</div></td>
+        <td style="text-align:right;">${badge('LEADER')}</td>
+      </tr></tbody></table></div>
+      <h3 class="mh" style="font-size:.85rem;margin:16px 0 6px;">Members (${members.length||0})</h3>
+      <div class="tbl-wrap" style="margin-bottom:16px;"><table class="tbl"><thead><tr><th>Member</th><th>Role</th><th>Joined</th><th></th></tr></thead><tbody>${members.map(m => {
+        const u = m.user || {};
+        return `<tr>
+          <td class="tdt">${esc((u.firstName||'') + ' ' + (u.lastName||''))}<div style="font-size:.68rem;color:var(--muted);">${esc(u.email||'')}</div></td>
+          <td>${badge(m.role)}</td>
+          <td>${sqDate(m.joinedAt)}</td>
+          <td style="text-align:right;">${m.role !== 'LEADER' ? `<button class="btn bs btn-xs" style="color:var(--err);" onclick="removeSquadMember('${d.id}','${u.id}')">Remove</button>` : ''}</td>
+        </tr>`;
+      }).join('')}</tbody></table></div>
+      <h3 class="mh" style="font-size:.85rem;margin:0 0 6px;">Squad services (${services.length||0})</h3>
+      ${servicesHtml}
+      <h3 class="mh" style="font-size:.85rem;margin:16px 0 6px;">Invites (${invites.length||0})</h3>
+      ${invitesHtml}`;
+  } catch(e) {
+    h.innerHTML = `<h2 class="mh">Circle</h2>`;
+    b.innerHTML = `<div class="empty"><div class="empty-sub">${esc(e.message||'Failed to load')}</div></div>`;
+  }
+}
+
+function archiveSquad(id) {
+  if (!confirm('Archive this circle? Members will be notified and the squad will be hidden from the public directory.')) return;
+  api('/admin/squads/' + id, { method:'DELETE' }).then(() => { notify('Circle archived','ok'); closeModal('squadModal'); loadAdminSquads(); }).catch(e => notify(e.message||'Failed','err'));
+}
+
+function restoreSquad(id) {
+  api('/admin/squads/' + id, { method:'PUT', body:JSON.stringify({ isActive: true }) }).then(() => { notify('Circle restored','ok'); loadAdminSquads(); }).catch(e => notify(e.message||'Failed','err'));
+}
+
+function removeSquadMember(squadId, memberId) {
+  if (!confirm('Remove this member from the circle? They will be notified.')) return;
+  api(`/admin/squads/${squadId}/members/${memberId}`, { method:'DELETE' }).then(() => { notify('Member removed','ok'); openSquadDetail(squadId); loadAdminSquads(); }).catch(e => notify(e.message||'Failed','err'));
+}
+
+function setSquadServiceStatus(serviceId, status) {
+  api('/admin/squads/services/' + serviceId, { method:'PUT', body:JSON.stringify({ status }) }).then(() => {
+    notify(status === 'ACTIVE' ? 'Service resumed' : 'Service paused','ok');
+    refreshActiveSquadModal();
+    loadAdminSquads();
+  }).catch(e => notify(e.message||'Failed','err'));
+}
+
+function deleteSquadService(serviceId) {
+  if (!confirm('Delete this squad service? It will be removed from the public feed.')) return;
+  api('/admin/squads/services/' + serviceId, { method:'PUT', body:JSON.stringify({ status: 'DELETED' }) }).then(() => { notify('Service deleted','ok'); refreshActiveSquadModal(); loadAdminSquads(); }).catch(e => notify(e.message||'Failed','err'));
+}
+
+let _activeSquadModalId = null;
+function refreshActiveSquadModal() {
+  if (_activeSquadModalId && document.getElementById('squadModal').classList.contains('open')) openSquadDetail(_activeSquadModalId);
 }
 
 // ─── JOBS MANAGEMENT ───
@@ -893,6 +1086,7 @@ async function openJobModal(id) {
   document.getElementById('jobSalary').value = '';
   document.getElementById('jobDeadline').value = '';
   document.getElementById('jobSkills').value = '';
+  document.getElementById('jobLink').value = '';
   document.getElementById('jobDescription').value = '';
   document.getElementById('jobModalTitle').textContent = 'Post a Job';
   document.getElementById('saveJobBtn').textContent = 'Post Job';
@@ -910,6 +1104,7 @@ async function openJobModal(id) {
       document.getElementById('jobSalary').value = j.salaryRange||'';
       document.getElementById('jobDeadline').value = j.applicationDeadline ? new Date(j.applicationDeadline).toISOString().slice(0,10) : '';
       document.getElementById('jobSkills').value = (Array.isArray(j.skills)?j.skills:[]).join(', ');
+      document.getElementById('jobLink').value = j.link||'';
       document.getElementById('jobDescription').value = j.description||'';
       document.getElementById('jobModalTitle').textContent = 'Edit Job';
       document.getElementById('saveJobBtn').textContent = 'Save Changes';
@@ -928,9 +1123,10 @@ async function saveJob() {
   const deadlineVal = document.getElementById('jobDeadline').value;
   const skillsStr = document.getElementById('jobSkills').value.trim();
   const description = document.getElementById('jobDescription').value.trim();
+  const link = document.getElementById('jobLink').value.trim();
   if (!title || !company || !description) { notify('Title, company, and description are required','err'); return; }
   const skills = skillsStr ? skillsStr.split(',').map(s=>s.trim()).filter(Boolean) : [];
-  const payload = { title, company, location, type, salaryRange, description, skills, applicationDeadline: deadlineVal || null };
+  const payload = { title, company, location, type, salaryRange, description, skills, link: link || null, applicationDeadline: deadlineVal || null };
   const btn = document.getElementById('saveJobBtn');
   btn.disabled = true; btn.textContent = 'Saving...';
   try {

@@ -36,6 +36,18 @@ const barterUpload = multer({
 
 const router: IRouter = Router();
 
+// Formats a comma/newline separated skill list into a short, human-readable
+// preview (e.g. "UI/UX, Frontend +2 more") so notifications never dump full lists.
+function compactSkills(raw: string, limit = 3): string {
+  const parts = String(raw || "")
+    .split(/[,،、\n]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (parts.length === 0) return "their skills";
+  if (parts.length <= limit) return `"${parts.join(", ")}"`;
+  return `"${parts.slice(0, limit).join(", ")}" +${parts.length - limit} more`;
+}
+
 router.get("/barter/requests", optionalAuth, async (req, res): Promise<void> => {
   const { page = "1", limit = "12", category, city, q, sort = "newest" } = req.query as Record<string, string>;
   const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -371,17 +383,20 @@ router.post("/barter/matches", authenticate, async (req, res): Promise<void> => 
     })
     .returning();
 
+  const offered = compactSkills(myRequest.skillOffered);
+  const needed = compactSkills(myRequest.skillNeeded);
+
   await db.insert(notificationsTable).values({
     userId: targetRequest.userId,
     type: "NEW_MATCH",
     title: "New exchange match request!",
-    message: `${req.user!.firstName} wants to exchange "${myRequest.skillOffered}" for "${myRequest.skillNeeded}"`,
+    message: `${req.user!.firstName} wants to exchange ${offered} for ${needed}`,
     linkUrl: "/dashboard#my-exchanges",
   });
 
   const [targetUser] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, targetRequest.userId)).limit(1);
   if (targetUser?.email) {
-    sendNotificationEmail(targetUser.email, "New exchange match request!", `${req.user!.firstName} wants to exchange "${myRequest.skillOffered}" for "${myRequest.skillNeeded}"`, "/dashboard#my-exchanges").catch(() => {});
+    sendNotificationEmail(targetUser.email, "New exchange match request!", `${req.user!.firstName} wants to exchange ${offered} for ${needed}`, "/dashboard#my-exchanges").catch(() => {});
   }
 
   res.status(201).json({ success: true, message: "Match request sent!", data: { match } });

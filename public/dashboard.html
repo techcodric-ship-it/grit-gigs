@@ -1409,33 +1409,35 @@ textarea.fi{resize:vertical;}
           <h2 style="font-size:1.15rem;">My Grit Circle</h2>
           <p style="font-size:.8rem;color:var(--muted);margin-top:3px;">Form a squad, work together, and bid on projects as a team.</p>
         </div>
-        <button class="btn bp" onclick="showToast('Squad builder coming online soon','ok')">+ Form a squad</button>
+        <div id="gcHdrActions"></div>
       </div>
-      <div class="two-col" style="margin-bottom:16px;">
-        <div class="card" style="background:linear-gradient(135deg,var(--ink) 0%,#2A1E52 100%);color:#fff;border:none;">
-          <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:6px;">Build bigger with a squad</div>
-          <p style="font-size:.82rem;color:rgba(255,255,255,.65);line-height:1.6;margin-bottom:16px;">Team up with 4–6 freelancers and win larger projects together. Squads win 2.4× more on multi-skill projects.</p>
-          <button class="btn" style="background:var(--violet);color:#fff;border:none;" onclick="showToast('Squad builder coming online soon','ok')">Create my circle</button>
-        </div>
-        <div class="card">
-          <div style="font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;margin-bottom:12px;">Your circle</div>
-          <div class="empty" style="padding:24px;text-align:center;background:var(--bg);border-radius:var(--rm);border:1px dashed var(--bd2);">
-            <div class="bc-empty-title" style="font-size:.9rem;">No squad yet</div>
-            <div class="bc-empty-sub" style="font-size:.76rem;margin-top:4px;">Form a circle to start bidding as a team</div>
-            <button class="btn bp btn-sm" style="margin-top:10px;" onclick="showToast('Squad builder coming online soon','ok')">+ Invite members</button>
+      <div id="gcRoot">
+        <div class="empty"><div class="empty-sub">Loading your circle...</div></div>
+      </div>
+      <div id="gcCreateCard" style="display:none;">
+        <div class="card" style="max-width:640px;">
+          <div class="card-hdr" style="margin-bottom:14px;">
+            <span class="card-title">Form your Grit Circle</span>
+            <button class="btn bs btn-sm" onclick="gcToggleCreate(false)">Cancel</button>
           </div>
-        </div>
-      </div>
-      <div class="card">
-        <div style="font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;margin-bottom:12px;">Squad services</div>
-        <div class="row">
-          <div class="row-item" style="padding:12px;justify-content:space-between;">
-            <div style="display:flex;align-items:center;gap:10px;">
-              <div class="av" style="background:var(--violet);color:#fff;border-radius:10px;">S</div>
-              <div><div style="font-size:.82rem;font-weight:600;">Full app in 2 weeks</div><div style="font-size:.72rem;color:var(--muted);">Pixel Forge · 5 members · ₹9,999</div></div>
+          <div class="fg"><label class="fl">Circle name *</label><input class="fi" id="gcCreateName" placeholder="e.g. Pixel Forge"/></div>
+          <div class="fr2" style="margin-bottom:12px;">
+            <div class="fg"><label class="fl">Focus area</label>
+              <select class="fi" id="gcCreateCategory">
+                <option value="">Pick a focus...</option>
+                <option>Design &amp; Branding</option>
+                <option>Development</option>
+                <option>Marketing &amp; Growth</option>
+                <option>Content &amp; Writing</option>
+                <option>Video &amp; Motion</option>
+                <option>Full-stack Product</option>
+              </select>
             </div>
-            <span class="bdg bdg-v">Draft</span>
+            <div class="fg"><label class="fl">Tagline</label><input class="fi" id="gcCreateTagline" placeholder="One line about your team"/></div>
           </div>
+          <div class="fg"><label class="fl">Skills (comma separated)</label><input class="fi" id="gcCreateSkills" placeholder="e.g. UI/UX, React, Node.js, SEO"/></div>
+          <div class="fg"><label class="fl">What does the circle do?</label><textarea class="fi" id="gcCreateDesc" rows="3" placeholder="Tell people what your squad delivers together"></textarea></div>
+          <button class="btn bp" style="width:100%;justify-content:center;" onclick="gcCreateSquad()">Create my circle</button>
         </div>
       </div>
     </div>
@@ -1448,27 +1450,8 @@ textarea.fi{resize:vertical;}
           <p style="font-size:.8rem;color:var(--muted);margin-top:3px;">List a service your whole Grit Circle delivers together.</p>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start;">
-        <div class="card">
-          <div class="fg"><label class="fl">Service title</label><input class="fi" placeholder="e.g. We'll build your full product in 2 weeks"/></div>
-          <div class="fr2">
-            <div class="fg"><label class="fl">Category</label><select class="fi"><option>Design</option><option>Development</option><option>Marketing</option><option>Writing</option></select></div>
-            <div class="fg"><label class="fl">Team size</label><select class="fi"><option>3 members</option><option>4 members</option><option>5 members</option><option>6 members</option></select></div>
-          </div>
-          <div class="fg"><label class="fl">Describe the squad's service</label><textarea class="fi" rows="4" placeholder="What does the whole team deliver together?"></textarea></div>
-          <div class="fg"><label class="fl">Squad package price (₹)</label><input class="fi" type="number" placeholder="e.g. 10000"/></div>
-          <button class="btn bp" onclick="showToast('Squad service publishing coming online soon','ok')" style="width:100%;justify-content:center;">Publish squad service</button>
-        </div>
-        <div class="card" style="align-self:start;">
-          <div style="font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;margin-bottom:12px;">Choose members</div>
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            <label class="checkline" style="display:flex;align-items:center;gap:8px;font-size:.8rem;"><input type="checkbox" checked style="accent-color:var(--violet);width:16px;height:16px;margin:0;"/> Amuthavanan (you)</label>
-            <label class="checkline" style="display:flex;align-items:center;gap:8px;font-size:.8rem;"><input type="checkbox" checked style="accent-color:var(--violet);width:16px;height:16px;margin:0;"/> Sneha D. — UI/UX</label>
-            <label class="checkline" style="display:flex;align-items:center;gap:8px;font-size:.8rem;"><input type="checkbox" checked style="accent-color:var(--violet);width:16px;height:16px;margin:0;"/> Ravi V. — Backend</label>
-            <label class="checkline" style="display:flex;align-items:center;gap:8px;font-size:.8rem;"><input type="checkbox" checked style="accent-color:var(--violet);width:16px;height:16px;margin:0;"/> Ananya C. — Content</label>
-          </div>
-          <div class="bdg bdg-g" style="margin-top:14px;">Squad services can charge 2–4× more</div>
-        </div>
+      <div id="ssRoot">
+        <div class="empty"><div class="empty-sub">Loading squad services...</div></div>
       </div>
     </div>
 
@@ -2104,6 +2087,8 @@ const gU  = () => { try { return JSON.parse(localStorage.getItem('se_user') || '
 let adminUserId = 'b5ad53bd-6c50-490b-8c3a-d77200f99383';
 const sU  = u => localStorage.setItem('se_user', JSON.stringify(u));
 const esc = v => String(v ?? '').replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
+// Compact, human-friendly preview of a comma/newline separated skill list.
+const _fmtSkills = (s, n=3) => { const p = String(s||'').split(/[,，、\n]+/).map(x=>x.trim()).filter(Boolean); return p.length ? (p.length>n ? '"' + p.slice(0,n).join(', ') + '" +' + (p.length-n) + ' more' : '"' + p.join(', ') + '"') : 'their skills'; };
 const ADMIN_AV = (() => {
   const _svg = `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="#0A0A0F"/><text x="40" y="44" font-family="sans-serif" font-weight="800" font-size="24" fill="#fff" text-anchor="middle" dominant-baseline="middle">G</text><text x="54" y="44" font-family="sans-serif" font-weight="800" font-size="24" fill="#A78BFA" text-anchor="middle" dominant-baseline="middle">&amp;G</text></svg>`;
   return 'data:image/svg+xml,' + encodeURIComponent(_svg);
@@ -2328,6 +2313,10 @@ function inputModal(title, label, placeholder, onOk, opts = {}) {
 // ══════════════════════════════════════════════
 function showNotifBanner(title, msg, type = 'info', linkUrl = null) {
   const banner = document.getElementById('notifBanner');
+  const cleanTitle = String(title ?? '').trim().slice(0, 80);
+  const cleanMsg = String(msg ?? '').trim().slice(0, 160);
+  if (!cleanTitle && !cleanMsg) return;
+
   const item = document.createElement('div');
   item.className = `nb-item ${type}`;
 
@@ -2335,8 +2324,8 @@ function showNotifBanner(title, msg, type = 'info', linkUrl = null) {
   item.innerHTML = `
     <span class="nb-icon">${icon}</span>
     <div class="nb-content">
-      <div class="nb-title">${esc(title)}</div>
-      ${msg ? `<div class="nb-msg">${esc(msg)}</div>` : ''}
+      <div class="nb-title">${esc(cleanTitle)}</div>
+      ${cleanMsg ? `<div class="nb-msg">${esc(cleanMsg)}</div>` : ''}
     </div>
     <button class="nb-close" onclick="this.closest('.nb-item').remove()">×</button>
   `;
@@ -2633,9 +2622,9 @@ async function loadNotifDrawer() {
     (matchRes.data.matches || [])
       .filter(m => m.status === 'PENDING' && m.user2Id === u?.id)
       .forEach(m => items.push({
-        icon: '⇄', link: 'my-exchanges',
+        icon: '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M23 4v6h-6M1 20v-6h6M3.5 9a9 9 0 0 1 14.9-3.4L23 10M20.5 15a9 9 0 0 1-14.9 3.4L1 14"/></svg>', link: 'my-exchanges',
         title: 'Match request received',
-        msg: `${m.user1?.firstName || 'Someone'} wants to exchange ${m.request1?.skillOffered || 'skills'} for your ${m.request2?.skillOffered || 'skill'}`,
+        msg: `${m.user1?.firstName || 'Someone'} wants to exchange ${_fmtSkills(m.request1?.skillOffered)} for your ${_fmtSkills(m.request2?.skillOffered)}`,
         time: m.createdAt,
       }));
     // Accepted matches
@@ -6924,8 +6913,8 @@ function loadPage(n) {
   else if (n === 'disputes')  loadDisputes();
   else if (n === 'kyc')       loadKyc();
   else if (n === 'jobs')      loadJobs();
-  else if (n === 'grit-circle') { /* static sections ready */ }
-  else if (n === 'squad-squad') { /* static sections ready */ }
+  else if (n === 'grit-circle') loadGritCircle();
+  else if (n === 'squad-squad') loadSquadService();
 }
 
 // ── Full-time Jobs (real, admin-posted) ───────────────────
@@ -6953,9 +6942,12 @@ function renderJobs() {
   if (!_jobsFiltered.length) { box.innerHTML = '<div class="empty"><div class="empty-sub">No job openings posted yet. Check back soon!</div></div>'; return; }
   box.innerHTML = _jobsFiltered.map(j => {
     const applied = j.applied;
+    const extLink = j.link ? `<a href="${esc(j.link)}" target="_blank" rel="noopener nofollow" style="text-decoration:none;" title="Apply on the company's site"><button class="btn bp btn-sm" style="width:100%;justify-content:center;"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em;margin-right:5px;" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Apply on site</button></a>` : '';
     const btn = applied
-      ? `<button class="btn btn-sm" disabled style="background:var(--vl);color:var(--violet);border:none;opacity:.8;">Applied</button>`
-      : `<button class="btn bp btn-sm" onclick="openApplyModal('${j.id}','${esc(j.title).replace(/'/g,"\\'")}')">Apply now</button>`;
+      ? `<button class="btn btn-sm" disabled style="background:var(--vl);color:var(--violet);border:none;opacity:.8;justify-content:center;">Applied</button>`
+      : extLink
+        ? `<div style="display:flex;flex-direction:column;gap:6px;">${extLink}<button class="btn bs btn-sm" onclick="openApplyModal('${j.id}','${esc(j.title).replace(/'/g,"\\'")}')">Apply with Grit&Gigs</button></div>`
+        : `<button class="btn bp btn-sm" onclick="openApplyModal('${j.id}','${esc(j.title).replace(/'/g,"\\'")}')">Apply now</button>`;
     const deadline = j.applicationDeadline ? '<div style="font-size:.7rem;color:var(--err);margin-top:4px;">Closes ' + new Date(j.applicationDeadline).toLocaleDateString('en-IN', {day:'numeric',month:'short'}) + '</div>' : '';
     return `
     <div class="card" style="margin-bottom:12px;padding:16px;">
@@ -6976,6 +6968,386 @@ function renderJobs() {
       ${(j.skills && j.skills.length) ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">' + j.skills.map(s => '<span class="bc-tag">' + esc(s) + '</span>').join('') + '</div>' : ''}
     </div>`;
   }).join('');
+}
+// ── Grit Circle (real squad backend) ──────────────────────────────────
+let _gc = null;
+async function loadGritCircle() {
+  const root = document.getElementById('gcRoot');
+  document.getElementById('gcCreateCard').style.display = 'none';
+  if (!root) return;
+  try {
+    const d = await api('/squads/mine', { method: 'GET' });
+    _gc = d && d.success ? (d.data || {}) : {};
+  } catch (e) { _gc = {}; }
+  renderGritCircle();
+}
+function gcToggleCreate(show) {
+  document.getElementById('gcCreateCard').style.display = show ? 'block' : 'none';
+  if (show) setTimeout(() => { const el = document.getElementById('gcCreateName'); if (el) el.focus(); }, 60);
+}
+async function gcCreateSquad() {
+  const name = (document.getElementById('gcCreateName').value || '').trim();
+  if (!name) { showToast('Name your circle first', 'err'); return; }
+  const body = {
+    name,
+    category: document.getElementById('gcCreateCategory').value,
+    tagline: (document.getElementById('gcCreateTagline').value || '').trim(),
+    skills: (document.getElementById('gcCreateSkills').value || '').trim(),
+    description: (document.getElementById('gcCreateDesc').value || '').trim(),
+  };
+  const d = await api('/squads', { method: 'POST', body: JSON.stringify(body) });
+  if (d && d.success) {
+    showToast(d.message || 'Your Grit Circle is live', 'ok');
+    document.getElementById('gcCreateCard').style.display = 'none';
+    loadGritCircle();
+  } else { showToast((d && d.message) || 'Could not create circle', 'err'); }
+}
+const gcPalette = ['linear-gradient(135deg,#6C3FE8,#8B5CF6)','linear-gradient(135deg,#E8A020,#F5C04A)','linear-gradient(135deg,#10B981,#34D399)','linear-gradient(135deg,#EF4444,#F87171)','linear-gradient(135deg,#EC4899,#F472B6)','linear-gradient(135deg,#0EA5E9,#38BDF8)'];
+const gcSquadAvatar = (sq, size) => '<div class="av" style="width:' + (size||46) + 'px;height:' + (size||46) + 'px;border-radius:' + Math.round((size||46)*0.26) + 'px;background:linear-gradient(135deg,var(--violet),#8B5CF6);color:#fff;font-size:' + Math.round((size||46)*0.34) + 'px;flex-shrink:0;">' + esc((sq.name || 'GC').trim().split(/\s+/).map(w => w[0]).join('').slice(0,2).toUpperCase()) + '</div>';
+const gcInitCap = m => esc(((m.firstName || '?').charAt(0) + (m.lastName || '').charAt(0)).toUpperCase());
+function renderGritCircle() {
+  const root = document.getElementById('gcRoot');
+  const hdr = document.getElementById('gcHdrActions');
+  if (!root) return;
+  const d = _gc || {};
+  if (d.invite) {
+    // Pending invite from another circle's leader
+    const inv = d.invite;
+    const lead = (inv.squad && inv.squad.leader) || {};
+    root.innerHTML = `
+      <div class="card" style="max-width:560px;border:1px solid rgba(108,63,232,.25);">
+        <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;">
+          ${gcSquadAvatar(inv.squad, 50)}
+          <div style="flex:1;min-width:220px;">
+            <span class="bdg bdg-v" style="margin-bottom:6px;">Invitation</span>
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.02rem;margin-top:4px;">${esc(lead.firstName || 'Someone')+' '+esc(lead.lastName||'')} invited you to join ${esc(inv.squad.name)}</div>
+            <div style="font-size:.78rem;color:var(--muted);margin-top:4px;">${esc(lead.firstName || 'Grit&Gigs member')} leads this circle — accept to team up and bid together.</div>
+            ${inv.message ? '<div style="font-size:.78rem;color:var(--sec);background:var(--bg);border-radius:var(--rm);padding:10px 14px;margin-top:10px;">“' + esc(inv.message) + '”</div>' : ''}
+            <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+              <button class="btn bp btn-sm" onclick="gcRespondInvite('${inv.id}','ACCEPTED')">Accept invite</button>
+              <button class="btn bs btn-sm" onclick="gcRespondInvite('${inv.id}','DECLINED')">Decline</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    if (hdr) hdr.innerHTML = '';
+    return;
+  }
+  if (!d.squad) {
+    root.innerHTML = `
+      <div class="two-col">
+        <div class="card" style="background:linear-gradient(135deg,var(--ink) 0%,#2A1E52 100%);color:#fff;border:none;">
+          <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:6px;">Build bigger with a squad</div>
+          <p style="font-size:.82rem;color:rgba(255,255,255,.65);line-height:1.6;margin-bottom:18px;">Team up with up to 6 freelancers and win larger projects together. Squads win 2.4× more on multi-skill projects — one circle, one goal.</p>
+          <button class="btn" style="background:var(--violet);color:#fff;border:none;" onclick="gcToggleCreate(true)">Create my circle</button>
+        </div>
+        <div class="card">
+          <div style="font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;margin-bottom:12px;">Your circle</div>
+          <div class="empty" style="padding:26px 20px;text-align:center;background:var(--bg);border-radius:var(--rm);border:1px dashed var(--bd2);">
+            <div style="width:46px;height:46px;border-radius:14px;background:var(--vl);color:var(--violet);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="bc-empty-title" style="font-size:.9rem;">No squad yet</div>
+            <div class="bc-empty-sub" style="font-size:.76rem;margin-top:4px;">Form a circle to invite teammates and bid as a team</div>
+            <button class="btn bp btn-sm" style="margin-top:12px;" onclick="gcToggleCreate(true)">+ Invite members</button>
+          </div>
+        </div>
+      </div>`;
+    if (hdr) hdr.innerHTML = '';
+    return;
+  }
+  const sq = d.squad, role = d.role, members = d.members || [], invites = d.openInvites || [], services = d.services || [];
+  const isLeader = role === 'LEADER';
+  const hdrHtml = isLeader
+    ? `<button class="btn bs btn-sm" onclick="gcEditSquad()"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg> Edit</button>
+      <button class="btn bp btn-sm" onclick="gcOpenInvite()"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Invite member</button>`
+    : `<button class="btn bs btn-sm" onclick="gcLeaveSquad()">Leave circle</button>`;
+  if (hdr) hdr.innerHTML = hdrHtml;
+  const skillTags = (sq.skills && sq.skills.length)
+    ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;">' + sq.skills.map(s => '<span class="bc-tag">' + esc(s) + '</span>').join('') + '</div>' : '';
+  const membersHtml = members.map((m, i) => `
+    <div class="row-item" style="padding:12px;gap:10px;">
+      <div class="av" style="width:38px;height:38px;background:${gcPalette[i % gcPalette.length]};color:#fff;font-size:.74rem;flex-shrink:0;">${gcInitCap(m)}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:.84rem;font-weight:600;">${esc(m.firstName)} ${esc(m.lastName)}</span>
+          ${m.role === 'LEADER' ? '<span class="bdg bdg-v" style="font-size:.58rem;padding:1px 8px;">Leader</span>' : ''}
+          ${m.id === (gU()||{}).id ? '<span class="bdg bdg-ink" style="font-size:.58rem;padding:1px 8px;">You</span>' : ''}
+        </div>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:2px;">${esc(m.tagline || (m.skills||[]).slice(0,3).join(', ') || 'Freelancer')}</div>
+      </div>
+      ${isLeader && m.role !== 'LEADER' ? '<button class="btn bs btn-xs" style="color:var(--err);" onclick="gcRemoveMember(\'' + m.id + '\')">Remove</button>' : ''}
+    </div>`).join('') || '<div class="empty"><div class="empty-sub">No members yet</div></div>';
+  const invitesHtml = isLeader
+    ? `<div class="card">
+        <div class="card-hdr" style="margin-bottom:8px;">
+          <span class="card-title">Pending invites</span>
+          <button class="btn bp btn-sm" onclick="gcOpenInvite()">+ Invite member</button>
+        </div>
+        ${invites.length ? invites.map(inv => `
+          <div class="row-item" style="padding:12px;gap:10px;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:.8rem;font-weight:600;">${esc(inv.user ? inv.user.firstName + ' ' + inv.user.lastName : inv.invitedEmail)}</div>
+              <div style="font-size:.68rem;color:var(--muted);margin-top:2px;">${esc(inv.user ? inv.invitedEmail : 'Not a member yet')} · invited ${timeSince(inv.createdAt)}</div>
+              ${inv.message ? '<div style="font-size:.7rem;color:var(--sec);margin-top:8px;background:var(--bg);border-radius:var(--rm);padding:8px 12px;">' + esc(inv.message) + '</div>' : ''}
+            </div>
+            <button class="btn bs btn-xs" onclick="gcCancelInvite('${inv.id}')">Cancel</button>
+          </div>`).join('')
+        : '<div style="padding:16px 4px;font-size:.78rem;color:var(--muted);">No pending invites — add teammates to grow your circle.</div>'}
+      </div>` : '';
+  const svcPreview = services.length
+    ? services.map(s => `
+        <div class="row-item" style="padding:12px;gap:10px;">
+          <div class="av" style="width:36px;height:36px;background:var(--vl);color:var(--violet);border-radius:10px;font-size:.8rem;flex-shrink:0;">S</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:.82rem;font-weight:600;">${esc(s.title)}</div>
+            <div style="font-size:.7rem;color:var(--muted);margin-top:2px;">${moneyInr(s.priceInr)} · ${s.deliveryDays} days · ${s.status === 'PAUSED' ? 'Paused' : 'Live'}</div>
+          </div>
+        </div>`).join('')
+    : null;
+  root.innerHTML = `
+    <div class="card" style="background:linear-gradient(135deg,var(--ink) 0%,#2A1E52 100%);color:#fff;border:none;margin-bottom:16px;">
+      <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+        ${gcSquadAvatar(sq, 56)}
+        <div style="flex:1;min-width:220px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.15rem;">${esc(sq.name)}</span>
+            ${sq.category ? '<span class="bdg" style="background:rgba(255,255,255,.08);color:#C4B5FD;">' + esc(sq.category) + '</span>' : ''}
+            <span class="bdg bdg-g">Squad</span>
+          </div>
+          ${sq.tagline ? '<div style="font-size:.82rem;color:rgba(255,255,255,.7);margin-top:4px;">' + esc(sq.tagline) + '</div>' : ''}
+          ${sq.description ? '<div style="font-size:.76rem;color:rgba(255,255,255,.55);line-height:1.6;margin-top:8px;max-width:560px;">' + esc(sq.description) + '</div>' : ''}
+          ${skillTags}
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;">${members.length}<span style="font-size:.78rem;color:rgba(255,255,255,.5);font-weight:400;">/${sq.maxMembers || 6} members</span></div>
+          <div style="font-size:.68rem;color:rgba(255,255,255,.5);margin-top:2px;">${services.length} squad service${services.length === 1 ? '' : 's'}</div>
+          <div style="display:flex;gap:6px;margin-top:10px;justify-content:flex-end;">${members.slice(0,6).map((m,i) => '<div class="av" style="width:30px;height:30px;margin:0;background:' + gcPalette[i % gcPalette.length] + ';color:#fff;font-size:.62rem;box-shadow:0 0 0 2px #221A3F;">' + gcInitCap(m) + '</div>').join('')}</div>
+        </div>
+      </div>
+    </div>
+    <div class="two-col" style="align-items:start;">
+      <div>
+        ${invitesHtml}
+        <div class="card">
+          <div class="card-hdr" style="margin-bottom:8px;"><span class="card-title">Members (${members.length}/${sq.maxMembers || 6})</span></div>
+          <div class="row">${membersHtml}</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card">
+          <div class="card-hdr" style="margin-bottom:6px;">
+            <span class="card-title">Squad services</span>
+            <button class="btn bp btn-sm" onclick="showPage('squad-squad')">+ New</button>
+          </div>
+          ${svcPreview ? '<div class="row">' + svcPreview + '</div>' : '<div style="padding:16px 4px;font-size:.78rem;color:var(--muted);">No squad services yet. Publish one for the whole team.</div>'}
+        </div>
+        <div class="card">
+          <div style="font-size:.78rem;color:var(--muted);line-height:1.65;">
+            <div style="font-family:'Syne',sans-serif;font-weight:700;color:var(--ink);margin-bottom:6px;">Team power</div>
+            Squads win bigger projects, publish one team service, and split the payout. The Squad plan keeps your commission at 1% for every squad win.
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+async function gcRespondInvite(id, status) {
+  const d = await api('/squads/invites/' + id, { method: 'PUT', body: JSON.stringify({ status }) });
+  if (d && d.success) { showToast(d.message || 'Done', 'ok'); loadGritCircle(); }
+  else showToast((d && d.message) || 'Could not respond', 'err');
+}
+async function gcOpenInvite() {
+  inputModal('Invite a member', '', '', async (vals) => {
+    const d = await api('/squads/' + _gc.squad.id + '/invites', { method: 'POST', body: JSON.stringify({ email: vals.email, message: vals.msg || null }) });
+    if (d && d.success) { showToast(d.message || 'Invite sent', 'ok'); loadGritCircle(); }
+    else showToast((d && d.message) || 'Could not send invite', 'err');
+  }, { fields: [
+    { id: 'email', label: 'Member email', placeholder: 'teammate@example.com' },
+    { id: 'msg', label: 'Optional note', placeholder: 'Join us — we have a big project coming!' },
+  ], required: 'email', okLabel: 'Send invite' });
+}
+function gcCancelInvite(id) {
+  confirmModal('Cancel this invite?', 'The person won\'t be able to accept it anymore.', 'Cancel invite', async () => {
+    const d = await api('/squads/invites/' + id, { method: 'DELETE' });
+    if (d && d.success) { showToast('Invite cancelled', 'ok'); loadGritCircle(); } else showToast((d && d.message) || 'Failed', 'err');
+  }, true);
+}
+function gcRemoveMember(memberId) {
+  confirmModal('Remove this member?', 'They\'ll leave the circle and get a notification.', 'Remove', async () => {
+    const d = await api('/squads/' + _gc.squad.id + '/members/' + memberId, { method: 'DELETE' });
+    if (d && d.success) { showToast('Member removed', 'ok'); loadGritCircle(); } else showToast((d && d.message) || 'Failed', 'err');
+  }, true);
+}
+function gcLeaveSquad() {
+  confirmModal('Leave this circle?', 'You\'ll no longer be part of the squad.', 'Leave circle', async () => {
+    const d = await api('/squads/' + _gc.squad.id + '/leave', { method: 'DELETE' });
+    if (d && d.success) { showToast(d.message || 'You left', 'ok'); loadGritCircle(); } else showToast((d && d.message) || 'Failed', 'err');
+  }, true);
+}
+function gcEditSquad() {
+  const sq = _gc.squad || {};
+  inputModal('Edit circle', '', '', async (vals) => {
+    const d = await api('/squads/' + sq.id, { method: 'PUT', body: JSON.stringify({
+      name: vals.name, tagline: vals.tagline || null, category: vals.category || null,
+      skills: vals.skills || null, description: vals.desc || null,
+    }) });
+    if (d && d.success) { showToast('Circle updated', 'ok'); loadGritCircle(); } else showToast((d && d.message) || 'Failed', 'err');
+  }, { fields: [
+    { id: 'name', label: 'Circle name', placeholder: 'Pixel Forge' },
+    { id: 'category', label: 'Focus area', placeholder: 'e.g. Full-stack Product' },
+    { id: 'tagline', label: 'Tagline', placeholder: 'One line about your team' },
+    { id: 'skills', label: 'Skills (comma separated)', placeholder: 'UI/UX, React, Node.js' },
+    { id: 'desc', label: 'What does the circle do?', type: 'textarea', placeholder: 'Describe your squad' },
+  ], required: 'name', okLabel: 'Save changes' });
+}
+
+// ── Squad Service (real backend) ───────────────────────────────────────
+let _ss = null;
+let _ssEditId = null;
+async function loadSquadService() {
+  const root = document.getElementById('ssRoot');
+  if (!root) return;
+  try {
+    const d = await api('/squads/mine', { method: 'GET' });
+    _ss = d && d.success ? (d.data || {}) : {};
+  } catch (e) { _ss = {}; }
+  _ssEditId = null;
+  renderSquadService();
+}
+function ssResetForm() {
+  _ssEditId = null;
+  ['ssTitle','ssCategory','ssDeliver','ssPrice','ssSkills','ssDesc'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = id === 'ssCategory' ? '' : id === 'ssDeliver' ? '7' : '';
+  });
+  const btn = document.getElementById('ssSubmitBtn');
+  if (btn) btn.textContent = 'Publish squad service';
+}
+async function ssSave() {
+  const title = (document.getElementById('ssTitle').value || '').trim();
+  const desc = (document.getElementById('ssDesc').value || '').trim();
+  const price = document.getElementById('ssPrice').value;
+  if (!title || !desc) { showToast('Title and description are required', 'err'); return; }
+  if (!price || isNaN(Number(price)) || Number(price) <= 0) { showToast('Enter a valid price', 'err'); return; }
+  const body = {
+    title, description: desc,
+    category: document.getElementById('ssCategory').value || null,
+    deliveryDays: Number(document.getElementById('ssDeliver').value) || 7,
+    priceInr: Math.round(Number(price)),
+    skills: (document.getElementById('ssSkills').value || '').trim(),
+  };
+  const url = _ssEditId ? '/squads/services/' + _ssEditId : '/squads/' + _ss.squad.id + '/services';
+  const method = _ssEditId ? 'PUT' : 'POST';
+  const d = await api(url, { method, body: JSON.stringify(body) });
+  if (d && d.success) { showToast(d.message || 'Saved', 'ok'); ssResetForm(); loadSquadService(); }
+  else showToast((d && d.message) || 'Could not save', 'err');
+}
+function ssEdit(id) {
+  const svc = (_ss.services || []).find(s => s.id === id);
+  if (!svc) return;
+  _ssEditId = id;
+  document.getElementById('ssTitle').value = svc.title;
+  document.getElementById('ssCategory').value = svc.category || '';
+  document.getElementById('ssDeliver').value = svc.deliveryDays;
+  document.getElementById('ssPrice').value = svc.priceInr;
+  document.getElementById('ssSkills').value = (svc.skills || []).join(', ');
+  document.getElementById('ssDesc').value = svc.description;
+  const btn = document.getElementById('ssSubmitBtn');
+  if (btn) btn.textContent = 'Update squad service';
+  const card = document.getElementById('ssFormCard');
+  if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  else { const el = document.getElementById('ssTitle'); if (el) el.focus(); }
+}
+function ssPauseToggle(id, status) {
+  const d = api('/squads/services/' + id, { method: 'PUT', body: JSON.stringify({ status }) });
+  d.then(r => { if (r && r.success) { showToast(status === 'PAUSED' ? 'Service paused' : 'Service is live', 'ok'); loadSquadService(); } else showToast((r && r.message) || 'Failed', 'err'); });
+}
+function ssDelete(id) {
+  confirmModal('Remove this squad service?', 'It will be hidden from buyers immediately.', 'Remove', async () => {
+    const d = await api('/squads/services/' + id, { method: 'DELETE' });
+    if (d && d.success) { showToast('Service removed', 'ok'); if (_ssEditId === id) ssResetForm(); loadSquadService(); }
+    else showToast((d && d.message) || 'Failed', 'err');
+  }, true);
+}
+function renderSquadService() {
+  const root = document.getElementById('ssRoot');
+  if (!root) return;
+  const d = _ss || {};
+  if (!d.squad) {
+    root.innerHTML = `<div class="card" style="text-align:center;padding:48px 24px;">
+      <div style="width:56px;height:56px;border-radius:16px;background:var(--vl);color:var(--violet);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <div class="bc-empty-title" style="font-size:.92rem;">You need a Grit Circle first</div>
+      <div class="bc-empty-sub" style="font-size:.76rem;margin-top:4px;max-width:360px;margin-left:auto;margin-right:auto;">Squad services are delivered by your whole team. Form a circle, invite members, then publish a service together.</div>
+      <button class="btn bp" style="margin-top:14px;" onclick="showPage('grit-circle')">Form a Grit Circle</button>
+    </div>`;
+    return;
+  }
+  const members = d.members || [], services = d.services || [];
+  const memberChips = members.length
+    ? '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + members.map((m,i) => '<span class="bc-tag" style="padding:6px 10px;font-size:.7rem;">' + gcInitCap(m) + ' ' + esc(m.firstName) + (m.role === 'LEADER' ? ' <span style="color:var(--violet);font-weight:700;">· Leader</span>' : '') + '</span>').join('') + '</div>'
+    : '<div style="font-size:.76rem;color:var(--muted);">No members yet.</div>';
+  const svcRows = services.length
+    ? services.map(s => `
+      <div class="card" style="padding:16px;margin-bottom:12px;">
+        <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;">
+          <div class="av" style="width:42px;height:42px;border-radius:11px;background:${s.status === 'PAUSED' ? 'var(--bg2)' : 'var(--vl)'};color:${s.status === 'PAUSED' ? 'var(--sec)' : 'var(--violet)'};flex-shrink:0;">S</div>
+          <div style="flex:1;min-width:220px;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span style="font-size:.92rem;font-weight:700;">${esc(s.title)}</span>
+              <span class="bdg ${s.status === 'PAUSED' ? 'bdg-ink' : 'bdg-v'}" style="font-size:.58rem;">${s.status === 'PAUSED' ? 'Paused' : 'Live'}</span>
+            </div>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:3px;">${moneyInr(s.priceInr)} · ${s.deliveryDays} days${s.category ? ' · ' + esc(s.category) : ''}</div>
+            <div style="font-size:.78rem;color:var(--sec);line-height:1.5;margin-top:6px;">${esc(shortText(s.description, 140))}</div>
+            ${(s.skills && s.skills.length) ? '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;">' + s.skills.map(k => '<span class="bc-tag">' + esc(k) + '</span>').join('') + '</div>' : ''}
+            <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+              <button class="btn bs btn-xs" onclick="ssEdit('${s.id}')">Edit</button>
+              <button class="btn bs btn-xs" onclick="ssPauseToggle('${s.id}','${s.status === 'PAUSED' ? 'ACTIVE' : 'PAUSED'}')">${s.status === 'PAUSED' ? 'Unpause' : 'Pause'}</button>
+              <button class="btn bs btn-xs" style="color:var(--err);" onclick="ssDelete('${s.id}')">Delete</button>
+            </div>
+          </div>
+        </div>
+      </div>`).join('')
+    : '<div class="card" style="padding:24px;text-align:center;border:1px dashed var(--bd2);background:var(--bg);"><div class="bc-empty-sub">No squad services yet — publish your first one above.</div></div>';
+  root.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start;" class="ss-grid">
+      <div class="card" id="ssFormCard">
+        <div class="fg"><label class="fl">Service title *</label><input class="fi" id="ssTitle" placeholder="e.g. We'll build your full product in 2 weeks"/></div>
+        <div class="fr2">
+          <div class="fg"><label class="fl">Category</label>
+            <select class="fi" id="ssCategory">
+              <option value="">Pick a category...</option>
+              <option>Design</option><option>Development</option><option>Marketing</option><option>Writing</option><option>Video</option><option>Full-stack Product</option>
+            </select>
+          </div>
+          <div class="fg"><label class="fl">Delivery (days)</label><input class="fi" id="ssDeliver" type="number" min="1" max="90" value="7"/></div>
+        </div>
+        <div class="fr2">
+          <div class="fg"><label class="fl">Package price (₹) *</label><input class="fi" id="ssPrice" type="number" min="1" placeholder="e.g. 10000"/></div>
+          <div class="fg"><label class="fl">Skills</label><input class="fi" id="ssSkills" placeholder="Design, Code, QA"/></div>
+        </div>
+        <div class="fg"><label class="fl">Describe the squad's service *</label><textarea class="fi" id="ssDesc" rows="4" placeholder="What does the whole team deliver together?"></textarea></div>
+        <button class="btn bp" id="ssSubmitBtn" style="width:100%;justify-content:center;" onclick="ssSave()">Publish squad service</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card">
+          <div style="font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;margin-bottom:12px;">Delivered by your circle</div>
+          ${memberChips}
+          <div class="bdg bdg-v" style="margin-top:14px;">Squad services can charge 2–4× more</div>
+        </div>
+        <div class="card">
+          <div style="font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;margin-bottom:6px;">${d.squad.name}</div>
+          <div style="font-size:.74rem;color:var(--muted);line-height:1.55;">${d.squad.tagline || ''} ${members.length}/${d.squad.maxMembers || 6} members ready to deliver.</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:20px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;">Squad services</div>
+      <span class="bdg bdg-ink">${services.length} total</span>
+    </div>
+    <div style="margin-top:12px;">${svcRows}</div>`;
 }
 function openApplyModal(jobId, jobTitle) {
   modal.innerHTML = `<div style="background:var(--white);max-width:520px;width:90vw;border-radius:var(--rl);padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.2);">

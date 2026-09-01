@@ -1,0 +1,690 @@
+import { Router, type IRouter, type Request, type Response } from "express";
+import { eq, and, desc, ne, sql } from "drizzle-orm";
+import {
+  db,
+  usersTable,
+  notificationsTable,
+  squadsTable,
+  squadMembersTable,
+  squadInvitesTable,
+  squadServicesTable,
+} from "../db";
+import { authenticate, optionalAuth } from "../middlewares/authenticate";
+import { sendNotificationEmail } from "../lib/email";
+
+const router: IRouter = Router();
+
+/** Max members a squad can hold (matches the Squad plan's 6-member allowance). */
+const MAX_SQUAD_MEMBERS = 6;
+
+function normalizeSkills(input: unknown): string[] {
+  if (typeof input === "string") {
+    return String(input)
+      .split(/[,，、\n]+/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, 12);
+  }
+  if (Array.isArray(input)) {
+    return (input as unknown[])
+      .map((s) => String(s).trim())
+      .filter(Boolean)
+      .slice(0, 12);
+  }
+  return [];
+}
+
+function squadLite(squad: typeof squadsTable.$inferSelect, extras: Record<string, unknown> = {}) {
+  return {
+    id: squad.id,
+    name: squad.name,
+    tagline: squad.tagline ?? null,
+    category: squad.category ?? null,
+    description: squad.description ?? null,
+    avatar: squad.avatar ?? null,
+    skills: squad.skills ?? [],
+    leaderId: squad.leaderId,
+    isActive: squad.isActive,
+    createdAt: squad.createdAt,
+    ...extras,
+  };
+}
+
+function memberJson(user: { id: string; firstName: string; lastName?: string | null; profilePhoto?: string | null; tagline?: string | null; skillsOffered?: string[] | null }, role: string, createdAt: Date) {
+  return {
+    id: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName ?? "",
+    profilePhoto: user.profilePhoto ?? null,
+    tagline: user.tagline ?? null,
+    skills: user.skillsOffered ?? [],
+    role,
+    joinedAt: createdAt,
+  };
+}
+
+// ── Create a Grit Circle ───────────────────────────────────────────────
+router.post("/squads", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const leaderId = req.user!.id;
+  const { name, tagline, category, description, skills, avatar } = req.body || {};
+
+  if (!name || !String(name).trim()) {
+    res.status(400).json({ success: false, message: "Give your circle a name" });
+    return;
+  }
+
+  const [existing] = await db
+    .select({ id: squadsTable.id })
+    .from(squadMembersTable)
+    .innerJoin(squadsTable, eq(squadMembersTable.squadId, squadsTable.id))
+    .where(and(eq(squadMembersTable.userId, leaderId), eq(squadsTable.isActive, true)))
+    .limit(1);
+  if (existing) {
+    res.status(400).json({ success: false, message: "You're already in a circle. Leave it first to start a new one." });
+    return;
+  }
+
+  const [squad] = await db
+    .insert(squadsTable)
+    .values({
+      name: String(name).trim().slice(0, 80),
+      tagline: tagline ? String(tagline).trim().slice(0, 140) : null,
+      category: category ? String(category).trim().slice(0, 60) : null,
+      description: description ? String(description).trim().slice(0, 1000) : null,
+      avatar: avatar ? String(avatar).slice(0, 500) : null,
+      skills: normalizeSkills(skills),
+      leaderId,
+    })
+    .returning();
+  await db.insert(squadMembersTable).values({ squadId: squad.id, userId: leaderId, role: "LEADER" });
+
+  res.status(201).json({ success: true, message: "Your Grit Circle is live", data: { squad: squadLite(squad) } });
+});
+
+// ── Public squad directory ─────────────────────────────────────────────
+router.get("/squads", optionalAuth, async (_req: Request, res: Response): Promise<void> => {
+  const squadRows = await db
+    .select({
+      squad: squadsTable,
+      leader: { id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, tagline: usersTable.tagline },
+      memberCount: sql<number>`(SELECT count(*) FROM ${squadMembersTable} WHERE ${squadMembersTable.squadId} = ${squadsTable.id})`,
+      serviceCount: sql<number>`(SELECT count(*) FROM ${squadServicesTable} WHERE ${squadServicesTable.squadId} = ${squadsTable.id} AND ${squadServicesTable.status} = 'ACTIVE')`,
+    })
+    .from(squadsTable)
+    .leftJoin(usersTable, eq(squadsTable.leaderId, usersTable.id))
+    .where(eq(squadsTable.isActive, true))
+    .orderBy(desc(squadsTable.createdAt))
+    .limit(60);
+
+  res.json({
+    success: true,
+    data: squadRows.map((r) => ({
+      ...squadLite(r.squad, { memberCount: Number(r.memberCount), serviceCount: Number(r.serviceCount) }),
+      leader: r.leader ? { id: r.leader.id, firstName: r.leader.firstName, lastName: r.leader.lastName ?? "", profilePhoto: r.leader.profilePhoto ?? null, tagline: r.leader.tagline ?? null } : null,
+    })),
+  });
+});
+
+// ── My circle (leader + members view) ───────────────────────────────────
+router.get("/squads/mine", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const userId = req.user!.id;
+
+  const [membership] = await db
+    .select({ member: squadMembersTable, squad: squadsTable })
+    .from(squadMembersTable)
+    .innerJoin(squadsTable, eq(squadMembersTable.squadId, squadsTable.id))
+    .where(and(eq(squadMembersTable.userId, userId), eq(squadsTable.isActive, true)))
+    .limit(1);
+
+  const myInvite = !membership
+    ? await db
+        .select()
+        .from(squadInvitesTable)
+        .innerJoin(squadsTable, eq(squadInvitesTable.squadId, squadsTable.id))
+        .where(and(eq(squadInvitesTable.invitedUserId, userId), eq(squadInvitesTable.status, "PENDING")))
+        .limit(1)
+    : [];
+
+  const data: Record<string, unknown> = {
+    squad: null,
+    role: null,
+    members: [],
+    openInvites: [],
+    services: [],
+    invite: null,
+  };
+
+  if (membership) {
+    const squad = membership.squad;
+    const memberRows = await db
+      .select({ member: squadMembersTable, user: usersTable })
+      .from(squadMembersTable)
+      .innerJoin(usersTable, eq(squadMembersTable.userId, usersTable.id))
+      .where(eq(squadMembersTable.squadId, squad.id))
+      .orderBy(desc(squadMembersTable.role), desc(squadMembersTable.createdAt));
+
+    const openInvites = membership.member.role === "LEADER"
+      ? await db
+          .select({ invite: squadInvitesTable, user: usersTable })
+          .from(squadInvitesTable)
+          .leftJoin(usersTable, eq(squadInvitesTable.invitedUserId, usersTable.id))
+          .where(and(eq(squadInvitesTable.squadId, squad.id), eq(squadInvitesTable.status, "PENDING")))
+          .orderBy(desc(squadInvitesTable.createdAt))
+      : [];
+
+    const services = await db
+      .select()
+      .from(squadServicesTable)
+      .where(and(eq(squadServicesTable.squadId, squad.id), ne(squadServicesTable.status, "DELETED")))
+      .orderBy(desc(squadServicesTable.createdAt));
+
+    data.squad = squadLite(squad, { memberCount: memberRows.length, maxMembers: MAX_SQUAD_MEMBERS });
+    data.role = membership.member.role;
+    data.members = memberRows.map((m) => memberJson(m.user, m.member.role, m.member.createdAt));
+    data.openInvites = openInvites.map((r) => ({
+      id: r.invite.id,
+      invitedEmail: r.invite.invitedEmail,
+      message: r.invite.message ?? null,
+      status: r.invite.status,
+      createdAt: r.invite.createdAt,
+      user: r.user ? { id: r.user.id, firstName: r.user.firstName, lastName: r.user.lastName ?? "", profilePhoto: r.user.profilePhoto ?? null } : null,
+    }));
+    data.services = services.map((s) => ({
+      id: s.id,
+      squadId: s.squadId,
+      title: s.title,
+      description: s.description,
+      category: s.category ?? null,
+      priceInr: s.priceInr,
+      deliveryDays: s.deliveryDays,
+      skills: s.skills ?? [],
+      status: s.status,
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+    }));
+  } else if (myInvite.length) {
+    const row = myInvite[0];
+    data.invite = {
+      id: row.squad_invites.id,
+      invitedEmail: row.squad_invites.invitedEmail,
+      message: row.squad_invites.message ?? null,
+      createdAt: row.squad_invites.createdAt,
+      squad: squadLite(row.squads, { memberCount: 0, leaderName: "" }),
+    };
+    const leader = await db
+      .select({ firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto })
+      .from(usersTable)
+      .where(eq(usersTable.id, row.squads.leaderId))
+      .limit(1);
+    if (leader.length) {
+      const invData = data.invite as { squad: Record<string, unknown> };
+      invData.squad = {
+        ...invData.squad,
+        leader: { firstName: leader[0].firstName, lastName: leader[0].lastName ?? "", profilePhoto: leader[0].profilePhoto ?? null },
+      };
+    }
+  }
+
+  res.json({ success: true, data });
+});
+
+// ── Squad settings ─────────────────────────────────────────────────────
+router.put("/squads/:id", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const squadId = String(req.params.id);
+  const [membership] = await db
+    .select({ member: squadMembersTable, squad: squadsTable })
+    .from(squadMembersTable)
+    .innerJoin(squadsTable, eq(squadMembersTable.squadId, squadsTable.id))
+    .where(and(eq(squadMembersTable.squadId, squadId), eq(squadMembersTable.userId, req.user!.id)))
+    .limit(1);
+  if (!membership) {
+    res.status(403).json({ success: false, message: "You're not in this circle" });
+    return;
+  }
+  if (membership.member.role !== "LEADER") {
+    res.status(403).json({ success: false, message: "Only the circle leader can edit settings" });
+    return;
+  }
+  const { name, tagline, category, description, avatar, skills } = req.body || {};
+  const [squad] = await db
+    .update(squadsTable)
+    .set({
+      ...(name !== undefined ? { name: String(name).trim().slice(0, 80) } : {}),
+      ...(tagline !== undefined ? { tagline: String(tagline).trim().slice(0, 140) || null } : {}),
+      ...(category !== undefined ? { category: String(category).trim().slice(0, 60) || null } : {}),
+      ...(description !== undefined ? { description: String(description).trim().slice(0, 1000) || null } : {}),
+      ...(avatar !== undefined ? { avatar: String(avatar).slice(0, 500) || null } : {}),
+      ...(skills !== undefined ? { skills: normalizeSkills(skills) } : {}),
+      updatedAt: new Date(),
+    })
+    .where(eq(squadsTable.id, squadId))
+    .returning();
+  res.json({ success: true, message: "Circle updated", data: { squad: squadLite(squad) } });
+});
+
+// ── Delete squad ───────────────────────────────────────────────────────
+router.delete("/squads/:id", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const squadId = String(req.params.id);
+  const [membership] = await db
+    .select({ member: squadMembersTable })
+    .from(squadMembersTable)
+    .where(and(eq(squadMembersTable.squadId, squadId), eq(squadMembersTable.userId, req.user!.id)))
+    .limit(1);
+  if (!membership) {
+    res.status(403).json({ success: false, message: "You're not in this circle" });
+    return;
+  }
+  if (membership.member.role !== "LEADER") {
+    res.status(403).json({ success: false, message: "Only the circle leader can delete it" });
+    return;
+  }
+  await db.update(squadsTable).set({ isActive: false, updatedAt: new Date() }).where(eq(squadsTable.id, squadId));
+  res.json({ success: true, message: "Circle deleted" });
+});
+
+// ── Invite by email ────────────────────────────────────────────────────
+router.post("/squads/:id/invites", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const squadId = String(req.params.id);
+  const { email, message } = req.body || {};
+  const inviteEmail = String(email || "").trim().toLowerCase();
+
+  if (!inviteEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail)) {
+    res.status(400).json({ success: false, message: "Enter a valid email address" });
+    return;
+  }
+  if (inviteEmail === req.user!.email.trim().toLowerCase()) {
+    res.status(400).json({ success: false, message: "You can't invite yourself" });
+    return;
+  }
+
+  const [membership] = await db
+    .select({ member: squadMembersTable, squad: squadsTable })
+    .from(squadMembersTable)
+    .innerJoin(squadsTable, eq(squadMembersTable.squadId, squadsTable.id))
+    .where(and(eq(squadMembersTable.squadId, squadId), eq(squadMembersTable.userId, req.user!.id)))
+    .limit(1);
+  if (!membership) {
+    res.status(403).json({ success: false, message: "You're not in this circle" });
+    return;
+  }
+  if (membership.member.role !== "LEADER") {
+    res.status(403).json({ success: false, message: "Only the leader can invite members" });
+    return;
+  }
+
+  const squad = membership.squad;
+  const memberCount = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(squadMembersTable)
+    .where(eq(squadMembersTable.squadId, squadId));
+  if (Number(memberCount[0]?.count ?? 0) >= MAX_SQUAD_MEMBERS) {
+    res.status(400).json({ success: false, message: `This circle is full (${MAX_SQUAD_MEMBERS} members max)` });
+    return;
+  }
+
+  const [targetUser] = await db.select().from(usersTable).where(eq(usersTable.email, inviteEmail)).limit(1);
+
+  const [dupe] = await db
+    .select({ id: squadInvitesTable.id })
+    .from(squadInvitesTable)
+    .where(and(eq(squadInvitesTable.squadId, squadId), eq(squadInvitesTable.invitedEmail, inviteEmail), eq(squadInvitesTable.status, "PENDING")))
+    .limit(1);
+  if (dupe) {
+    res.status(400).json({ success: false, message: "That email already has a pending invite" });
+    return;
+  }
+  if (targetUser) {
+    const [already] = await db
+      .select({ id: squadMembersTable.id })
+      .from(squadMembersTable)
+      .innerJoin(squadsTable, eq(squadMembersTable.squadId, squadsTable.id))
+      .where(and(eq(squadMembersTable.userId, targetUser.id), eq(squadsTable.isActive, true)))
+      .limit(1);
+    if (already) {
+      res.status(400).json({ success: false, message: "That person is already in a circle" });
+      return;
+    }
+  }
+
+  const [invite] = await db
+    .insert(squadInvitesTable)
+    .values({ squadId, invitedEmail: inviteEmail, invitedUserId: targetUser?.id ?? null, message: message ? String(message).trim().slice(0, 500) : null })
+    .returning();
+
+  if (targetUser) {
+    const title = `${req.user!.firstName} invited you to join "${squad.name}"`;
+    const body = `${req.user!.firstName} ${req.user!.lastName} invited you to join "${squad.name}" on Grit&Gigs. Accept the invite to bid on projects as a team.`;
+    await db.insert(notificationsTable).values({
+      userId: targetUser.id,
+      type: "SQUAD_INVITE",
+      title,
+      message: message ? String(message).trim().slice(0, 160) : `Join "${squad.name}" and start bidding as a team.`,
+      linkUrl: "/dashboard#grit-circle",
+    });
+    try {
+      req.app?.get("io")?.to(`user:${targetUser.id}`).emit("notification:new", {
+        type: "SQUAD_INVITE",
+        title,
+        message,
+        linkUrl: "/dashboard#grit-circle",
+      });
+    } catch {}
+    sendNotificationEmail(targetUser.email, `${req.user!.firstName} invited you to join "${squad.name}"`, body, "/dashboard#grit-circle").catch(() => {});
+  }
+
+  res.status(201).json({
+    success: true,
+    message: targetUser
+      ? `Invite sent to ${inviteEmail}`
+      : `Invite sent to ${inviteEmail} — they'll get a link the next time they sign in or register.`,
+    data: { invite: { id: invite.id, invitedEmail: invite.invitedEmail, status: invite.status, createdAt: invite.createdAt } },
+  });
+});
+
+// ── My pending invites (all invites sent to me) ───────────────────────
+router.get("/squads/invites/mine", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const rows = await db
+    .select({ invite: squadInvitesTable, squad: squadsTable, leader: { id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto } })
+    .from(squadInvitesTable)
+    .innerJoin(squadsTable, eq(squadInvitesTable.squadId, squadsTable.id))
+    .leftJoin(usersTable, eq(squadsTable.leaderId, usersTable.id))
+    .where(and(eq(squadInvitesTable.invitedUserId, req.user!.id), eq(squadInvitesTable.status, "PENDING"), eq(squadsTable.isActive, true)))
+    .orderBy(desc(squadInvitesTable.createdAt));
+  res.json({
+    success: true,
+    data: rows.map((r) => ({
+      id: r.invite.id,
+      message: r.invite.message ?? null,
+      createdAt: r.invite.createdAt,
+      squad: squadLite(r.squad, {
+        leader: r.leader ? { id: r.leader.id, firstName: r.leader.firstName, lastName: r.leader.lastName ?? "", profilePhoto: r.leader.profilePhoto ?? null } : null,
+      }),
+    })),
+  });
+});
+
+// ── Accept / decline an invite ─────────────────────────────────────────
+router.put("/squads/invites/:inviteId", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const inviteId = String(req.params.inviteId);
+  const { status } = req.body || {};
+  if (!["ACCEPTED", "DECLINED"].includes(status)) {
+    res.status(400).json({ success: false, message: "Invalid response" });
+    return;
+  }
+
+  const [invite] = await db
+    .select({ invite: squadInvitesTable, squad: squadsTable, leaderUser: usersTable })
+    .from(squadInvitesTable)
+    .innerJoin(squadsTable, eq(squadInvitesTable.squadId, squadsTable.id))
+    .leftJoin(usersTable, eq(squadsTable.leaderId, usersTable.id))
+    .where(and(eq(squadInvitesTable.id, inviteId), eq(squadInvitesTable.status, "PENDING")))
+    .limit(1);
+  if (!invite) {
+    res.status(404).json({ success: false, message: "Invite not found or already responded" });
+    return;
+  }
+  if (invite.invite.invitedUserId !== req.user!.id && invite.invite.invitedEmail.toLowerCase() !== req.user!.email.toLowerCase()) {
+    res.status(403).json({ success: false, message: "This invite wasn't meant for you" });
+    return;
+  }
+
+  if (status === "ACCEPTED") {
+    const memberCount = await db.select({ count: sql<number>`count(*)` }).from(squadMembersTable).where(eq(squadMembersTable.squadId, invite.squad.id));
+    if (Number(memberCount[0]?.count ?? 0) >= MAX_SQUAD_MEMBERS) {
+      res.status(400).json({ success: false, message: `Sorry, that circle is full (${MAX_SQUAD_MEMBERS} members max)` });
+      return;
+    }
+    const [existing] = await db
+      .select({ id: squadMembersTable.id })
+      .from(squadMembersTable)
+      .innerJoin(squadsTable, eq(squadMembersTable.squadId, squadsTable.id))
+      .where(and(eq(squadMembersTable.userId, req.user!.id), eq(squadsTable.isActive, true)))
+      .limit(1);
+    if (existing) {
+      res.status(400).json({ success: false, message: "You're already in a circle" });
+      return;
+    }
+    await db.insert(squadMembersTable).values({ squadId: invite.squad.id, userId: req.user!.id, role: "MEMBER" });
+  }
+
+  await db
+    .update(squadInvitesTable)
+    .set({ status, respondedAt: new Date() })
+    .where(eq(squadInvitesTable.id, inviteId));
+
+  const leaderNotif = {
+    type: "SQUAD_" + status,
+    title: status === "ACCEPTED" ? `${req.user!.firstName} joined your circle` : `${req.user!.firstName} declined your invite`,
+    message: status === "ACCEPTED" ? `${req.user!.firstName} accepted your invite to "${invite.squad.name}".` : `${req.user!.firstName} declined your invite to "${invite.squad.name}".`,
+    linkUrl: "/dashboard#grit-circle",
+  };
+  await db.insert(notificationsTable).values({ userId: invite.squad.leaderId, ...leaderNotif });
+  try {
+    req.app?.get("io")?.to(`user:${invite.squad.leaderId}`).emit("notification:new", leaderNotif);
+  } catch {}
+  if (invite.leaderUser) {
+    sendNotificationEmail(invite.leaderUser.email, leaderNotif.title, leaderNotif.message, leaderNotif.linkUrl).catch(() => {});
+  }
+
+  res.json({ success: true, message: status === "ACCEPTED" ? "You're now part of the circle" : "Invite declined" });
+});
+
+// ── Leader cancels a pending invite ────────────────────────────────────
+router.delete("/squads/invites/:inviteId", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const inviteId = String(req.params.inviteId);
+  const [invite] = await db.select().from(squadInvitesTable).where(eq(squadInvitesTable.id, inviteId)).limit(1);
+  if (!invite) {
+    res.status(404).json({ success: false, message: "Invite not found" });
+    return;
+  }
+  const [membership] = await db
+    .select({ member: squadMembersTable })
+    .from(squadMembersTable)
+    .where(and(eq(squadMembersTable.squadId, invite.squadId), eq(squadMembersTable.userId, req.user!.id)))
+    .limit(1);
+  if (!membership || membership.member.role !== "LEADER") {
+    res.status(403).json({ success: false, message: "Only the leader can cancel invites" });
+    return;
+  }
+  await db.update(squadInvitesTable).set({ status: "DECLINED", respondedAt: new Date() }).where(eq(squadInvitesTable.id, inviteId));
+  res.json({ success: true, message: "Invite cancelled" });
+});
+
+// ── Leader removes a member ────────────────────────────────────────────
+router.delete("/squads/:id/members/:memberId", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const squadId = String(req.params.id);
+  const memberId = String(req.params.memberId);
+
+  const [membership] = await db
+    .select({ member: squadMembersTable })
+    .from(squadMembersTable)
+    .where(and(eq(squadMembersTable.squadId, squadId), eq(squadMembersTable.userId, req.user!.id)))
+    .limit(1);
+  if (!membership || membership.member.role !== "LEADER") {
+    res.status(403).json({ success: false, message: "Only the leader can remove members" });
+    return;
+  }
+  const [target] = await db
+    .select({ member: squadMembersTable, user: usersTable })
+    .from(squadMembersTable)
+    .innerJoin(usersTable, eq(squadMembersTable.userId, usersTable.id))
+    .where(and(eq(squadMembersTable.squadId, squadId), eq(squadMembersTable.userId, memberId)))
+    .limit(1);
+  if (!target) {
+    res.status(404).json({ success: false, message: "Member not found" });
+    return;
+  }
+  if (target.member.role === "LEADER") {
+    res.status(400).json({ success: false, message: "The leader can't be removed" });
+    return;
+  }
+  await db.delete(squadMembersTable).where(eq(squadMembersTable.id, target.member.id));
+
+  const notif = { type: "SQUAD_REMOVED", title: "You were removed from a circle", message: `You were removed from "${membership.member.role === "LEADER" ? "the circle" : "a circle"}".`, linkUrl: "/dashboard#grit-circle" };
+  await db.insert(notificationsTable).values({ userId: target.user.id, ...notif });
+  try {
+    req.app?.get("io")?.to(`user:${target.user.id}`).emit("notification:new", notif);
+  } catch {}
+
+  res.json({ success: true, message: "Member removed" });
+});
+
+// ── Member leaves ──────────────────────────────────────────────────────
+router.delete("/squads/:id/leave", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const squadId = String(req.params.id);
+  const [membership] = await db
+    .select()
+    .from(squadMembersTable)
+    .where(and(eq(squadMembersTable.squadId, squadId), eq(squadMembersTable.userId, req.user!.id)))
+    .limit(1);
+  if (!membership) {
+    res.status(404).json({ success: false, message: "You're not in this circle" });
+    return;
+  }
+  if (membership.role === "LEADER") {
+    res.status(400).json({ success: false, message: "Leaders can't leave — delete the circle instead" });
+    return;
+  }
+  await db.delete(squadMembersTable).where(eq(squadMembersTable.id, membership.id));
+
+  const [squad] = await db.select({ name: squadsTable.name, leaderId: squadsTable.leaderId }).from(squadsTable).where(eq(squadsTable.id, squadId)).limit(1);
+  if (squad) {
+    const notif = { type: "SQUAD_REMOVED", title: `${req.user!.firstName} left your circle`, message: `They left "${squad.name}".`, linkUrl: "/dashboard#grit-circle" };
+    await db.insert(notificationsTable).values({ userId: squad.leaderId, ...notif });
+    try {
+      req.app?.get("io")?.to(`user:${squad.leaderId}`).emit("notification:new", notif);
+    } catch {}
+  }
+
+  res.json({ success: true, message: "You left the circle" });
+});
+
+// ── Squad services ─────────────────────────────────────────────────────
+function serviceJson(s: typeof squadServicesTable.$inferSelect) {
+  return {
+    id: s.id,
+    squadId: s.squadId,
+    title: s.title,
+    description: s.description,
+    category: s.category ?? null,
+    priceInr: s.priceInr,
+    deliveryDays: s.deliveryDays,
+    skills: s.skills ?? [],
+    status: s.status,
+    createdAt: s.createdAt,
+    updatedAt: s.updatedAt,
+  };
+}
+
+// Public feed of ACTIVE squad services
+router.get("/squads/services", optionalAuth, async (_req: Request, res: Response): Promise<void> => {
+  const rows = await db
+    .select({ service: squadServicesTable, squad: squadsTable, leader: { id: usersTable.id, firstName: usersTable.firstName, profilePhoto: usersTable.profilePhoto } })
+    .from(squadServicesTable)
+    .innerJoin(squadsTable, eq(squadServicesTable.squadId, squadsTable.id))
+    .leftJoin(usersTable, eq(squadsTable.leaderId, usersTable.id))
+    .where(and(eq(squadServicesTable.status, "ACTIVE"), eq(squadsTable.isActive, true)))
+    .orderBy(desc(squadServicesTable.createdAt))
+    .limit(80);
+  res.json({
+    success: true,
+    data: rows.map((r) => ({
+      ...serviceJson(r.service),
+      squadName: r.squad.name,
+      squadAvatar: r.squad.avatar ?? null,
+      leader: r.leader ? { id: r.leader.id, firstName: r.leader.firstName, profilePhoto: r.leader.profilePhoto ?? null } : null,
+    })),
+  });
+});
+
+// Create a squad service
+router.post("/squads/:id/services", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const squadId = String(req.params.id);
+  const { title, description, category, priceInr, deliveryDays, skills } = req.body || {};
+
+  if (!title || !String(title).trim()) {
+    res.status(400).json({ success: false, message: "Service title is required" });
+    return;
+  }
+  if (!description || !String(description).trim()) {
+    res.status(400).json({ success: false, message: "Describe what the team delivers" });
+    return;
+  }
+  const price = Number(priceInr);
+  if (!Number.isFinite(price) || price <= 0) {
+    res.status(400).json({ success: false, message: "Enter a valid price in ₹" });
+    return;
+  }
+
+  const [membership] = await db
+    .select({ member: squadMembersTable, squad: squadsTable })
+    .from(squadMembersTable)
+    .innerJoin(squadsTable, eq(squadMembersTable.squadId, squadsTable.id))
+    .where(and(eq(squadMembersTable.squadId, squadId), eq(squadMembersTable.userId, req.user!.id), eq(squadsTable.isActive, true)))
+    .limit(1);
+  if (!membership) {
+    res.status(403).json({ success: false, message: "You must be in this circle to publish services" });
+    return;
+  }
+
+  const [service] = await db
+    .insert(squadServicesTable)
+    .values({
+      squadId,
+      title: String(title).trim().slice(0, 120),
+      description: String(description).trim().slice(0, 2000),
+      category: category ? String(category).trim().slice(0, 60) : null,
+      priceInr: Math.max(1, Math.round(price)),
+      deliveryDays: Math.max(1, Math.min(90, Number(deliveryDays) || 7)),
+      skills: normalizeSkills(skills),
+    })
+    .returning();
+
+  res.status(201).json({ success: true, message: "Squad service published", data: { service: serviceJson(service) } });
+});
+
+// Update a squad service
+router.put("/squads/services/:serviceId", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const serviceId = String(req.params.serviceId);
+  const [membership] = await db
+    .select({ member: squadMembersTable })
+    .from(squadServicesTable)
+    .innerJoin(squadMembersTable, eq(squadServicesTable.squadId, squadMembersTable.squadId))
+    .where(and(eq(squadServicesTable.id, serviceId), eq(squadMembersTable.userId, req.user!.id)))
+    .limit(1);
+  if (!membership) {
+    res.status(403).json({ success: false, message: "You're not in the squad that owns this service" });
+    return;
+  }
+  const { title, description, category, priceInr, deliveryDays, skills, status } = req.body || {};
+  const patch: Record<string, unknown> = { updatedAt: new Date() };
+  if (title !== undefined) patch.title = String(title).trim().slice(0, 120);
+  if (description !== undefined) patch.description = String(description).trim().slice(0, 2000);
+  if (category !== undefined) patch.category = String(category).trim().slice(0, 60) || null;
+  if (priceInr !== undefined) patch.priceInr = Math.max(1, Math.round(Number(priceInr) || 1));
+  if (deliveryDays !== undefined) patch.deliveryDays = Math.max(1, Math.min(90, Number(deliveryDays) || 7));
+  if (skills !== undefined) patch.skills = normalizeSkills(skills);
+  if (status !== undefined && ["ACTIVE", "PAUSED", "DELETED"].includes(status)) patch.status = status;
+
+  const [service] = await db.update(squadServicesTable).set(patch).where(eq(squadServicesTable.id, serviceId)).returning();
+  res.json({ success: true, message: "Service updated", data: { service: serviceJson(service) } });
+});
+
+// Pause / delete a squad service
+router.delete("/squads/services/:serviceId", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const serviceId = String(req.params.serviceId);
+  const [membership] = await db
+    .select({ member: squadMembersTable })
+    .from(squadServicesTable)
+    .innerJoin(squadMembersTable, eq(squadServicesTable.squadId, squadMembersTable.squadId))
+    .where(and(eq(squadServicesTable.id, serviceId), eq(squadMembersTable.userId, req.user!.id)))
+    .limit(1);
+  if (!membership) {
+    res.status(403).json({ success: false, message: "You're not in the squad that owns this service" });
+    return;
+  }
+  await db.update(squadServicesTable).set({ status: "DELETED", updatedAt: new Date() }).where(eq(squadServicesTable.id, serviceId));
+  res.json({ success: true, message: "Service removed" });
+});
+
+export default router;

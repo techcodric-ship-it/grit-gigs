@@ -24,6 +24,8 @@ export const jobsTable = pgTable("jobs", {
   salaryRange: text("salary_range"),
   description: text("description").notNull(),
   skills: text("skills").array().default([]).notNull(),
+  // Optional external URL where candidates can apply (e.g. LinkedIn, career page).
+  link: text("link"),
   // Admin user who posted the job.
   postedById: uuid("posted_by_id").references(() => usersTable.id, { onDelete: "set null" }),
   // Admin can pause a job (hide from public listing) without deleting it.
