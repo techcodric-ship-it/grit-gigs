@@ -64,3 +64,6 @@ Open browser DevTools (F12) → Console tab and check for red errors.
 ## Real-time (Socket.io)
 Connect with `io({ auth: { token: '<accessToken>' } })`
 Events: `message:send` → `message:new`, `notification:new`
+
+## Deployment (Railway)
+Deploy config lives in `railway.json` (Nixpacks + `npm start`). Connect the `main` branch of this repo to a Railway project and every push triggers a new deploy.
