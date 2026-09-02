@@ -1154,11 +1154,15 @@ textarea.fi{resize:vertical;}
       </div>
       <div style="display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;">
         <button class="btn bp btn-sm" id="projTab-client" onclick="switchProjTab('client')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> My Posts</button>
+        <button class="btn bs btn-sm" id="projTab-ongoing" onclick="switchProjTab('ongoing')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Ongoing</button>
         <button class="btn bs btn-sm" id="projTab-bidder" onclick="switchProjTab('bidder')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> My Bids</button>
         <button class="btn bs btn-sm" id="projTab-proposals" onclick="switchProjTab('proposals')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Proposals Received</button>
       </div>
       <div id="projPane-client">
         <div id="myProjectsGrid"><div class="empty"><div class="empty-sub">Loading...</div></div></div>
+      </div>
+      <div id="projPane-ongoing" style="display:none;">
+        <div id="myOngoingGrid"><div class="empty"><div class="empty-sub">Loading...</div></div></div>
       </div>
       <div id="projPane-bidder" style="display:none;">
         <div id="myBidsGrid"><div class="empty"><div class="empty-sub">Loading...</div></div></div>
@@ -1470,7 +1474,10 @@ textarea.fi{resize:vertical;}
           <h2 style="font-size:1.15rem;">Squad Marketplace</h2>
           <p style="font-size:.8rem;color:var(--muted);margin-top:3px;">Hire a whole Grit Circle — browse teams and the services they deliver together.</p>
         </div>
-        <button class="btn bp btn-sm" onclick="showPage('post-project')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Post a project</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn bp btn-sm" onclick="showPage('post-project')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Post a project</button>
+          <button class="btn bs btn-sm" onclick="showPage('squad-squad')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M12 21V10M7 10h5V3l5 2-3 5h5z"/></svg> Manage Services</button>
+        </div>
       </div>
       <div style="display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;">
         <button class="btn bp btn-sm" id="smTab-circles" onclick="smTab('circles')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg> Grit Circles</button>
@@ -6054,13 +6061,16 @@ function debounceProjects(q) {
 
 function switchProjTab(tab) {
   document.getElementById('projTab-client').className = tab === 'client' ? 'btn bp btn-sm' : 'btn bs btn-sm';
+  document.getElementById('projTab-ongoing').className = tab === 'ongoing' ? 'btn bp btn-sm' : 'btn bs btn-sm';
   document.getElementById('projTab-bidder').className = tab === 'bidder' ? 'btn bp btn-sm' : 'btn bs btn-sm';
   document.getElementById('projTab-proposals').className = tab === 'proposals' ? 'btn bp btn-sm' : 'btn bs btn-sm';
   document.getElementById('projPane-client').style.display = tab === 'client' ? '' : 'none';
+  document.getElementById('projPane-ongoing').style.display = tab === 'ongoing' ? '' : 'none';
   document.getElementById('projPane-bidder').style.display = tab === 'bidder' ? '' : 'none';
   document.getElementById('projPane-proposals').style.display = tab === 'proposals' ? '' : 'none';
   if (tab === 'bidder') loadMyBids();
   else if (tab === 'proposals') loadReceivedProposals();
+  else if (tab === 'ongoing') loadOngoingProjects();
   else loadMyProjects();
 }
 
@@ -6147,6 +6157,14 @@ async function acceptBid(bidId, projectId, modalEl) {
   document.body.style.overflow = 'hidden';
 }
 
+async function rejectBid(bidId, projectId) {
+  confirmModal('Decline this proposal?', 'The freelancer will be notified. You can still accept other proposals.', '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg> Decline', async () => {
+    const d = await api('/projects/bids/' + bidId + '/reject', { method: 'PUT' });
+    if (d.success) { showToast('Proposal declined', 'ok'); loadReceivedProposals(); }
+    else showToast(d.message || 'Failed', 'err');
+  }, true);
+}
+
 // ══════════════════════════════════════════════
 //  PAGE LOADER DISPATCHER
 // ══════════════════════════════════════════════
@@ -6203,6 +6221,53 @@ async function loadMyProjects() {
         ${p.status === 'OPEN' ? `<button class="btn btn-xs" style="border:1px solid var(--bd);padding:4px 10px;font-size:.68rem;" onclick="openEditProject('${esc(p.id)}')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> Edit</button>` : ''}
         ${p.status === 'OPEN' ? `<button class="btn btn-xs" style="border:1px solid #6C3DE0;color:#6C3DE0;background:#F5F0FF;padding:4px 10px;font-size:.68rem;" onclick="openProjectInvite('${esc(p.id)}')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Invite</button>` : ''}
         <button class="btn btn-xs" style="border:1px solid #fca5a5;color:#dc2626;background:#fff5f5;padding:4px 10px;font-size:.68rem;" onclick="deleteProject('${esc(p.id)}')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg> Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function loadOngoingProjects() {
+  const c = document.getElementById('myOngoingGrid');
+  if (!c) return;
+  c.innerHTML = '<div class="empty"><div class="empty-sub">Loading...</div></div>';
+  const d = await api('/projects/mine');
+  const projects = (d.data?.projects || []).filter(p => ['IN_PROGRESS','DELIVERED','REVISION_REQUESTED'].includes(p.status));
+  const bidD = await api('/projects/my-bids');
+  const myBids = (bidD.data?.bids || []).filter(b => b.status === 'ACCEPTED');
+  const allOngoing = [
+    ...projects.map(p => ({ ...p, _role: 'client' })),
+    ...myBids.filter(b => b.project && ['IN_PROGRESS','DELIVERED','REVISION_REQUESTED'].includes(b.project.status)).map(b => ({ ...b.project, _role: 'freelancer', _bid: b })),
+  ];
+  if (!allOngoing.length) {
+    c.innerHTML = '<div class="empty"><div class="empty-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div><div class="empty-title">No ongoing projects</div><div class="empty-sub">Projects you\'ve accepted or been hired for will appear here.</div></div>';
+    return;
+  }
+  c.innerHTML = allOngoing.map(p => {
+    const sc = p.status === 'IN_PROGRESS' ? 'pp' : p.status === 'DELIVERED' ? 'pd' : 'perr';
+    const roleLabel = p._role === 'client' ? '<span class="bdg bdg-v" style="font-size:.56rem;">You are the client</span>' : '<span class="bdg bdg-ink" style="font-size:.56rem;">You are the freelancer</span>';
+    const budget = p.budgetMin || p.budgetMax ? moneyInr(p.budgetMin) + ' – ' + moneyInr(p.budgetMax) : '';
+    let actions = '';
+    if (p._role === 'client') {
+      if (p.status === 'DELIVERED') actions = `<button class="btn bp btn-xs" onclick="releaseProjectPayment('${esc(p.id)}')">Approve & Release</button><button class="btn btn-xs" style="border:1px solid var(--bd);padding:4px 10px;font-size:.68rem;" onclick="requestProjectRevision('${esc(p.id)}')">Request Revision</button>`;
+      else if (p.status === 'IN_PROGRESS') actions = `<span class="pill pp" style="font-size:.6rem;">Waiting for delivery</span>`;
+      else if (p.status === 'REVISION_REQUESTED') actions = `<span class="pill perr" style="font-size:.6rem;">Revision requested</span>`;
+    } else {
+      if (p.status === 'DELIVERED') actions = `<span class="pill pp" style="font-size:.6rem;">Awaiting client review</span>`;
+      else if (p.status === 'IN_PROGRESS') actions = `<button class="btn bp btn-xs" onclick="_chatProjectWorkModal('${esc(p.id)}')">Deliver Work</button>`;
+      else if (p.status === 'REVISION_REQUESTED') actions = `<button class="btn bp btn-xs" onclick="_chatProjectWorkModal('${esc(p.id)}')">Submit Revision</button>`;
+    }
+    return `<div class="project-card" onclick="openProjectDet('${esc(p.id)}','${p._role}')">
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:.9rem;color:var(--ink);">${esc(p.title)}</div>
+          <div class="project-card-meta">${esc(p.category)} · ${roleLabel}</div>
+        </div>
+        <span class="pill ${sc}" style="flex-shrink:0;">${esc(p.status.replace(/_/g,' '))}</span>
+      </div>
+      ${budget ? `<div style="font-size:.7rem;color:var(--muted);margin-top:6px;">${budget}</div>` : ''}
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;" onclick="event.stopPropagation()">
+        ${actions}
+        <button class="btn bs btn-xs" onclick="event.stopPropagation();msgProjectUser('${esc(p._role === 'client' ? (p.bids || []).find(b => b.status === 'ACCEPTED')?.userId || '' : p.userId || '')}')">Message</button>
       </div>
     </div>`;
   }).join('');
@@ -6338,7 +6403,7 @@ async function loadReceivedProposals() {
           ? `<span class="pill perr" style="font-size:.6rem;"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M23 4v6h-6M1 20v-6h6M3.5 9a9 9 0 0 1 14.9-3.4L23 10M20.5 15a9 9 0 0 1-14.9 3.4L1 14"/></svg> Revision requested</span>`
           : '';
     const acceptBtn = b.status === 'PENDING' && p.status === 'OPEN'
-      ? `<button class="btn bp btn-xs" onclick="acceptBid('${esc(b.id)}','${esc(p.id)}')">✓ Accept Proposal</button>`
+      ? `<button class="btn bp btn-xs" onclick="acceptBid('${esc(b.id)}','${esc(p.id)}')">✓ Accept</button><button class="btn btn-xs" style="border:1px solid #fca5a5;color:#dc2626;background:#fff5f5;padding:4px 10px;font-size:.68rem;" onclick="rejectBid('${esc(b.id)}','${esc(p.id)}')">Decline</button>`
       : `<span class="pill ${sc}" style="font-size:.6rem;">${esc(b.status)}</span>`;
     const msgBtn = b.status === 'ACCEPTED'
       ? `<button class="btn bs btn-xs" onclick="msgProjectUser('${esc(b.userId)}','${esc(b.id)}')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Message Freelancer</button>`
@@ -6353,6 +6418,7 @@ async function loadReceivedProposals() {
         </div>
         <div style="font-weight:700;color:var(--violet);font-size:.88rem;">${moneyInr(b.amount)}</div>
       </div>
+      ${b.squad ? `<div style="display:inline-flex;align-items:center;gap:5px;margin-bottom:6px;padding:3px 8px;background:var(--vl);border-radius:6px;"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em;" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span style="font-size:.6rem;font-weight:700;color:var(--violet);">Team proposal · ${esc(b.squad.name)} · ${b.squad.memberCount} members</span></div>` : ''}
       <div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg> Project: <strong>${esc(p.title)}</strong> · ${esc(p.category)}</div>
       ${_cvr ? `<div style="font-size:.75rem;color:var(--sec);line-height:1.5;margin-bottom:6px;">${esc(shortText(_cvr, 200))}</div>` : ''}
       ${_mst ? `<div style="background:var(--bg);border-radius:6px;padding:5px 8px;margin-bottom:6px;border-left:2px solid var(--violet);font-size:.7rem;"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M12 21V10M7 10h5V3l5 2-3 5h5z"/></svg> ${esc(shortText(_mst, 100))}</div>` : ''}
@@ -7517,7 +7583,7 @@ function renderSmServices(list) {
 // ══════════════════════════════════════════════
 //  SQUAD PROJECTS — team bidding board
 // ══════════════════════════════════════════════
-let _sp = { projects: [], squad: null };
+let _sp = { projects: [], squad: null, members: [] };
 async function loadSquadProjects() {
   const c = document.getElementById('spProjectsGrid');
   if (!c) return;
@@ -7525,11 +7591,18 @@ async function loadSquadProjects() {
   try {
     const m = await api('/squads/mine', { method: 'GET' });
     _sp.squad = (m && m.success && m.data && m.data.squad) ? m.data.squad : null;
-  } catch (e) { _sp.squad = null; }
+    _sp.members = (m && m.success && m.data) ? (m.data.members || []) : [];
+  } catch (e) { _sp.squad = null; _sp.members = []; }
   renderSpChip();
   const d = await api('/projects?limit=30', { method: 'GET' });
   const myId = (gU() || {}).id;
-  _sp.projects = (d && d.success) ? ((d.data && d.data.projects) || []).filter(p => p.userId !== myId) : [];
+  const squadMemberIds = _sp.members.map(m => m.id || '').filter(Boolean);
+  _sp.projects = (d && d.success) ? ((d.data && d.data.projects) || []).filter(p => {
+    if (p.userId === myId) return false;
+    if (p._userBid) return false;
+    if (squadMemberIds.length && p.bids && p.bids.some(b => squadMemberIds.includes(b.userId))) return false;
+    return true;
+  }) : [];
   renderSquadProjects();
 }
 function spFilter(q) {
@@ -7563,7 +7636,6 @@ function renderSquadProjects(list) {
           ${(typeof userStarsHtml === 'function') ? userStarsHtml(p.user.avgRating, p.user.reviewCount) : ''}
         </div>` : '';
     return `<div class="project-card" onclick="openBidModal('${esc(p.id)}')">
-      ${_sp.squad ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;"><span class="bdg bdg-v" style="font-size:.6rem;"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em;margin-right:3px;" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg> Proposed as a team · ${esc(_sp.squad.name)}</span></div>` : ''}
       <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;">
         <div style="flex:1;">
           <div style="font-weight:700;font-size:.9rem;color:var(--ink);">${esc(p.title)}</div>

@@ -241,6 +241,9 @@ router.get('/projects/mine', authenticate, async (req: Request, res: Response) =
   await attachReviewStats(allBidders);
   await attachPlanBadges(allBidders);
 
+  // Attach squad tags to bids
+  for (const p of result) { await attachSquadTags(p.bids || []); }
+
   return res.json({ success: true, data: { projects: result } });
 });
 
@@ -591,6 +594,47 @@ router.put('/projects/bids/:bidId/accept', authenticate, async (req: Request, re
       freelancer,
     },
   });
+});
+
+// ── PUT /projects/bids/:bidId/reject — decline a single bid ───────────────────
+router.put('/projects/bids/:bidId/reject', authenticate, async (req: Request, res: Response) => {
+  const userId = (req as any).user?.id;
+  if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+  const [bid] = await db
+    .select()
+    .from(projectBidsTable)
+    .where(eq(projectBidsTable.id, req.params.bidId as string))
+    .limit(1);
+
+  if (!bid) return res.status(404).json({ success: false, message: 'Bid not found' });
+
+  const [project] = await db
+    .select()
+    .from(projectsTable)
+    .where(eq(projectsTable.id, bid.projectId))
+    .limit(1);
+
+  if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
+  if (project.userId !== userId) return res.status(403).json({ success: false, message: 'Only the project owner can reject bids' });
+  if (bid.status !== 'PENDING') return res.status(400).json({ success: false, message: 'Can only reject pending bids' });
+
+  await db.update(projectBidsTable).set({ status: 'REJECTED' }).where(eq(projectBidsTable.id, bid.id));
+
+  await db.insert(notificationsTable).values({
+    userId: bid.userId,
+    type: 'PROJECT_BID_REJECTED',
+    title: 'Proposal declined',
+    message: `Your proposal for "${project.title}" was declined by the client.`,
+    linkUrl: '/dashboard.html#my-projects',
+  });
+
+  const [rejectedUser] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, bid.userId)).limit(1);
+  if (rejectedUser?.email) {
+    sendNotificationEmail(rejectedUser.email, 'Proposal declined', `Your proposal for "${project.title}" was declined by the client.`, '/dashboard.html#my-projects').catch(() => {});
+  }
+
+  return res.json({ success: true, message: 'Proposal declined.' });
 });
 
 // ── DELETE /projects/:id — delete/cancel a project ───────────────────────────
