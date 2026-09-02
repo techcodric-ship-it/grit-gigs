@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { db, userSubscriptionsTable } from '../db';
 import { projectsTable, projectBidsTable, projectDeliveriesTable } from '../db/schema/projects';
+import { squadsTable, squadMembersTable } from '../db/schema/squads';
 import { notificationsTable, usersTable } from '../db/schema/users';
 import { freelanceWalletsTable, transactionsTable } from '../db/schema/wallet';
 import { eq, desc, and, not, or, count, sql, inArray, isNull } from 'drizzle-orm';
@@ -31,6 +32,38 @@ const _projUpload = multer({
 function toPositiveInt(value: unknown): number | null {
   const parsed = typeof value === 'number' ? value : parseInt(String(value ?? ''), 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+// Tags each item's bidder (item.userId) with their active squad so a client can
+// see when a proposal comes from a whole Grit Circle / squad.
+async function attachSquadTags(items: { userId?: string | null }[]) {
+  const userIds = items.map((i) => i.userId).filter(Boolean) as string[];
+  if (!userIds.length) return;
+  const rows = await db
+    .select({
+      userId: squadMembersTable.userId,
+      squadId: squadMembersTable.squadId,
+      squad: squadsTable,
+      memberCount: sql<number>`(SELECT count(*) FROM ${squadMembersTable} WHERE ${squadMembersTable.squadId} = ${squadsTable.id})`,
+    })
+    .from(squadMembersTable)
+    .innerJoin(squadsTable, eq(squadMembersTable.squadId, squadsTable.id))
+    .where(and(inArray(squadMembersTable.userId, userIds), eq(squadsTable.isActive, true)));
+  const byUser: Record<string, { id: string; name: string; avatar: string | null; leaderId: string; memberCount: number }> = {};
+  for (const r of rows) {
+    if (!byUser[r.userId]) {
+      byUser[r.userId] = {
+        id: r.squad.id,
+        name: r.squad.name,
+        avatar: r.squad.avatar,
+        leaderId: r.squad.leaderId,
+        memberCount: Number(r.memberCount),
+      };
+    }
+  }
+  for (const item of items) {
+    if (byUser[item.userId!]) (item as any).squad = byUser[item.userId!];
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -98,6 +131,7 @@ async function getProjectWithBids(projectId: string, currentUserId?: string) {
   const allUsers = [owner, ...bidsWithUsers.map(b => b.user)].filter(Boolean);
   await attachReviewStats(allUsers);
   await attachPlanBadges(allUsers);
+  await attachSquadTags(bidsWithUsers);
 
   return {
     ...project,
@@ -241,6 +275,7 @@ router.get('/projects/my-bids', authenticate, async (req: Request, res: Response
   const allClients = result.map(r => r.project?.user).filter(Boolean);
   await attachReviewStats(allClients);
   await attachPlanBadges(allClients);
+  await attachSquadTags(result);
 
   return res.json({ success: true, data: { bids: result } });
 });

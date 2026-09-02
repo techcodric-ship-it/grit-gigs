@@ -579,7 +579,12 @@ function serviceJson(s: typeof squadServicesTable.$inferSelect) {
 // Public feed of ACTIVE squad services
 router.get("/squads/services", optionalAuth, async (_req: Request, res: Response): Promise<void> => {
   const rows = await db
-    .select({ service: squadServicesTable, squad: squadsTable, leader: { id: usersTable.id, firstName: usersTable.firstName, profilePhoto: usersTable.profilePhoto } })
+    .select({
+      service: squadServicesTable,
+      squad: squadsTable,
+      leader: { id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto },
+      memberCount: sql<number>`(SELECT count(*) FROM ${squadMembersTable} WHERE ${squadMembersTable.squadId} = ${squadsTable.id})`,
+    })
     .from(squadServicesTable)
     .innerJoin(squadsTable, eq(squadServicesTable.squadId, squadsTable.id))
     .leftJoin(usersTable, eq(squadsTable.leaderId, usersTable.id))
@@ -592,7 +597,8 @@ router.get("/squads/services", optionalAuth, async (_req: Request, res: Response
       ...serviceJson(r.service),
       squadName: r.squad.name,
       squadAvatar: r.squad.avatar ?? null,
-      leader: r.leader ? { id: r.leader.id, firstName: r.leader.firstName, profilePhoto: r.leader.profilePhoto ?? null } : null,
+      squadMemberCount: Number(r.memberCount),
+      leader: r.leader ? { id: r.leader.id, firstName: r.leader.firstName, lastName: r.leader.lastName ?? "", profilePhoto: r.leader.profilePhoto ?? null } : null,
     })),
   });
 });
