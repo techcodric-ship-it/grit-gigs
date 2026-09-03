@@ -19,6 +19,11 @@ export const projectStatusEnum = pgEnum("project_status", [
   "CANCELLED",
 ]);
 
+export const projectTypeEnum = pgEnum("project_type", [
+  "INDIVIDUAL",
+  "SQUAD",
+]);
+
 export const bidStatusEnum = pgEnum("bid_status", [
   "PENDING",
   "ACCEPTED",
@@ -38,6 +43,7 @@ export const projectsTable = pgTable("projects", {
   budgetMax: integer("budget_max"),
   deadline: timestamp("deadline"),
   imageUrl: text("image_url"),
+  projectType: projectTypeEnum("project_type").default("INDIVIDUAL").notNull(),
   status: projectStatusEnum("status").default("OPEN").notNull(),
   acceptedBidId: uuid("accepted_bid_id"),
   zeroCommission: boolean("zero_commission").default(false).notNull(),

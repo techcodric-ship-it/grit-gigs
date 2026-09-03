@@ -301,6 +301,7 @@ router.post('/projects', authenticate, async (req: Request, res: Response) => {
   if (!title || !description || !category) {
     return res.status(400).json({ success: false, message: 'Title, description, and category are required' });
   }
+  const projectType = (req.body.projectType === 'SQUAD' || req.body.projectType === 'squad') ? 'SQUAD' : 'INDIVIDUAL';
 
   // Subscription plan: check monthly project creation quota
   const plan = await getActivePlanForUser(userId);
@@ -326,6 +327,7 @@ router.post('/projects', authenticate, async (req: Request, res: Response) => {
         budgetMin: toPositiveInt(budgetMin),
         budgetMax: toPositiveInt(budgetMax),
         imageUrl: typeof imageUrl === 'string' && imageUrl.trim() ? imageUrl.trim() : null,
+        projectType,
       })
       .returning();
 

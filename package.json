@@ -9,7 +9,8 @@
     "db:push": "drizzle-kit push --config=drizzle.config.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:migrate-plan": "tsx src/db/migrate-plan-tiers.ts"
+    "db:migrate-plan": "tsx src/db/migrate-plan-tiers.ts",
+    "db:migrate-project-type": "tsx src/db/migrate-project-type.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",

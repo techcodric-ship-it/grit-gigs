@@ -1307,6 +1307,19 @@ textarea.fi{resize:vertical;}
                 <img id="ppImgPreview" class="img-prev" alt="cover preview"/>
               </label>
             </div>
+            <div class="fg">
+              <label class="fl">Service Type <span style="color:var(--muted);font-weight:400;">(who should you like to work with?)</span></label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div id="ppTypeIndividual" onclick="setProjectType('INDIVIDUAL')" style="cursor:pointer;border:2px solid var(--bd);border-radius:var(--rm);padding:12px;transition:all .15s;background:var(--white);">
+                  <div style="font-size:.78rem;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:6px;"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Individual expert</div>
+                  <div style="font-size:.66rem;color:var(--muted);line-height:1.5;margin-top:3px;">A single freelancer handles your whole project.</div>
+                </div>
+                <div id="ppTypeSquad" onclick="setProjectType('SQUAD')" style="cursor:pointer;border:2px solid var(--bd);border-radius:var(--rm);padding:12px;transition:all .15s;background:var(--white);">
+                  <div style="font-size:.78rem;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:6px;"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg> Squad / Team service</div>
+                  <div style="font-size:.66rem;color:var(--muted);line-height:1.5;margin-top:3px;">A Grit Circle (whole team) collaborates on your project.</div>
+                </div>
+              </div>
+            </div>
             <div class="fg"><label class="fl">Project Title <span style="color:var(--err)">*</span></label><input class="fi" id="ppTitle" type="text" placeholder="e.g. Build a React landing page, Design a logo for my startup" required/></div>
             <div class="fg"><label class="fl">Description <span style="color:var(--err)">*</span></label><textarea class="fi" id="ppDesc" rows="5" placeholder="Describe the project in detail — deliverables, goals, what success looks like..." required></textarea></div>
             <div class="pp-row">
@@ -6076,6 +6089,20 @@ function switchProjTab(tab) {
 
 
 
+// ── Post Project: service type (INDIVIDUAL vs SQUAD) ─────────────
+let _ppProjectType = 'INDIVIDUAL';
+function setProjectType(t) {
+  _ppProjectType = t === 'SQUAD' ? 'SQUAD' : 'INDIVIDUAL';
+  const ind = document.getElementById('ppTypeIndividual');
+  const sq = document.getElementById('ppTypeSquad');
+  if (ind) ind.style.borderColor = _ppProjectType === 'INDIVIDUAL' ? 'var(--violet)' : 'var(--bd)';
+  if (sq) sq.style.borderColor = _ppProjectType === 'SQUAD' ? 'var(--violet)' : 'var(--bd)';
+}
+function projectTypeBadge(t) {
+  const isSquad = t === 'SQUAD';
+  return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:.6rem;font-weight:700;padding:3px 8px;border-radius:6px;${isSquad ? 'background:var(--vl);color:var(--violet);' : 'background:var(--bg);color:var(--ink);'}"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em;" aria-hidden="true">${isSquad ? '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>' : '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'}</svg> ${isSquad ? 'Squad service' : 'Individual'}</span>`;
+}
+
 async function postProject() {
   const title = document.getElementById('ppTitle')?.value?.trim();
   const desc = document.getElementById('ppDesc')?.value?.trim();
@@ -6099,12 +6126,14 @@ async function postProject() {
     budgetMin: parseInt(document.getElementById('ppBudMin')?.value) || null,
     budgetMax: parseInt(document.getElementById('ppBudMax')?.value) || null,
     deadline: document.getElementById('ppDeadline')?.value || null,
+    projectType: _ppProjectType,
     ...(imageUrl && { imageUrl }),
   };
   const d = await api('/projects', { method: 'POST', body: JSON.stringify(body) });
   if (d.success) {
     showNotifBanner('<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2M15 9l3-3M12 10c2.5-4 7-6 9-6 0 2-2 6.5-6 9M8 8H5l-2 2 1 1 4 1M15 13l5-6-1-3-3 6"/></svg> Project posted!', 'Freelancers can now browse and submit proposals.', 'ok');
     document.getElementById('postProjForm')?.reset();
+    setProjectType('INDIVIDUAL');
     const prev = document.getElementById('ppImgPreview');
     const ph = document.getElementById('ppImgPh');
     if (prev) { prev.style.display = 'none'; prev.src = ''; }
@@ -6460,6 +6489,7 @@ async function loadBrowseProjects(q = '') {
         <div style="flex:1;">
           <div style="font-weight:700;font-size:.9rem;color:var(--ink);">${esc(p.title)}</div>
           <div class="project-card-meta">${esc(p.category)}${p.skills ? ' · ' + esc(p.skills) : ''} · ${timeSince(p.createdAt)}</div>
+          ${projectTypeBadge(p.projectType)}
           ${p.user?.id ? `<div style="display:flex;align-items:center;gap:6px;margin-top:5px;">${p.user?.profilePhoto ? `<img src="${esc(p.user.profilePhoto)}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')"/>` : `<div class="av" style="width:22px;height:22px;font-size:7px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')">${((p.user?.firstName||'?')[0]).toUpperCase()}</div>`}<span style="font-size:.7rem;color:var(--violet);cursor:pointer;font-weight:600;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')">${esc(p.user?.firstName||'?')} ${esc(p.user?.lastName||'')}${kycBadge(p.user?.kycVerified)}${planBadge(p.user?.planBadge)}${banBadge(p.user)}</span><span class="gig-vpf" style="font-size:.55rem;" onclick="event.stopPropagation();openUserProfile('${esc(p.userId)}')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> View Profile</span></div>` : ''}
         </div>
       </div>
@@ -7024,7 +7054,7 @@ function loadPage(n) {
   else if (n === 'browse-gigs') loadBrowseGigs();
   else if (n === 'my-projects') loadMyProjects();
   else if (n === 'browse-projects') loadBrowseProjects();
-  else if (n === 'post-project') { /* form ready, no load needed */ }
+  else if (n === 'post-project') { setProjectType(_ppProjectType); /* form ready, no load needed */ }
   else if (n === 'wallet')    { loadWallet(); if (!_walletInterval) _walletInterval = setInterval(loadWallet, 30000); }
   else if (n === 'plans')     loadPlans();
   else if (n === 'refer')     loadReferralPage();
@@ -7640,6 +7670,7 @@ function renderSquadProjects(list) {
         <div style="flex:1;">
           <div style="font-weight:700;font-size:.9rem;color:var(--ink);">${esc(p.title)}</div>
           <div class="project-card-meta">${esc(p.category)}${p.skills ? ' · ' + esc(p.skills) : ''} · ${timeSince(p.createdAt)}</div>
+          ${projectTypeBadge(p.projectType)}
           ${clientHtml}
         </div>
       </div>
