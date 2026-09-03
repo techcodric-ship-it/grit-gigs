@@ -13,7 +13,8 @@ WORKDIR /app
 
 # Install JS deps first for better layer caching
 COPY package.json package-lock.json* ./
-RUN npm install --omit=dev || npm install
+RUN npm install -g npm@11.11.0
+RUN npm install
 
 # Copy source + public assets
 COPY tsconfig.json ./
