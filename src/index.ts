@@ -768,6 +768,26 @@ app.set("io", io);
       await col(`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS group_name TEXT`);
       await col(`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS group_id UUID REFERENCES squads(id) ON DELETE CASCADE`);
       await col(`ALTER TABLE squad_services ADD COLUMN IF NOT EXISTS cover_image TEXT`);
+      await col(`
+DO $mig$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='conversation_participants' AND column_name='id') THEN
+    ALTER TABLE conversation_participants ADD COLUMN id UUID;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='conversation_participants' AND column_name='joined_at') THEN
+    ALTER TABLE conversation_participants ADD COLUMN joined_at TIMESTAMPTZ DEFAULT NOW();
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='conversation_participants'::regclass AND contype='p' AND pg_get_constraintdef(oid) ILIKE '%(conversation_id, user_id)%') THEN
+    ALTER TABLE conversation_participants DROP CONSTRAINT conversation_participants_pkey;
+  END IF;
+  UPDATE conversation_participants SET id = gen_random_uuid() WHERE id IS NULL;
+  UPDATE conversation_participants SET joined_at = NOW() WHERE joined_at IS NULL;
+  ALTER TABLE conversation_participants ALTER COLUMN id SET DEFAULT gen_random_uuid();
+  ALTER TABLE conversation_participants ALTER COLUMN id SET NOT NULL;
+  ALTER TABLE conversation_participants ADD CONSTRAINT conversation_participants_id_pkey PRIMARY KEY (id);
+END
+$mig$
+      `);
 
       // ── Service images column (Drizzle uses `images` not `thumbnail`/`gallery`) ──
       await col(`ALTER TABLE services ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT '{}' NOT NULL`);
