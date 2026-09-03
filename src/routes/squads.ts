@@ -108,7 +108,7 @@ router.post("/squads", authenticate, async (req: Request, res: Response): Promis
 });
 
 // ── Public squad directory ─────────────────────────────────────────────
-router.get("/squads", optionalAuth, async (_req: Request, res: Response): Promise<void> => {
+router.get("/squads", optionalAuth, async (req: Request, res: Response): Promise<void> => {
   const squadRows = await db
     .select({
       squad: squadsTable,
@@ -122,12 +122,35 @@ router.get("/squads", optionalAuth, async (_req: Request, res: Response): Promis
     .orderBy(desc(squadsTable.createdAt))
     .limit(60);
 
+  const viewerId = req.user?.id ?? null;
+  const viewerSquadIds = viewerId
+    ? (
+        await db
+          .select({ squadId: squadMembersTable.squadId })
+          .from(squadMembersTable)
+          .where(eq(squadMembersTable.userId, viewerId))
+      ).map((r) => r.squadId)
+    : [];
+  const viewerPendingIds = viewerId
+    ? (
+        await db
+          .select({ squadId: squadJoinRequestsTable.squadId })
+          .from(squadJoinRequestsTable)
+          .where(and(eq(squadJoinRequestsTable.userId, viewerId), eq(squadJoinRequestsTable.status, "PENDING")))
+      ).map((r) => r.squadId)
+    : [];
+
   res.json({
     success: true,
-    data: squadRows.map((r) => ({
-      ...squadLite(r.squad, { memberCount: Number(r.memberCount), serviceCount: Number(r.serviceCount) }),
-      leader: r.leader ? { id: r.leader.id, firstName: r.leader.firstName, lastName: r.leader.lastName ?? "", profilePhoto: r.leader.profilePhoto ?? null, tagline: r.leader.tagline ?? null } : null,
-    })),
+    data: squadRows.map((r) => {
+      const squadId = r.squad.id;
+      return {
+        ...squadLite(r.squad, { memberCount: Number(r.memberCount), serviceCount: Number(r.serviceCount) }),
+        leader: r.leader ? { id: r.leader.id, firstName: r.leader.firstName, lastName: r.leader.lastName ?? "", profilePhoto: r.leader.profilePhoto ?? null, tagline: r.leader.tagline ?? null } : null,
+        joined: viewerId ? viewerSquadIds.includes(squadId) : false,
+        requestStatus: viewerId ? (viewerPendingIds.includes(squadId) ? "PENDING" : null) : null,
+      };
+    }),
   });
 });
 

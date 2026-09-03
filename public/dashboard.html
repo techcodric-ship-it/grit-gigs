@@ -116,6 +116,7 @@ border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-c
 /* ── BADGES ── */
 .bdg{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:var(--pill);font-size:.7rem;font-weight:600;}
 .bdg-v{background:var(--vl);color:var(--violet);}
+.bdg-o{background:rgba(217,119,6,.12);color:#D97706;}
 .bdg-g{background:var(--gl);color:#9B5E00;}
 .bdg-ok{background:var(--okl);color:var(--ok);}
 .bdg-err{background:var(--errl);color:var(--err);}
@@ -7294,7 +7295,7 @@ async function openSquadBrowse() {
 function gcRequestJoin(squadId, squadName) {
   inputModal('Request to join ' + squadName, '', 'Optional message to the leader...', async function(vals) {
     var d = await api('/squads/join-requests', { method: 'POST', body: JSON.stringify({ squadId: squadId, message: vals.msg || null }) });
-    if (d && d.success) { showToast(d.message || 'Request sent', 'ok'); }
+    if (d && d.success) { showToast(d.message || 'Request sent', 'ok'); renderSmCircles(); }
     else showToast((d && d.message) || 'Could not send request', 'err');
   }, { fields: [{ id: 'msg', label: 'Message to leader', placeholder: 'I\'d like to join your circle...' }], required: '', okLabel: 'Send request' });
 }
@@ -7801,9 +7802,17 @@ function renderSmCircles(list) {
     c.innerHTML = '<div class="empty" style="grid-column:1/-1;"><div class="empty-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg></div><div class="empty-title">No Grit Circles yet</div><div class="empty-sub">Circles form here soon — check back or post a project</div></div>';
     return;
   }
+  const me = gU() || {};
   c.innerHTML = circles.map(sq => {
     const leaderName = sq.leader ? ((((sq.leader.firstName || '') + ' ' + (sq.leader.lastName || '')).trim()) || 'Grit&Gigs member') : 'Grit&Gigs member';
     const skills = (sq.skills || []).slice(0, 4);
+    const isLeader = me.id && sq.leaderId === me.id;
+    let joinBtn = '';
+    if (!isLeader && me.id) {
+      if (sq.joined) joinBtn = '<span class="bdg bdg-v" style="font-size:.66rem;">Joined</span>';
+      else if (sq.requestStatus === 'PENDING') joinBtn = '<span class="bdg bdg-o" style="font-size:.66rem;">Request pending</span>';
+      else joinBtn = `<button class="btn bp btn-xs" onclick="gcRequestJoin('${esc(sq.id)}','${esc(sq.name).replace(/'/g,"\\'")}')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Request to join</button>`;
+    }
     return `<div class="gig-card" style="cursor:default;">
       <div style="display:flex;align-items:center;gap:12px;padding:14px 14px 6px;">
         ${gcSquadAvatar(sq, 48)}
@@ -7816,8 +7825,9 @@ function renderSmCircles(list) {
         ${sq.tagline ? `<div style="font-size:.76rem;color:var(--sec);line-height:1.5;margin-bottom:8px;">${esc(sq.tagline)}</div>` : ''}
         ${skills.length ? '<div class="gig-skills">' + skills.map(sk => `<span class="gig-skill">${esc(sk)}</span>`).join('') + '</div>' : ''}
         <div style="font-size:.68rem;color:var(--muted);margin:8px 0;">Led by <b>${esc(leaderName)}</b>${sq.serviceCount ? ` · ${sq.serviceCount} live service${sq.serviceCount === 1 ? '' : 's'}` : ''}</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button class="btn bp btn-xs" onclick="showPage('post-project')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Post a project</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          ${joinBtn}
+          ${isLeader ? '<span class="bdg bdg-v" style="font-size:.66rem;">You lead this</span>' : ''}
           <button class="btn bs btn-xs" onclick="msgProjectUser('${esc(sq.leaderId)}')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Message</button>
         </div>
       </div>
