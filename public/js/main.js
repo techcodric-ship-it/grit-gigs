@@ -131,14 +131,14 @@ function updateNav(u) {
       <button class="btn btn-primary btn-sm" onclick="doLogout()">Sign out</button>`;
     // Fetch plan badge asynchronously
     api('/subscriptions/my-plan').then(function(pr) {
-      var badgeEl = document.getElementById('mainNavPlanBadge');
-      if (badgeEl && pr.success && pr.data.plan) {
-        var b = pr.data.plan.badge;
-        var _g={STARTER:'#059669',PRO:'#7C3AED',SQUAD:'#D97706'};
-        badgeEl.innerHTML = b
-          ? '<span style="display:inline-flex;align-items:center;gap:4px;background:' + (_g[b]||'#6C3FE8') + ';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">' + b + '</span>'
-          : '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Free</span>';
-      }
+var badgeEl = document.getElementById('mainNavPlanBadge');
+        if (badgeEl && pr.success && pr.data.plan) {
+          var b = pr.data.plan.badge || (pr.data.plan.id ? pr.data.plan.id.toUpperCase() : '');
+          var _g={STARTER:'#059669',PRO:'#7C3AED',SQUAD:'#D97706'};
+          badgeEl.innerHTML = b
+            ? '<span style="display:inline-flex;align-items:center;gap:4px;background:' + (_g[b]||'#6C3FE8') + ';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">' + b + '</span>'
+            : '<span style="font-size:.65rem;color:var(--violet);font-weight:600;margin-right:6px;vertical-align:middle;">Starter</span>';
+        }
     }).catch(function(){});
   }
 }

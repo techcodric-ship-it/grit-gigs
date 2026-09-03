@@ -1445,7 +1445,18 @@ textarea.fi{resize:vertical;}
             <span class="card-title">Form your Grit Circle</span>
             <button class="btn bs btn-sm" onclick="gcToggleCreate(false)">Cancel</button>
           </div>
-          <div class="fg"><label class="fl">Circle name *</label><input class="fi" id="gcCreateName" placeholder="e.g. Pixel Forge"/></div>
+          <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:12px;">
+            <div style="position:relative;flex-shrink:0;cursor:pointer;width:64px;height:64px;" onclick="document.getElementById('gcCreateAvatarInput').click()">
+              <img id="gcAvatarPreview" src="" style="position:absolute;inset:0;width:64px;height:64px;border-radius:16px;object-fit:cover;display:none;" onerror="this.style.display='none';document.getElementById('gcAvatarPlaceholder').style.display='flex'"/>
+              <div id="gcAvatarPlaceholder" style="position:absolute;inset:0;width:64px;height:64px;border-radius:16px;background:var(--vl);display:flex;align-items:center;justify-content:center;border:2px dashed var(--bd2);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              </div>
+              <input type="file" id="gcCreateAvatarInput" accept="image/*" style="display:none;" onchange="gcPickAvatar(this)"/>
+            </div>
+            <div style="flex:1;">
+              <div class="fg"><label class="fl">Circle name *</label><input class="fi" id="gcCreateName" placeholder="e.g. Pixel Forge"/></div>
+            </div>
+          </div>
           <div class="fr2" style="margin-bottom:12px;">
             <div class="fg"><label class="fl">Focus area</label>
               <select class="fi" id="gcCreateCategory">
@@ -2386,8 +2397,13 @@ function inputModal(title, label, placeholder, onOk, opts = {}) {
 // ══════════════════════════════════════════════
 function showNotifBanner(title, msg, type = 'info', linkUrl = null) {
   const banner = document.getElementById('notifBanner');
-  const cleanTitle = String(title ?? '').trim().slice(0, 80);
-  const cleanMsg = String(msg ?? '').trim().slice(0, 160);
+  // Some callers pass a leading <svg>...</svg> embedded in the title for their
+  // icon. The dedicated nb-icon span already renders the proper icon, so strip
+  // any such SVG markup out of the title text (otherwise it would show up as
+  // raw code because the title is HTML-escaped).
+  const _stripSvg = (s) => String(s ?? '').replace(/<svg[^>]*>[\s\S]*?<\/svg>/gi, '');
+  const cleanTitle = _stripSvg(title).trim().slice(0, 80);
+  const cleanMsg = _stripSvg(msg).trim().slice(0, 160);
   if (!cleanTitle && !cleanMsg) return;
 
   const item = document.createElement('div');
@@ -4043,11 +4059,33 @@ async function loadInbox() {
         ? `<span style="color:var(--gold);font-weight:600;font-size:.6rem;text-transform:uppercase;letter-spacing:.04em;">Freelance</span>`
         : '';
     const _isAdmin = conv.isAdminConv;
+    const _isGroup = conv.isGroup;
     const _avEnc = encodeURIComponent(other ? avUrl(other) : '');
     const _isOtherAdmin = conv.isAdminConv;
     const _showOnline = _onlineUsers.has(other?.id) && (!_isOtherAdmin || isAdminUser);
     const _dispName = esc(firstName + ' ' + lastName);
     const _dispMsg = esc(last?.messageText || 'Start conversation');
+    if (_isGroup) {
+      const grpName = conv.groupName || 'Circle chat';
+      const grpMembers = (conv.members || []).length;
+      const grpAvatar = conv.avatar || conv.squadAvatar || '';
+      const grpIni = (grpName.trim().split(/\s+/).map(w => w[0]).join('').slice(0,2) || 'GC').toUpperCase();
+      return `<div data-conv-id="${conv.id}" data-other-id="" onclick="openConv('${conv.id}','${esc(grpName)}','${grpIni}','',null,false,'',true)"
+        style="display:flex;gap:10px;align-items:center;padding:13px 16px;cursor:pointer;border-bottom:1px solid var(--bd);transition:background .15s;${activeCovId === conv.id ? 'background:var(--vl);' : ''}">
+        <span style="cursor:pointer;flex-shrink:0;position:relative;">
+          ${grpAvatar ? `<img src="${esc(grpAvatar)}" style="width:34px;height:34px;border-radius:10px;object-fit:cover;border:2px solid ${unread?'var(--violet)':'var(--bd,#e5e7eb)'};" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>` : ''}
+          <div class="av" style="width:34px;height:34px;font-size:12px;${grpAvatar ? 'display:none;' : ''}background:linear-gradient(135deg,var(--violet),#8B5CF6);color:#fff;">${grpIni}</div>
+        </span>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:5px;">
+            <span style="font-weight:${unread ? '700' : '500'};font-size:.82rem;color:var(--violet);">${esc(grpName)}</span>
+            <span style="font-size:.58rem;font-weight:700;color:var(--violet);background:var(--vl);padding:1px 6px;border-radius:4px;letter-spacing:.03em;line-height:1.4;">CIRCLE</span>
+          </div>
+          <div style="font-size:.7rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${grpMembers ? grpMembers + ' member' + (grpMembers === 1 ? '' : 's') + ' · ' : ''}${_dispMsg}</div>
+        </div>
+        ${unread ? `<div style="width:8px;height:8px;border-radius:50%;background:var(--violet);flex-shrink:0;"></div>` : ''}
+      </div>`;
+    }
     return `<div data-conv-id="${conv.id}" data-other-id="${other?.id||''}" onclick="openConv('${conv.id}','','${ini}','${_avEnc}','${other?.id||''}',${other?.kycVerified||false},'${esc(other?.planBadge||'')}')"
       style="display:flex;gap:10px;align-items:center;padding:13px 16px;cursor:pointer;border-bottom:1px solid var(--bd);transition:background .15s;${activeCovId === conv.id ? 'background:var(--vl);' : ''}">
       <span ${_isAdmin ? '' : `onclick="event.stopPropagation();if('${esc(other?.id||'')}')openUserProfile('${esc(other?.id||'')}')" title="View profile"`} style="cursor:pointer;flex-shrink:0;position:relative;">
@@ -4069,7 +4107,7 @@ async function loadInbox() {
   }).join('');
 }
 
-async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planBadgeVal) { const photo = _photoEnc ? decodeURIComponent(_photoEnc) : '';
+async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planBadgeVal, isGroup) { const photo = _photoEnc ? decodeURIComponent(_photoEnc) : '';
   // }
   activeCovId = convId;
 
@@ -4097,6 +4135,21 @@ async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planB
   const isAdminConv = _convData?.isAdminConv || name.trim() === 'Grit&Gigs Admin';
   const _isOtherAdmin = isAdminConv;
   const _showOnline = userId && _onlineUsers.has(userId) && (!_isOtherAdmin || isAdminUser);
+  if (isGroup || _convData?.isGroup) {
+    const grpName = _convData?.groupName || name || 'Group chat';
+    const grpMembers = (_convData?.members || []).length;
+    const imgSrc = _convData?.avatar || _convData?.squadAvatar || _convData?.groupAvatar || '';
+    const grpIni = (grpName.trim().split(/\s+/).map(function(w){return w[0]}).join('').slice(0,2) || 'GC').toUpperCase();
+    document.getElementById('chatHeader').innerHTML = `
+      <div style="display:flex;align-items:center;gap:9px;">
+        <button class="mb-back" onclick="closeMobileChat()" title="Back to conversations">←</button>
+        ${imgSrc ? `<img src="${esc(imgSrc)}" style="width:32px;height:32px;border-radius:10px;object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="av" style="display:none;width:32px;height:32px;font-size:12px;">${grpIni}</div>` : `<div class="av" style="width:32px;height:32px;font-size:12px;background:linear-gradient(135deg,var(--violet),#8B5CF6);color:#fff;">${grpIni}</div>`}
+        <div style="display:flex;flex-direction:column;">
+          <span style="font-weight:600;">${esc(grpName)} <span style="display:inline-flex;align-items:center;gap:2px;background:var(--vl);color:var(--violet);font-size:.56rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:5px;">Circle chat</span></span>
+          <span id="chatOnlineStatus" style="font-size:.62rem;color:var(--muted);">${grpMembers ? grpMembers + ' member' + (grpMembers === 1 ? '' : 's') : ''}</span>
+        </div>
+      </div>`;
+  } else {
   document.getElementById('chatHeader').innerHTML = `
     <div style="display:flex;align-items:center;gap:9px;">
       <button class="mb-back" onclick="closeMobileChat()" title="Back to conversations">←</button>
@@ -4107,6 +4160,7 @@ async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planB
       </div>
       ${!isAdminConv || isAdminUser ? `<button data-vp="1" data-uid="${userId||''}" onclick="viewActiveConvProfile()" title="View profile" style="margin-left:auto;background:none;border:1px solid var(--bd);border-radius:99px;padding:2px 10px;font-size:.68rem;color:var(--violet);cursor:pointer;font-weight:600;transition:background .15s;" onmouseover="this.style.background='var(--vl)'" onmouseout="this.style.background='var(--vl)'">View Profile</button>` : ''}
     </div>`;
+  }
   _savedChatHeader = document.getElementById('chatHeader').innerHTML;
   document.getElementById('ps-inbox').classList.add('show-chat');
   document.getElementById('chatInput').style.display = 'block';
@@ -7124,6 +7178,9 @@ function renderJobs() {
 }
 // ── Grit Circle (real squad backend) ──────────────────────────────────
 let _gc = null;
+let _gcDraftAvatar = null;
+let _gcJoinRequests = [];
+let _ssCoverImage = null;
 async function loadGritCircle() {
   const root = document.getElementById('gcRoot');
   document.getElementById('gcCreateCard').style.display = 'none';
@@ -7147,17 +7204,153 @@ async function gcCreateSquad() {
     tagline: (document.getElementById('gcCreateTagline').value || '').trim(),
     skills: (document.getElementById('gcCreateSkills').value || '').trim(),
     description: (document.getElementById('gcCreateDesc').value || '').trim(),
+    avatar: _gcDraftAvatar || null,
   };
+  _gcDraftAvatar = null;
   const d = await api('/squads', { method: 'POST', body: JSON.stringify(body) });
   if (d && d.success) {
     showToast(d.message || 'Your Grit Circle is live', 'ok');
     document.getElementById('gcCreateCard').style.display = 'none';
+    var prev = document.getElementById('gcAvatarPreview');
+    if (prev) { prev.src = ''; prev.style.display = 'none'; }
+    var ph = document.getElementById('gcAvatarPlaceholder');
+    if (ph) ph.style.display = 'flex';
     loadGritCircle();
   } else { showToast((d && d.message) || 'Could not create circle', 'err'); }
 }
 const gcPalette = ['linear-gradient(135deg,#6C3FE8,#8B5CF6)','linear-gradient(135deg,#E8A020,#F5C04A)','linear-gradient(135deg,#10B981,#34D399)','linear-gradient(135deg,#EF4444,#F87171)','linear-gradient(135deg,#EC4899,#F472B6)','linear-gradient(135deg,#0EA5E9,#38BDF8)'];
 const gcSquadAvatar = (sq, size) => '<div class="av" style="width:' + (size||46) + 'px;height:' + (size||46) + 'px;border-radius:' + Math.round((size||46)*0.26) + 'px;background:linear-gradient(135deg,var(--violet),#8B5CF6);color:#fff;font-size:' + Math.round((size||46)*0.34) + 'px;flex-shrink:0;">' + esc((sq.name || 'GC').trim().split(/\s+/).map(w => w[0]).join('').slice(0,2).toUpperCase()) + '</div>';
 const gcInitCap = m => esc(((m.firstName || '?').charAt(0) + (m.lastName || '').charAt(0)).toUpperCase());
+function gcSquadImg(sq, size) {
+  if (sq && sq.avatar) return '<img src="' + esc(sq.avatar) + '" style="width:' + (size||46) + 'px;height:' + (size||46) + 'px;border-radius:' + Math.round((size||46)*0.26) + 'px;object-fit:cover;flex-shrink:0;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"/><div class="av" style="display:none;width:' + (size||46) + 'px;height:' + (size||46) + 'px;border-radius:' + Math.round((size||46)*0.26) + 'px;background:linear-gradient(135deg,var(--violet),#8B5CF6);color:#fff;font-size:' + Math.round((size||46)*0.34) + 'px;flex-shrink:0;">' + esc((sq.name || 'GC').trim().split(/\s+/).map(function(w){return w[0]}).join('').slice(0,2).toUpperCase()) + '</div>';
+  return gcSquadAvatar(sq, size);
+}
+function gcPickAvatar(input) {
+  if (!input.files || !input.files[0]) return;
+  var fd = new FormData();
+  fd.append('image', input.files[0]);
+  fetch(API + '/squads/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + gT() }, body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d && d.success && d.data && d.data.imageUrl) {
+        _gcDraftAvatar = d.data.imageUrl;
+        var prev = document.getElementById('gcAvatarPreview');
+        if (prev) { prev.src = d.data.imageUrl; prev.style.display = 'block'; }
+        var ph = document.getElementById('gcAvatarPlaceholder');
+        if (ph) ph.style.display = 'none';
+        showToast('Avatar uploaded', 'ok');
+      } else { showToast('Upload failed', 'err'); }
+    })
+    .catch(function() { showToast('Upload failed', 'err'); });
+}
+function gcPreviewAvatar(img) {
+  img.onerror = function() { img.style.display = 'none'; };
+}
+function gcPickLeaderAvatar(input) {
+  if (!input.files || !input.files[0]) return;
+  var fd = new FormData();
+  fd.append('image', input.files[0]);
+  fetch(API + '/squads/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + gT() }, body: fd })
+    .then(function(r) { return r.json(); })
+    .then(async function(d) {
+      if (d && d.success && d.data && d.data.imageUrl) {
+        var sq = _gc.squad;
+        var res = await api('/squads/' + sq.id, { method: 'PUT', body: JSON.stringify({ avatar: d.data.imageUrl }) });
+        if (res && res.success) { showToast('Avatar updated', 'ok'); loadGritCircle(); }
+        else showToast('Failed to update avatar', 'err');
+      } else { showToast('Upload failed', 'err'); }
+    })
+    .catch(function() { showToast('Upload failed', 'err'); });
+}
+async function openSquadBrowse() {
+  var wrap = document.createElement('div');
+  wrap.className = 'mo open';
+  wrap.innerHTML = '<div class="md" style="max-width:520px;max-height:80vh;display:flex;flex-direction:column;">' +
+    '<button class="mc" onclick="this.closest(\'.mo\').remove();document.body.style.overflow=\'\'">\u2715</button>' +
+    '<div style="font-weight:700;font-size:.95rem;margin-bottom:14px;">Find a Grit Circle</div>' +
+    '<div id="sbBrowseList" style="overflow-y:auto;flex:1;"><div style="padding:20px;text-align:center;color:var(--muted);font-size:.8rem;">Loading circles...</div></div>' +
+    '</div>';
+  document.body.appendChild(wrap);
+  document.body.style.overflow = 'hidden';
+  wrap.addEventListener('click', function(e) { if (e.target === wrap) { wrap.remove(); document.body.style.overflow = ''; } });
+  var myId = (gU() || {}).id;
+  var d = await api('/squads', { method: 'GET' });
+  var list = document.getElementById('sbBrowseList');
+  if (!list) return;
+  var circles = (d && d.success) ? (d.data || []) : [];
+  if (!circles.length) { list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:.8rem;">No circles found yet.</div>'; return; }
+  list.innerHTML = circles.map(function(sq) {
+    var leaderName = sq.leader ? (((sq.leader.firstName || '') + ' ' + (sq.leader.lastName || '')).trim()) : '';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:12px;border-bottom:1px solid var(--bd);">' +
+      gcSquadAvatar(sq, 38) +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-size:.82rem;font-weight:600;">' + esc(sq.name) + '</div>' +
+        '<div style="font-size:.68rem;color:var(--muted);">' + esc(sq.category || '') + (leaderName ? ' \u00b7 Led by ' + esc(leaderName) : '') + '</div>' +
+      '</div>' +
+      '<button class="btn bp btn-xs" onclick="gcRequestJoin(\'' + esc(sq.id) + '\',\'' + esc(sq.name).replace(/'/g,"\\'") + '\')">Request to join</button>' +
+    '</div>';
+  }).join('');
+}
+function gcRequestJoin(squadId, squadName) {
+  inputModal('Request to join ' + squadName, '', 'Optional message to the leader...', async function(vals) {
+    var d = await api('/squads/join-requests', { method: 'POST', body: JSON.stringify({ squadId: squadId, message: vals.msg || null }) });
+    if (d && d.success) { showToast(d.message || 'Request sent', 'ok'); }
+    else showToast((d && d.message) || 'Could not send request', 'err');
+  }, { fields: [{ id: 'msg', label: 'Message to leader', placeholder: 'I\'d like to join your circle...' }], required: '', okLabel: 'Send request' });
+}
+async function gcLoadJoinRequests() {
+  if (!_gc || !_gc.squad || _gc.role !== 'LEADER') return;
+  var root = document.getElementById('gcJoinReqRoot');
+  if (!root) return;
+  root.innerHTML = '<div style="padding:16px 4px;font-size:.78rem;color:var(--muted);">Loading requests...</div>';
+  var d = await api('/squads/' + _gc.squad.id + '/join-requests', { method: 'GET' });
+  _gcJoinRequests = (d && d.success && d.data) ? (d.data.requests || []) : [];
+  renderJoinRequests();
+}
+function renderJoinRequests() {
+  var root = document.getElementById('gcJoinReqRoot');
+  if (!root) return;
+  if (!_gcJoinRequests.length) { root.innerHTML = '<div style="padding:16px 4px;font-size:.78rem;color:var(--muted);">No pending join requests.</div>'; return; }
+  root.innerHTML = _gcJoinRequests.map(function(rq) {
+    var u = rq.user || {};
+    return '<div class="row-item" style="padding:12px;gap:10px;">' +
+      '<div style="flex-shrink:0;">' + (u.profilePhoto ? '<img src="' + esc(u.profilePhoto) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;"/>' : '<div class="av" style="width:36px;height:36px;font-size:.72rem;">' + esc(((u.firstName||'?').charAt(0)+(u.lastName||'').charAt(0)).toUpperCase()) + '</div>') + '</div>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-size:.82rem;font-weight:600;">' + esc((u.firstName||'') + ' ' + (u.lastName||'')) + '</div>' +
+        '<div style="font-size:.68rem;color:var(--muted);margin-top:2px;">' + esc(u.tagline || (u.skills||[]).slice(0,3).join(', ') || '') + '</div>' +
+        (rq.message ? '<div style="font-size:.72rem;color:var(--sec);margin-top:6px;background:var(--bg);border-radius:var(--rm);padding:8px 12px;">\u201c' + esc(rq.message) + '\u201d</div>' : '') +
+        '<div style="font-size:.65rem;color:var(--muted);margin-top:4px;">Requested ' + timeSince(rq.createdAt) + '</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+        '<button class="btn bp btn-xs" onclick="gcApproveJoinReq(\'' + rq.id + '\')">Approve</button>' +
+        '<button class="btn bs btn-xs" onclick="gcDeclineJoinReq(\'' + rq.id + '\')">Decline</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+async function gcApproveJoinReq(reqId) {
+  var d = await api('/squads/' + _gc.squad.id + '/join-requests/' + reqId, { method: 'PUT', body: JSON.stringify({ action: 'ACCEPT' }) });
+  if (d && d.success) { showToast(d.message || 'Approved', 'ok'); gcLoadJoinRequests(); loadGritCircle(); }
+  else showToast((d && d.message) || 'Could not approve', 'err');
+}
+async function gcDeclineJoinReq(reqId) {
+  var d = await api('/squads/' + _gc.squad.id + '/join-requests/' + reqId, { method: 'PUT', body: JSON.stringify({ action: 'DECLINE' }) });
+  if (d && d.success) { showToast(d.message || 'Declined', 'ok'); gcLoadJoinRequests(); loadGritCircle(); }
+  else showToast((d && d.message) || 'Could not decline', 'err');
+}
+async function gcOpenCircleChat() {
+  if (!_gc || !_gc.squad) return;
+  try {
+    var d = await api('/messages/squad/' + _gc.squad.id + '/group', { method: 'GET' });
+    if (d && d.success && d.data) {
+      var conv = d.data.conversation;
+      if (conv) {
+        showPage('inbox');
+        openConv(conv.id, conv.groupName || (_gc.squad.name + ' Chat'), 'GC', '', null, false, '', true);
+      }
+    } else { showToast((d && d.message) || 'Could not open chat', 'err'); }
+  } catch(e) { showToast('Could not open chat', 'err'); }
+}
 function renderGritCircle() {
   const root = document.getElementById('gcRoot');
   const hdr = document.getElementById('gcHdrActions');
@@ -7202,7 +7395,10 @@ function renderGritCircle() {
             </div>
             <div class="bc-empty-title" style="font-size:.9rem;">No squad yet</div>
             <div class="bc-empty-sub" style="font-size:.76rem;margin-top:4px;">Form a circle to invite teammates and bid as a team</div>
-            <button class="btn bp btn-sm" style="margin-top:12px;" onclick="gcToggleCreate(true)">+ Invite members</button>
+            <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+              <button class="btn bp btn-sm" onclick="gcToggleCreate(true)">+ Create circle</button>
+              <button class="btn bs btn-sm" onclick="openSquadBrowse()">Find circles</button>
+            </div>
           </div>
         </div>
       </div>`;
@@ -7213,23 +7409,28 @@ function renderGritCircle() {
   const isLeader = role === 'LEADER';
   const hdrHtml = isLeader
     ? `<button class="btn bs btn-sm" onclick="gcEditSquad()"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg> Edit</button>
-      <button class="btn bp btn-sm" onclick="gcOpenInvite()"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Invite member</button>`
-    : `<button class="btn bs btn-sm" onclick="gcLeaveSquad()">Leave circle</button>`;
+      <button class="btn bp btn-sm" onclick="gcOpenInvite()"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Invite member</button>
+      <button class="btn bs btn-sm" onclick="gcOpenCircleChat()"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Circle chat</button>`
+    : `<button class="btn bp btn-sm" onclick="gcOpenCircleChat()"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Circle chat</button>
+      <button class="btn bs btn-sm" onclick="gcLeaveSquad()">Leave circle</button>`;
   if (hdr) hdr.innerHTML = hdrHtml;
   const skillTags = (sq.skills && sq.skills.length)
     ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;">' + sq.skills.map(s => '<span class="bc-tag">' + esc(s) + '</span>').join('') + '</div>' : '';
   const membersHtml = members.map((m, i) => `
-    <div class="row-item" style="padding:12px;gap:10px;">
-      <div class="av" style="width:38px;height:38px;background:${gcPalette[i % gcPalette.length]};color:#fff;font-size:.74rem;flex-shrink:0;">${gcInitCap(m)}</div>
+    <div class="row-item" style="padding:12px;gap:10px;align-items:center;">
+      ${m.profilePhoto ? `<img src="${esc(m.profilePhoto)}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="openUserProfile('${esc(m.id)}')"/>` : `<div class="av" style="width:38px;height:38px;background:${gcPalette[i % gcPalette.length]};color:#fff;font-size:.74rem;flex-shrink:0;cursor:pointer;" onclick="openUserProfile('${esc(m.id)}')">${gcInitCap(m)}</div>`}
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-          <span style="font-size:.84rem;font-weight:600;">${esc(m.firstName)} ${esc(m.lastName)}</span>
+          <span style="font-size:.84rem;font-weight:600;cursor:pointer;" onclick="openUserProfile('${esc(m.id)}')">${esc(m.firstName)} ${esc(m.lastName)}</span>
           ${m.role === 'LEADER' ? '<span class="bdg bdg-v" style="font-size:.58rem;padding:1px 8px;">Leader</span>' : ''}
           ${m.id === (gU()||{}).id ? '<span class="bdg bdg-ink" style="font-size:.58rem;padding:1px 8px;">You</span>' : ''}
         </div>
         <div style="font-size:.7rem;color:var(--muted);margin-top:2px;">${esc(m.tagline || (m.skills||[]).slice(0,3).join(', ') || 'Freelancer')}</div>
       </div>
-      ${isLeader && m.role !== 'LEADER' ? '<button class="btn bs btn-xs" style="color:var(--err);" onclick="gcRemoveMember(\'' + m.id + '\')">Remove</button>' : ''}
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span class="gig-vpf" onclick="openUserProfile('${esc(m.id)}')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> View Profile</span>
+        ${isLeader && m.role !== 'LEADER' ? '<button class="btn bs btn-xs" style="color:var(--err);" onclick="gcRemoveMember(\'' + m.id + '\')">Remove</button>' : ''}
+      </div>
     </div>`).join('') || '<div class="empty"><div class="empty-sub">No members yet</div></div>';
   const invitesHtml = isLeader
     ? `<div class="card">
@@ -7248,6 +7449,14 @@ function renderGritCircle() {
           </div>`).join('')
         : '<div style="padding:16px 4px;font-size:.78rem;color:var(--muted);">No pending invites — add teammates to grow your circle.</div>'}
       </div>` : '';
+  const joinReqHtml = isLeader
+    ? `<div class="card" style="margin-bottom:16px;">
+        <div class="card-hdr" style="margin-bottom:8px;">
+          <span class="card-title">Join requests</span>
+          <span class="bdg bdg-v" style="font-size:.58rem;">${_gcJoinRequests.length} pending</span>
+        </div>
+        <div id="gcJoinReqRoot"></div>
+      </div>` : '';
   const svcPreview = services.length
     ? services.map(s => `
         <div class="row-item" style="padding:12px;gap:10px;">
@@ -7261,7 +7470,10 @@ function renderGritCircle() {
   root.innerHTML = `
     <div class="card" style="background:linear-gradient(135deg,var(--ink) 0%,#2A1E52 100%);color:#fff;border:none;margin-bottom:16px;">
       <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
-        ${gcSquadAvatar(sq, 56)}
+        <div style="position:relative;flex-shrink:0;">
+          ${gcSquadImg(sq, 56)}
+          ${isLeader ? '<input type="file" id="gcLeaderAvatarInput" accept="image/*" style="display:none;" onchange="gcPickLeaderAvatar(this)"/><button onclick="document.getElementById(\'gcLeaderAvatarInput\').click()" style="position:absolute;bottom:-2px;right:-2px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;border:2px solid #221A3F;cursor:pointer;display:flex;align-items:center;justify-content:center;" title="Change avatar"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>' : ''}
+        </div>
         <div style="flex:1;min-width:220px;">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.15rem;">${esc(sq.name)}</span>
@@ -7275,12 +7487,13 @@ function renderGritCircle() {
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;">${members.length}<span style="font-size:.78rem;color:rgba(255,255,255,.5);font-weight:400;">/${sq.maxMembers || 6} members</span></div>
           <div style="font-size:.68rem;color:rgba(255,255,255,.5);margin-top:2px;">${services.length} squad service${services.length === 1 ? '' : 's'}</div>
-          <div style="display:flex;gap:6px;margin-top:10px;justify-content:flex-end;">${members.slice(0,6).map((m,i) => '<div class="av" style="width:30px;height:30px;margin:0;background:' + gcPalette[i % gcPalette.length] + ';color:#fff;font-size:.62rem;box-shadow:0 0 0 2px #221A3F;">' + gcInitCap(m) + '</div>').join('')}</div>
+          <div style="display:flex;gap:6px;margin-top:10px;justify-content:flex-end;">${members.slice(0,6).map((m,i) => m.profilePhoto ? `<img src="${esc(m.profilePhoto)}" style="width:30px;height:30px;margin:0;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px #221A3F;cursor:pointer;" onclick="openUserProfile('${esc(m.id)}')"/>` : `<div class="av" style="width:30px;height:30px;margin:0;background:${gcPalette[i % gcPalette.length]};color:#fff;font-size:.62rem;box-shadow:0 0 0 2px #221A3F;cursor:pointer;" onclick="openUserProfile('${esc(m.id)}')">${gcInitCap(m)}</div>`).join('')}</div>
         </div>
       </div>
     </div>
     <div class="two-col" style="align-items:start;">
       <div>
+        ${joinReqHtml}
         ${invitesHtml}
         <div class="card">
           <div class="card-hdr" style="margin-bottom:8px;"><span class="card-title">Members (${members.length}/${sq.maxMembers || 6})</span></div>
@@ -7303,6 +7516,7 @@ function renderGritCircle() {
         </div>
       </div>
     </div>`;
+  if (isLeader) setTimeout(gcLoadJoinRequests, 0);
 }
 async function gcRespondInvite(id, status) {
   const d = await api('/squads/invites/' + id, { method: 'PUT', body: JSON.stringify({ status }) });
@@ -7311,13 +7525,15 @@ async function gcRespondInvite(id, status) {
 }
 async function gcOpenInvite() {
   inputModal('Invite a member', '', '', async (vals) => {
-    const d = await api('/squads/' + _gc.squad.id + '/invites', { method: 'POST', body: JSON.stringify({ email: vals.email, message: vals.msg || null }) });
+    if (!vals.email && !vals.ggId) { showToast('Enter an email or a GG ID', 'err'); return; }
+    const d = await api('/squads/' + _gc.squad.id + '/invites', { method: 'POST', body: JSON.stringify({ email: vals.email || null, ggId: vals.ggId || null, message: vals.msg || null }) });
     if (d && d.success) { showToast(d.message || 'Invite sent', 'ok'); loadGritCircle(); }
     else showToast((d && d.message) || 'Could not send invite', 'err');
   }, { fields: [
-    { id: 'email', label: 'Member email', placeholder: 'teammate@example.com' },
+    { id: 'email', label: 'Member email (or GG ID below)', placeholder: 'teammate@example.com' },
+    { id: 'ggId', label: 'GG ID', placeholder: 'G&G-XXXXXXXX or 8 hex chars' },
     { id: 'msg', label: 'Optional note', placeholder: 'Join us — we have a big project coming!' },
-  ], required: 'email', okLabel: 'Send invite' });
+  ], required: '', okLabel: 'Send invite' });
 }
 function gcCancelInvite(id) {
   confirmModal('Cancel this invite?', 'The person won\'t be able to accept it anymore.', 'Cancel invite', async () => {
@@ -7369,6 +7585,13 @@ async function loadSquadService() {
 }
 function ssResetForm() {
   _ssEditId = null;
+  _ssCoverImage = null;
+  var cp = document.getElementById('ssCoverImageInput');
+  if (cp) cp.value = '';
+  var cprev = document.getElementById('ssCoverPreview');
+  if (cprev) { cprev.src = ''; cprev.style.display = 'none'; }
+  var cph = document.getElementById('ssCoverPlaceholder');
+  if (cph) cph.style.display = 'flex';
   ['ssTitle','ssCategory','ssDeliver','ssPrice','ssSkills','ssDesc'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -7376,6 +7599,24 @@ function ssResetForm() {
   });
   const btn = document.getElementById('ssSubmitBtn');
   if (btn) btn.textContent = 'Publish squad service';
+}
+function ssPickCover(input) {
+  if (!input.files || !input.files[0]) return;
+  var fd = new FormData();
+  fd.append('image', input.files[0]);
+  fetch(API + '/squads/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + gT() }, body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d && d.success && d.data && d.data.imageUrl) {
+        _ssCoverImage = d.data.imageUrl;
+        var prev = document.getElementById('ssCoverPreview');
+        if (prev) { prev.src = d.data.imageUrl; prev.style.display = 'block'; }
+        var ph = document.getElementById('ssCoverPlaceholder');
+        if (ph) ph.style.display = 'none';
+        showToast('Cover uploaded', 'ok');
+      } else { showToast('Upload failed', 'err'); }
+    })
+    .catch(function() { showToast('Upload failed', 'err'); });
 }
 async function ssSave() {
   const title = (document.getElementById('ssTitle').value || '').trim();
@@ -7389,6 +7630,7 @@ async function ssSave() {
     deliveryDays: Number(document.getElementById('ssDeliver').value) || 7,
     priceInr: Math.round(Number(price)),
     skills: (document.getElementById('ssSkills').value || '').trim(),
+    coverImage: _ssCoverImage || null,
   };
   const url = _ssEditId ? '/squads/services/' + _ssEditId : '/squads/' + _ss.squad.id + '/services';
   const method = _ssEditId ? 'PUT' : 'POST';
@@ -7400,6 +7642,13 @@ function ssEdit(id) {
   const svc = (_ss.services || []).find(s => s.id === id);
   if (!svc) return;
   _ssEditId = id;
+  _ssCoverImage = svc.coverImage || null;
+  var cp = document.getElementById('ssCoverImageInput');
+  if (cp) cp.value = '';
+  var cprev = document.getElementById('ssCoverPreview');
+  if (cprev) { cprev.src = _ssCoverImage || ''; cprev.style.display = _ssCoverImage ? 'block' : 'none'; }
+  var cph = document.getElementById('ssCoverPlaceholder');
+  if (cph) cph.style.display = _ssCoverImage ? 'none' : 'flex';
   document.getElementById('ssTitle').value = svc.title;
   document.getElementById('ssCategory').value = svc.category || '';
   document.getElementById('ssDeliver').value = svc.deliveryDays;
@@ -7446,7 +7695,7 @@ function renderSquadService() {
     ? services.map(s => `
       <div class="card" style="padding:16px;margin-bottom:12px;">
         <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;">
-          <div class="av" style="width:42px;height:42px;border-radius:11px;background:${s.status === 'PAUSED' ? 'var(--bg2)' : 'var(--vl)'};color:${s.status === 'PAUSED' ? 'var(--sec)' : 'var(--violet)'};flex-shrink:0;">S</div>
+          ${s.coverImage ? '<img src="' + esc(s.coverImage) + '" style="width:42px;height:42px;border-radius:11px;object-fit:cover;flex-shrink:0;" onerror="this.style.display=\'none\'"/>' : `<div class="av" style="width:42px;height:42px;border-radius:11px;background:${s.status === 'PAUSED' ? 'var(--bg2)' : 'var(--vl)'};color:${s.status === 'PAUSED' ? 'var(--sec)' : 'var(--violet)'};flex-shrink:0;">S</div>`}
           <div style="flex:1;min-width:220px;">
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
               <span style="font-size:.92rem;font-weight:700;">${esc(s.title)}</span>
@@ -7467,6 +7716,18 @@ function renderSquadService() {
   root.innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start;" class="ss-grid">
       <div class="card" id="ssFormCard">
+        <div class="fg"><label class="fl">Cover image</label>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <div style="position:relative;flex-shrink:0;cursor:pointer;width:72px;height:72px;" onclick="document.getElementById('ssCoverImageInput').click()">
+              <img id="ssCoverPreview" src="" style="position:absolute;inset:0;width:72px;height:72px;border-radius:12px;object-fit:cover;display:none;z-index:1;" onerror="this.style.display='none';document.getElementById('ssCoverPlaceholder').style.display='flex'"/>
+              <div id="ssCoverPlaceholder" style="position:absolute;inset:0;width:72px;height:72px;border-radius:12px;background:var(--vl);display:flex;align-items:center;justify-content:center;border:2px dashed var(--bd2);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              </div>
+              <input type="file" id="ssCoverImageInput" accept="image/*" style="display:none;" onchange="ssPickCover(this)"/>
+            </div>
+            <div style="font-size:.72rem;color:var(--muted);">Add a cover image to make the service stand out.</div>
+          </div>
+        </div>
         <div class="fg"><label class="fl">Service title *</label><input class="fi" id="ssTitle" placeholder="e.g. We'll build your full product in 2 weeks"/></div>
         <div class="fr2">
           <div class="fg"><label class="fl">Category</label>

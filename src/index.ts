@@ -173,6 +173,7 @@ app.set("io", io);
           DO $$ BEGIN CREATE TYPE squad_role AS ENUM ('LEADER','MEMBER'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
           DO $$ BEGIN CREATE TYPE squad_invite_status AS ENUM ('PENDING','ACCEPTED','DECLINED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
           DO $$ BEGIN CREATE TYPE squad_service_status AS ENUM ('ACTIVE','PAUSED','DELETED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE squad_join_request_status AS ENUM ('PENDING','ACCEPTED','DECLINED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
           ALTER TYPE transaction_type ADD VALUE IF NOT EXISTS 'REFERRAL_REWARD';
         `);
         logger.info("migrate: enums ready");
@@ -462,6 +463,9 @@ app.set("io", io);
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             user1_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             user2_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            is_group BOOLEAN DEFAULT FALSE NOT NULL,
+            group_name TEXT,
+            group_id UUID REFERENCES squads(id) ON DELETE CASCADE,
             order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
             match_id UUID REFERENCES barter_matches(id) ON DELETE SET NULL,
             project_bid_id UUID REFERENCES project_bids(id) ON DELETE SET NULL,
@@ -479,6 +483,13 @@ app.set("io", io);
             file_name TEXT,
             read BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
+
+          CREATE TABLE IF NOT EXISTS conversation_participants (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            joined_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
           );
 
           CREATE TABLE IF NOT EXISTS saved_items (
@@ -669,12 +680,22 @@ app.set("io", io);
             title TEXT NOT NULL,
             description TEXT NOT NULL,
             category TEXT,
+            cover_image TEXT,
             price_inr INTEGER NOT NULL,
             delivery_days INTEGER DEFAULT 7 NOT NULL,
             skills TEXT[] DEFAULT '{}',
             status squad_service_status DEFAULT 'ACTIVE' NOT NULL,
             created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
             updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
+          CREATE TABLE IF NOT EXISTS squad_join_requests (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            squad_id UUID NOT NULL REFERENCES squads(id) ON DELETE CASCADE,
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            status squad_join_request_status DEFAULT 'PENDING' NOT NULL,
+            message TEXT,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            responded_at TIMESTAMPTZ
           );
           CREATE INDEX IF NOT EXISTS idx_squad_members_squad ON squad_members(squad_id);
           CREATE INDEX IF NOT EXISTS idx_squad_members_user ON squad_members(user_id);
@@ -743,6 +764,10 @@ app.set("io", io);
       await col(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS gateway_txn_id TEXT`);
       await col(`ALTER TABLE notifications ADD COLUMN IF NOT EXISTS link_url TEXT`);
       await col(`DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='read') THEN ALTER TABLE notifications RENAME COLUMN "read" TO is_read; ELSE ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE; END IF; END $$`);
+      await col(`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS is_group BOOLEAN DEFAULT FALSE NOT NULL`);
+      await col(`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS group_name TEXT`);
+      await col(`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS group_id UUID REFERENCES squads(id) ON DELETE CASCADE`);
+      await col(`ALTER TABLE squad_services ADD COLUMN IF NOT EXISTS cover_image TEXT`);
 
       // ── Service images column (Drizzle uses `images` not `thumbnail`/`gallery`) ──
       await col(`ALTER TABLE services ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT '{}' NOT NULL`);

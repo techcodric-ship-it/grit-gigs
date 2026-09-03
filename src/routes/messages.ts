@@ -8,6 +8,7 @@ import {
   db,
   pool,
   conversationsTable,
+  conversationParticipantsTable,
   messagesTable,
   usersTable,
   notificationsTable,
@@ -15,6 +16,8 @@ import {
   ordersTable,
   projectBidsTable,
   projectsTable,
+  squadsTable,
+  squadMembersTable,
 } from "../db";
 import { eq, or, and, desc, ne, inArray, sql } from "drizzle-orm";
 import { authenticate } from "../middlewares/authenticate";
@@ -80,7 +83,7 @@ router.get("/messages/online-users", authenticate, async (req, res): Promise<voi
 });
 
 router.get("/messages/conversations", authenticate, async (req, res): Promise<void> => {
-  const conversations = await db
+  const directConversations = await db
     .select()
     .from(conversationsTable)
     .where(
@@ -91,13 +94,36 @@ router.get("/messages/conversations", authenticate, async (req, res): Promise<vo
     )
     .orderBy(desc(conversationsTable.lastMessageAt));
 
+  const myParticipations = await db
+    .select({ conversationId: conversationParticipantsTable.conversationId })
+    .from(conversationParticipantsTable)
+    .where(eq(conversationParticipantsTable.userId, req.user!.id));
+
+  const participationIds = myParticipations.map(p => p.conversationId);
+  const groupConversations = participationIds.length
+    ? await db
+        .select()
+        .from(conversationsTable)
+        .where(and(sql`${conversationsTable.isGroup} = TRUE`, inArray(conversationsTable.id, participationIds)))
+        .orderBy(desc(conversationsTable.lastMessageAt))
+    : [];
+
+  const seen = new Set<string>();
+  const ordered: typeof conversationsTable.$inferSelect[] = [];
+  for (const c of directConversations.concat(groupConversations)) {
+    if (seen.has(c.id)) continue;
+    seen.add(c.id);
+    ordered.push(c);
+  }
+  const conversations = ordered.sort((a, b) => new Date(b.lastMessageAt ?? 0).getTime() - new Date(a.lastMessageAt ?? 0).getTime());
+
   if (!conversations.length) { res.json({ success: true, data: { conversations: [] } }); return; }
 
   const myId = req.user!.id;
-  const otherIds = conversations.map(c => c.user1Id === myId ? c.user2Id : c.user1Id);
+  const otherIds = conversations.filter(c => !c.isGroup).map(c => c.user1Id === myId ? c.user2Id : c.user1Id);
   const convIds = conversations.map(c => c.id);
 
-  const [users, lastMsgs, unreadCounts] = await Promise.all([
+  const [users, lastMsgs, unreadCounts, participantRows] = await Promise.all([
     db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, kycVerified: usersTable.kycVerified, role: usersTable.role, isActive: usersTable.isActive })
       .from(usersTable).where(inArray(usersTable.id, otherIds)),
     (async () => {
@@ -118,6 +144,7 @@ router.get("/messages/conversations", authenticate, async (req, res): Promise<vo
       );
       return res.rows;
     })(),
+    convIds.length ? db.select({ conversationId: conversationParticipantsTable.conversationId, userId: conversationParticipantsTable.userId }).from(conversationParticipantsTable).where(inArray(conversationParticipantsTable.conversationId, convIds)) : [],
   ]);
 
   const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
@@ -125,8 +152,35 @@ router.get("/messages/conversations", authenticate, async (req, res): Promise<vo
   const userMap = new Map(users.map(u => [u.id, u]));
   const lastMsgMap = new Map((lastMsgs || []).map(m => [m.conversationId, m]));
   const unreadMap = new Map((unreadCounts || []).map(r => [r.conversation_id, r.cnt]));
+  const participantsByConv = new Map<string, { userId: string }[]>();
+  for (const p of participantRows) {
+    const arr = participantsByConv.get(p.conversationId) ?? [];
+    arr.push(p);
+    participantsByConv.set(p.conversationId, arr);
+  }
+
+  const projectedParticipants = participantsByConv.size
+    ? await db
+        .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto })
+        .from(usersTable)
+        .where(inArray(usersTable.id, [...new Set(participantRows.map(p => p.userId))]))
+    : [];
+  const participantUserMap = new Map(projectedParticipants.map(u => [u.id, u]));
 
   const result = conversations.map(c => {
+    if (c.isGroup) {
+      const members = (participantsByConv.get(c.id) ?? []).map(p => participantUserMap.get(p.userId)).filter(Boolean);
+      return {
+        ...c,
+        otherUser: null,
+        isGroup: true,
+        groupName: c.groupName ?? "Circle Chat",
+        members,
+        isAdminConv: false,
+        lastMessage: lastMsgMap.get(c.id) ?? null,
+        unreadCount: unreadMap.get(c.id) ?? 0,
+      };
+    }
     const otherId = c.user1Id === myId ? c.user2Id : c.user1Id;
     let other = userMap.get(otherId) ?? null;
     const isAdminConv = (other && adminId2 && (other as any).id === adminId2) || (other && (other as any).role === "ADMIN") || false;
@@ -134,8 +188,8 @@ router.get("/messages/conversations", authenticate, async (req, res): Promise<vo
     return { ...c, otherUser: other, isAdminConv, lastMessage: lastMsgMap.get(c.id) ?? null, unreadCount: unreadMap.get(c.id) ?? 0 };
   });
 
-  const convUsers = result.map(c => c.otherUser).filter(Boolean);
-  await attachPlanBadges(convUsers);
+  const directUsers = result.map(c => c.otherUser).filter(Boolean);
+  await attachPlanBadges(directUsers);
 
   res.json({ success: true, data: { conversations: result } });
 });
@@ -257,7 +311,15 @@ router.get("/messages/conversations/:conversationId/messages", authenticate, asy
 
   const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, convId));
   if (!conv) { res.status(404).json({ success: false, message: "Conversation not found" }); return; }
-  if (conv.user1Id !== req.user!.id && conv.user2Id !== req.user!.id) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
+  let isGroupMember = false;
+  if (conv.isGroup) {
+    const [part] = await db.select({ id: conversationParticipantsTable.id }).from(conversationParticipantsTable)
+      .where(and(eq(conversationParticipantsTable.conversationId, convId), eq(conversationParticipantsTable.userId, req.user!.id)))
+      .limit(1);
+    isGroupMember = !!part;
+  }
+  if (!conv.isGroup && conv.user1Id !== req.user!.id && conv.user2Id !== req.user!.id) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
+  if (conv.isGroup && !isGroupMember) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
 
   const messages = await db
     .select()
@@ -281,8 +343,59 @@ router.get("/messages/conversations/:conversationId/messages", authenticate, asy
     .where(and(eq(messagesTable.conversationId, convId), ne(messagesTable.senderId, req.user!.id)))
     .catch(() => {});
 
-  const otherUserId = conv.user1Id === req.user!.id ? conv.user2Id : conv.user1Id;
-  res.json({ success: true, data: { messages: result, page: parseInt(page), otherUserId } });
+  const otherUserId = !conv.isGroup ? (conv.user1Id === req.user!.id ? conv.user2Id : conv.user1Id) : null;
+  res.json({ success: true, data: { messages: result, page: parseInt(page), otherUserId, conversation: { id: conv.id, isGroup: conv.isGroup ?? false, groupName: conv.groupName ?? null } } });
+});
+
+// ── Get or create the group chat for a Grit Circle ─────────────────────────
+router.get("/messages/squad/:squadId/group", authenticate, async (req, res): Promise<void> => {
+  const squadId = String(req.params.squadId);
+  const [inSquad] = await db
+    .select({ id: squadMembersTable.id })
+    .from(squadMembersTable)
+    .where(and(eq(squadMembersTable.squadId, squadId), eq(squadMembersTable.userId, req.user!.id)))
+    .limit(1);
+  if (!inSquad) { res.status(403).json({ success: false, message: "You must be in this circle" }); return; }
+
+  let [conv] = await db.select().from(conversationsTable).where(and(eq(conversationsTable.groupId, squadId), sql`${conversationsTable.isGroup} = TRUE`)).limit(1);
+  if (!conv) {
+    const [squad] = await db.select().from(squadsTable).where(eq(squadsTable.id, squadId)).limit(1);
+    const [newConv] = await db.insert(conversationsTable).values({
+      user1Id: req.user!.id,
+      user2Id: req.user!.id,
+      isGroup: true,
+      groupName: squad?.name ?? "Circle Chat",
+      groupId: squadId,
+      lastMessageAt: new Date(),
+    }).returning();
+    conv = newConv;
+    const memberRows = await db
+      .select({ userId: squadMembersTable.userId })
+      .from(squadMembersTable)
+      .where(eq(squadMembersTable.squadId, squadId));
+    if (memberRows.length) {
+      await db.insert(conversationParticipantsTable).values(memberRows.map(m => ({ conversationId: conv!.id, userId: m.userId }))).onConflictDoNothing();
+    }
+  }
+
+  const [participants, squad] = await Promise.all([
+    db.select({ userId: conversationParticipantsTable.userId, joinedAt: conversationParticipantsTable.joinedAt })
+      .from(conversationParticipantsTable).where(eq(conversationParticipantsTable.conversationId, conv.id)),
+    db.select().from(squadsTable).where(eq(squadsTable.id, squadId)).limit(1),
+  ]);
+  const memberIds = participants.map(p => p.userId);
+  const memberUsers = memberIds.length
+    ? await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto })
+        .from(usersTable).where(inArray(usersTable.id, memberIds))
+    : [];
+
+  res.json({
+    success: true,
+    data: {
+      conversation: { ...conv, members: memberUsers },
+      squad: squad,
+    },
+  });
 });
 
 router.post("/messages/conversations/:conversationId/messages", authenticate, async (req, res): Promise<void> => {
@@ -293,16 +406,26 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
 
   const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, convId));
   if (!conv) { res.status(404).json({ success: false, message: "Conversation not found" }); return; }
-  if (conv.user1Id !== req.user!.id && conv.user2Id !== req.user!.id) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
+  let isGroupMember = false;
+  if (conv.isGroup) {
+    const [part] = await db.select({ id: conversationParticipantsTable.id }).from(conversationParticipantsTable)
+      .where(and(eq(conversationParticipantsTable.conversationId, convId), eq(conversationParticipantsTable.userId, req.user!.id)))
+      .limit(1);
+    isGroupMember = !!part;
+  }
+  if (!conv.isGroup && conv.user1Id !== req.user!.id && conv.user2Id !== req.user!.id) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
+  if (conv.isGroup && !isGroupMember) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
 
-  const recipientId = conv.user1Id === req.user!.id ? conv.user2Id : conv.user1Id;
+  const isGroup = conv.isGroup ?? false;
+  const recipientId = !isGroup ? (conv.user1Id === req.user!.id ? conv.user2Id : conv.user1Id) : null;
 
   // Contact info (email, phone) is censored for normal conversations. In support
   // conversations with an admin recipient, the real details are kept so the
-  // platform can help — admins see the original, other users never do.
+  // platform can help — admins see the original, other users never do. Group
+  // (circle) chats keep real details too, so members can reach each other.
   let finalText = messageText.trim();
   const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
-  if (!(admin && admin.id === recipientId)) {
+  if (!isGroup && !(admin && admin.id === recipientId)) {
     const contactPattern = /(?:\+?\d{1,3}[-.\s]?\d{5}[-.\s]?\d{4,})|(?:\d{5}[-.\s]?\d{4,})|(?:\b\d{7,15}\b)|(?:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
     finalText = finalText.replace(contactPattern, '[hidden]');
   }
@@ -316,13 +439,31 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
 
   await db.update(conversationsTable).set({ lastMessageAt: new Date() }).where(eq(conversationsTable.id, convId));
 
-  await db.insert(notificationsTable).values({
-    userId: recipientId,
-    type: "NEW_MESSAGE",
-    title: `New message from ${req.user!.firstName}`,
-    message: finalText.slice(0, 80),
-    linkUrl: "/dashboard#inbox",
-  });
+  const notificationTitle = isGroup ? `${req.user!.firstName} in ${conv.groupName ?? "Circle"}` : `New message from ${req.user!.firstName}`;
+
+  if (isGroup && recipientId === null) {
+    const participants = await db
+      .select({ userId: conversationParticipantsTable.userId })
+      .from(conversationParticipantsTable)
+      .where(and(eq(conversationParticipantsTable.conversationId, convId), ne(conversationParticipantsTable.userId, req.user!.id)));
+    if (participants.length) {
+      await db.insert(notificationsTable).values(participants.map(p => ({
+        userId: p.userId,
+        type: "NEW_MESSAGE",
+        title: notificationTitle,
+        message: finalText.slice(0, 80),
+        linkUrl: "/dashboard#inbox",
+      })));
+    }
+  } else if (recipientId) {
+    await db.insert(notificationsTable).values({
+      userId: recipientId,
+      type: "NEW_MESSAGE",
+      title: notificationTitle,
+      message: finalText.slice(0, 80),
+      linkUrl: "/dashboard#inbox",
+    });
+  }
 
   const app = req.app;
   const io = app.get("io");
@@ -330,12 +471,21 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
     const [sender] = await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, kycVerified: usersTable.kycVerified }).from(usersTable).where(eq(usersTable.id, req.user!.id));
     await attachPlanBadge(sender);
     io.to(`conv:${convId}`).emit("message:new", { ...message, sender });
-    io.to(`user:${recipientId}`).emit("notification:new", {
-      type: "NEW_MESSAGE",
-      title: req.user!.firstName,
-      message: finalText.slice(0, 60),
-      conversationId: convId,
-    });
+    if (isGroup) {
+      io.to(`conv:${convId}`).emit("notification:new", {
+        type: "NEW_MESSAGE",
+        title: notificationTitle,
+        message: finalText.slice(0, 60),
+        conversationId: convId,
+      });
+    } else if (recipientId) {
+      io.to(`user:${recipientId}`).emit("notification:new", {
+        type: "NEW_MESSAGE",
+        title: req.user!.firstName,
+        message: finalText.slice(0, 60),
+        conversationId: convId,
+      });
+    }
   }
 
   res.status(201).json({ success: true, data: { message } });

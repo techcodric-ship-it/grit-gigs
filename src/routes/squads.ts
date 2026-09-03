@@ -8,9 +8,15 @@ import {
   squadMembersTable,
   squadInvitesTable,
   squadServicesTable,
+  squadJoinRequestsTable,
 } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { sendNotificationEmail } from "../lib/email";
+import { uploadToSupabase } from "../lib/storage";
+import { PROJECT_ROOT } from "../lib/root";
+import multer from "multer";
+import fs from "fs";
+import path from "path";
 
 const router: IRouter = Router();
 
@@ -285,14 +291,48 @@ router.delete("/squads/:id", authenticate, async (req: Request, res: Response): 
 // ── Invite by email ────────────────────────────────────────────────────
 router.post("/squads/:id/invites", authenticate, async (req: Request, res: Response): Promise<void> => {
   const squadId = String(req.params.id);
-  const { email, message } = req.body || {};
-  const inviteEmail = String(email || "").trim().toLowerCase();
+  const { email, ggId, message } = req.body || {};
+  const inviteEmailBase = String(email || "").trim().toLowerCase();
+  const rawGgId = String(ggId || "").trim();
+  let inviteEmail = inviteEmailBase;
+  let inviteUserId: string | null = null;
 
-  if (!inviteEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail)) {
+  if (!inviteEmail && !rawGgId) {
+    res.status(400).json({ success: false, message: "Enter an email address or a GG ID" });
+    return;
+  }
+
+  if (inviteEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail)) {
     res.status(400).json({ success: false, message: "Enter a valid email address" });
     return;
   }
-  if (inviteEmail === req.user!.email.trim().toLowerCase()) {
+
+  // If provided, resolve the GG ID (G&G-XXXXXXXX or XXXXXXXX) to a user.
+  if (rawGgId) {
+    const ggPrefix = rawGgId.toUpperCase().startsWith("G&G-") ? rawGgId.slice(4) : rawGgId;
+    if (!/^[0-9A-Fa-f]{8}$/.test(ggPrefix)) {
+      res.status(400).json({ success: false, message: "Invalid GG ID format. Use G&G-XXXXXXXX or just XXXXXXXX" });
+      return;
+    }
+    const hexLower = ggPrefix.toLowerCase();
+    const matches = await db
+      .select({ id: usersTable.id, email: usersTable.email })
+      .from(usersTable)
+      .where(sql`LOWER(REPLACE(id::text, '-', '')) LIKE ${hexLower + '%'}`)
+      .limit(1);
+    if (!matches.length) {
+      res.status(400).json({ success: false, message: "No member found with that GG ID" });
+      return;
+    }
+    inviteUserId = matches[0].id;
+    if (!inviteEmail) inviteEmail = matches[0].email.trim().toLowerCase();
+  }
+
+  if (inviteUserId && inviteUserId === req.user!.id) {
+    res.status(400).json({ success: false, message: "You can't invite yourself" });
+    return;
+  }
+  if (!inviteUserId && inviteEmail === req.user!.email.trim().toLowerCase()) {
     res.status(400).json({ success: false, message: "You can't invite yourself" });
     return;
   }
@@ -322,7 +362,13 @@ router.post("/squads/:id/invites", authenticate, async (req: Request, res: Respo
     return;
   }
 
-  const [targetUser] = await db.select().from(usersTable).where(eq(usersTable.email, inviteEmail)).limit(1);
+  const [targetUser] = inviteUserId
+    ? await db.select().from(usersTable).where(eq(usersTable.id, inviteUserId)).limit(1)
+    : await db.select().from(usersTable).where(eq(usersTable.email, inviteEmail)).limit(1);
+  if (!targetUser && inviteUserId) {
+    res.status(400).json({ success: false, message: "No member found with that GG ID" });
+    return;
+  }
 
   const [dupe] = await db
     .select({ id: squadInvitesTable.id })
@@ -567,6 +613,7 @@ function serviceJson(s: typeof squadServicesTable.$inferSelect) {
     title: s.title,
     description: s.description,
     category: s.category ?? null,
+    coverImage: s.coverImage ?? null,
     priceInr: s.priceInr,
     deliveryDays: s.deliveryDays,
     skills: s.skills ?? [],
@@ -606,7 +653,7 @@ router.get("/squads/services", optionalAuth, async (_req: Request, res: Response
 // Create a squad service
 router.post("/squads/:id/services", authenticate, async (req: Request, res: Response): Promise<void> => {
   const squadId = String(req.params.id);
-  const { title, description, category, priceInr, deliveryDays, skills } = req.body || {};
+  const { title, description, category, priceInr, deliveryDays, skills, coverImage } = req.body || {};
 
   if (!title || !String(title).trim()) {
     res.status(400).json({ success: false, message: "Service title is required" });
@@ -640,6 +687,7 @@ router.post("/squads/:id/services", authenticate, async (req: Request, res: Resp
       title: String(title).trim().slice(0, 120),
       description: String(description).trim().slice(0, 2000),
       category: category ? String(category).trim().slice(0, 60) : null,
+      coverImage: coverImage ? String(coverImage).trim().slice(0, 500) : null,
       priceInr: Math.max(1, Math.round(price)),
       deliveryDays: Math.max(1, Math.min(90, Number(deliveryDays) || 7)),
       skills: normalizeSkills(skills),
@@ -662,11 +710,12 @@ router.put("/squads/services/:serviceId", authenticate, async (req: Request, res
     res.status(403).json({ success: false, message: "You're not in the squad that owns this service" });
     return;
   }
-  const { title, description, category, priceInr, deliveryDays, skills, status } = req.body || {};
+  const { title, description, category, priceInr, deliveryDays, skills, status, coverImage } = req.body || {};
   const patch: Record<string, unknown> = { updatedAt: new Date() };
   if (title !== undefined) patch.title = String(title).trim().slice(0, 120);
   if (description !== undefined) patch.description = String(description).trim().slice(0, 2000);
   if (category !== undefined) patch.category = String(category).trim().slice(0, 60) || null;
+  if (coverImage !== undefined) patch.coverImage = String(coverImage).trim().slice(0, 500) || null;
   if (priceInr !== undefined) patch.priceInr = Math.max(1, Math.round(Number(priceInr) || 1));
   if (deliveryDays !== undefined) patch.deliveryDays = Math.max(1, Math.min(90, Number(deliveryDays) || 7));
   if (skills !== undefined) patch.skills = normalizeSkills(skills);
@@ -691,6 +740,197 @@ router.delete("/squads/services/:serviceId", authenticate, async (req: Request, 
   }
   await db.update(squadServicesTable).set({ status: "DELETED", updatedAt: new Date() }).where(eq(squadServicesTable.id, serviceId));
   res.json({ success: true, message: "Service removed" });
+});
+
+// ── Squad avatar / cover image upload ──────────────────────────────────────
+const _squadUploadDir = path.join(PROJECT_ROOT, "uploads", "squads");
+fs.mkdirSync(_squadUploadDir, { recursive: true });
+const _squadUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req: Request, _file: unknown, cb) => cb(null, _squadUploadDir),
+    filename: (_req: Request, file: { originalname: string }, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_")}`),
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
+router.post("/squads/upload", authenticate, _squadUpload.single("image"), async (req: Request, res: Response): Promise<void> => {
+  if (!req.file) {
+    res.status(400).json({ success: false, message: "No file uploaded" });
+    return;
+  }
+  const supabaseUrl = await uploadToSupabase(fs.readFileSync(req.file.path), req.file.originalname, "squads");
+  const imageUrl = supabaseUrl || `/uploads/squads/${req.file.filename}`;
+  res.json({ success: true, data: { imageUrl } });
+});
+
+// ── Join requests (members ask to join a circle) ───────────────────────────
+router.get("/squads/:id/join-requests", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const squadId = String(req.params.id);
+  const [leadership] = await db
+    .select({ role: squadMembersTable.role })
+    .from(squadMembersTable)
+    .where(and(eq(squadMembersTable.squadId, squadId), eq(squadMembersTable.userId, req.user!.id)))
+    .limit(1);
+  if (!leadership || leadership.role !== "LEADER") {
+    res.status(403).json({ success: false, message: "Only the leader can review join requests" });
+    return;
+  }
+  const rows = await db
+    .select({
+      request: squadJoinRequestsTable,
+      user: {
+        id: usersTable.id,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+        profilePhoto: usersTable.profilePhoto,
+        tagline: usersTable.tagline,
+        skillsOffered: usersTable.skillsOffered,
+      },
+    })
+    .from(squadJoinRequestsTable)
+    .innerJoin(usersTable, eq(squadJoinRequestsTable.userId, usersTable.id))
+    .where(and(eq(squadJoinRequestsTable.squadId, squadId), eq(squadJoinRequestsTable.status, "PENDING")))
+    .orderBy(desc(squadJoinRequestsTable.createdAt));
+  res.json({
+    success: true,
+    data: {
+      requests: rows.map((r) => ({
+        id: r.request.id,
+        message: r.request.message,
+        createdAt: r.request.createdAt,
+        user: memberJson(r.user, "PENDING", r.request.createdAt),
+      })),
+    },
+  });
+});
+
+router.post("/squads/join-requests", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const { squadId, message } = req.body || {};
+  if (!squadId) {
+    res.status(400).json({ success: false, message: "squadId is required" });
+    return;
+  }
+  const [squad] = await db.select().from(squadsTable).where(and(eq(squadsTable.id, String(squadId)), eq(squadsTable.isActive, true))).limit(1);
+  if (!squad) {
+    res.status(404).json({ success: false, message: "Circle not found" });
+    return;
+  }
+  const [existingMember] = await db
+    .select({ id: squadMembersTable.id })
+    .from(squadMembersTable)
+    .where(and(eq(squadMembersTable.squadId, squad.id), eq(squadMembersTable.userId, req.user!.id)))
+    .limit(1);
+  if (existingMember) {
+    res.status(400).json({ success: false, message: "You're already in this circle" });
+    return;
+  }
+  const [existingRequest] = await db
+    .select({ id: squadJoinRequestsTable.id })
+    .from(squadJoinRequestsTable)
+    .where(and(eq(squadJoinRequestsTable.squadId, squad.id), eq(squadJoinRequestsTable.userId, req.user!.id), eq(squadJoinRequestsTable.status, "PENDING")))
+    .limit(1);
+  if (existingRequest) {
+    res.status(400).json({ success: false, message: "You already have a pending join request for this circle" });
+    return;
+  }
+  const [request] = await db
+    .insert(squadJoinRequestsTable)
+    .values({ squadId: squad.id, userId: req.user!.id, message: message ? String(message).trim().slice(0, 500) : null })
+    .returning();
+  const [leader] = await db
+    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, email: usersTable.email })
+    .from(usersTable)
+    .innerJoin(squadMembersTable, eq(squadMembersTable.userId, usersTable.id))
+    .where(and(eq(squadMembersTable.squadId, squad.id), eq(squadMembersTable.role, "LEADER")))
+    .limit(1);
+  if (leader) {
+    const title = `${req.user!.firstName} ${req.user!.lastName} wants to join "${squad.name}"`;
+    await db.insert(notificationsTable).values({
+      userId: leader.id,
+      type: "SQUAD_JOIN_REQUEST",
+      title,
+      message: message ? String(message).trim().slice(0, 160) : `They'd like to join your circle "${squad.name}". Approve or decline in Pending invites.`,
+      linkUrl: "/dashboard#grit-circle",
+    });
+    try {
+      req.app?.get("io")?.to(`user:${leader.id}`).emit("notification:new", {
+        type: "SQUAD_JOIN_REQUEST",
+        title,
+        message: message ? String(message).trim().slice(0, 160) : "Join request",
+        linkUrl: "/dashboard#grit-circle",
+      });
+    } catch {}
+  }
+  res.status(201).json({ success: true, message: "Join request sent — the leader will review it in Pending invites.", data: { requestId: request.id } });
+});
+
+router.put("/squads/:id/join-requests/:requestId", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const squadId = String(req.params.id);
+  const requestId = String(req.params.requestId);
+  const { action } = req.body || {};
+  if (!["ACCEPT", "DECLINE"].includes(String(action || "").toUpperCase())) {
+    res.status(400).json({ success: false, message: "action must be ACCEPT or DECLINE" });
+    return;
+  }
+  const [leadership] = await db
+    .select({ role: squadMembersTable.role })
+    .from(squadMembersTable)
+    .where(and(eq(squadMembersTable.squadId, squadId), eq(squadMembersTable.userId, req.user!.id)))
+    .limit(1);
+  if (!leadership || leadership.role !== "LEADER") {
+    res.status(403).json({ success: false, message: "Only the leader can review join requests" });
+    return;
+  }
+  const [request] = await db
+    .select()
+    .from(squadJoinRequestsTable)
+    .where(and(eq(squadJoinRequestsTable.id, requestId), eq(squadJoinRequestsTable.squadId, squadId)))
+    .limit(1);
+  if (!request) {
+    res.status(404).json({ success: false, message: "Join request not found" });
+    return;
+  }
+  if (request.status !== "PENDING") {
+    res.status(400).json({ success: false, message: "This request was already reviewed" });
+    return;
+  }
+  if (String(action).toUpperCase() === "DECLINE") {
+    await db.update(squadJoinRequestsTable).set({ status: "DECLINED", respondedAt: new Date() }).where(eq(squadJoinRequestsTable.id, requestId));
+    res.json({ success: true, message: "Request declined" });
+    return;
+  }
+  const [memberCount] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(squadMembersTable)
+    .where(eq(squadMembersTable.squadId, squadId));
+  if (Number(memberCount?.count ?? 0) >= MAX_SQUAD_MEMBERS) {
+    res.status(400).json({ success: false, message: `This circle is full (${MAX_SQUAD_MEMBERS} members max)` });
+    return;
+  }
+  await db
+    .insert(squadMembersTable)
+    .values({ squadId, userId: request.userId, role: "MEMBER" })
+    .onConflictDoNothing({ target: [squadMembersTable.squadId, squadMembersTable.userId] });
+  await db.update(squadJoinRequestsTable).set({ status: "ACCEPTED", respondedAt: new Date() }).where(eq(squadJoinRequestsTable.id, requestId));
+  const [userRow] = await db.select().from(usersTable).where(eq(usersTable.id, request.userId)).limit(1);
+  if (!userRow) {
+    res.json({ success: true, message: "Request approved" });
+    return;
+  }
+  const [squadRow] = await db.select().from(squadsTable).where(eq(squadsTable.id, squadId)).limit(1);
+  const title = `${req.user!.firstName} approved your request to join "${squadRow?.name ?? "the circle"}"`;
+  await db.insert(notificationsTable).values({
+    userId: request.userId,
+    type: "SQUAD_JOIN_REQUEST",
+    title,
+    message: `You're now a member of "${squadRow?.name ?? "the circle"}". Start collaborating on projects.`,
+    linkUrl: "/dashboard#grit-circle",
+  });
+  try {
+    req.app?.get("io")?.to(`user:${request.userId}`).emit("notification:new", { type: "SQUAD_JOIN_REQUEST", title, message: "Join request approved", linkUrl: "/dashboard#grit-circle" });
+  } catch {}
+  sendNotificationEmail(userRow.email, title, `You're now a member of "${squadRow?.name ?? "the circle"}". Start collaborating on projects.`, "/dashboard#grit-circle").catch(() => {});
+  res.json({ success: true, message: "Request approved — member added" });
 });
 
 export default router;

@@ -58,7 +58,7 @@ function planToClientJson(plan: PlanConfig) {
     walletLimit: plan.walletLimit,
     squadMembers: plan.squadMembers,
     featuredProposalsPerMonth: plan.featuredProposalsPerMonth,
-    badge: plan.badge,
+    badge: plan.badge || plan.id.toUpperCase(),
     description: plan.description,
     features,
   };

@@ -4,6 +4,7 @@ import { usersTable } from "./users";
 export const squadRoleEnum = pgEnum("squad_role", ["LEADER", "MEMBER"]);
 export const squadInviteStatusEnum = pgEnum("squad_invite_status", ["PENDING", "ACCEPTED", "DECLINED"]);
 export const squadServiceStatusEnum = pgEnum("squad_service_status", ["ACTIVE", "PAUSED", "DELETED"]);
+export const squadJoinRequestStatusEnum = pgEnum("squad_join_request_status", ["PENDING", "ACCEPTED", "DECLINED"]);
 
 export const squadsTable = pgTable("squads", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -54,6 +55,7 @@ export const squadServicesTable = pgTable("squad_services", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   category: text("category"),
+  coverImage: text("cover_image"),
   priceInr: integer("price_inr").notNull(),
   deliveryDays: integer("delivery_days").default(7).notNull(),
   skills: text("skills").array().default([]).notNull(),
@@ -62,7 +64,22 @@ export const squadServicesTable = pgTable("squad_services", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const squadJoinRequestsTable = pgTable("squad_join_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  squadId: uuid("squad_id")
+    .notNull()
+    .references(() => squadsTable.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  status: squadJoinRequestStatusEnum("status").default("PENDING").notNull(),
+  message: text("message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  respondedAt: timestamp("responded_at"),
+});
+
 export type Squad = typeof squadsTable.$inferSelect;
 export type SquadMember = typeof squadMembersTable.$inferSelect;
 export type SquadInvite = typeof squadInvitesTable.$inferSelect;
 export type SquadService = typeof squadServicesTable.$inferSelect;
+export type SquadJoinRequest = typeof squadJoinRequestsTable.$inferSelect;

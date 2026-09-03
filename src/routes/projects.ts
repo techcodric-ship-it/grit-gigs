@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { db, userSubscriptionsTable } from '../db';
 import { projectsTable, projectBidsTable, projectDeliveriesTable } from '../db/schema/projects';
 import { squadsTable, squadMembersTable } from '../db/schema/squads';
+import { conversationsTable, conversationParticipantsTable } from '../db/schema/messages';
 import { notificationsTable, usersTable } from '../db/schema/users';
 import { freelanceWalletsTable, transactionsTable } from '../db/schema/wallet';
 import { eq, desc, and, not, or, count, sql, inArray, isNull } from 'drizzle-orm';
@@ -544,6 +545,59 @@ router.put('/projects/bids/:bidId/accept', authenticate, async (req: Request, re
       .where(eq(projectsTable.id, project.id));
   });
 
+  // If the accepted proposal comes from a Grit Circle member, open (or create)
+  // the circle's group chat and include the client so the whole team can
+  // collaborate on the project together.
+  const bidderSquad = await db
+    .select({ squadId: squadMembersTable.squadId })
+    .from(squadMembersTable)
+    .innerJoin(squadsTable, eq(squadsTable.id, squadMembersTable.squadId))
+    .where(and(eq(squadMembersTable.userId, bid.userId), eq(squadsTable.isActive, true)))
+    .limit(1);
+  if (bidderSquad?.[0]) {
+    const squadId = bidderSquad[0].squadId;
+    let [gconv] = await db
+      .select()
+      .from(conversationsTable)
+      .where(and(eq(conversationsTable.groupId, squadId), sql`${conversationsTable.isGroup} = TRUE`))
+      .limit(1);
+    if (!gconv) {
+      const [squadRow] = await db.select().from(squadsTable).where(eq(squadsTable.id, squadId)).limit(1);
+      const [created] = await db.insert(conversationsTable).values({
+        user1Id: bid.userId,
+        user2Id: bid.userId,
+        isGroup: true,
+        groupName: squadRow?.name ?? 'Circle Chat',
+        groupId: squadId,
+        lastMessageAt: new Date(),
+      }).returning();
+      gconv = created;
+      const squadMembers = await db
+        .select({ userId: squadMembersTable.userId })
+        .from(squadMembersTable)
+        .where(eq(squadMembersTable.squadId, squadId));
+      const memberUserIds = squadMembers.map(m => m.userId);
+      if (!memberUserIds.includes(project.userId)) memberUserIds.push(project.userId);
+      if (memberUserIds.length) {
+        await db.insert(conversationParticipantsTable)
+          .values(memberUserIds.map(uid => ({ conversationId: gconv!.id, userId: uid })))
+          .onConflictDoNothing();
+      }
+    } else {
+      const [already] = await db
+        .select({ id: conversationParticipantsTable.id })
+        .from(conversationParticipantsTable)
+        .where(and(eq(conversationParticipantsTable.conversationId, gconv.id), eq(conversationParticipantsTable.userId, project.userId)))
+        .limit(1);
+      if (!already) {
+        await db.insert(conversationParticipantsTable).values({ conversationId: gconv.id, userId: project.userId });
+      }
+    }
+    try {
+      req.app?.get('io')?.to(`conv:${gconv!.id}`).emit('group:updated', { conversationId: gconv!.id });
+    } catch {}
+  }
+
   // Notify rejected bidders
   const rejectedBids = await db
     .select({ userId: projectBidsTable.userId })
@@ -869,6 +923,31 @@ router.post('/projects/:id/release-payment', authenticate, async (req: Request, 
   const commission = Math.round(_pay * commissionPct / 100);
   const netAmount = _pay - commission;
 
+  // If the accepted bidder belongs to a Grit Circle, split the payout equally
+  // among all active squad members on release.
+  let creditRecipients: { userId: string; amount: number }[] = [{ userId: _ab.userId, amount: netAmount }];
+  const bidderSquad = await db
+    .select({ squadId: squadMembersTable.squadId })
+    .from(squadMembersTable)
+    .innerJoin(squadsTable, eq(squadsTable.id, squadMembersTable.squadId))
+    .where(and(eq(squadMembersTable.userId, _ab.userId), eq(squadsTable.isActive, true)))
+    .limit(1);
+  if (bidderSquad?.[0]) {
+    const members = await db
+      .select({ userId: squadMembersTable.userId })
+      .from(squadMembersTable)
+      .where(eq(squadMembersTable.squadId, bidderSquad[0].squadId));
+    if (members.length > 1) {
+      const perShare = Math.floor(netAmount / members.length);
+      let remainder = netAmount - perShare * members.length;
+      creditRecipients = members.map((m) => {
+        const share = perShare + (remainder > 0 ? 1 : 0);
+        if (remainder > 0) remainder--;
+        return { userId: m.userId, amount: share };
+      });
+    }
+  }
+
   // Wallet operations + transaction records in a DB transaction
   try {
     await db.transaction(async (tx) => {
@@ -879,15 +958,26 @@ router.post('/projects/:id/release-payment', authenticate, async (req: Request, 
         throw new Error("Insufficient funds");
       }
 
-      const creditResult = await tx.execute(
-        sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${netAmount}, total_earned = COALESCE(total_earned, 0) + ${netAmount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${_ab.userId}`
-      );
-      if (creditResult.rowCount === 0) {
-        await tx.insert(freelanceWalletsTable).values({
-          userId: _ab.userId,
-          balance: netAmount,
-          totalEarned: netAmount,
-          updatedAt: new Date(),
+      for (const rc of creditRecipients) {
+        const creditResult = await tx.execute(
+          sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${rc.amount}, total_earned = COALESCE(total_earned, 0) + ${rc.amount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${rc.userId}`
+        );
+        if (creditResult.rowCount === 0) {
+          await tx.insert(freelanceWalletsTable).values({
+            userId: rc.userId,
+            balance: rc.amount,
+            totalEarned: rc.amount,
+            updatedAt: new Date(),
+          });
+        }
+        await tx.insert(transactionsTable).values({
+          userId: rc.userId,
+          type: 'SERVICE_EARNING',
+          amount: rc.amount,
+          description: creditRecipients.length > 1
+            ? `Equal share of project payout for "${project.title}" (split across ${creditRecipients.length} circle members)`
+            : `Payment received for project "${project.title}"`,
+          status: 'COMPLETED',
         });
       }
 
@@ -899,13 +989,6 @@ router.post('/projects/:id/release-payment', authenticate, async (req: Request, 
         status: 'COMPLETED',
       });
 
-      await tx.insert(transactionsTable).values({
-        userId: _ab.userId,
-        type: 'SERVICE_EARNING',
-        amount: netAmount,
-        description: `Payment received for project "${project.title}"`,
-        status: 'COMPLETED',
-      });
       if (commission > 0) {
         await tx.insert(transactionsTable).values({
           userId: _ab.userId,
@@ -931,14 +1014,23 @@ router.post('/projects/:id/release-payment', authenticate, async (req: Request, 
     message: `₹${_pay} deducted from your wallet for project "${project.title}"`,
     linkUrl: '/dashboard.html#my-projects',
   });
-  await db.insert(notificationsTable).values({
-    userId: _ab.userId,
-    type: 'PROJECT_PAYMENT_RELEASED',
-    title: 'Payment received!',
-    message: `You received ₹${netAmount} for "${project.title}" (${commissionPct}% commission: ₹${commission}). Thank you!`,
-    linkUrl: '/dashboard.html#my-projects',
-  });
-  return res.json({ success: true, message: `Payment of ₹${_pay} released! Freelancer receives ₹${netAmount} (${commissionPct}% commission: ₹${commission}).` });
+
+  for (const rc of creditRecipients) {
+    await db.insert(notificationsTable).values({
+      userId: rc.userId,
+      type: 'PROJECT_PAYMENT_RELEASED',
+      title: 'Payment received!',
+      message: creditRecipients.length > 1
+        ? `You received your ₹${rc.amount} share for "${project.title}" — the ₹${netAmount} payout was split across ${creditRecipients.length} circle members.`
+        : `You received ₹${netAmount} for "${project.title}" (${commissionPct}% commission: ₹${commission}). Thank you!`,
+      linkUrl: '/dashboard.html#my-projects',
+    });
+  }
+
+  const breakdown = creditRecipients.length > 1
+    ? ` split equally across ${creditRecipients.length} circle members (each ₹${creditRecipients[0].amount})`
+    : '';
+  return res.json({ success: true, message: `Payment of ₹${_pay} released! Freelancer receives ₹${netAmount} (${commissionPct}% commission: ₹${commission})${breakdown}.` });
 });
 
 export default router;
