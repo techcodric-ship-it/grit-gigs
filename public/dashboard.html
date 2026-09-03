@@ -887,6 +887,12 @@ textarea.fi{resize:vertical;}
       <div style="display:grid;grid-template-columns:280px 1fr;grid-template-rows:1fr;gap:0;height:100%;background:white;border-radius:18px;border:1px solid var(--bd);overflow:hidden;">
         <div style="border-right:1px solid var(--bd);display:flex;flex-direction:column;min-height:0;">
           <div style="padding:14px 16px;border-bottom:1px solid var(--bd);font-family:'Syne',sans-serif;font-weight:600;font-size:.9rem;flex-shrink:0;">Messages</div>
+          <div style="display:flex;flex-shrink:0;gap:4px;padding:8px 12px;border-bottom:1px solid var(--bd);flex-wrap:wrap;">
+            <button class="conv-filter-tab" id="inboxFT-all" onclick="convFilter('ALL')" style="flex:1;min-width:64px;cursor:pointer;border:1px solid var(--bd);background:transparent;color:var(--muted);border-radius:999px;padding:4px 8px;font-size:.66rem;font-weight:600;letter-spacing:.02em;">All</button>
+            <button class="conv-filter-tab" id="inboxFT-skill" onclick="convFilter('SKILL')" style="flex:1;min-width:64px;cursor:pointer;border:1px solid var(--bd);background:transparent;color:var(--muted);border-radius:999px;padding:4px 8px;font-size:.66rem;font-weight:600;letter-spacing:.02em;">Skill Exchange</button>
+            <button class="conv-filter-tab" id="inboxFT-freelance" onclick="convFilter('FREELANCE')" style="flex:1;min-width:64px;cursor:pointer;border:1px solid var(--bd);background:transparent;color:var(--muted);border-radius:999px;padding:4px 8px;font-size:.66rem;font-weight:600;letter-spacing:.02em;">Freelance</button>
+            <button class="conv-filter-tab" id="inboxFT-circle" onclick="convFilter('CIRCLE')" style="flex:1;min-width:64px;cursor:pointer;border:1px solid var(--bd);background:transparent;color:var(--muted);border-radius:999px;padding:4px 8px;font-size:.66rem;font-weight:600;letter-spacing:.02em;">Circle</button>
+          </div>
           <div id="convList" style="flex:1;overflow-y:auto;min-height:0;">
             <div class="empty"><div class="empty-sub">Loading...</div></div>
           </div>
@@ -4046,8 +4052,55 @@ async function loadInbox() {
   updateLiveChatBadge(adminUnread);
   const sorted = adminConvData ? [adminConvData, ...d.data.conversations] : d.data.conversations;
   window._lastConvList = sorted;
+  window._inboxAdminUnread = adminUnread;
+  window._convFilterOn = window._convFilterOn || 'ALL';
+  convFilter(window._convFilterOn);
+}
+
+// Newest-first member chip for a group (tappable -> view profile, like WhatsApp)
+function convMemberChip(m) {
+  if (!m || !m.id) return '';
+  var nm = (((m.firstName || '') + ' ' + (m.lastName || '')).trim()) || '?';
+  var ini = (nm.split(/\s+/).map(w => (w[0] || '')).join('').slice(0,2) || '?').toUpperCase();
+  var photo = m.profilePhoto || '';
+  return `<span onclick="event.stopPropagation();openUserProfile('${esc(m.id)}')" title="${esc(nm)} · View profile" style="cursor:pointer;flex-shrink:0;">
+    ${photo ? `<img src="${esc(photo)}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:2px solid #fff;box-shadow:0 0 0 1px var(--bd);" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="av" style="display:none;width:26px;height:26px;font-size:9px;">${ini}</div>` : `<div class="av" style="width:26px;height:26px;font-size:9px;border:2px solid #fff;box-shadow:0 0 0 1px var(--bd);">${ini}</div>`}
+  </span>`;
+}
+function convCategory(conv) {
+  if (conv.isGroup) return 'CIRCLE';
+  if (conv.matchId) return 'SKILL';
+  if (conv.orderId || conv.projectBidId) return 'FREELANCE';
+  return 'OTHER';
+}
+function convFilter(tab) {
+  window._convFilterOn = tab;
+  var btns = {
+    'ALL': document.getElementById('inboxFT-all'),
+    'SKILL': document.getElementById('inboxFT-skill'),
+    'FREELANCE': document.getElementById('inboxFT-freelance'),
+    'CIRCLE': document.getElementById('inboxFT-circle'),
+  };
+  for (var k in btns) { if (btns[k]) btns[k].style.background = k === tab ? 'var(--violet)' : 'transparent'; if (btns[k]) btns[k].style.color = k === tab ? '#fff' : 'var(--muted)'; }
+  renderConvList();
+}
+function renderConvList() {
+  const c = document.getElementById('convList');
+  if (!c) return;
+  const sorted = window._lastConvList || [];
+  const tab = window._convFilterOn || 'ALL';
+  const visible = tab === 'ALL' ? sorted : sorted.filter(conv => convCategory(conv) === tab);
+  if (!visible.length) {
+    c.innerHTML = `<div class="empty">
+      <div class="empty-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+      <div class="empty-title">Nothing here</div>
+      <div class="empty-sub">No conversations in this tab</div>
+    </div>`;
+    return;
+  }
+  const u = gU();
   const isAdminUser = u?.role === 'ADMIN' || u?.id === adminUserId;
-  c.innerHTML = sorted.map(conv => {
+  c.innerHTML = visible.map(conv => {
     const other = conv.otherUser;
     const firstName = other?.firstName || '?';
     const lastName = other?.lastName || '';
@@ -4068,11 +4121,11 @@ async function loadInbox() {
     const _dispMsg = esc(last?.messageText || 'Start conversation');
     if (_isGroup) {
       const grpName = conv.groupName || 'Circle chat';
-      const grpMembers = (conv.members || []).length;
+      const grpMembersList = conv.members || [];
       const grpAvatar = conv.avatar || conv.squadAvatar || '';
       const grpIni = (grpName.trim().split(/\s+/).map(w => w[0]).join('').slice(0,2) || 'GC').toUpperCase();
       return `<div data-conv-id="${conv.id}" data-other-id="" onclick="openConv('${conv.id}','${esc(grpName)}','${grpIni}','',null,false,'',true)"
-        style="display:flex;gap:10px;align-items:center;padding:13px 16px;cursor:pointer;border-bottom:1px solid var(--bd);transition:background .15s;${activeCovId === conv.id ? 'background:var(--vl);' : ''}">
+        style="display:flex;gap:10px;align-items:center;padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--bd);transition:background .15s;${activeCovId === conv.id ? 'background:var(--vl);' : ''}">
         <span style="cursor:pointer;flex-shrink:0;position:relative;">
           ${grpAvatar ? `<img src="${esc(grpAvatar)}" style="width:34px;height:34px;border-radius:10px;object-fit:cover;border:2px solid ${unread?'var(--violet)':'var(--bd,#e5e7eb)'};" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>` : ''}
           <div class="av" style="width:34px;height:34px;font-size:12px;${grpAvatar ? 'display:none;' : ''}background:linear-gradient(135deg,var(--violet),#8B5CF6);color:#fff;">${grpIni}</div>
@@ -4082,7 +4135,11 @@ async function loadInbox() {
             <span style="font-weight:${unread ? '700' : '500'};font-size:.82rem;color:var(--violet);">${esc(grpName)}</span>
             <span style="font-size:.58rem;font-weight:700;color:var(--violet);background:var(--vl);padding:1px 6px;border-radius:4px;letter-spacing:.03em;line-height:1.4;">CIRCLE</span>
           </div>
-          <div style="font-size:.7rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${grpMembers ? grpMembers + ' member' + (grpMembers === 1 ? '' : 's') + ' · ' : ''}${_dispMsg}</div>
+          <div style="display:flex;align-items:center;gap:3px;margin-top:3px;">
+            ${grpMembersList.map(convMemberChip).join('')}
+            <span style="font-size:.62rem;color:var(--muted);margin-left:2px;">${grpMembersList.length ? grpMembersList.length + ' member' + (grpMembersList.length === 1 ? '' : 's') : ''}</span>
+          </div>
+          <div style="font-size:.7rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">${_dispMsg}</div>
         </div>
         ${unread ? `<div style="width:8px;height:8px;border-radius:50%;background:var(--violet);flex-shrink:0;"></div>` : ''}
       </div>`;
@@ -4138,16 +4195,17 @@ async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planB
   const _showOnline = userId && _onlineUsers.has(userId) && (!_isOtherAdmin || isAdminUser);
   if (isGroup || _convData?.isGroup) {
     const grpName = _convData?.groupName || name || 'Group chat';
-    const grpMembers = (_convData?.members || []).length;
+    const grpMembersList = _convData?.members || [];
     const imgSrc = _convData?.avatar || _convData?.squadAvatar || _convData?.groupAvatar || '';
     const grpIni = (grpName.trim().split(/\s+/).map(function(w){return w[0]}).join('').slice(0,2) || 'GC').toUpperCase();
     document.getElementById('chatHeader').innerHTML = `
-      <div style="display:flex;align-items:center;gap:9px;">
+      <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
         <button class="mb-back" onclick="closeMobileChat()" title="Back to conversations">←</button>
         ${imgSrc ? `<img src="${esc(imgSrc)}" style="width:32px;height:32px;border-radius:10px;object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="av" style="display:none;width:32px;height:32px;font-size:12px;">${grpIni}</div>` : `<div class="av" style="width:32px;height:32px;font-size:12px;background:linear-gradient(135deg,var(--violet),#8B5CF6);color:#fff;">${grpIni}</div>`}
-        <div style="display:flex;flex-direction:column;">
+        <div style="display:flex;flex-direction:column;min-width:0;">
           <span style="font-weight:600;">${esc(grpName)} <span style="display:inline-flex;align-items:center;gap:2px;background:var(--vl);color:var(--violet);font-size:.56rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:5px;">Circle chat</span></span>
-          <span id="chatOnlineStatus" style="font-size:.62rem;color:var(--muted);">${grpMembers ? grpMembers + ' member' + (grpMembers === 1 ? '' : 's') : ''}</span>
+          <span id="chatOnlineStatus" style="font-size:.62rem;color:var(--muted);">${grpMembersList.length ? grpMembersList.length + ' member' + (grpMembersList.length === 1 ? '' : 's') : ''}</span>
+          <span style="display:flex;align-items:center;gap:3px;margin-top:3px;">${grpMembersList.map(convMemberChip).join('')}</span>
         </div>
       </div>`;
   } else {
