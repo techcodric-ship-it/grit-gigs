@@ -7977,6 +7977,7 @@ async function loadSquadProjects() {
   const myId = (gU() || {}).id;
   const squadMemberIds = _sp.members.map(m => m.id || '').filter(Boolean);
   _sp.projects = (d && d.success) ? ((d.data && d.data.projects) || []).filter(p => {
+    if (p.projectType && p.projectType !== 'SQUAD') return false;
     if (p.userId === myId) return false;
     if (p._userBid) return false;
     if (squadMemberIds.length && p.bids && p.bids.some(b => squadMemberIds.includes(b.userId))) return false;

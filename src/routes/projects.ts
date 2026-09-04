@@ -375,6 +375,23 @@ router.post('/projects/:id/bids', authenticate, async (req: Request, res: Respon
 
   if (existing) return res.status(400).json({ success: false, message: 'You already submitted a bid on this project' });
 
+  // Squad projects (projectType === 'SQUAD') may only be bidded on by a member
+  // of an active Grit Circle that has at least 4 members.
+  if (project.projectType === 'SQUAD') {
+    const memberSquads = await db
+      .select({
+        squadId: squadMembersTable.squadId,
+        memberCount: sql<number>`(SELECT count(*) FROM ${squadMembersTable} WHERE ${squadMembersTable.squadId} = ${squadsTable.id})`,
+      })
+      .from(squadMembersTable)
+      .innerJoin(squadsTable, eq(squadsTable.id, squadMembersTable.squadId))
+      .where(and(eq(squadMembersTable.userId, userId), eq(squadsTable.isActive, true)));
+    const hasTeam = memberSquads.some((s) => Number(s.memberCount) >= 4);
+    if (!hasTeam) {
+      return res.status(403).json({ success: false, message: 'Squad projects can only be bid on by a Grit Circle with at least 4 members. Grow your circle to unlock squad project bids.' });
+    }
+  }
+
   const { amount, proposal, deliveryDays, highlight } = req.body;
   const bidAmount = toPositiveInt(amount);
   const deliveryEstimate = toPositiveInt(deliveryDays);
