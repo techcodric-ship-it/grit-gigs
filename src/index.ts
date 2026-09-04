@@ -405,6 +405,7 @@ app.set("io", io);
             freelancer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             amount NUMERIC(10,2) NOT NULL,
             delivery_days INTEGER NOT NULL,
+            revisions INTEGER DEFAULT 2 NOT NULL,
             proposal TEXT NOT NULL,
             status bid_status NOT NULL DEFAULT 'PENDING',
             created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
@@ -683,10 +684,36 @@ app.set("io", io);
             cover_image TEXT,
             price_inr INTEGER NOT NULL,
             delivery_days INTEGER DEFAULT 7 NOT NULL,
+            revisions INTEGER DEFAULT 2 NOT NULL,
+            order_count INTEGER DEFAULT 0 NOT NULL,
             skills TEXT[] DEFAULT '{}',
             status squad_service_status DEFAULT 'ACTIVE' NOT NULL,
             created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
             updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
+          CREATE TABLE IF NOT EXISTS squad_orders (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            squad_id UUID NOT NULL REFERENCES squads(id) ON DELETE CASCADE,
+            service_id UUID NOT NULL REFERENCES squad_services(id) ON DELETE CASCADE,
+            buyer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            price_inr INTEGER NOT NULL,
+            revisions INTEGER DEFAULT 2 NOT NULL,
+            requirements TEXT,
+            status order_status DEFAULT 'PENDING' NOT NULL,
+            delivery_date TIMESTAMPTZ,
+            completed_at TIMESTAMPTZ,
+            cancelled_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
+          CREATE TABLE IF NOT EXISTS squad_order_deliveries (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            order_id UUID NOT NULL REFERENCES squad_orders(id) ON DELETE CASCADE,
+            note TEXT,
+            link TEXT,
+            files TEXT[] DEFAULT '{}',
+            revision_number INTEGER DEFAULT 0 NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
           );
           CREATE TABLE IF NOT EXISTS squad_join_requests (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -768,6 +795,11 @@ app.set("io", io);
       await col(`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS group_name TEXT`);
       await col(`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS group_id UUID REFERENCES squads(id) ON DELETE CASCADE`);
       await col(`ALTER TABLE squad_services ADD COLUMN IF NOT EXISTS cover_image TEXT`);
+      await col(`ALTER TABLE squad_services ADD COLUMN IF NOT EXISTS revisions INTEGER DEFAULT 2 NOT NULL`);
+      await col(`ALTER TABLE squad_services ADD COLUMN IF NOT EXISTS order_count INTEGER DEFAULT 0 NOT NULL`);
+      await col(`ALTER TABLE project_bids ADD COLUMN IF NOT EXISTS revisions INTEGER DEFAULT 2 NOT NULL`);
+      await col(`ALTER TABLE squad_orders ADD COLUMN IF NOT EXISTS revisions INTEGER DEFAULT 2 NOT NULL`);
+      await col(`ALTER TABLE squad_order_deliveries ADD COLUMN IF NOT EXISTS revision_number INTEGER DEFAULT 0 NOT NULL`);
       await col(`
 DO $mig$
 BEGIN

@@ -62,6 +62,7 @@ export const projectBidsTable = pgTable("project_bids", {
   amount: integer("amount").notNull(),
   proposal: text("proposal").notNull(),
   deliveryDays: integer("delivery_days"),
+  revisions: integer("revisions").default(2).notNull(),
   status: bidStatusEnum("status").default("PENDING").notNull(),
   isHighlighted: boolean("is_highlighted").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

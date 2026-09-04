@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { eq, and, desc, ne, sql } from "drizzle-orm";
+import { eq, and, desc, ne, sql, count, or } from "drizzle-orm";
 import {
   db,
   usersTable,
@@ -8,10 +8,14 @@ import {
   squadMembersTable,
   squadInvitesTable,
   squadServicesTable,
+  squadOrdersTable,
+  squadOrderDeliveriesTable,
   squadJoinRequestsTable,
   conversationsTable,
   conversationParticipantsTable,
   userSubscriptionsTable,
+  freelanceWalletsTable,
+  transactionsTable,
 } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { sendNotificationEmail } from "../lib/email";
@@ -681,6 +685,8 @@ function serviceJson(s: typeof squadServicesTable.$inferSelect) {
     coverImage: s.coverImage ?? null,
     priceInr: s.priceInr,
     deliveryDays: s.deliveryDays,
+    revisions: s.revisions,
+    orderCount: s.orderCount,
     skills: s.skills ?? [],
     status: s.status,
     createdAt: s.createdAt,
@@ -718,7 +724,7 @@ router.get("/squads/services", optionalAuth, async (_req: Request, res: Response
 // Create a squad service
 router.post("/squads/:id/services", authenticate, async (req: Request, res: Response): Promise<void> => {
   const squadId = String(req.params.id);
-  const { title, description, category, priceInr, deliveryDays, skills, coverImage } = req.body || {};
+  const { title, description, category, priceInr, deliveryDays, revisions, skills, coverImage } = req.body || {};
 
   if (!title || !String(title).trim()) {
     res.status(400).json({ success: false, message: "Service title is required" });
@@ -770,6 +776,7 @@ router.post("/squads/:id/services", authenticate, async (req: Request, res: Resp
         coverImage: coverImage ? String(coverImage).trim().slice(0, 500) : null,
         priceInr: Math.max(1, Math.round(price)),
         deliveryDays: Math.max(1, Math.min(90, Number(deliveryDays) || 7)),
+        revisions: revisions === undefined || revisions === null ? 2 : Math.max(0, Math.min(10, Math.round(Number(revisions)))),
         skills: normalizeSkills(skills),
       })
       .returning();
@@ -806,7 +813,7 @@ router.put("/squads/services/:serviceId", authenticate, async (req: Request, res
     res.status(403).json({ success: false, message: "You're not in the squad that owns this service" });
     return;
   }
-  const { title, description, category, priceInr, deliveryDays, skills, status, coverImage } = req.body || {};
+  const { title, description, category, priceInr, deliveryDays, revisions, skills, status, coverImage } = req.body || {};
   const patch: Record<string, unknown> = { updatedAt: new Date() };
   if (title !== undefined) patch.title = String(title).trim().slice(0, 120);
   if (description !== undefined) patch.description = String(description).trim().slice(0, 2000);
@@ -814,6 +821,7 @@ router.put("/squads/services/:serviceId", authenticate, async (req: Request, res
   if (coverImage !== undefined) patch.coverImage = String(coverImage).trim().slice(0, 500) || null;
   if (priceInr !== undefined) patch.priceInr = Math.max(1, Math.round(Number(priceInr) || 1));
   if (deliveryDays !== undefined) patch.deliveryDays = Math.max(1, Math.min(90, Number(deliveryDays) || 7));
+  if (revisions !== undefined) patch.revisions = Math.max(0, Math.min(10, Math.round(Number(revisions))));
   if (skills !== undefined) patch.skills = normalizeSkills(skills);
   if (status !== undefined && ["ACTIVE", "PAUSED", "DELETED"].includes(status)) patch.status = status;
 
@@ -1028,6 +1036,330 @@ router.put("/squads/:id/join-requests/:requestId", authenticate, async (req: Req
   } catch {}
   sendNotificationEmail(userRow.email, title, `You're now a member of "${squadRow?.name ?? "the circle"}". Start collaborating on projects.`, "/dashboard#grit-circle").catch(() => {});
   res.json({ success: true, message: "Request approved — member added" });
+});
+
+// ── Squad service orders ─────────────────────────────────────────────
+async function isSquadMemberOfService(serviceId: string, userId: string): Promise<boolean> {
+  const [membership] = await db
+    .select({ squadId: squadMembersTable.squadId })
+    .from(squadServicesTable)
+    .innerJoin(squadMembersTable, eq(squadServicesTable.squadId, squadMembersTable.squadId))
+    .where(and(eq(squadServicesTable.id, serviceId), eq(squadMembersTable.userId, userId)))
+    .limit(1);
+  return !!membership;
+}
+
+async function squadOrderJson(order: typeof squadOrdersTable.$inferSelect, viewerId: string) {
+  const [service] = await db.select().from(squadServicesTable).where(eq(squadServicesTable.id, order.serviceId)).limit(1);
+  const [squad] = await db.select().from(squadsTable).where(eq(squadsTable.id, order.squadId)).limit(1);
+  const [buyer] = await db
+    .select({
+      id: usersTable.id,
+      firstName: usersTable.firstName,
+      lastName: usersTable.lastName,
+      profilePhoto: usersTable.profilePhoto,
+    })
+    .from(usersTable)
+    .where(eq(usersTable.id, order.buyerId))
+    .limit(1);
+  const deliveries = await db
+    .select()
+    .from(squadOrderDeliveriesTable)
+    .where(eq(squadOrderDeliveriesTable.orderId, order.id))
+    .orderBy(desc(squadOrderDeliveriesTable.createdAt));
+  const isViewerMember = await isSquadMemberOfService(order.serviceId, viewerId);
+  return {
+    id: order.id,
+    squadId: order.squadId,
+    serviceId: order.serviceId,
+    buyerId: order.buyerId,
+    priceInr: order.priceInr,
+    revisions: order.revisions,
+    requirements: order.requirements ?? null,
+    status: order.status,
+    deliveryDate: order.deliveryDate,
+    completedAt: order.completedAt,
+    cancelledAt: order.cancelledAt,
+    createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
+    service: service ? serviceJson(service) : null,
+    squad: squad ? { id: squad.id, name: squad.name, avatar: squad.avatar ?? null } : null,
+    buyer,
+    deliveries,
+    isViewerMember,
+    canAct: isViewerMember && order.buyerId !== viewerId,
+  };
+}
+
+// List squad orders for the current user (as buyer or as a squad member)
+router.get("/squad-orders", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const user = req.user!.id;
+  const asBuyer = await db
+    .select({ row: squadOrdersTable })
+    .from(squadOrdersTable)
+    .where(eq(squadOrdersTable.buyerId, user))
+    .orderBy(desc(squadOrdersTable.createdAt));
+  const asMember = await db
+    .select({ row: squadOrdersTable })
+    .from(squadOrdersTable)
+    .innerJoin(squadServicesTable, eq(squadOrdersTable.serviceId, squadServicesTable.id))
+    .innerJoin(squadMembersTable, eq(squadServicesTable.squadId, squadMembersTable.squadId))
+    .where(and(eq(squadMembersTable.userId, user), ne(squadOrdersTable.buyerId, user)))
+    .orderBy(desc(squadOrdersTable.createdAt));
+  const merged: Record<string, typeof squadOrdersTable.$inferSelect> = {};
+  for (const r of [...asBuyer, ...asMember]) merged[r.row.id] = r.row;
+  const rows = Object.values(merged);
+  const data = await Promise.all(rows.map((o) => squadOrderJson(o, user)));
+  res.json({ success: true, data });
+});
+
+// Single squad order
+router.get("/squad-orders/:id", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const user = req.user!.id;
+  const [order] = await db.select().from(squadOrdersTable).where(eq(squadOrdersTable.id, String(req.params.id))).limit(1);
+  if (!order) {
+    res.status(404).json({ success: false, message: "Order not found" });
+    return;
+  }
+  if (order.buyerId !== user && !(await isSquadMemberOfService(order.serviceId, user))) {
+    res.status(403).json({ success: false, message: "Forbidden" });
+    return;
+  }
+  res.json({ success: true, data: await squadOrderJson(order, user) });
+});
+
+// Purchase a squad service (buyer)
+router.post("/squad-orders", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const buyerId = req.user!.id;
+  const { serviceId, requirements } = req.body || {};
+  if (!serviceId) {
+    res.status(400).json({ success: false, message: "serviceId is required" });
+    return;
+  }
+  const [service] = await db.select().from(squadServicesTable).where(eq(squadServicesTable.id, serviceId)).limit(1);
+  if (!service || service.status !== "ACTIVE") {
+    res.status(400).json({ success: false, message: "Service is not available" });
+    return;
+  }
+  const [membership] = await db
+    .select({ squadId: squadMembersTable.squadId })
+    .from(squadMembersTable)
+    .where(and(eq(squadMembersTable.squadId, service.squadId), eq(squadMembersTable.userId, buyerId)))
+    .limit(1);
+  if (membership) {
+    res.status(400).json({ success: false, message: "You can't purchase your own circle's service" });
+    return;
+  }
+  const [squad] = await db.select().from(squadsTable).where(eq(squadsTable.id, service.squadId)).limit(1);
+  if (!squad || !squad.isActive) {
+    res.status(400).json({ success: false, message: "Service is not available" });
+    return;
+  }
+  const [buyerWallet] = await db.select({ balance: freelanceWalletsTable.balance }).from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, buyerId)).limit(1);
+  if ((buyerWallet?.balance ?? 0) < service.priceInr) {
+    res.status(400).json({ success: false, message: "Insufficient wallet balance. Please add funds and try again." });
+    return;
+  }
+
+  let order: typeof squadOrdersTable.$inferSelect;
+  try {
+    const [created] = await db.transaction(async (tx) => {
+      const [existing] = await tx
+        .select()
+        .from(squadOrdersTable)
+        .where(and(
+          eq(squadOrdersTable.buyerId, buyerId),
+          eq(squadOrdersTable.serviceId, serviceId),
+          or(
+            eq(squadOrdersTable.status, "PENDING"),
+            eq(squadOrdersTable.status, "ACCEPTED"),
+            eq(squadOrdersTable.status, "IN_PROGRESS"),
+            eq(squadOrdersTable.status, "REVISION_REQUESTED")
+          )
+        ))
+        .limit(1);
+      if (existing) throw new Error("DUPLICATE_ORDER");
+      return tx
+        .insert(squadOrdersTable)
+        .values({
+          squadId: service.squadId,
+          serviceId,
+          buyerId,
+          priceInr: service.priceInr,
+          revisions: service.revisions,
+          requirements: requirements ? String(requirements).trim().slice(0, 5000) : null,
+          deliveryDate: new Date(Date.now() + (service.deliveryDays || 7) * 86400000),
+        })
+        .returning();
+    });
+    order = created;
+  } catch (err: any) {
+    if (err instanceof Error && err.message === "DUPLICATE_ORDER") {
+      res.status(400).json({ success: false, message: "You already have an active order for this service" });
+      return;
+    }
+    throw err;
+  }
+
+  await db.update(squadServicesTable).set({ orderCount: service.orderCount + 1, updatedAt: new Date() }).where(eq(squadServicesTable.id, serviceId));
+
+  const notif = { type: "NEW_ORDER", title: "New order received!", message: `${req.user!.firstName} placed an order for "${service.title}"`, linkUrl: "/dashboard#squad-orders" };
+  await db.insert(notificationsTable).values({ userId: squad.leaderId, ...notif });
+  try {
+    req.app?.get("io")?.to(`user:${squad.leaderId}`).emit("notification:new", notif);
+  } catch {}
+  const [leaderRow] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, squad.leaderId)).limit(1);
+  if (leaderRow?.email) {
+    sendNotificationEmail(leaderRow.email, "New order received!", `${req.user!.firstName} placed an order for "${service.title}"`, "/dashboard#squad-orders").catch(() => {});
+  }
+
+  res.status(201).json({ success: true, message: "Order placed successfully!", data: { order } });
+});
+
+// Accept a squad order (any squad member)
+router.put("/squad-orders/:id/accept", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const user = req.user!.id;
+  const [order] = await db.select().from(squadOrdersTable).where(eq(squadOrdersTable.id, String(req.params.id))).limit(1);
+  if (!order) { res.status(404).json({ success: false, message: "Order not found" }); return; }
+  if (!(await isSquadMemberOfService(order.serviceId, user))) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
+  if (order.status !== "PENDING") { res.status(400).json({ success: false, message: "Order not in pending state" }); return; }
+  await db.update(squadOrdersTable).set({ status: "ACCEPTED", updatedAt: new Date() }).where(eq(squadOrdersTable.id, order.id));
+  const notif = { type: "ORDER_ACCEPTED", title: "Order accepted!", message: "Your order has been accepted by the circle.", linkUrl: "/dashboard#squad-orders" };
+  await db.insert(notificationsTable).values({ userId: order.buyerId, ...notif });
+  try { req.app?.get("io")?.to(`user:${order.buyerId}`).emit("notification:new", notif); } catch {}
+  res.json({ success: true, message: "Order accepted" });
+});
+
+// Deliver work on a squad order (any squad member)
+router.put("/squad-orders/:id/deliver", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const user = req.user!.id;
+  const { note, link } = req.body || {};
+  const [order] = await db.select().from(squadOrdersTable).where(eq(squadOrdersTable.id, String(req.params.id))).limit(1);
+  if (!order) { res.status(404).json({ success: false, message: "Order not found" }); return; }
+  if (!(await isSquadMemberOfService(order.serviceId, user))) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
+  if (!["ACCEPTED", "IN_PROGRESS", "REVISION_REQUESTED"].includes(order.status)) {
+    res.status(400).json({ success: false, message: "Order cannot be delivered in current state" });
+    return;
+  }
+  const claimResult = await db.execute(
+    sql`UPDATE ${sql.identifier("squad_orders")} SET status = 'DELIVERED', updated_at = NOW() WHERE id = ${order.id} AND status IN ('ACCEPTED', 'IN_PROGRESS', 'REVISION_REQUESTED')`
+  );
+  if (claimResult.rowCount === 0) {
+    res.status(400).json({ success: false, message: "Order cannot be delivered in current state" });
+    return;
+  }
+  const [lastDelivery] = await db
+    .select()
+    .from(squadOrderDeliveriesTable)
+    .where(eq(squadOrderDeliveriesTable.orderId, order.id))
+    .orderBy(desc(squadOrderDeliveriesTable.revisionNumber))
+    .limit(1);
+  const revisionNumber = lastDelivery ? lastDelivery.revisionNumber + 1 : 0;
+  await db.insert(squadOrderDeliveriesTable).values({
+    orderId: order.id,
+    note: note ? String(note).trim().slice(0, 5000) : null,
+    link: link ? String(link).trim().slice(0, 1000) : null,
+    revisionNumber,
+  });
+  const notif = { type: "ORDER_DELIVERED", title: "Work delivered!", message: "The circle has delivered your work. Please review.", linkUrl: "/dashboard#squad-orders" };
+  await db.insert(notificationsTable).values({ userId: order.buyerId, ...notif });
+  try { req.app?.get("io")?.to(`user:${order.buyerId}`).emit("notification:new", notif); } catch {}
+  res.json({ success: true, message: "Work delivered" });
+});
+
+// Request a revision on a squad order (buyer, capped by order.revisions)
+router.put("/squad-orders/:id/revision", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const { revisionNote } = req.body || {};
+  const user = req.user!.id;
+  const [order] = await db.select().from(squadOrdersTable).where(eq(squadOrdersTable.id, String(req.params.id))).limit(1);
+  if (!order) { res.status(404).json({ success: false, message: "Order not found" }); return; }
+  if (order.buyerId !== user) { res.status(403).json({ success: false, message: "Only the buyer can request a revision" }); return; }
+  if (order.status !== "DELIVERED") { res.status(400).json({ success: false, message: "Work has not been delivered" }); return; }
+  const [deliveryCount] = await db
+    .select({ value: count() })
+    .from(squadOrderDeliveriesTable)
+    .where(eq(squadOrderDeliveriesTable.orderId, order.id));
+  if (Number(deliveryCount.value) > Number(order.revisions)) {
+    res.status(400).json({ success: false, message: `Maximum revisions (${order.revisions}) reached` });
+    return;
+  }
+  await db.update(squadOrdersTable).set({ status: "REVISION_REQUESTED", updatedAt: new Date() }).where(eq(squadOrdersTable.id, order.id));
+  const [squadForRev] = await db.select().from(squadsTable).where(eq(squadsTable.id, order.squadId)).limit(1);
+  if (squadForRev?.leaderId) {
+    const notif = { type: "REVISION_REQUESTED", title: "Revision requested", message: revisionNote ? `The buyer requested a revision: ${revisionNote}` : "The buyer has requested a revision on the delivered work.", linkUrl: "/dashboard#squad-orders" };
+    await db.insert(notificationsTable).values({ userId: squadForRev.leaderId, ...notif });
+    try { req.app?.get("io")?.to(`user:${squadForRev.leaderId}`).emit("notification:new", notif); } catch {}
+  }
+  res.json({ success: true, message: "Revision requested" });
+});
+
+// Complete a squad order (buyer releases payment)
+router.put("/squad-orders/:id/complete", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const user = req.user!.id;
+  const [order] = await db.select().from(squadOrdersTable).where(eq(squadOrdersTable.id, String(req.params.id))).limit(1);
+  if (!order) { res.status(404).json({ success: false, message: "Order not found" }); return; }
+  if (order.buyerId !== user) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
+  if (order.status !== "DELIVERED") { res.status(400).json({ success: false, message: "Order has not been delivered" }); return; }
+
+  const claimResult = await db.execute(
+    sql`UPDATE ${sql.identifier("squad_orders")} SET status = 'COMPLETED', completed_at = NOW(), updated_at = NOW() WHERE id = ${order.id} AND status = 'DELIVERED'`
+  );
+  if (claimResult.rowCount === 0) {
+    res.status(409).json({ success: false, message: "Order already completed" });
+    return;
+  }
+  const [squad] = await db.select().from(squadsTable).where(eq(squadsTable.id, order.squadId)).limit(1);
+  const sellerId = squad?.leaderId ?? order.squadId;
+  const plan = await getActivePlanForUser(sellerId);
+  const commissionPct = plan.serviceFeePercent;
+  const commission = Math.round(order.priceInr * commissionPct / 100);
+  const netAmount = order.priceInr - commission;
+
+  try {
+    await db.transaction(async (tx) => {
+      const deductResult = await tx.execute(
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${order.priceInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${order.buyerId} AND balance >= ${order.priceInr}`
+      );
+      if (deductResult.rowCount === 0) throw new Error("Insufficient funds");
+      const creditResult = await tx.execute(
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${netAmount}, total_earned = COALESCE(total_earned, 0) + ${netAmount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${sellerId}`
+      );
+      if (creditResult.rowCount === 0) {
+        await tx.insert(freelanceWalletsTable).values({ userId: sellerId, balance: netAmount, totalEarned: netAmount, updatedAt: new Date() });
+      }
+      await tx.insert(transactionsTable).values({ userId: order.buyerId, type: "SERVICE_PAYMENT", amount: order.priceInr, description: `Payment for squad order #${order.id.slice(-8)}`, status: "COMPLETED" });
+      await tx.insert(transactionsTable).values({ userId: sellerId, type: "SERVICE_EARNING", amount: netAmount, description: `Payment received for squad order #${order.id.slice(-8)}`, status: "COMPLETED" });
+      if (commission > 0) {
+        await tx.insert(transactionsTable).values({ userId: sellerId, type: "COMMISSION", amount: commission, description: `Platform commission (${commissionPct}%) on squad order #${order.id.slice(-8)}`, status: "COMPLETED" });
+      }
+    });
+  } catch (e) {
+    await db.execute(sql`UPDATE ${sql.identifier("squad_orders")} SET status = 'DELIVERED', updated_at = NOW() WHERE id = ${order.id}`);
+    if (e instanceof Error && e.message === "Insufficient funds") {
+      res.status(400).json({ success: false, message: "You don't have enough funds in your wallet. Please add funds and try again." });
+    } else {
+      res.status(500).json({ success: false, message: "Payment processing failed. Please try again." });
+    }
+    return;
+  }
+
+  await db.insert(notificationsTable).values({ userId: order.buyerId, type: "PAYMENT_SENT", title: "Payment sent", message: `₹${order.priceInr} deducted from your wallet for squad order #${order.id.slice(-8)}`, linkUrl: "/dashboard#squad-orders" });
+  await db.insert(notificationsTable).values({ userId: sellerId, type: "ORDER_COMPLETED", title: "Order completed!", message: `You received ₹${netAmount} for squad order #${order.id.slice(-8)} (${commissionPct}% commission: ₹${commission}).`, linkUrl: "/dashboard#squad-orders" });
+
+  res.json({ success: true, message: `Order completed! Your circle receives ₹${netAmount} (${commissionPct}% commission: ₹${commission}).` });
+});
+
+// Cancel a squad order (buyer or squad member)
+router.put("/squad-orders/:id/cancel", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const { reason } = req.body || {};
+  const user = req.user!.id;
+  const [order] = await db.select().from(squadOrdersTable).where(eq(squadOrdersTable.id, String(req.params.id))).limit(1);
+  if (!order) { res.status(404).json({ success: false, message: "Order not found" }); return; }
+  const memberOk = order.buyerId === user || (await isSquadMemberOfService(order.serviceId, user));
+  if (!memberOk) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
+  if (["COMPLETED", "CANCELLED"].includes(order.status)) { res.status(400).json({ success: false, message: "Order cannot be cancelled" }); return; }
+  await db.update(squadOrdersTable).set({ status: "CANCELLED", cancelledAt: new Date(), updatedAt: new Date() }).where(eq(squadOrdersTable.id, order.id));
+  res.json({ success: true, message: "Order cancelled" });
 });
 
 export default router;

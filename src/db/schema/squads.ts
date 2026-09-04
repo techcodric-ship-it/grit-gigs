@@ -1,5 +1,6 @@
 import { pgTable, pgEnum, text, boolean, integer, timestamp, uuid } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
+import { orderStatusEnum } from "./orders";
 
 export const squadRoleEnum = pgEnum("squad_role", ["LEADER", "MEMBER"]);
 export const squadInviteStatusEnum = pgEnum("squad_invite_status", ["PENDING", "ACCEPTED", "DECLINED"]);
@@ -58,10 +59,46 @@ export const squadServicesTable = pgTable("squad_services", {
   coverImage: text("cover_image"),
   priceInr: integer("price_inr").notNull(),
   deliveryDays: integer("delivery_days").default(7).notNull(),
+  revisions: integer("revisions").default(2).notNull(),
+  orderCount: integer("order_count").default(0).notNull(),
   skills: text("skills").array().default([]).notNull(),
   status: squadServiceStatusEnum("status").default("ACTIVE").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const squadOrdersTable = pgTable("squad_orders", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  squadId: uuid("squad_id")
+    .notNull()
+    .references(() => squadsTable.id, { onDelete: "cascade" }),
+  serviceId: uuid("service_id")
+    .notNull()
+    .references(() => squadServicesTable.id, { onDelete: "cascade" }),
+  buyerId: uuid("buyer_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  priceInr: integer("price_inr").notNull(),
+  revisions: integer("revisions").default(2).notNull(),
+  requirements: text("requirements"),
+  status: orderStatusEnum("status").default("PENDING").notNull(),
+  deliveryDate: timestamp("delivery_date"),
+  completedAt: timestamp("completed_at"),
+  cancelledAt: timestamp("cancelled_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const squadOrderDeliveriesTable = pgTable("squad_order_deliveries", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderId: uuid("order_id")
+    .notNull()
+    .references(() => squadOrdersTable.id, { onDelete: "cascade" }),
+  note: text("note"),
+  link: text("link"),
+  files: text("files").array().default([]).notNull(),
+  revisionNumber: integer("revision_number").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const squadJoinRequestsTable = pgTable("squad_join_requests", {
@@ -82,4 +119,6 @@ export type Squad = typeof squadsTable.$inferSelect;
 export type SquadMember = typeof squadMembersTable.$inferSelect;
 export type SquadInvite = typeof squadInvitesTable.$inferSelect;
 export type SquadService = typeof squadServicesTable.$inferSelect;
+export type SquadOrder = typeof squadOrdersTable.$inferSelect;
+export type SquadOrderDelivery = typeof squadOrderDeliveriesTable.$inferSelect;
 export type SquadJoinRequest = typeof squadJoinRequestsTable.$inferSelect;

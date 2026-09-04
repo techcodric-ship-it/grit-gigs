@@ -1146,11 +1146,13 @@ textarea.fi{resize:vertical;}
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
         <h2 style="font-size:1.1rem;"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg> Orders</h2>
         <div style="display:flex;gap:6px;background:var(--bg);padding:3px;border-radius:var(--r);border:1px solid var(--bd);">
-          <button class="btn bp btn-sm" onclick="loadOrders('buyer')" id="buyTab" style="border-radius:6px;"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><circle cx="9" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h10l2-7H6"/></svg> Buying</button>
-          <button class="btn bs btn-sm" onclick="loadOrders('seller')" id="selTab" style="border:none;background:transparent;"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><rect x="1" y="6" width="22" height="13" rx="1"/><path d="M1 10h22M8 6l2-3h4l2 3"/></svg> Selling</button>
+          <button class="btn bp btn-sm" onclick="soTab('single'),loadOrders('buyer')" id="buyTab" style="border-radius:6px;"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><circle cx="9" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h10l2-7H6"/></svg> Buying</button>
+          <button class="btn bs btn-sm" onclick="soTab('single'),loadOrders('seller')" id="selTab" style="border:none;background:transparent;"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><rect x="1" y="6" width="22" height="13" rx="1"/><path d="M1 10h22M8 6l2-3h4l2 3"/></svg> Selling</button>
+          <button class="btn bs btn-sm" onclick="soTab('squad')" id="soTabBtn" style="border:none;background:transparent;"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg> Squad</button>
         </div>
       </div>
       <div id="ordersContainer"><div class="empty"><div class="empty-sub">Loading...</div></div></div>
+      <div id="soRoot" style="display:none;"><div class="empty"><div class="empty-sub">Loading...</div></div></div>
     </div>
 
     <!-- MY PROJECTS -->
@@ -6808,9 +6810,10 @@ async function openProjectDet(projectId, viewAs, myBidId = null) {
       bidForm = `<div>
         <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:.84rem;margin-bottom:8px;">Submit Your Proposal</div>
         <div style="background:linear-gradient(135deg,rgba(108,61,224,.1),rgba(41,128,185,.06));border:1.5px solid rgba(108,61,224,.3);border-radius:var(--rm);padding:11px 14px;font-size:.74rem;color:#4c1d95;line-height:1.55;margin-bottom:10px;font-weight:500;"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10.5c-.7.7-1 1.3-1 2.5h-6c0-1.2-.3-1.8-1-2.5A6 6 0 0 1 12 3z"/></svg> <strong>Tip:</strong> Add a clear bid, delivery estimate, approach, and milestone plan so the client can compare you quickly.</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
           <div class="fg"><label class="fl">Bid Amount (₹) <span style="color:var(--err)">*</span></label><input class="fi" type="number" id="bidAmt" placeholder="5000" min="1"/></div>
           <div class="fg"><label class="fl">Delivery Days</label><input class="fi" type="number" id="bidDays" placeholder="5" min="1"/></div>
+          <div class="fg"><label class="fl">Revisions</label><input class="fi" type="number" id="bidRev" placeholder="2" min="0" max="10"/></div>
         </div>
         <div class="fg"><label class="fl">Cover Letter <span style="color:var(--err)">*</span></label><textarea class="fi" id="bidProp" rows="3" placeholder="Why are you the best fit? What is your approach?"></textarea></div>
         <div class="fg"><label class="fl">Milestone Plan</label><textarea class="fi" id="bidMilestones" rows="2" placeholder="Example: milestone 1 draft, milestone 2 final delivery"></textarea></div>
@@ -6883,6 +6886,7 @@ function openBidModal(projectId) {
 async function submitBid(projectId, modalEl) {
   const amt = parseFloat(document.getElementById('bidAmt')?.value);
   const days = parseInt(document.getElementById('bidDays')?.value, 10);
+  const rev = parseInt(document.getElementById('bidRev')?.value || '2', 10);
   const cover = document.getElementById('bidProp')?.value?.trim();
   const milestones = document.getElementById('bidMilestones')?.value?.trim();
   const portfolio = document.getElementById('bidPortfolio')?.value?.trim();
@@ -6900,7 +6904,7 @@ async function submitBid(projectId, modalEl) {
   try {
     const d = await api('/projects/' + projectId + '/bids', {
       method: 'POST',
-      body: JSON.stringify({ amount: amt, deliveryDays: Number.isFinite(days) && days > 0 ? days : null, proposal, highlight }),
+      body: JSON.stringify({ amount: amt, deliveryDays: Number.isFinite(days) && days > 0 ? days : null, revisions: Number.isFinite(rev) && rev >= 0 ? Math.min(10, rev) : 2, proposal, highlight }),
     });
     if (d.success) {
       if (modalEl) { modalEl.remove(); document.body.style.overflow = ''; }
@@ -7695,10 +7699,10 @@ function ssResetForm() {
   if (cprev) { cprev.src = ''; cprev.style.display = 'none'; }
   var cph = document.getElementById('ssCoverPlaceholder');
   if (cph) cph.style.display = 'flex';
-  ['ssTitle','ssCategory','ssDeliver','ssPrice','ssSkills','ssDesc'].forEach(id => {
+  ['ssTitle','ssCategory','ssDeliver','ssRev','ssPrice','ssSkills','ssDesc'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
-    el.value = id === 'ssCategory' ? '' : id === 'ssDeliver' ? '7' : '';
+    el.value = id === 'ssCategory' ? '' : id === 'ssDeliver' ? '7' : id === 'ssRev' ? '2' : '';
   });
   const btn = document.getElementById('ssSubmitBtn');
   if (btn) btn.textContent = 'Publish squad service';
@@ -7731,6 +7735,7 @@ async function ssSave() {
     title, description: desc,
     category: document.getElementById('ssCategory').value || null,
     deliveryDays: Number(document.getElementById('ssDeliver').value) || 7,
+    revisions: Math.max(0, Math.min(10, Number(document.getElementById('ssRev').value) || 0)),
     priceInr: Math.round(Number(price)),
     skills: (document.getElementById('ssSkills').value || '').trim(),
     coverImage: _ssCoverImage || null,
@@ -7755,6 +7760,7 @@ function ssEdit(id) {
   document.getElementById('ssTitle').value = svc.title;
   document.getElementById('ssCategory').value = svc.category || '';
   document.getElementById('ssDeliver').value = svc.deliveryDays;
+  document.getElementById('ssRev').value = svc.revisions || 0;
   document.getElementById('ssPrice').value = svc.priceInr;
   document.getElementById('ssSkills').value = (svc.skills || []).join(', ');
   document.getElementById('ssDesc').value = svc.description;
@@ -7804,7 +7810,7 @@ function renderSquadService() {
               <span style="font-size:.92rem;font-weight:700;">${esc(s.title)}</span>
               <span class="bdg ${s.status === 'PAUSED' ? 'bdg-ink' : 'bdg-v'}" style="font-size:.58rem;">${s.status === 'PAUSED' ? 'Paused' : 'Live'}</span>
             </div>
-            <div style="font-size:.72rem;color:var(--muted);margin-top:3px;">${moneyInr(s.priceInr)} · ${s.deliveryDays} days${s.category ? ' · ' + esc(s.category) : ''}</div>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:3px;">${moneyInr(s.priceInr)} · ${s.deliveryDays} days · ${s.revisions === 0 ? 'No revisions' : (s.revisions === undefined ? '2' : s.revisions) + ' revisions'}${s.category ? ' · ' + esc(s.category) : ''}</div>
             <div style="font-size:.78rem;color:var(--sec);line-height:1.5;margin-top:6px;">${esc(shortText(s.description, 140))}</div>
             ${(s.skills && s.skills.length) ? '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;">' + s.skills.map(k => '<span class="bc-tag">' + esc(k) + '</span>').join('') + '</div>' : ''}
             <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
@@ -7840,6 +7846,7 @@ function renderSquadService() {
             </select>
           </div>
           <div class="fg"><label class="fl">Delivery (days)</label><input class="fi" id="ssDeliver" type="number" min="1" max="90" value="7"/></div>
+          <div class="fg"><label class="fl">Revisions</label><input class="fi" id="ssRev" type="number" min="0" max="10" value="2"/></div>
         </div>
         <div class="fr2">
           <div class="fg"><label class="fl">Package price (₹) *</label><input class="fi" id="ssPrice" type="number" min="1" placeholder="e.g. 10000"/></div>
@@ -7973,10 +7980,119 @@ function renderSmServices(list) {
         </div>
         <div class="gig-footer" style="align-items:center;">
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="btn bp btn-xs" onclick="showPage('post-project')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Post a project</button>
+            <button class="btn bp btn-xs" onclick="ssOrder('${esc(s.id)}','${esc(s.title).replace(/'/g,"\\'")}')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><rect x="1" y="6" width="22" height="13" rx="1"/><path d="M1 10h22M8 6l2-3h4l2 3"/></svg> Buy</button>
             <button class="btn bs btn-xs" onclick="msgProjectUser('${esc(s.leader ? s.leader.id : '')}')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Message</button>
           </div>
-          <div class="gig-price">₹${Number(s.priceInr || 0).toLocaleString('en-IN')}<span class="gig-price-sub"> ${s.deliveryDays || 7} days</span></div>
+          <div class="gig-price">₹${Number(s.priceInr || 0).toLocaleString('en-IN')}<span class="gig-price-sub"> ${s.deliveryDays || 7}d · ${s.revisions === 0 ? 'no rev' : ((s.revisions !== undefined ? s.revisions : 2) + ' rev')}</span></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function ssOrder(serviceId, title) {
+  inputModal('Buy "' + (title || 'squad service') + '"', 'Anything the circle should know?', '', async (vals) => {
+    const body = { serviceId };
+    if (vals.req && (vals.req || '').trim()) body.requirements = vals.req.trim();
+    const d = await api('/squad-orders', { method: 'POST', body: JSON.stringify(body) });
+    if (d && d.success) {
+      showToast(d.message || 'Order placed', 'ok');
+      loadSquadOrders();
+    } else showToast((d && d.message) || 'Could not place order', 'err');
+  }, { fields: [ { id: 'req', label: 'Requirements', type: 'textarea', placeholder: 'Describe exactly what your team should deliver' } ], required: '', okLabel: 'Place order' });
+}
+
+function soTab(mode) {
+  const oc = document.getElementById('ordersContainer');
+  const sc = document.getElementById('soRoot');
+  if (!oc || !sc) return;
+  const isSquad = mode === 'squad';
+  const soBtn = document.getElementById('soTabBtn');
+  if (soBtn) soBtn.className = 'btn ' + (isSquad ? 'bp' : 'bs') + ' btn-sm';
+  for (const id of ['buyTab','selTab']) {
+    const el = document.getElementById(id);
+    if (el && !isSquad) el.className = 'btn bp btn-sm';
+  }
+  if (isSquad) {
+    const bt = document.getElementById('buyTab'), st = document.getElementById('selTab');
+    if (bt) bt.className = 'btn bs btn-sm';
+    if (st) st.className = 'btn bs btn-sm';
+    oc.style.display = 'none';
+    sc.style.display = '';
+    loadSquadOrders();
+  } else {
+    oc.style.display = '';
+    sc.style.display = 'none';
+  }
+}
+
+let _so = [];
+async function loadSquadOrders() {
+  const c = document.getElementById('soRoot');
+  if (!c) return;
+  const d = await api('/squad-orders', { method: 'GET' });
+  _so = (d && d.success) ? (d.data || []) : [];
+  renderSquadOrders(_so);
+}
+function soAction(id, action) {
+  if (action === 'accept' || action === 'complete') {
+    confirmModal(action === 'accept' ? 'Accept this order?' : 'Accept & release payment?', action === 'accept' ? 'Start working on this order as a team.' : 'Release ₹ payment to the circle. This can\'t be undone.', action === 'accept' ? 'Accept' : 'Release payment', async () => {
+      const d = await api('/squad-orders/' + id + '/' + (action === 'accept' ? 'accept' : 'complete'), { method: 'PUT', body: JSON.stringify({}) });
+      if (d && d.success) { showToast(d.message || 'Done', 'ok'); loadSquadOrders(); } else showToast((d && d.message) || 'Failed', 'err');
+    }, true);
+  } else if (action === 'revision') {
+    inputModal('Request a revision', 'Give the circle clear notes.', '', async (vals) => {
+      const d = await api('/squad-orders/' + id + '/revision', { method: 'PUT', body: JSON.stringify({ revisionNote: (vals.note || '').trim() || null }) });
+      if (d && d.success) { showToast(d.message || 'Revision requested', 'ok'); loadSquadOrders(); } else showToast((d && d.message) || 'Failed', 'err');
+    }, { fields: [ { id: 'note', label: 'Revision notes', type: 'textarea' } ], required: '', okLabel: 'Request revision' });
+  } else if (action === 'deliver') {
+    inputModal('Submit work', 'Link the deliverables for this order.', '', async (vals) => {
+      const d = await api('/squad-orders/' + id + '/deliver', { method: 'PUT', body: JSON.stringify({ note: (vals.note || '').trim() || null, link: (vals.link || '').trim() || null }) });
+      if (d && d.success) { showToast(d.message || 'Delivered', 'ok'); loadSquadOrders(); } else showToast((d && d.message) || 'Failed', 'err');
+    }, { fields: [ { id: 'note', label: 'Delivery note', type: 'textarea' }, { id: 'link', label: 'Deliverable link', placeholder: 'https://...' } ], required: '', okLabel: 'Submit work' });
+  } else if (action === 'cancel') {
+    confirmModal('Cancel this order?', 'The order will be closed.', 'Cancel order', async () => {
+      const d = await api('/squad-orders/' + id + '/cancel', { method: 'PUT', body: JSON.stringify({ reason: 'Cancelled by user' }) });
+      if (d && d.success) { showToast('Order cancelled', 'ok'); loadSquadOrders(); } else showToast((d && d.message) || 'Failed', 'err');
+    }, true);
+  }
+}
+function renderSquadOrders(list) {
+  const c = document.getElementById('soRoot');
+  if (!c) return;
+  const arr = list || _so;
+  if (!arr.length) {
+    c.innerHTML = '<div class="empty" style="grid-column:1/-1;"><div class="empty-sub">No squad orders yet.</div></div>';
+    return;
+  }
+  const me = (gU() || {}).id;
+  const st = {
+    COMPLETED:['#16A34A','rgba(22,163,74,.1)'], CANCELLED:['#DC2626','rgba(220,38,38,.1)'],
+    DELIVERED:['#6C3FE8','rgba(108,63,232,.1)'], REVISION_REQUESTED:['#EA580C','rgba(234,88,12,.1)'],
+    PENDING:['#D97706','rgba(217,119,6,.1)'], ACCEPTED:['#2563EB','rgba(37,99,235,.1)'], IN_PROGRESS:['#2563EB','rgba(37,99,235,.1)']
+  };
+  c.innerHTML = arr.map(o => {
+    const [col,bg] = st[o.status] || ['#6B7280','rgba(107,114,128,.1)'];
+    const buyerName = o.buyer ? ((o.buyer.firstName||'')+' '+(o.buyer.lastName||'')).trim() || 'Client' : 'Client';
+    const canDeliver = o.canAct && ['ACCEPTED','IN_PROGRESS','REVISION_REQUESTED'].includes(o.status);
+    const delivered = !!o.deliveries && o.deliveries.length;
+    const revUsed = (o.deliveries && o.deliveries.length) || 0;
+    let actions = '';
+    if (o.canAct && o.status === 'PENDING') actions = `<button class="btn bp btn-xs" onclick="soAction('${o.id}','accept')">Accept</button><button class="btn bs btn-xs" style="color:var(--err);" onclick="soAction('${o.id}','cancel')">Cancel</button>`;
+    else if (canDeliver) actions = `<button class="btn bp btn-xs" onclick="soAction('${o.id}','deliver')">Submit work</button>`;
+    else if (o.buyerId === me && o.status === 'DELIVERED') actions = `<button class="btn bp btn-xs" onclick="soAction('${o.id}','complete')">Accept & release</button><button class="btn bs btn-xs" onclick="soAction('${o.id}','revision')">Request revision</button>`;
+    else if (o.buyerId === me && o.status === 'PENDING') actions = `<button class="btn bs btn-xs" style="color:var(--err);" onclick="soAction('${o.id}','cancel')">Cancel</button>`;
+    return `<div class="card" style="padding:16px;margin-bottom:12px;">
+      <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;">
+        <div style="flex:1;min-width:220px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:.9rem;font-weight:700;">${esc(o.service ? o.service.title : 'Squad service')}</span>
+            <span class="bdg" style="background:${bg};color:${col};font-size:.58rem;">${o.status}</span>
+          </div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:3px;">${moneyInr(o.priceInr)} · by ${esc(o.squad && o.squad.name || 'circle')} · for ${esc(buyerName)}</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:3px;">Revisions ${revUsed}/${o.revisions}</div>
+          ${o.requirements ? '<div style="font-size:.74rem;color:var(--sec);line-height:1.5;margin-top:6px;background:var(--bg);border-radius:8px;padding:8px 10px;">'+esc(String(o.requirements).slice(0,300))+'</div>' : ''}
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">${actions}</div>
         </div>
       </div>
     </div>`;

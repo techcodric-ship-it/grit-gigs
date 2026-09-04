@@ -392,9 +392,10 @@ router.post('/projects/:id/bids', authenticate, async (req: Request, res: Respon
     }
   }
 
-  const { amount, proposal, deliveryDays, highlight } = req.body;
+  const { amount, proposal, deliveryDays, revisions, highlight } = req.body;
   const bidAmount = toPositiveInt(amount);
   const deliveryEstimate = toPositiveInt(deliveryDays);
+  const revisionsIncluded = revisions === undefined || revisions === null ? 2 : Math.max(0, Math.min(10, Math.round(Number(revisions))));
   if (!bidAmount || !proposal?.trim()) {
     return res.status(400).json({ success: false, message: 'Amount and proposal are required' });
   }
@@ -457,6 +458,7 @@ router.post('/projects/:id/bids', authenticate, async (req: Request, res: Respon
           amount: bidAmount,
           proposal: proposal.trim(),
           deliveryDays: deliveryEstimate,
+          revisions: revisionsIncluded,
           isHighlighted,
         })
         .returning();
@@ -916,6 +918,20 @@ router.post('/projects/:id/request-revision', authenticate, async (req: Request,
   if (project.userId !== userId) return res.status(403).json({ success: false, message: 'Only the client can request a revision' });
   if (project.status !== 'DELIVERED') return res.status(400).json({ success: false, message: 'Project has not been delivered' });
   const { revisionNote } = req.body;
+
+  // Enforce the revision cap set on the accepted bid.
+  const acceptedBid = project.acceptedBidId
+    ? await db.select().from(projectBidsTable).where(eq(projectBidsTable.id, project.acceptedBidId)).limit(1)
+    : [];
+  const revisionsIncluded = Number(acceptedBid[0]?.revisions ?? 0);
+  const [projectDeliveryCount] = await db
+    .select({ value: count() })
+    .from(projectDeliveriesTable)
+    .where(eq(projectDeliveriesTable.projectId, project.id));
+  if (Number(projectDeliveryCount.value) > revisionsIncluded) {
+    return res.status(400).json({ success: false, message: `Maximum revisions (${revisionsIncluded}) reached` });
+  }
+
   await db.update(projectsTable).set({ status: 'REVISION_REQUESTED', updatedAt: new Date() }).where(eq(projectsTable.id, project.id));
   const [bidForNotify] = project.acceptedBidId ? await db.select({ userId: projectBidsTable.userId }).from(projectBidsTable).where(eq(projectBidsTable.id, project.acceptedBidId)).limit(1) : [];
   await db.insert(notificationsTable).values({
