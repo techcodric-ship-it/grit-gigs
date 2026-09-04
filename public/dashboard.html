@@ -7138,6 +7138,19 @@ async function msgUser(otherUserId) {
   openConv(conv.id, otherUserId, '', '', '', false);
 }
 
+async function openSquadOrderChat(orderId) {
+  const list = await api('/messages/conversations').catch(() => null);
+  const convs = list?.data?.conversations || [];
+  const conv = convs.find(c => String(c.orderId) === String(orderId));
+  if (!conv) { showToast('Order chat not found', 'err'); return; }
+  document.querySelectorAll('.mo.open').forEach(m => { m.remove(); });
+  document.body.style.overflow = '';
+  _convCtx[conv.id] = { matchId: null, orderId: conv.orderId || null, projectBidId: null };
+  await loadInbox();
+  showPage('inbox');
+  openConv(conv.id, esc(conv.groupName || ''), 'GC', '', null, false, '', true);
+}
+
 async function msgProjectUser(otherUserId, bidId) {
   if (!otherUserId) { showToast('Cannot open conversation', 'err'); return; }
   const d = await api('/messages/conversations/with/' + otherUserId, {
@@ -8112,7 +8125,7 @@ function renderSquadOrders(list) {
           <div style="font-size:.72rem;color:var(--muted);margin-top:3px;">${moneyInr(o.priceInr)} · by ${esc(o.squad && o.squad.name || 'circle')} · for ${esc(buyerName)}</div>
           <div style="font-size:.72rem;color:var(--muted);margin-top:3px;">Revisions ${revUsed}/${o.revisions}</div>
           ${o.requirements ? '<div style="font-size:.74rem;color:var(--sec);line-height:1.5;margin-top:6px;background:var(--bg);border-radius:8px;padding:8px 10px;">'+esc(String(o.requirements).slice(0,300))+'</div>' : ''}
-          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">${actions}</div>
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">${actions}<button class="btn bs btn-xs" onclick="openSquadOrderChat('${esc(o.id)}')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Chat</button></div>
         </div>
       </div>
     </div>`;

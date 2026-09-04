@@ -13,6 +13,7 @@ import {
   squadJoinRequestsTable,
   conversationsTable,
   conversationParticipantsTable,
+  messagesTable,
   userSubscriptionsTable,
   freelanceWalletsTable,
   transactionsTable,
@@ -1060,6 +1061,53 @@ async function isSquadMemberOfService(serviceId: string, userId: string): Promis
   return !!membership;
 }
 
+// Find or create a group conversation for a squad order (buyer + full squad),
+// modeled on the project team chat so delivery/revision updates land in chat.
+async function squadOrderConversationId(order: typeof squadOrdersTable.$inferSelect, app?: unknown): Promise<string | null> {
+  let [gconv] = await db
+    .select()
+    .from(conversationsTable)
+    .where(and(eq(conversationsTable.orderId, order.id), sql`${conversationsTable.isGroup} = TRUE`))
+    .limit(1);
+  if (gconv) return gconv.id;
+
+  const [service] = await db.select().from(squadServicesTable).where(eq(squadServicesTable.id, order.serviceId)).limit(1);
+  const members = await db
+    .select({ userId: squadMembersTable.userId })
+    .from(squadMembersTable)
+    .where(eq(squadMembersTable.squadId, order.squadId));
+  const memberIds = members.map((m) => m.userId);
+  if (!memberIds.includes(order.buyerId)) memberIds.push(order.buyerId);
+
+  const [created] = await db
+    .insert(conversationsTable)
+    .values({
+      user1Id: order.buyerId,
+      user2Id: order.buyerId,
+      isGroup: true,
+      groupName: `${service?.title ?? "Squad Order"} · Order`,
+      groupId: order.squadId,
+      orderId: order.id,
+      lastMessageAt: new Date(),
+    })
+    .returning();
+  gconv = created;
+  for (const uid of memberIds) {
+    const [already] = await db
+      .select({ id: conversationParticipantsTable.id })
+      .from(conversationParticipantsTable)
+      .where(and(eq(conversationParticipantsTable.conversationId, gconv.id), eq(conversationParticipantsTable.userId, uid)))
+      .limit(1);
+    if (!already) {
+      await db.insert(conversationParticipantsTable).values({ conversationId: gconv.id, userId: uid });
+    }
+  }
+  try {
+    (app as any)?.get?.("io")?.to(`conv:${gconv!.id}`).emit("group:updated", { conversationId: gconv!.id });
+  } catch {}
+  return gconv.id;
+}
+
 async function squadOrderJson(order: typeof squadOrdersTable.$inferSelect, viewerId: string) {
   const [service] = await db.select().from(squadServicesTable).where(eq(squadServicesTable.id, order.serviceId)).limit(1);
   const [squad] = await db.select().from(squadsTable).where(eq(squadsTable.id, order.squadId)).limit(1);
@@ -1214,6 +1262,13 @@ router.post("/squad-orders", authenticate, async (req: Request, res: Response): 
 
   await db.update(squadServicesTable).set({ orderCount: service.orderCount + 1, updatedAt: new Date() }).where(eq(squadServicesTable.id, serviceId));
 
+  const convMsg = `📦 *New Order*\n\n${req.user!.firstName} placed an order for "${service.title}".${requirements ? `\n\nRequirements:\n${String(requirements).trim()}` : ""}\n\n_Coordinate with the team here._`;
+  const convId = await squadOrderConversationId(order, req.app);
+  if (convId) {
+    await db.insert(messagesTable).values({ conversationId: convId, senderId: buyerId, messageText: convMsg, attachments: [] });
+    await db.update(conversationsTable).set({ lastMessageAt: new Date() }).where(eq(conversationsTable.id, convId));
+  }
+
   const notif = { type: "NEW_ORDER", title: "New order received!", message: `${req.user!.firstName} placed an order for "${service.title}"`, linkUrl: "/dashboard#squad-orders" };
   await db.insert(notificationsTable).values({ userId: squad.leaderId, ...notif });
   try {
@@ -1275,6 +1330,12 @@ router.put("/squad-orders/:id/deliver", authenticate, async (req: Request, res: 
   const notif = { type: "ORDER_DELIVERED", title: "Work delivered!", message: "The circle has delivered your work. Please review.", linkUrl: "/dashboard#squad-orders" };
   await db.insert(notificationsTable).values({ userId: order.buyerId, ...notif });
   try { req.app?.get("io")?.to(`user:${order.buyerId}`).emit("notification:new", notif); } catch {}
+  const dconvId = await squadOrderConversationId(order, req.app);
+  if (dconvId) {
+    const dmsg = `📦 *Work Delivered!*${revisionNumber > 0 ? " (again)" : ""}\n\n${note ? `${note}` : "The circle has delivered the work."}${link ? `\n\n🔗 Deliverable: ${link}` : ""}\n\n_Please review the work and release payment when you're satisfied._`;
+    await db.insert(messagesTable).values({ conversationId: dconvId, senderId: user, messageText: dmsg, attachments: [] });
+    await db.update(conversationsTable).set({ lastMessageAt: new Date() }).where(eq(conversationsTable.id, dconvId));
+  }
   res.json({ success: true, message: "Work delivered" });
 });
 
@@ -1300,6 +1361,12 @@ router.put("/squad-orders/:id/revision", authenticate, async (req: Request, res:
     const notif = { type: "REVISION_REQUESTED", title: "Revision requested", message: revisionNote ? `The buyer requested a revision: ${revisionNote}` : "The buyer has requested a revision on the delivered work.", linkUrl: "/dashboard#squad-orders" };
     await db.insert(notificationsTable).values({ userId: squadForRev.leaderId, ...notif });
     try { req.app?.get("io")?.to(`user:${squadForRev.leaderId}`).emit("notification:new", notif); } catch {}
+  }
+  const rconvId = await squadOrderConversationId(order, req.app);
+  if (rconvId) {
+    const rmsg = `🔄 *Revision requested*${revisionNote ? `:\n\n${revisionNote}` : ". Please review and update the work."}`;
+    await db.insert(messagesTable).values({ conversationId: rconvId, senderId: user, messageText: rmsg, attachments: [] });
+    await db.update(conversationsTable).set({ lastMessageAt: new Date() }).where(eq(conversationsTable.id, rconvId));
   }
   res.json({ success: true, message: "Revision requested" });
 });
