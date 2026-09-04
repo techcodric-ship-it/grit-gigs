@@ -141,6 +141,7 @@ router.post("/squads", authenticate, async (req: Request, res: Response): Promis
     })
     .returning();
   await db.insert(squadMembersTable).values({ squadId: squad.id, userId: leaderId, role: "LEADER" });
+  await ensureSquadGroupParticipant(squad.id, leaderId, req.app);
 
   res.status(201).json({ success: true, message: "Your Grit Circle is live", data: { squad: squadLite(squad) } });
 });
