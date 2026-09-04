@@ -562,9 +562,11 @@ router.put('/projects/bids/:bidId/accept', authenticate, async (req: Request, re
       .where(eq(projectsTable.id, project.id));
   });
 
-  // If the accepted proposal comes from a Grit Circle member, open (or create)
-  // the circle's group chat and include the client so the whole team can
-  // collaborate on the project together.
+  // When the accepted proposal comes from a Grit Circle member, create a
+  // STANDALONE project team chat (client + the full squad). This must NOT reuse
+  // the circle's group chat — it is a separate conversation shown under the
+  // Freelance filter, and the client is marked so the squad knows who hired them.
+  let teamConversation: { id: string; groupName: string; clientId: string } | null = null;
   const bidderSquad = await db
     .select({ squadId: squadMembersTable.squadId })
     .from(squadMembersTable)
@@ -573,46 +575,63 @@ router.put('/projects/bids/:bidId/accept', authenticate, async (req: Request, re
     .limit(1);
   if (bidderSquad?.[0]) {
     const squadId = bidderSquad[0].squadId;
+
+    // All squad members (the freelance team) plus the hiring client.
+    const squadMembers = await db
+      .select({ userId: squadMembersTable.userId })
+      .from(squadMembersTable)
+      .where(eq(squadMembersTable.squadId, squadId));
+    const memberIds = squadMembers.map(m => m.userId);
+    if (!memberIds.includes(project.userId)) memberIds.push(project.userId);
+
+    // The project team chat is unique per accepted bid (its own conversation).
     let [gconv] = await db
       .select()
       .from(conversationsTable)
-      .where(and(eq(conversationsTable.groupId, squadId), sql`${conversationsTable.isGroup} = TRUE`))
+      .where(and(eq(conversationsTable.projectBidId, bid.id), sql`${conversationsTable.isGroup} = TRUE`))
       .limit(1);
     if (!gconv) {
-      const [squadRow] = await db.select().from(squadsTable).where(eq(squadsTable.id, squadId)).limit(1);
       const [created] = await db.insert(conversationsTable).values({
-        user1Id: bid.userId,
+        user1Id: project.userId,
         user2Id: bid.userId,
         isGroup: true,
-        groupName: squadRow?.name ?? 'Circle Chat',
+        groupName: `${project.title ?? 'Project'} · Team`,
         groupId: squadId,
+        projectBidId: bid.id,
         lastMessageAt: new Date(),
       }).returning();
       gconv = created;
-      const squadMembers = await db
-        .select({ userId: squadMembersTable.userId })
-        .from(squadMembersTable)
-        .where(eq(squadMembersTable.squadId, squadId));
-      const memberUserIds = squadMembers.map(m => m.userId);
-      if (!memberUserIds.includes(project.userId)) memberUserIds.push(project.userId);
-      if (memberUserIds.length) {
-        await db.insert(conversationParticipantsTable)
-          .values(memberUserIds.map(uid => ({ conversationId: gconv!.id, userId: uid })))
-          .onConflictDoNothing();
-      }
-    } else {
+    }
+
+    // Add every team member + client as participants.
+    for (const uid of memberIds) {
       const [already] = await db
         .select({ id: conversationParticipantsTable.id })
         .from(conversationParticipantsTable)
-        .where(and(eq(conversationParticipantsTable.conversationId, gconv.id), eq(conversationParticipantsTable.userId, project.userId)))
+        .where(and(eq(conversationParticipantsTable.conversationId, gconv.id), eq(conversationParticipantsTable.userId, uid)))
         .limit(1);
       if (!already) {
-        await db.insert(conversationParticipantsTable).values({ conversationId: gconv.id, userId: project.userId });
+        await db.insert(conversationParticipantsTable).values({ conversationId: gconv.id, userId: uid });
       }
     }
+
+    // The client should NOT appear in the circle's group chat — remove them if
+    // an earlier version accidentally added the client there.
+    const [circleConv] = await db
+      .select({ id: conversationsTable.id })
+      .from(conversationsTable)
+      .where(and(eq(conversationsTable.groupId, squadId), sql`${conversationsTable.isGroup} = TRUE`, isNull(conversationsTable.projectBidId)))
+      .limit(1);
+    if (circleConv) {
+      await db.delete(conversationParticipantsTable)
+        .where(and(eq(conversationParticipantsTable.conversationId, circleConv.id), eq(conversationParticipantsTable.userId, project.userId)))
+        .catch(() => {});
+    }
+
     try {
       req.app?.get('io')?.to(`conv:${gconv!.id}`).emit('group:updated', { conversationId: gconv!.id });
     } catch {}
+    teamConversation = { id: gconv.id, groupName: gconv.groupName ?? `${project.title ?? 'Project'} · Team`, clientId: project.userId };
   }
 
   // Notify rejected bidders
@@ -665,6 +684,7 @@ router.put('/projects/bids/:bidId/accept', authenticate, async (req: Request, re
       bid: { ...bid, status: 'ACCEPTED' },
       project: { ...project, status: 'IN_PROGRESS' },
       freelancer,
+      teamConversation,
     },
   });
 });

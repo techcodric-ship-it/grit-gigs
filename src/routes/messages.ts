@@ -147,6 +147,41 @@ router.get("/messages/conversations", authenticate, async (req, res): Promise<vo
     convIds.length ? db.select({ conversationId: conversationParticipantsTable.conversationId, userId: conversationParticipantsTable.userId }).from(conversationParticipantsTable).where(inArray(conversationParticipantsTable.conversationId, convIds)) : [],
   ]);
 
+  // For project team chats, resolve the client (project owner) so the squad can
+  // always see who hired them.
+  const projectBidIdByConv = new Map<string, string>();
+  for (const c of conversations) {
+    if (c.isGroup && c.projectBidId) projectBidIdByConv.set(c.id, c.projectBidId);
+  }
+  let projectUserByConvId = new Map<string, { userId: string; user: { id: string; firstName: string; lastName: string | null; profilePhoto: string | null; kycVerified: boolean } | null }>();
+  if (projectBidIdByConv.size) {
+    const projRows = await db
+      .select({ projectId: projectsTable.id, userId: projectsTable.userId, title: projectsTable.title })
+      .from(projectsTable);
+    const clientIdByBid = new Map<string, string>();
+    for (const pr of projRows) clientIdByBid.set(pr.projectId, pr.userId);
+    const bidsRows = await db
+      .select({ id: projectBidsTable.id, projectId: projectBidsTable.projectId })
+      .from(projectBidsTable)
+      .where(inArray(projectBidsTable.id, [...projectBidIdByConv.values()]));
+    const clientIdByProjectBid = new Map<string, string>();
+    for (const b of bidsRows) clientIdByProjectBid.set(b.id, clientIdByBid.get(b.projectId) ?? "");
+    const clientIds = [...new Set(bidsRows.map(b => clientIdByBid.get(b.projectId)).filter(Boolean) as string[])];
+    const clientUsers = clientIds.length
+      ? await db
+          .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, kycVerified: usersTable.kycVerified })
+          .from(usersTable)
+          .where(inArray(usersTable.id, clientIds))
+      : [];
+    const clientUserMap = new Map(clientUsers.map(u => [u.id, u]));
+    projectUserByConvId = new Map(
+      [...projectBidIdByConv.entries()].map(([convId, bidId]) => {
+        const clientId = clientIdByProjectBid.get(bidId) ?? "";
+        return [convId, { userId: clientId, user: clientUserMap.get(clientId) ?? null }] as const;
+      })
+    );
+  }
+
   const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
   const adminId2 = admin?.id ?? "";
   const userMap = new Map(users.map(u => [u.id, u]));
@@ -170,12 +205,15 @@ router.get("/messages/conversations", authenticate, async (req, res): Promise<vo
   const result = conversations.map(c => {
     if (c.isGroup) {
       const members = (participantsByConv.get(c.id) ?? []).map(p => participantUserMap.get(p.userId)).filter(Boolean);
+      const teamProj = c.projectBidId ? projectUserByConvId.get(c.id) ?? null : null;
       return {
         ...c,
         otherUser: null,
         isGroup: true,
         groupName: c.groupName ?? "Circle Chat",
         members,
+        clientId: teamProj ? teamProj.userId : null,
+        client: teamProj ? teamProj.user : null,
         isAdminConv: false,
         lastMessage: lastMsgMap.get(c.id) ?? null,
         unreadCount: unreadMap.get(c.id) ?? 0,
