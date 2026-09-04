@@ -677,7 +677,7 @@ textarea.fi{resize:vertical;}
     <div class="ns">Grit Circle</div>
     <button class="ni" data-p="grit-circle">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>
-      My Circle <span class="stg" id="gritPlanTag" style="display:none">Squad</span>
+      My Circle <span class="stg" id="gritPlanTag" style="display:none">Squad</span><span class="stg" id="gritInviteBadge" style="display:none;background:var(--violet);color:#fff;">Invite</span>
     </button>
     <button class="ni" data-p="squad-squad">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -2506,6 +2506,10 @@ function connectSocket() {
       badge.textContent = current + 1;
       badge.style.display = 'inline';
     }
+    if (notif.type === 'SQUAD_INVITE') {
+      const badge = document.getElementById('gritInviteBadge');
+      if (badge) badge.style.display = 'inline-block';
+    }
   });
 
   // Update unread count from server
@@ -2706,14 +2710,26 @@ async function loadNotifDrawer() {
   const body = document.getElementById('notifDrawerBody');
   body.innerHTML = '<div class="empty"><div class="empty-sub" style="padding:20px;">Loading...</div></div>';
 
-  const [matchRes, selOrderRes, buyOrderRes, convRes] = await Promise.all([
+  const [matchRes, selOrderRes, buyOrderRes, convRes, squadInviteRes] = await Promise.all([
     api('/barter/matches'),
     api('/orders?role=seller'),
     api('/orders?role=buyer'),
     api('/messages/conversations'),
+    api('/squads/mine'),
   ]);
 
   const items = [];
+
+  if (squadInviteRes.success && squadInviteRes.data?.invite) {
+    const inv = squadInviteRes.data.invite;
+    const lead = (inv.squad && inv.squad.leader) || {};
+    items.push({
+      icon: '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>', link: 'grit-circle',
+      title: 'Circle invite',
+      msg: `${lead.firstName || 'Someone'} invited you to join "${inv.squad?.name || 'a circle'}"`,
+      time: inv.createdAt,
+    });
+  }
 
   // Pending match requests sent TO me (action needed)
   if (matchRes.success) {
@@ -6425,11 +6441,13 @@ async function loadOngoingProjects() {
     ...projects.map(p => ({ ...p, _role: 'client' })),
     ...myBids.filter(b => b.project && ['IN_PROGRESS','DELIVERED','REVISION_REQUESTED'].includes(b.project.status)).map(b => ({ ...b.project, _role: 'freelancer', _bid: b })),
   ];
-  if (!allOngoing.length) {
+  const seen = new Set();
+  const deduped = allOngoing.filter(p => { if (seen.has(p.id)) return false; seen.add(p.id); return true; });
+  if (!deduped.length) {
     c.innerHTML = '<div class="empty"><div class="empty-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div><div class="empty-title">No ongoing projects</div><div class="empty-sub">Projects you\'ve accepted or been hired for will appear here.</div></div>';
     return;
   }
-  c.innerHTML = allOngoing.map(p => {
+  c.innerHTML = deduped.map(p => {
     const sc = p.status === 'IN_PROGRESS' ? 'pp' : p.status === 'DELIVERED' ? 'pd' : 'perr';
     const roleLabel = p._role === 'client' ? '<span class="bdg bdg-v" style="font-size:.56rem;">You are the client</span>' : '<span class="bdg bdg-ink" style="font-size:.56rem;">You are the freelancer</span>';
     const budget = p.budgetMin || p.budgetMax ? moneyInr(p.budgetMin) + ' – ' + moneyInr(p.budgetMax) : '';
@@ -7296,6 +7314,8 @@ async function loadGritCircle() {
     const d = await api('/squads/mine', { method: 'GET' });
     _gc = d && d.success ? (d.data || {}) : {};
   } catch (e) { _gc = {}; }
+  const inviteBadge = document.getElementById('gritInviteBadge');
+  if (inviteBadge) inviteBadge.style.display = _gc && _gc.invite ? 'inline-block' : 'none';
   renderGritCircle();
 }
 function gcToggleCreate(show) {
@@ -8296,17 +8316,21 @@ let _notifReady = false; // skip first poll (baseline)
 async function _pollNotifications() {
   if (!gT()) return;
   const u = gU();
-  const [pm, pso, pbo, pc] = await Promise.all([
-    api('/barter/matches'), api('/orders?role=seller'), api('/orders?role=buyer'), api('/messages/conversations'),
+  const [pm, pso, pbo, pc, sq] = await Promise.all([
+    api('/barter/matches'), api('/orders?role=seller'), api('/orders?role=buyer'), api('/messages/conversations'), api('/squads/mine'),
   ]);
+  const hasSquadInvite = !!(sq.success && sq.data && sq.data.invite);
+  const badge = document.getElementById('gritInviteBadge');
+  if (badge) badge.style.display = hasSquadInvite ? 'inline-block' : 'none';
   const cur = {
     pendingMatches: pm.success ? (pm.data.matches||[]).filter(m => m.status==='PENDING' && m.user2Id===u?.id).length : 0,
     pendingOrds:    pso.success ? (pso.data.orders||[]).filter(o => o.status==='PENDING').length : 0,
     deliveredOrds:  pbo.success ? (pbo.data.orders||[]).filter(o => o.status==='DELIVERED').length : 0,
     unreadMsgs:     pc.success ? (pc.data.conversations||[]).filter(c => (c.unreadCount||0) > 0).length : 0,
+    squadInvite:    hasSquadInvite ? 1 : 0,
   };
   // Update bell dot
-  const total = cur.pendingMatches + cur.pendingOrds + cur.deliveredOrds + cur.unreadMsgs;
+  const total = cur.pendingMatches + cur.pendingOrds + cur.deliveredOrds + cur.unreadMsgs + cur.squadInvite;
   document.getElementById('notifDot').style.display = total > 0 ? 'block' : 'none';
 
   if (_notifReady) {

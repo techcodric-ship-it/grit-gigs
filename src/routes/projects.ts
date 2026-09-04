@@ -253,10 +253,17 @@ router.get('/projects/my-bids', authenticate, async (req: Request, res: Response
   const userId = (req as any).user?.id;
   if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
 
+  const bidderIds = [userId];
+  const [userSquad] = await db.select({ squadId: squadMembersTable.squadId }).from(squadMembersTable).innerJoin(squadsTable, eq(squadsTable.id, squadMembersTable.squadId)).where(and(eq(squadMembersTable.userId, userId), eq(squadsTable.isActive, true))).limit(1);
+  if (userSquad?.squadId) {
+    const squadMates = await db.select({ userId: squadMembersTable.userId }).from(squadMembersTable).where(eq(squadMembersTable.squadId, userSquad.squadId));
+    for (const m of squadMates) { if (!bidderIds.includes(m.userId)) bidderIds.push(m.userId); }
+  }
+
   const bids = await db
     .select()
     .from(projectBidsTable)
-    .where(eq(projectBidsTable.userId, userId))
+    .where(inArray(projectBidsTable.userId, bidderIds))
     .orderBy(desc(projectBidsTable.createdAt));
 
   const result = await Promise.all(
@@ -884,7 +891,16 @@ router.post('/projects/:id/mark-complete', authenticate, async (req: Request, re
   if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
   if (!['IN_PROGRESS', 'REVISION_REQUESTED'].includes(project.status)) return res.status(400).json({ success: false, message: 'Project is not in progress' });
   const _ab = project.acceptedBidId ? (await db.select().from(projectBidsTable).where(eq(projectBidsTable.id, project.acceptedBidId)).limit(1))[0] : null;
-  if (!_ab || _ab.userId !== userId) return res.status(403).json({ success: false, message: 'Only the hired freelancer can mark this project as complete' });
+  if (!_ab) return res.status(403).json({ success: false, message: 'No accepted bid found' });
+  let canDeliver = _ab.userId === userId;
+  if (!canDeliver) {
+    const bidderSquad = await db.select({ squadId: squadMembersTable.squadId }).from(squadMembersTable).innerJoin(squadsTable, eq(squadsTable.id, squadMembersTable.squadId)).where(and(eq(squadMembersTable.userId, _ab.userId), eq(squadsTable.isActive, true))).limit(1);
+    if (bidderSquad?.[0]) {
+      const isMember = await db.select({ id: squadMembersTable.id }).from(squadMembersTable).where(and(eq(squadMembersTable.squadId, bidderSquad[0].squadId), eq(squadMembersTable.userId, userId))).limit(1);
+      if (isMember?.[0]) canDeliver = true;
+    }
+  }
+  if (!canDeliver) return res.status(403).json({ success: false, message: 'Only the hired freelancer or their circle members can mark this project as complete' });
 
   // Atomically claim the delivery — only the first request succeeds
   const claimResult = await db.execute(
@@ -933,16 +949,25 @@ router.post('/projects/:id/request-revision', authenticate, async (req: Request,
   }
 
   await db.update(projectsTable).set({ status: 'REVISION_REQUESTED', updatedAt: new Date() }).where(eq(projectsTable.id, project.id));
-  const [bidForNotify] = project.acceptedBidId ? await db.select({ userId: projectBidsTable.userId }).from(projectBidsTable).where(eq(projectBidsTable.id, project.acceptedBidId)).limit(1) : [];
-  await db.insert(notificationsTable).values({
-    userId: bidForNotify?.userId || '',
-    type: 'PROJECT_REVISION_REQUESTED',
-    title: 'Revision requested',
-    message: revisionNote ? `The client requested a revision: ${revisionNote}` : 'The client has requested a revision on the delivered work.',
-    linkUrl: '/dashboard.html#my-projects',
-  });
-  if (bidForNotify?.userId) {
-    const [freelancer] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, bidForNotify.userId)).limit(1);
+  const notifyIds: string[] = [];
+  if (project.acceptedBidId) {
+    const [bidOwner] = await db.select({ userId: projectBidsTable.userId }).from(projectBidsTable).where(eq(projectBidsTable.id, project.acceptedBidId)).limit(1);
+    if (bidOwner?.userId) {
+      const bidderSquad = await db.select({ squadId: squadMembersTable.squadId }).from(squadMembersTable).innerJoin(squadsTable, eq(squadsTable.id, squadMembersTable.squadId)).where(and(eq(squadMembersTable.userId, bidOwner.userId), eq(squadsTable.isActive, true))).limit(1);
+      if (bidderSquad?.[0]) {
+        const members = await db.select({ userId: squadMembersTable.userId }).from(squadMembersTable).where(eq(squadMembersTable.squadId, bidderSquad[0].squadId));
+        notifyIds.push(...members.map(m => m.userId));
+      } else {
+        notifyIds.push(bidOwner.userId);
+      }
+    }
+  }
+  for (const nid of notifyIds) {
+    await db.insert(notificationsTable).values({ userId: nid, type: 'PROJECT_REVISION_REQUESTED', title: 'Revision requested', message: revisionNote ? `The client requested a revision: ${revisionNote}` : 'The client has requested a revision on the delivered work.', linkUrl: '/dashboard.html#my-projects' });
+    try { req.app?.get("io")?.to(`user:${nid}`).emit("notification:new", { type: 'PROJECT_REVISION_REQUESTED', title: 'Revision requested', message: revisionNote || 'Revision requested', linkUrl: '/dashboard.html#my-projects' }); } catch {}
+  }
+  if (notifyIds.length) {
+    const [freelancer] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, notifyIds[0])).limit(1);
     if (freelancer?.email) {
       sendNotificationEmail(freelancer.email, 'Revision requested', revisionNote ? `The client requested a revision: ${revisionNote}` : 'The client has requested a revision on the delivered work.', '/dashboard.html#my-projects').catch(() => {});
     }

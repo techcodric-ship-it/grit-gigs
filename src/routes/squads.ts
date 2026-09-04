@@ -922,10 +922,11 @@ router.post("/squads/join-requests", authenticate, async (req: Request, res: Res
   const [existingMember] = await db
     .select({ id: squadMembersTable.id })
     .from(squadMembersTable)
-    .where(and(eq(squadMembersTable.squadId, squad.id), eq(squadMembersTable.userId, req.user!.id)))
+    .innerJoin(squadsTable, eq(squadsTable.id, squadMembersTable.squadId))
+    .where(and(eq(squadMembersTable.userId, req.user!.id), eq(squadsTable.isActive, true)))
     .limit(1);
   if (existingMember) {
-    res.status(400).json({ success: false, message: "You're already in this circle" });
+    res.status(400).json({ success: false, message: "You're already in a circle. Leave it first to join another." });
     return;
   }
   const [existingRequest] = await db
@@ -1009,6 +1010,16 @@ router.put("/squads/:id/join-requests/:requestId", authenticate, async (req: Req
     .where(eq(squadMembersTable.squadId, squadId));
   if (Number(memberCount?.count ?? 0) >= MAX_SQUAD_MEMBERS) {
     res.status(400).json({ success: false, message: `This circle is full (${MAX_SQUAD_MEMBERS} members max)` });
+    return;
+  }
+  const [alreadyInSquad] = await db
+    .select({ id: squadMembersTable.id })
+    .from(squadMembersTable)
+    .innerJoin(squadsTable, eq(squadsTable.id, squadMembersTable.squadId))
+    .where(and(eq(squadMembersTable.userId, request.userId), eq(squadsTable.isActive, true)))
+    .limit(1);
+  if (alreadyInSquad) {
+    res.status(400).json({ success: false, message: "This person is already in a circle" });
     return;
   }
   await db
