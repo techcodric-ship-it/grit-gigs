@@ -1,8 +1,8 @@
 import type { Server as HttpServer } from "http";
 import { Server as SocketServer } from "socket.io";
 import { verifyAccessToken } from "./auth";
-import { db, usersTable, conversationsTable, messagesTable, notificationsTable } from "../db";
-import { eq, and } from "drizzle-orm";
+import { db, usersTable, conversationsTable, conversationParticipantsTable, messagesTable, notificationsTable } from "../db";
+import { eq, and, ne } from "drizzle-orm";
 import { logger } from "./logger";
 
 export function setupSocket(httpServer: HttpServer): SocketServer {
@@ -52,7 +52,13 @@ export function setupSocket(httpServer: HttpServer): SocketServer {
 
     socket.on("conversation:join", async ({ conversationId }: { conversationId: string }) => {
       const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, conversationId));
-      if (!conv || (conv.user1Id !== userId && conv.user2Id !== userId)) {
+      if (!conv) { socket.emit("error", { message: "Access denied" }); return; }
+      if (conv.isGroup) {
+        const [part] = await db.select({ id: conversationParticipantsTable.id }).from(conversationParticipantsTable)
+          .where(and(eq(conversationParticipantsTable.conversationId, conversationId), eq(conversationParticipantsTable.userId, userId)))
+          .limit(1);
+        if (!part) { socket.emit("error", { message: "Access denied" }); return; }
+      } else if (conv.user1Id !== userId && conv.user2Id !== userId) {
         socket.emit("error", { message: "Access denied" });
         return;
       }
@@ -71,7 +77,13 @@ export function setupSocket(httpServer: HttpServer): SocketServer {
         const censoredText = messageText.trim().replace(contactPattern, "[hidden]");
 
         const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, conversationId));
-        if (!conv || (conv.user1Id !== userId && conv.user2Id !== userId)) return;
+        if (!conv) return;
+        if (conv.isGroup) {
+          const [part] = await db.select({ id: conversationParticipantsTable.id }).from(conversationParticipantsTable)
+            .where(and(eq(conversationParticipantsTable.conversationId, conversationId), eq(conversationParticipantsTable.userId, userId)))
+            .limit(1);
+          if (!part) return;
+        } else if (conv.user1Id !== userId && conv.user2Id !== userId) return;
 
         const [message] = await db
           .insert(messagesTable)
@@ -80,24 +92,49 @@ export function setupSocket(httpServer: HttpServer): SocketServer {
 
         await db.update(conversationsTable).set({ lastMessageAt: new Date() }).where(eq(conversationsTable.id, conversationId));
 
-        const recipientId = conv.user1Id === userId ? conv.user2Id : conv.user1Id;
-        await db.insert(notificationsTable).values({
-          userId: recipientId,
-          type: "NEW_MESSAGE",
-          title: `New message from ${sockWithUser.user.firstName}`,
-          message: censoredText.slice(0, 80),
-          linkUrl: "/dashboard#inbox",
-        });
+        const recipientId = conv.isGroup ? null : (conv.user1Id === userId ? conv.user2Id : conv.user1Id);
+        if (conv.isGroup) {
+          const otherParts = await db
+            .select({ userId: conversationParticipantsTable.userId })
+            .from(conversationParticipantsTable)
+            .where(and(eq(conversationParticipantsTable.conversationId, conversationId), ne(conversationParticipantsTable.userId, userId)));
+          if (otherParts.length) {
+            await db.insert(notificationsTable).values(otherParts.map(p => ({
+              userId: p.userId,
+              type: "NEW_MESSAGE",
+              title: `${sockWithUser.user.firstName} in ${conv.groupName ?? "Circle"}`,
+              message: censoredText.slice(0, 80),
+              linkUrl: "/dashboard#inbox",
+            })));
+          }
+        } else if (recipientId) {
+          await db.insert(notificationsTable).values({
+            userId: recipientId,
+            type: "NEW_MESSAGE",
+            title: `New message from ${sockWithUser.user.firstName}`,
+            message: censoredText.slice(0, 80),
+            linkUrl: "/dashboard#inbox",
+          });
+        }
 
         const [sender] = await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
         if (sender) {
           io.to(`conv:${conversationId}`).emit("message:new", { ...message, sender });
-          io.to(`user:${recipientId}`).emit("notification:new", {
-            type: "NEW_MESSAGE",
-            title: sockWithUser.user.firstName,
-            message: censoredText.slice(0, 60),
-            conversationId,
-          });
+          if (conv.isGroup) {
+            io.to(`conv:${conversationId}`).emit("notification:new", {
+              type: "NEW_MESSAGE",
+              title: `${sockWithUser.user.firstName} in ${conv.groupName ?? "Circle"}`,
+              message: censoredText.slice(0, 60),
+              conversationId,
+            });
+          } else if (recipientId) {
+            io.to(`user:${recipientId}`).emit("notification:new", {
+              type: "NEW_MESSAGE",
+              title: sockWithUser.user.firstName,
+              message: censoredText.slice(0, 60),
+              conversationId,
+            });
+          }
         }
       } catch (err) {
         logger.error({ err, conversationId }, "Socket message:send error");
