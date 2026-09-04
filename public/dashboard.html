@@ -7142,7 +7142,6 @@ async function openSquadOrderChat(orderId) {
   const list = await api('/messages/conversations').catch(() => null);
   const convs = list?.data?.conversations || [];
   let conv = convs.find(c => String(c.squadOrderId) === String(orderId));
-  if (!conv) conv = convs.find(c => String(c.orderId) === String(orderId));
   if (!conv) { showToast('Order chat not found', 'err'); return; }
   document.querySelectorAll('.mo.open').forEach(m => { m.remove(); });
   document.body.style.overflow = '';
@@ -8014,7 +8013,7 @@ function renderSmServices(list) {
         </div>
         <div class="gig-footer" style="align-items:center;">
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="btn bp btn-xs" onclick="ssOrder('${esc(s.id)}','${esc(s.title).replace(/'/g,"\\'")}')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><rect x="1" y="6" width="22" height="13" rx="1"/><path d="M1 10h22M8 6l2-3h4l2 3"/></svg> Buy</button>
+            ${s.isOwnSquad ? '<span class="bdg bdg-v" style="font-size:.6rem;">Own circle</span>' : `<button class="btn bp btn-xs" onclick="ssOrder('${esc(s.id)}','${esc(s.title).replace(/'/g,"\\'")}')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><rect x="1" y="6" width="22" height="13" rx="1"/><path d="M1 10h22M8 6l2-3h4l2 3"/></svg> Buy</button>`}
             <button class="btn bs btn-xs" onclick="msgProjectUser('${esc(s.leader ? s.leader.id : '')}')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Message</button>
           </div>
           <div class="gig-price">₹${Number(s.priceInr || 0).toLocaleString('en-IN')}<span class="gig-price-sub"> ${s.deliveryDays || 7}d · ${s.revisions === 0 ? 'no rev' : ((s.revisions !== undefined ? s.revisions : 2) + ' rev')}</span></div>
@@ -8109,13 +8108,12 @@ function renderSquadOrders(list) {
     const [col,bg] = st[o.status] || ['#6B7280','rgba(107,114,128,.1)'];
     const buyerName = o.buyer ? ((o.buyer.firstName||'')+' '+(o.buyer.lastName||'')).trim() || 'Client' : 'Client';
     const canDeliver = o.canAct && ['ACCEPTED','IN_PROGRESS','REVISION_REQUESTED'].includes(o.status);
-    const delivered = !!o.deliveries && o.deliveries.length;
-    const revUsed = (o.deliveries && o.deliveries.length) || 0;
+    const revUsed = Math.max(0, ((o.deliveries && o.deliveries.length) || 0) - 1);
     let actions = '';
     if (o.canAct && o.status === 'PENDING') actions = `<button class="btn bp btn-xs" onclick="soAction('${o.id}','accept')">Accept</button><button class="btn bs btn-xs" style="color:var(--err);" onclick="soAction('${o.id}','cancel')">Cancel</button>`;
     else if (canDeliver) actions = `<button class="btn bp btn-xs" onclick="soAction('${o.id}','deliver')">Submit work</button>`;
-    else if (o.buyerId === me && o.status === 'DELIVERED') actions = `<button class="btn bp btn-xs" onclick="soAction('${o.id}','complete')">Accept & release</button><button class="btn bs btn-xs" onclick="soAction('${o.id}','revision')">Request revision</button>`;
-    else if (o.buyerId === me && o.status === 'PENDING') actions = `<button class="btn bs btn-xs" style="color:var(--err);" onclick="soAction('${o.id}','cancel')">Cancel</button>`;
+    else if (o.buyerId === me && o.status === 'DELIVERED') actions = `<button class="btn bp btn-xs" onclick="soAction('${o.id}','complete')">Accept & release</button><button class="btn bs btn-xs" onclick="soAction('${o.id}','revision')">Request revision</button><button class="btn bs btn-xs" style="color:var(--err);" onclick="soAction('${o.id}','cancel')">Cancel</button>`;
+    else if (o.buyerId === me && ['PENDING','ACCEPTED','IN_PROGRESS','REVISION_REQUESTED'].includes(o.status)) actions = `<button class="btn bs btn-xs" style="color:var(--err);" onclick="soAction('${o.id}','cancel')">Cancel</button>`;
     return `<div class="card" style="padding:16px;margin-bottom:12px;">
       <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;">
         <div style="flex:1;min-width:220px;">

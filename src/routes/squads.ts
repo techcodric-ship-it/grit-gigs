@@ -696,7 +696,7 @@ function serviceJson(s: typeof squadServicesTable.$inferSelect) {
 }
 
 // Public feed of ACTIVE squad services
-router.get("/squads/services", optionalAuth, async (_req: Request, res: Response): Promise<void> => {
+router.get("/squads/services", optionalAuth, async (req: Request, res: Response): Promise<void> => {
   const rows = await db
     .select({
       service: squadServicesTable,
@@ -710,6 +710,14 @@ router.get("/squads/services", optionalAuth, async (_req: Request, res: Response
     .where(and(eq(squadServicesTable.status, "ACTIVE"), eq(squadsTable.isActive, true)))
     .orderBy(desc(squadServicesTable.createdAt))
     .limit(80);
+  const mySquadIds = new Set<string>();
+  if (req.user?.id) {
+    const my = await db
+      .select({ squadId: squadMembersTable.squadId })
+      .from(squadMembersTable)
+      .where(eq(squadMembersTable.userId, req.user.id));
+    for (const m of my) mySquadIds.add(m.squadId);
+  }
   res.json({
     success: true,
     data: rows.map((r) => ({
@@ -717,6 +725,7 @@ router.get("/squads/services", optionalAuth, async (_req: Request, res: Response
       squadName: r.squad.name,
       squadAvatar: r.squad.avatar ?? null,
       squadMemberCount: Number(r.memberCount),
+      isOwnSquad: mySquadIds.has(r.squad.id),
       leader: r.leader ? { id: r.leader.id, firstName: r.leader.firstName, lastName: r.leader.lastName ?? "", profilePhoto: r.leader.profilePhoto ?? null } : null,
     })),
   });
@@ -1393,20 +1402,34 @@ router.put("/squad-orders/:id/complete", authenticate, async (req: Request, res:
   const commission = Math.round(order.priceInr * commissionPct / 100);
   const netAmount = order.priceInr - commission;
 
+  const memberRows = await db
+    .select({ userId: squadMembersTable.userId })
+    .from(squadMembersTable)
+    .where(eq(squadMembersTable.squadId, order.squadId));
+  const memberIds = memberRows.map((m) => m.userId);
+  if (memberIds.length === 0) memberIds.push(sellerId);
+  const share = memberIds.length ? Math.floor(netAmount / memberIds.length) : 0;
+  const remainder = memberIds.length ? netAmount - share * memberIds.length : 0;
+
   try {
     await db.transaction(async (tx) => {
       const deductResult = await tx.execute(
         sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${order.priceInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${order.buyerId} AND balance >= ${order.priceInr}`
       );
       if (deductResult.rowCount === 0) throw new Error("Insufficient funds");
-      const creditResult = await tx.execute(
-        sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${netAmount}, total_earned = COALESCE(total_earned, 0) + ${netAmount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${sellerId}`
-      );
-      if (creditResult.rowCount === 0) {
-        await tx.insert(freelanceWalletsTable).values({ userId: sellerId, balance: netAmount, totalEarned: netAmount, updatedAt: new Date() });
-      }
       await tx.insert(transactionsTable).values({ userId: order.buyerId, type: "SERVICE_PAYMENT", amount: order.priceInr, description: `Payment for squad order #${order.id.slice(-8)}`, status: "COMPLETED" });
-      await tx.insert(transactionsTable).values({ userId: sellerId, type: "SERVICE_EARNING", amount: netAmount, description: `Payment received for squad order #${order.id.slice(-8)}`, status: "COMPLETED" });
+      for (let i = 0; i < memberIds.length; i++) {
+        const mid = memberIds[i];
+        const amt = i === memberIds.length - 1 ? share + remainder : share;
+        if (amt <= 0) continue;
+        const creditResult = await tx.execute(
+          sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${amt}, total_earned = COALESCE(total_earned, 0) + ${amt}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${mid}`
+        );
+        if (creditResult.rowCount === 0) {
+          await tx.insert(freelanceWalletsTable).values({ userId: mid, balance: amt, totalEarned: amt, updatedAt: new Date() });
+        }
+        await tx.insert(transactionsTable).values({ userId: mid, type: "SERVICE_EARNING", amount: amt, description: `Your share of squad order #${order.id.slice(-8)}`, status: "COMPLETED" });
+      }
       if (commission > 0) {
         await tx.insert(transactionsTable).values({ userId: sellerId, type: "COMMISSION", amount: commission, description: `Platform commission (${commissionPct}%) on squad order #${order.id.slice(-8)}`, status: "COMPLETED" });
       }
@@ -1422,9 +1445,13 @@ router.put("/squad-orders/:id/complete", authenticate, async (req: Request, res:
   }
 
   await db.insert(notificationsTable).values({ userId: order.buyerId, type: "PAYMENT_SENT", title: "Payment sent", message: `₹${order.priceInr} deducted from your wallet for squad order #${order.id.slice(-8)}`, linkUrl: "/dashboard#squad-orders" });
-  await db.insert(notificationsTable).values({ userId: sellerId, type: "ORDER_COMPLETED", title: "Order completed!", message: `You received ₹${netAmount} for squad order #${order.id.slice(-8)} (${commissionPct}% commission: ₹${commission}).`, linkUrl: "/dashboard#squad-orders" });
+  for (let i = 0; i < memberIds.length; i++) {
+    const amt = i === memberIds.length - 1 ? share + remainder : share;
+    if (amt <= 0) continue;
+    await db.insert(notificationsTable).values({ userId: memberIds[i], type: "ORDER_COMPLETED", title: "Order completed!", message: `You received ₹${amt} as your share for squad order #${order.id.slice(-8)} (${commissionPct}% commission: ₹${commission}).`, linkUrl: "/dashboard#squad-orders" });
+  }
 
-  res.json({ success: true, message: `Order completed! Your circle receives ₹${netAmount} (${commissionPct}% commission: ₹${commission}).` });
+  res.json({ success: true, message: `Order completed! ₹${netAmount} split between ${memberIds.length} team member${memberIds.length === 1 ? '' : 's'} (${commissionPct}% commission: ₹${commission}).` });
 });
 
 // Cancel a squad order (buyer or squad member)
