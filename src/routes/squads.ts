@@ -1067,7 +1067,7 @@ async function squadOrderConversationId(order: typeof squadOrdersTable.$inferSel
   let [gconv] = await db
     .select()
     .from(conversationsTable)
-    .where(and(eq(conversationsTable.orderId, order.id), sql`${conversationsTable.isGroup} = TRUE`))
+    .where(and(eq(conversationsTable.squadOrderId, order.id), sql`${conversationsTable.isGroup} = TRUE`))
     .limit(1);
   if (gconv) return gconv.id;
 
@@ -1087,7 +1087,7 @@ async function squadOrderConversationId(order: typeof squadOrdersTable.$inferSel
       isGroup: true,
       groupName: `${service?.title ?? "Squad Order"} · Order`,
       groupId: order.squadId,
-      orderId: order.id,
+      squadOrderId: order.id,
       lastMessageAt: new Date(),
     })
     .returning();

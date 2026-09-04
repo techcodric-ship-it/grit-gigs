@@ -4089,7 +4089,7 @@ function convCategory(conv) {
   if (conv.isGroup && conv.projectBidId) return 'FREELANCE';
   if (conv.isGroup) return 'CIRCLE';
   if (conv.matchId) return 'SKILL';
-  if (conv.orderId || conv.projectBidId) return 'FREELANCE';
+  if (conv.orderId || conv.squadOrderId || conv.projectBidId) return 'FREELANCE';
   return 'OTHER';
 }
 function convFilter(tab) {
@@ -4128,7 +4128,7 @@ function renderConvList() {
     const unread = conv.unreadCount > 0;
     const sourceLabel = conv.matchId
       ? `<span style="color:var(--violet);font-weight:600;font-size:.6rem;text-transform:uppercase;letter-spacing:.04em;">Skill Exchange</span>`
-      : (conv.orderId || conv.projectBidId)
+      : (conv.orderId || conv.squadOrderId || conv.projectBidId)
         ? `<span style="color:var(--gold);font-weight:600;font-size:.6rem;text-transform:uppercase;letter-spacing:.04em;">Freelance</span>`
         : '';
     const _isAdmin = conv.isAdminConv;
@@ -4152,7 +4152,7 @@ function renderConvList() {
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:5px;">
             <span style="font-weight:${unread ? '700' : '500'};font-size:.82rem;color:var(--violet);">${esc(grpName)}</span>
-            <span style="font-size:.58rem;font-weight:700;${conv.projectBidId ? 'color:var(--gold);background:rgba(217,119,6,.14);' : 'color:var(--violet);background:var(--vl);'}padding:1px 6px;border-radius:4px;letter-spacing:.03em;line-height:1.4;">${conv.projectBidId ? 'SQUAD TEAM' : 'CIRCLE'}</span>
+            <span style="font-size:.58rem;font-weight:700;${conv.projectBidId ? 'color:var(--gold);background:rgba(217,119,6,.14);' : (conv.squadOrderId ? 'color:var(--violet);background:var(--vl);' : 'color:var(--violet);background:var(--vl);')}padding:1px 6px;border-radius:4px;letter-spacing:.03em;line-height:1.4;">${conv.projectBidId ? 'SQUAD TEAM' : (conv.squadOrderId ? 'ORDER' : 'CIRCLE')}</span>
           </div>
           <div style="display:flex;align-items:center;gap:3px;margin-top:3px;">
             ${grpMembersList.map(convMemberChip).join('')}
@@ -7141,11 +7141,12 @@ async function msgUser(otherUserId) {
 async function openSquadOrderChat(orderId) {
   const list = await api('/messages/conversations').catch(() => null);
   const convs = list?.data?.conversations || [];
-  const conv = convs.find(c => String(c.orderId) === String(orderId));
+  let conv = convs.find(c => String(c.squadOrderId) === String(orderId));
+  if (!conv) conv = convs.find(c => String(c.orderId) === String(orderId));
   if (!conv) { showToast('Order chat not found', 'err'); return; }
   document.querySelectorAll('.mo.open').forEach(m => { m.remove(); });
   document.body.style.overflow = '';
-  _convCtx[conv.id] = { matchId: null, orderId: conv.orderId || null, projectBidId: null };
+  _convCtx[conv.id] = { matchId: null, orderId: null, projectBidId: null };
   await loadInbox();
   showPage('inbox');
   openConv(conv.id, esc(conv.groupName || ''), 'GC', '', null, false, '', true);

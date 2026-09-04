@@ -800,6 +800,7 @@ app.set("io", io);
       await col(`ALTER TABLE project_bids ADD COLUMN IF NOT EXISTS revisions INTEGER DEFAULT 2 NOT NULL`);
       await col(`ALTER TABLE squad_orders ADD COLUMN IF NOT EXISTS revisions INTEGER DEFAULT 2 NOT NULL`);
       await col(`ALTER TABLE squad_order_deliveries ADD COLUMN IF NOT EXISTS revision_number INTEGER DEFAULT 0 NOT NULL`);
+      await col(`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS squad_order_id UUID REFERENCES squad_orders(id) ON DELETE CASCADE`);
       await col(`
 DO $mig$
 BEGIN
@@ -847,6 +848,40 @@ $mig$
           END LOOP;
         END
         $gchat$
+      `);
+
+      // ── Backfill a buyer+squad conversation for every existing squad order ──
+      await col(`CREATE UNIQUE INDEX IF NOT EXISTS idx_conversations_squad_order ON conversations(squad_order_id) WHERE squad_order_id IS NOT NULL`);
+      await col(`
+        DO $sorder$
+        DECLARE
+          o RECORD;
+          gid UUID;
+        BEGIN
+          FOR o IN
+            SELECT so.id, so.squad_id, so.buyer_id, so.service_id
+            FROM squad_orders so
+            WHERE NOT EXISTS (
+              SELECT 1 FROM conversations c WHERE c.squad_order_id = so.id
+            )
+            AND so.status NOT IN ('CANCELLED')
+          LOOP
+            INSERT INTO conversations (user1_id, user2_id, is_group, group_name, group_id, squad_order_id, last_message_at)
+            VALUES (
+              o.buyer_id, o.buyer_id, TRUE,
+              COALESCE((SELECT title FROM squad_services WHERE id = o.service_id), 'Squad Order') || ' · Order',
+              o.squad_id, o.id, NOW()
+            )
+            RETURNING id INTO gid;
+            INSERT INTO conversation_participants (conversation_id, user_id, joined_at)
+            SELECT gid, user_id, NOW() FROM squad_members WHERE squad_id = o.squad_id
+              AND NOT EXISTS (SELECT 1 FROM conversation_participants cp WHERE cp.conversation_id = gid AND cp.user_id = squad_members.user_id);
+            INSERT INTO conversation_participants (conversation_id, user_id, joined_at)
+            SELECT gid, o.buyer_id, NOW()
+              WHERE NOT EXISTS (SELECT 1 FROM conversation_participants cp WHERE cp.conversation_id = gid AND cp.user_id = o.buyer_id);
+          END LOOP;
+        END
+        $sorder$
       `);
 
       // ── Service images column (Drizzle uses `images` not `thumbnail`/`gallery`) ──

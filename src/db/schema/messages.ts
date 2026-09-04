@@ -11,6 +11,7 @@ import { ordersTable } from "./orders";
 import { barterMatchesTable } from "./barter";
 import { projectBidsTable } from "./projects";
 import { squadsTable } from "./squads";
+import { squadOrdersTable } from "./squads";
 
 export const conversationsTable = pgTable("conversations", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -24,6 +25,7 @@ export const conversationsTable = pgTable("conversations", {
   groupName: text("group_name"),
   groupId: uuid("group_id").references(() => squadsTable.id, { onDelete: "cascade" }),
   orderId: uuid("order_id").unique().references(() => ordersTable.id),
+  squadOrderId: uuid("squad_order_id").unique().references(() => squadOrdersTable.id, { onDelete: "cascade" }),
   matchId: uuid("match_id").unique().references(() => barterMatchesTable.id),
   projectBidId: uuid("project_bid_id").references(() => projectBidsTable.id),
   lastMessageAt: timestamp("last_message_at"),
