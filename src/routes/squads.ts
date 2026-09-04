@@ -1406,10 +1406,16 @@ router.put("/squad-orders/:id/complete", authenticate, async (req: Request, res:
     .select({ userId: squadMembersTable.userId })
     .from(squadMembersTable)
     .where(eq(squadMembersTable.squadId, order.squadId));
-  const memberIds = memberRows.map((m) => m.userId);
-  if (memberIds.length === 0) memberIds.push(sellerId);
-  const share = memberIds.length ? Math.floor(netAmount / memberIds.length) : 0;
-  const remainder = memberIds.length ? netAmount - share * memberIds.length : 0;
+  const splitMembers = memberRows.length
+    ? memberRows.map((m) => m.userId)
+    : [sellerId];
+  const perShare = Math.floor(netAmount / splitMembers.length);
+  let rem = netAmount - perShare * splitMembers.length;
+  const creditRecipients = splitMembers.map((userId) => {
+    const amount = perShare + (rem > 0 ? 1 : 0);
+    if (rem > 0) rem--;
+    return { userId, amount };
+  });
 
   try {
     await db.transaction(async (tx) => {
@@ -1418,17 +1424,14 @@ router.put("/squad-orders/:id/complete", authenticate, async (req: Request, res:
       );
       if (deductResult.rowCount === 0) throw new Error("Insufficient funds");
       await tx.insert(transactionsTable).values({ userId: order.buyerId, type: "SERVICE_PAYMENT", amount: order.priceInr, description: `Payment for squad order #${order.id.slice(-8)}`, status: "COMPLETED" });
-      for (let i = 0; i < memberIds.length; i++) {
-        const mid = memberIds[i];
-        const amt = i === memberIds.length - 1 ? share + remainder : share;
-        if (amt <= 0) continue;
+      for (const rc of creditRecipients) {
         const creditResult = await tx.execute(
-          sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${amt}, total_earned = COALESCE(total_earned, 0) + ${amt}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${mid}`
+          sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${rc.amount}, total_earned = COALESCE(total_earned, 0) + ${rc.amount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${rc.userId}`
         );
         if (creditResult.rowCount === 0) {
-          await tx.insert(freelanceWalletsTable).values({ userId: mid, balance: amt, totalEarned: amt, updatedAt: new Date() });
+          await tx.insert(freelanceWalletsTable).values({ userId: rc.userId, balance: rc.amount, totalEarned: rc.amount, updatedAt: new Date() });
         }
-        await tx.insert(transactionsTable).values({ userId: mid, type: "SERVICE_EARNING", amount: amt, description: `Your share of squad order #${order.id.slice(-8)}`, status: "COMPLETED" });
+        await tx.insert(transactionsTable).values({ userId: rc.userId, type: "SERVICE_EARNING", amount: rc.amount, description: `Your equal share of squad order #${order.id.slice(-8)} (split across ${creditRecipients.length} team members)`, status: "COMPLETED" });
       }
       if (commission > 0) {
         await tx.insert(transactionsTable).values({ userId: sellerId, type: "COMMISSION", amount: commission, description: `Platform commission (${commissionPct}%) on squad order #${order.id.slice(-8)}`, status: "COMPLETED" });
@@ -1445,13 +1448,11 @@ router.put("/squad-orders/:id/complete", authenticate, async (req: Request, res:
   }
 
   await db.insert(notificationsTable).values({ userId: order.buyerId, type: "PAYMENT_SENT", title: "Payment sent", message: `₹${order.priceInr} deducted from your wallet for squad order #${order.id.slice(-8)}`, linkUrl: "/dashboard#squad-orders" });
-  for (let i = 0; i < memberIds.length; i++) {
-    const amt = i === memberIds.length - 1 ? share + remainder : share;
-    if (amt <= 0) continue;
-    await db.insert(notificationsTable).values({ userId: memberIds[i], type: "ORDER_COMPLETED", title: "Order completed!", message: `You received ₹${amt} as your share for squad order #${order.id.slice(-8)} (${commissionPct}% commission: ₹${commission}).`, linkUrl: "/dashboard#squad-orders" });
+  for (const rc of creditRecipients) {
+    await db.insert(notificationsTable).values({ userId: rc.userId, type: "ORDER_COMPLETED", title: "Order completed!", message: `You received ₹${rc.amount} as your share for squad order #${order.id.slice(-8)} (${creditRecipients.length} team member${creditRecipients.length === 1 ? '' : 's'}, ${commissionPct}% commission: ₹${commission}).`, linkUrl: "/dashboard#squad-orders" });
   }
 
-  res.json({ success: true, message: `Order completed! ₹${netAmount} split between ${memberIds.length} team member${memberIds.length === 1 ? '' : 's'} (${commissionPct}% commission: ₹${commission}).` });
+  res.json({ success: true, message: `Order completed! ₹${netAmount} split equally across ${creditRecipients.length} team member${creditRecipients.length === 1 ? '' : 's'} (${commissionPct}% commission: ₹${commission}).` });
 });
 
 // Cancel a squad order (buyer or squad member)
