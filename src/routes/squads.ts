@@ -9,6 +9,8 @@ import {
   squadInvitesTable,
   squadServicesTable,
   squadJoinRequestsTable,
+  conversationsTable,
+  conversationParticipantsTable,
 } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { sendNotificationEmail } from "../lib/email";
@@ -67,6 +69,42 @@ function memberJson(user: { id: string; firstName: string; lastName?: string | n
     role,
     joinedAt: createdAt,
   };
+}
+
+// Ensure a member is part of the circle's group chat so messages land in the
+// same conversation as the rest of the team. Creates the group chat on demand.
+async function ensureSquadGroupParticipant(squadId: string, userId: string, app?: unknown) {
+  let [gconv] = await db
+    .select()
+    .from(conversationsTable)
+    .where(and(eq(conversationsTable.groupId, squadId), sql`${conversationsTable.isGroup} = TRUE`))
+    .limit(1);
+  if (!gconv) {
+    const [squadRow] = await db.select().from(squadsTable).where(eq(squadsTable.id, squadId)).limit(1);
+    const [created] = await db
+      .insert(conversationsTable)
+      .values({
+        user1Id: userId,
+        user2Id: userId,
+        isGroup: true,
+        groupName: squadRow?.name ?? "Circle Chat",
+        groupId: squadId,
+        lastMessageAt: new Date(),
+      })
+      .returning();
+    gconv = created;
+  }
+  const [already] = await db
+    .select({ id: conversationParticipantsTable.id })
+    .from(conversationParticipantsTable)
+    .where(and(eq(conversationParticipantsTable.conversationId, gconv.id), eq(conversationParticipantsTable.userId, userId)))
+    .limit(1);
+  if (!already) {
+    await db.insert(conversationParticipantsTable).values({ conversationId: gconv.id, userId });
+  }
+  try {
+    (app as any)?.get?.("io")?.to(`conv:${gconv!.id}`).emit("group:updated", { conversationId: gconv!.id });
+  } catch {}
 }
 
 // ── Create a Grit Circle ───────────────────────────────────────────────
@@ -514,6 +552,7 @@ router.put("/squads/invites/:inviteId", authenticate, async (req: Request, res: 
       return;
     }
     await db.insert(squadMembersTable).values({ squadId: invite.squad.id, userId: req.user!.id, role: "MEMBER" });
+    await ensureSquadGroupParticipant(invite.squad.id, req.user!.id, req.app);
   }
 
   await db
@@ -934,6 +973,7 @@ router.put("/squads/:id/join-requests/:requestId", authenticate, async (req: Req
     .insert(squadMembersTable)
     .values({ squadId, userId: request.userId, role: "MEMBER" })
     .onConflictDoNothing({ target: [squadMembersTable.squadId, squadMembersTable.userId] });
+  await ensureSquadGroupParticipant(squadId, request.userId, req.app);
   await db.update(squadJoinRequestsTable).set({ status: "ACCEPTED", respondedAt: new Date() }).where(eq(squadJoinRequestsTable.id, requestId));
   const [userRow] = await db.select().from(usersTable).where(eq(usersTable.id, request.userId)).limit(1);
   if (!userRow) {

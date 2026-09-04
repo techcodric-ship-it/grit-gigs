@@ -789,6 +789,34 @@ END
 $mig$
       `);
 
+      // ── Ensure every squad member is in the squad's group chat ────────────
+      await col(`
+        DO $gchat$
+        DECLARE
+          s RECORD;
+          starter UUID;
+          gid UUID;
+        BEGIN
+          FOR s IN SELECT DISTINCT squad_id FROM squad_members LOOP
+            SELECT leader_id INTO starter FROM squads WHERE id = s.squad_id;
+            IF starter IS NULL THEN
+              SELECT user_id INTO starter FROM squad_members WHERE squad_id = s.squad_id LIMIT 1;
+            END IF;
+            IF starter IS NULL THEN CONTINUE; END IF;
+            SELECT id INTO gid FROM conversations WHERE group_id = s.squad_id AND is_group = TRUE LIMIT 1;
+            IF gid IS NULL THEN
+              INSERT INTO conversations (user1_id, user2_id, is_group, group_name, group_id, last_message_at)
+              VALUES (starter, starter, TRUE, (SELECT name FROM squads WHERE id = s.squad_id), s.squad_id, NOW())
+              RETURNING id INTO gid;
+            END IF;
+            INSERT INTO conversation_participants (conversation_id, user_id, joined_at)
+            SELECT gid, user_id, NOW() FROM squad_members WHERE squad_id = s.squad_id
+              AND NOT EXISTS (SELECT 1 FROM conversation_participants cp WHERE cp.conversation_id = gid AND cp.user_id = squad_members.user_id);
+          END LOOP;
+        END
+        $gchat$
+      `);
+
       // ── Service images column (Drizzle uses `images` not `thumbnail`/`gallery`) ──
       await col(`ALTER TABLE services ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT '{}' NOT NULL`);
       // ── Service packages columns (Drizzle uses `package_type`, `price_inr`, `revisions`) ──
