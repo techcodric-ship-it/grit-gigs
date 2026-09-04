@@ -11,9 +11,11 @@ import {
   squadJoinRequestsTable,
   conversationsTable,
   conversationParticipantsTable,
+  userSubscriptionsTable,
 } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { sendNotificationEmail } from "../lib/email";
+import { getActivePlanForUser, getOrCreateSubscription, consumeGigCreation } from "../lib/subscriptions";
 import { uploadToSupabase } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
 import multer from "multer";
@@ -743,19 +745,50 @@ router.post("/squads/:id/services", authenticate, async (req: Request, res: Resp
     return;
   }
 
-  const [service] = await db
-    .insert(squadServicesTable)
-    .values({
-      squadId,
-      title: String(title).trim().slice(0, 120),
-      description: String(description).trim().slice(0, 2000),
-      category: category ? String(category).trim().slice(0, 60) : null,
-      coverImage: coverImage ? String(coverImage).trim().slice(0, 500) : null,
-      priceInr: Math.max(1, Math.round(price)),
-      deliveryDays: Math.max(1, Math.min(90, Number(deliveryDays) || 7)),
-      skills: normalizeSkills(skills),
-    })
-    .returning();
+  // Squad service publishing consumes the same monthly gig allowance as
+  // posting an individual service.
+  const plan = await getActivePlanForUser(req.user!.id);
+  const gigAllowed = await consumeGigCreation(req.user!.id, plan.maxActiveGigs);
+  if (!gigAllowed) {
+    res.status(403).json({
+      success: false,
+      message: `Your ${plan.name} plan allows ${plan.maxActiveGigs} gig${plan.maxActiveGigs === 1 ? '' : 's'} per month and this month's quota is used up. It resets every 30 days, or upgrade your plan to get more.`,
+      _planLimitExceeded: true,
+    });
+    return;
+  }
+
+  let service: typeof squadServicesTable.$inferSelect;
+  try {
+    const [created] = await db
+      .insert(squadServicesTable)
+      .values({
+        squadId,
+        title: String(title).trim().slice(0, 120),
+        description: String(description).trim().slice(0, 2000),
+        category: category ? String(category).trim().slice(0, 60) : null,
+        coverImage: coverImage ? String(coverImage).trim().slice(0, 500) : null,
+        priceInr: Math.max(1, Math.round(price)),
+        deliveryDays: Math.max(1, Math.min(90, Number(deliveryDays) || 7)),
+        skills: normalizeSkills(skills),
+      })
+      .returning();
+    service = created;
+  } catch (err) {
+    // Give the gig-creation slot back if the insert failed, so a failed
+    // request doesn't waste the user's monthly quota.
+    try {
+      const sub = await getOrCreateSubscription(req.user!.id);
+      if (sub.gigsCreatedThisCycle > 0) {
+        await db.execute(
+          sql`UPDATE ${userSubscriptionsTable} SET gigs_created_this_cycle = GREATEST(gigs_created_this_cycle - 1, 0), updated_at = NOW() WHERE ${userSubscriptionsTable}.id = ${sub.id}`
+        );
+      }
+    } catch {}
+    console.error("Error creating squad service:", err);
+    res.status(500).json({ success: false, message: "Failed to create squad service. Please try again." });
+    return;
+  }
 
   res.status(201).json({ success: true, message: "Squad service published", data: { service: serviceJson(service) } });
 });
