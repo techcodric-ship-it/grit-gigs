@@ -4168,6 +4168,8 @@ function renderConvList() {
 async function openConv(convId, name, ini, _photoEnc, userId, kycVerified, planBadgeVal, isGroup) { const photo = _photoEnc ? decodeURIComponent(_photoEnc) : '';
   // }
   activeCovId = convId;
+  const _gcEmp = (window._lastConvList || []).find(c => c.id === convId);
+  window._activeConvIsGroup = !!(isGroup || _gcEmp?.isGroup);
 
   // Derive user info from loaded conversations list if not provided
   if (!userId || !name) {
@@ -4509,8 +4511,26 @@ function renderMsg(m, myId) {
   const allAtts = [...(m.attachments || []), ...storedAtts];
   const attachHtml = renderMsgAttachments(allAtts, mine);
   const hasText = displayText && displayText !== '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-11.9 0L4 6.5A3 3 0 0 1 8 2.5l5.5 5.5"/></svg> Attachment';
-  return `<div data-sender-id="${m.senderId}" style="display:flex;justify-content:${mine ? 'flex-end' : 'flex-start'};">
-    <div style="max-width:70%;padding:9px 13px;border-radius:${mine ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};background:${mine ? 'var(--violet)' : 'var(--bg2)'};color:${mine ? 'white' : 'var(--ink)'};font-size:.82rem;line-height:1.5;">
+  const isGroup = !!window._activeConvIsGroup;
+  const sender = m.sender;
+  const senderName = (!sender || sender.id === myId) ? '' : (((sender.firstName || '') + ' ' + (sender.lastName || '')).trim()) || 'Member';
+  const senderPhoto = (!sender || sender.id === myId) ? '' : (sender.profilePhoto || '');
+  const senderIni = (!sender || sender.id === myId) ? '' : ((senderName.split(/\s+/).map(function(w){return w[0]}).join('').slice(0,2) || '?').toUpperCase());
+  const showSender = isGroup && !mine && sender && sender.id !== myId;
+  const senderChip = showSender ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+    <span onclick="event.stopPropagation();openUserProfile('${esc(sender.id)}')" title="${esc(senderName)} · View profile" style="cursor:pointer;flex-shrink:0;">
+      ${senderPhoto ? `<img src="${esc(senderPhoto)}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;border:1px solid var(--bd);" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="av" style="display:none;width:20px;height:20px;font-size:7px;">${senderIni}</div>` : `<div class="av" style="width:20px;height:20px;font-size:7px;background:var(--vl);color:var(--violet);">${senderIni}</div>`}
+    </span>
+    <span onclick="event.stopPropagation();openUserProfile('${esc(sender.id)}')" style="cursor:pointer;font-size:.68rem;font-weight:600;color:var(--violet);">${esc(senderName)}</span>
+  </div>` : '';
+  return `<div data-sender-id="${m.senderId}" style="display:flex;justify-content:${mine ? 'flex-end' : 'flex-start'};margin-bottom:2px;">
+    ${showSender ? `<div style="width:28px;flex-shrink:0;align-self:flex-end;display:flex;justify-content:center;">
+      <span onclick="event.stopPropagation();openUserProfile('${esc(sender.id)}')" title="${esc(senderName)} · View profile" style="cursor:pointer;flex-shrink:0;">
+        ${senderPhoto ? `<img src="${esc(senderPhoto)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1px solid var(--bd);" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="av" style="display:none;width:28px;height:28px;font-size:9px;">${senderIni}</div>` : `<div class="av" style="width:28px;height:28px;font-size:9px;background:var(--vl);color:var(--violet);">${senderIni}</div>`}
+      </span>
+    </div>` : `<div style="width:28px;flex-shrink:0;"></div>`}
+    <div style="max-width:calc(70% - 34px);padding:9px 13px;border-radius:${mine ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};background:${mine ? 'var(--violet)' : 'var(--bg2)'};color:${mine ? 'white' : 'var(--ink)'};font-size:.82rem;line-height:1.5;">
+      ${senderChip}
       ${hasText ? displayText : ''}
       ${attachHtml}
       <div style="font-size:.62rem;opacity:.6;margin-top:3px;text-align:right;">${new Date(m.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
