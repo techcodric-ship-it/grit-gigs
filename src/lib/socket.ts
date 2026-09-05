@@ -93,8 +93,9 @@ export function setupSocket(httpServer: HttpServer): SocketServer {
         await db.update(conversationsTable).set({ lastMessageAt: new Date() }).where(eq(conversationsTable.id, conversationId));
 
         const recipientId = conv.isGroup ? null : (conv.user1Id === userId ? conv.user2Id : conv.user1Id);
+        let otherParts: { userId: string }[] = [];
         if (conv.isGroup) {
-          const otherParts = await db
+          otherParts = await db
             .select({ userId: conversationParticipantsTable.userId })
             .from(conversationParticipantsTable)
             .where(and(eq(conversationParticipantsTable.conversationId, conversationId), ne(conversationParticipantsTable.userId, userId)));
@@ -121,12 +122,12 @@ export function setupSocket(httpServer: HttpServer): SocketServer {
         if (sender) {
           io.to(`conv:${conversationId}`).emit("message:new", { ...message, sender });
           if (conv.isGroup) {
-            io.to(`conv:${conversationId}`).emit("notification:new", {
+            otherParts.forEach(p => io.to(`user:${p.userId}`).emit("notification:new", {
               type: "NEW_MESSAGE",
               title: `${sockWithUser.user.firstName} in ${conv.groupName ?? "Circle"}`,
               message: censoredText.slice(0, 60),
               conversationId,
-            });
+            }));
           } else if (recipientId) {
             io.to(`user:${recipientId}`).emit("notification:new", {
               type: "NEW_MESSAGE",

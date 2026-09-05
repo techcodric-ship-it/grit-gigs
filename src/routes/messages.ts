@@ -492,13 +492,14 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
     .slice(0, 80) || (hasAtts ? "[Attachment]" : "");
   const notificationMsg = isGroup && notifText ? `${req.user!.firstName}: ${notifText}` : notifText;
 
+  let groupParticipants: { userId: string }[] = [];
   if (isGroup && recipientId === null) {
-    const participants = await db
+    groupParticipants = await db
       .select({ userId: conversationParticipantsTable.userId })
       .from(conversationParticipantsTable)
       .where(and(eq(conversationParticipantsTable.conversationId, convId), ne(conversationParticipantsTable.userId, req.user!.id)));
-    if (participants.length) {
-      await db.insert(notificationsTable).values(participants.map(p => ({
+    if (groupParticipants.length) {
+      await db.insert(notificationsTable).values(groupParticipants.map(p => ({
         userId: p.userId,
         type: "NEW_MESSAGE",
         title: notificationTitle,
@@ -523,12 +524,12 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
     await attachPlanBadge(sender);
     io.to(`conv:${convId}`).emit("message:new", { ...message, sender });
     if (isGroup) {
-      io.to(`conv:${convId}`).emit("notification:new", {
+      groupParticipants.forEach(p => io.to(`user:${p.userId}`).emit("notification:new", {
         type: "NEW_MESSAGE",
         title: notificationTitle,
         message: notificationMsg,
         conversationId: convId,
-      });
+      }));
     } else if (recipientId) {
       io.to(`user:${recipientId}`).emit("notification:new", {
         type: "NEW_MESSAGE",

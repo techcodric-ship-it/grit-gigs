@@ -2536,7 +2536,10 @@ function connectSocket() {
     if (activeCovId && msg.conversationId === activeCovId) {
       // Skip own messages that were already rendered locally by sendMsg
       const u = gU();
-      if (u && msg.senderId === u.id && Date.now() < _suppressOwnMsgUntil) return;
+      if (u && msg.senderId === u.id) {
+        const t = new Date(msg.createdAt).getTime();
+        if (_lastOwnSendTs && Math.abs(t - _lastOwnSendTs) < 30000) return;
+      }
       appendMessage(msg);
     }
   });
@@ -4608,7 +4611,7 @@ function appendMessage(m) {
 let typingTimer = null;
 // Pending file attachments for next message
 let _chatPendingFiles = [];
-let _suppressOwnMsgUntil = 0;
+let _lastOwnSendTs = 0;
 
 function _renderPendingPreviews(preview) {
   preview.innerHTML = _chatPendingFiles.map((f, i) => {
@@ -4702,7 +4705,7 @@ async function sendMsg() {
   });
 
   // Suppress socket echo for 4 seconds
-  _suppressOwnMsgUntil = sendTs + 4000;
+  _lastOwnSendTs = sendTs;
 
   if (hasFiles) {
     // Upload files to server, then send message with attachment URLs
