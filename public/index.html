@@ -140,7 +140,6 @@
         <button class="btn btn-primary btn-sm" onclick="openModal('signupModal')">Join free</button>
       </div>
       <script>
-      // Runs synchronously — updates nav instantly from localStorage
       (function() {
         try {
           var t = localStorage.getItem('se_token');
@@ -150,13 +149,16 @@
             var el = document.getElementById('siteNavActions');
             if (el) {
               var planBadge = '';
-              try { var x=new XMLHttpRequest(); x.open('GET','/api/subscriptions/my-plan',false); x.setRequestHeader('Authorization','Bearer '+t); x.setRequestHeader('Content-Type','application/json'); x.send(); var pr=JSON.parse(x.responseText); if(pr.success&&pr.data.plan){var b=pr.data.plan.badge;planBadge=b?(function(){var g={STARTER:'#059669',PRO:'#7C3AED',SQUAD:'#D97706'};return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+(g[b]||'#6C3FE8')+';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">'+b+'</span>';})():'';try{localStorage.setItem('se_plan_cache',JSON.stringify({badge:b||null}));}catch(e){}} } catch(e){}
+              try {
+                var cached = JSON.parse(localStorage.getItem('se_plan_cache') || 'null');
+                var b = cached && cached.badge;
+                planBadge = b ? (function(){var g={STARTER:'#059669',PRO:'#7C3AED',SQUAD:'#D97706'};return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+(g[b]||'#6C3FE8')+';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">'+b+'</span>';})() : '';
+              } catch(e2){}
               el.innerHTML = planBadge +
                 '<a href="/dashboard" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
                 '<button class="btn btn-primary btn-sm" onclick="window.doLogout && window.doLogout()">Sign out</button>';
             }
           }
-          // Update CTA button text for logged-in users (runs after DOM ready)
           if (u && u.firstName) {
             document.addEventListener('DOMContentLoaded', function() {
               var ctaBtn = document.getElementById('ctaMainBtn');
