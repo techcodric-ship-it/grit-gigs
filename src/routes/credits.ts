@@ -2,7 +2,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { and, eq, sql } from "drizzle-orm";
 import { db, freelanceWalletsTable, transactionsTable, notificationsTable } from "../db";
 import { authenticate } from "../middlewares/authenticate";
-import { getActivePlanForUser } from "../lib/subscriptions";
+import { isWalletCreditAllowed } from "../lib/subscriptions";
 
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
@@ -26,24 +26,15 @@ router.post("/credits/create-order", authenticate, async (req: Request, res: Res
   const amtInr = Number(amount);
   const amountInPaise = Math.round(amtInr * 100);
 
-  // Plan-based wallet balance cap (Starter has ₹1L; Pro/Squad unlimited).
   try {
-    const plan = await getActivePlanForUser(req.user!.id);
-    if (plan.walletLimit !== -1) {
-      const [wallet] = await db
-        .select({ balance: freelanceWalletsTable.balance })
-        .from(freelanceWalletsTable)
-        .where(eq(freelanceWalletsTable.userId, req.user!.id))
-        .limit(1);
-      const current = Number(wallet?.balance ?? 0);
-      if (current + amtInr > plan.walletLimit) {
-        res.status(403).json({
-          success: false,
-          message: `Your ${plan.name} plan caps wallet balance at ₹${plan.walletLimit.toLocaleString("en-IN")}. Upgrade your plan for an unlimited wallet.`,
-          _planLimitExceeded: true,
-        });
-        return;
-      }
+    const cap = await isWalletCreditAllowed(req.user!.id, amtInr);
+    if (!cap.allowed) {
+      res.status(403).json({
+        success: false,
+        message: `Your ${cap.planName} plan caps wallet balance at ₹${cap.limit.toLocaleString("en-IN")}. Upgrade your plan for an unlimited wallet.`,
+        _planLimitExceeded: true,
+      });
+      return;
     }
   } catch { /* fall through on plan lookup failure */ }
 

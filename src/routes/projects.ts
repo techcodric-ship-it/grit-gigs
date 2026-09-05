@@ -424,28 +424,33 @@ router.post('/projects/:id/bids', authenticate, async (req: Request, res: Respon
     }
   }
 
-  // Highlighted proposal: ₹50 flat fee from wallet for every user
   let isHighlighted = false;
   let _highlightWallet: any = null;
+  let _useFeaturedCredit = false;
   const HIGHLIGHT_FEE = 50;
+  const sub = await getOrCreateSubscription(userId);
   if (highlight) {
-    const [wallet] = await db
-      .select()
-      .from(freelanceWalletsTable)
-      .where(eq(freelanceWalletsTable.userId, userId));
-    if (!wallet || Number(wallet.balance) < HIGHLIGHT_FEE) {
-      return res.status(400).json({
-        success: false,
-        message: `Insufficient balance for highlight (₹${HIGHLIGHT_FEE} required). Add funds to your wallet first.`,
-        _highlightFailed: true,
-      });
+    if (sub.featuredProposalsRemaining > 0) {
+      _useFeaturedCredit = true;
+      isHighlighted = true;
+    } else {
+      const [wallet] = await db
+        .select()
+        .from(freelanceWalletsTable)
+        .where(eq(freelanceWalletsTable.userId, userId));
+      if (!wallet || Number(wallet.balance) < HIGHLIGHT_FEE) {
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient balance for highlight (₹${HIGHLIGHT_FEE} required). Add funds to your wallet first, or wait for your monthly featured proposals.`,
+          _highlightFailed: true,
+        });
+      }
+      _highlightWallet = wallet;
+      isHighlighted = true;
     }
-    _highlightWallet = wallet;
-    isHighlighted = true;
   }
 
   // Subscription plan: deduct a project-bid credit (skip when unlimited)
-  const sub = await getOrCreateSubscription(userId);
   if (sub.proposalCreditsRemaining !== -1) {
     if (sub.proposalCreditsRemaining <= 0) {
       return res.status(403).json({
@@ -472,7 +477,14 @@ router.post('/projects/:id/bids', authenticate, async (req: Request, res: Respon
         })
         .returning();
 
-      if (isHighlighted && _highlightWallet) {
+      if (_useFeaturedCredit) {
+        const creditResult = await tx.execute(
+          sql`UPDATE ${userSubscriptionsTable} SET featured_proposals_remaining = featured_proposals_remaining - 1, updated_at = NOW() WHERE ${userSubscriptionsTable.userId} = ${userId} AND featured_proposals_remaining > 0`
+        );
+        if (creditResult.rowCount === 0) {
+          throw new Error("INSUFFICIENT_FEATURED_CREDIT");
+        }
+      } else if (isHighlighted && _highlightWallet) {
         const deductResult = await tx.execute(
           sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${HIGHLIGHT_FEE}, updated_at = NOW() WHERE ${freelanceWalletsTable.id} = ${_highlightWallet.id} AND balance >= ${HIGHLIGHT_FEE}`
         );
@@ -505,6 +517,9 @@ router.post('/projects/:id/bids', authenticate, async (req: Request, res: Respon
         message: `Insufficient balance for highlight (₹${HIGHLIGHT_FEE} required). Add funds to your wallet first.`,
         _highlightFailed: true,
       });
+    }
+    if (e instanceof Error && e.message === "INSUFFICIENT_FEATURED_CREDIT") {
+      return res.status(400).json({ success: false, message: "You're out of free featured proposals for this month. Add funds to your wallet to highlight with the ₹50 fee." });
     }
     throw e;
   }
@@ -842,24 +857,34 @@ router.post('/projects/bids/:bidId/highlight', authenticate, async (req: Request
   if (bid.isHighlighted) return res.status(400).json({ success: false, message: 'Bid is already highlighted' });
   if (bid.status !== 'PENDING') return res.status(400).json({ success: false, message: 'Only PENDING bids can be highlighted' });
 
-  // Atomically charge ₹50 + ensure only one highlighted bid per project
+  const subH = await getOrCreateSubscription(userId);
+  const useFeaturedCredit = subH.featuredProposalsRemaining > 0;
   const HIGHLIGHT_FEE = 50;
   let updated;
   try {
     await db.transaction(async (tx) => {
-      const deductResult = await tx.execute(
-        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${HIGHLIGHT_FEE}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${userId} AND balance >= ${HIGHLIGHT_FEE}`
-      );
-      if (deductResult.rowCount === 0) {
-        throw new Error("INSUFFICIENT_HIGHLIGHT");
+      if (useFeaturedCredit) {
+        const creditResult = await tx.execute(
+          sql`UPDATE ${userSubscriptionsTable} SET featured_proposals_remaining = featured_proposals_remaining - 1, updated_at = NOW() WHERE ${userSubscriptionsTable.userId} = ${userId} AND featured_proposals_remaining > 0`
+        );
+        if (creditResult.rowCount === 0) {
+          throw new Error("INSUFFICIENT_FEATURED_CREDIT");
+        }
+      } else {
+        const deductResult = await tx.execute(
+          sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${HIGHLIGHT_FEE}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${userId} AND balance >= ${HIGHLIGHT_FEE}`
+        );
+        if (deductResult.rowCount === 0) {
+          throw new Error("INSUFFICIENT_HIGHLIGHT");
+        }
+        await tx.insert(transactionsTable).values({
+          userId,
+          type: 'SERVICE_PAYMENT',
+          amount: HIGHLIGHT_FEE,
+          description: 'Bid highlight fee',
+          status: 'COMPLETED',
+        });
       }
-      await tx.insert(transactionsTable).values({
-        userId,
-        type: 'SERVICE_PAYMENT',
-        amount: HIGHLIGHT_FEE,
-        description: 'Bid highlight fee',
-        status: 'COMPLETED',
-      });
       [updated] = await tx
         .update(projectBidsTable)
         .set({ isHighlighted: true, updatedAt: new Date() })
@@ -875,6 +900,9 @@ router.post('/projects/bids/:bidId/highlight', authenticate, async (req: Request
         success: false,
         message: `Insufficient balance for highlight (₹${HIGHLIGHT_FEE} required). Add funds to your wallet first.`,
       });
+    }
+    if (e instanceof Error && e.message === "INSUFFICIENT_FEATURED_CREDIT") {
+      return res.status(400).json({ success: false, message: "You're out of free featured proposals for this month. Add funds to your wallet to highlight with the ₹50 fee." });
     }
     return res.status(400).json({
       success: false,

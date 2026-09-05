@@ -1,5 +1,5 @@
 import { eq, sql } from "drizzle-orm";
-import { db, userSubscriptionsTable } from "../db";
+import { db, userSubscriptionsTable, freelanceWalletsTable } from "../db";
 import type { UserSubscription } from "../db/schema/plans";
 
 export type PlanId = "starter" | "pro" | "squad";
@@ -220,4 +220,16 @@ export async function consumeProjectCreation(userId: string, limit: number): Pro
     sql`UPDATE ${userSubscriptionsTable} SET projects_created_this_cycle = projects_created_this_cycle + 1, updated_at = NOW() WHERE ${userSubscriptionsTable.userId} = ${userId} AND projects_created_this_cycle < ${limit}`
   );
   return Number(res.rowCount) > 0;
+}
+
+export async function isWalletCreditAllowed(userId: string, addAmountInr: number): Promise<{ allowed: boolean; limit: number; current: number; planName: string }> {
+  const plan = await getActivePlanForUser(userId);
+  if (plan.walletLimit === -1) return { allowed: true, limit: -1, current: 0, planName: plan.name };
+  const [wallet] = await db
+    .select({ balance: freelanceWalletsTable.balance })
+    .from(freelanceWalletsTable)
+    .where(eq(freelanceWalletsTable.userId, userId))
+    .limit(1);
+  const current = Number(wallet?.balance ?? 0);
+  return { allowed: current + addAmountInr <= plan.walletLimit, limit: plan.walletLimit, current, planName: plan.name };
 }
