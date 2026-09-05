@@ -22,6 +22,7 @@ import {
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { sendNotificationEmail } from "../lib/email";
 import { getActivePlanForUser, getOrCreateSubscription, consumeGigCreation } from "../lib/subscriptions";
+import { attachPlanBadges } from "../lib/planBadge";
 import { uploadToSupabase } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
 import multer from "multer";
@@ -733,19 +734,18 @@ router.get("/squads/services", optionalAuth, async (req: Request, res: Response)
       .where(eq(squadMembersTable.userId, req.user.id));
     for (const m of my) mySquadIds.add(m.squadId);
   }
-  res.json({
-    success: true,
-    data: rows.map((r) => ({
-      ...serviceJson(r.service),
-      squadName: r.squad.name,
-      squadAvatar: r.squad.avatar ?? null,
-      squadMemberCount: Number(r.memberCount),
-      squadRatingAvg: r.squad.ratingAvg ?? 0,
-      squadReviewCount: r.squad.reviewCount ?? 0,
-      isOwnSquad: mySquadIds.has(r.squad.id),
-      leader: r.leader ? { id: r.leader.id, firstName: r.leader.firstName, lastName: r.leader.lastName ?? "", profilePhoto: r.leader.profilePhoto ?? null } : null,
-    })),
-  });
+  const data = rows.map((r) => ({
+    ...serviceJson(r.service),
+    squadName: r.squad.name,
+    squadAvatar: r.squad.avatar ?? null,
+    squadMemberCount: Number(r.memberCount),
+    squadRatingAvg: r.squad.ratingAvg ?? 0,
+    squadReviewCount: r.squad.reviewCount ?? 0,
+    isOwnSquad: mySquadIds.has(r.squad.id),
+    leader: r.leader ? { id: r.leader.id, firstName: r.leader.firstName, lastName: r.leader.lastName ?? "", profilePhoto: r.leader.profilePhoto ?? null } : null,
+  }));
+  await attachPlanBadges(data.map((d) => d.leader).filter(Boolean));
+  res.json({ success: true, data });
 });
 
 // Create a squad service
