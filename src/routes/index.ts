@@ -59,8 +59,8 @@ router.use(equityRouter);
 router.use(referralsRouter);
 router.use(toolRouter);
 router.use(squadsRouter);
-router.use(adminRouter);
 router.use(aiSupportRouter);
+router.use(adminRouter);
 
 router.use((_req: any, res: any) => {
   res.status(404).json({ success: false, message: "Route not found" });

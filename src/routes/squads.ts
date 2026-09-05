@@ -1296,14 +1296,16 @@ router.post("/squad-orders", authenticate, async (req: Request, res: Response): 
     await db.update(conversationsTable).set({ lastMessageAt: new Date() }).where(eq(conversationsTable.id, convId));
   }
 
-  const notif = { type: "NEW_ORDER", title: "New order received!", message: `${req.user!.firstName} placed an order for "${service.title}"`, linkUrl: "/dashboard#squad-orders" };
-  await db.insert(notificationsTable).values({ userId: squad.leaderId, ...notif });
-  try {
-    req.app?.get("io")?.to(`user:${squad.leaderId}`).emit("notification:new", notif);
-  } catch {}
-  const [leaderRow] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, squad.leaderId)).limit(1);
-  if (leaderRow?.email) {
-    sendNotificationEmail(leaderRow.email, "New order received!", `${req.user!.firstName} placed an order for "${service.title}"`, "/dashboard#squad-orders").catch(() => {});
+  if (squad.leaderId !== buyerId) {
+    const notif = { type: "NEW_ORDER", title: "New order received!", message: `${req.user!.firstName} placed an order for "${service.title}"`, linkUrl: "/dashboard#squad-orders" };
+    await db.insert(notificationsTable).values({ userId: squad.leaderId, ...notif });
+    try {
+      req.app?.get("io")?.to(`user:${squad.leaderId}`).emit("notification:new", notif);
+    } catch {}
+    const [leaderRow] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, squad.leaderId)).limit(1);
+    if (leaderRow?.email) {
+      sendNotificationEmail(leaderRow.email, "New order received!", `${req.user!.firstName} placed an order for "${service.title}"`, "/dashboard#squad-orders").catch(() => {});
+    }
   }
 
   res.status(201).json({ success: true, message: "Order placed successfully!", data: { order } });
