@@ -559,11 +559,6 @@ router.put("/squads/invites/:inviteId", authenticate, async (req: Request, res: 
   }
 
   if (status === "ACCEPTED") {
-    const accepterPlan = await getActivePlanForUser(req.user!.id);
-    if (accepterPlan.squadMembers < 2) {
-      res.status(403).json({ success: false, message: "Grit Circles are a Squad plan feature. Upgrade to your Squad plan to join this circle." });
-      return;
-    }
     const memberCount = await db.select({ count: sql<number>`count(*)` }).from(squadMembersTable).where(eq(squadMembersTable.squadId, invite.squad.id));
     if (Number(memberCount[0]?.count ?? 0) >= MAX_SQUAD_MEMBERS) {
       res.status(400).json({ success: false, message: `Sorry, that circle is full (${MAX_SQUAD_MEMBERS} members max)` });
@@ -961,11 +956,6 @@ router.post("/squads/join-requests", authenticate, async (req: Request, res: Res
     res.status(400).json({ success: false, message: "You're already in a circle. Leave it first to join another." });
     return;
   }
-  const joinPlan = await getActivePlanForUser(req.user!.id);
-  if (joinPlan.squadMembers < 2) {
-    res.status(403).json({ success: false, message: "Grit Circles are a Squad plan feature. Upgrade to your Squad plan to join a circle." });
-    return;
-  }
   const [existingRequest] = await db
     .select({ id: squadJoinRequestsTable.id })
     .from(squadJoinRequestsTable)
@@ -1039,12 +1029,6 @@ router.put("/squads/:id/join-requests/:requestId", authenticate, async (req: Req
   if (String(action).toUpperCase() === "DECLINE") {
     await db.update(squadJoinRequestsTable).set({ status: "DECLINED", respondedAt: new Date() }).where(eq(squadJoinRequestsTable.id, requestId));
     res.json({ success: true, message: "Request declined" });
-    return;
-  }
-  const requesterPlan = await getActivePlanForUser(request.userId);
-  if (requesterPlan.squadMembers < 2) {
-    await db.update(squadJoinRequestsTable).set({ status: "DECLINED", respondedAt: new Date() }).where(eq(squadJoinRequestsTable.id, requestId));
-    res.status(403).json({ success: false, message: "This member needs the Squad plan to join a circle. Request declined." });
     return;
   }
   const [memberCount] = await db
