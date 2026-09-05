@@ -531,7 +531,10 @@ strong { color: var(--ink); font-weight: 600; }
 /* ── RESPONSIVE ── */
 @media (max-width: 1024px) {
   .hero-inner { grid-template-columns: 1fr; }
-  .hero-visual { display: none; }
+  .hero-visual { display: block; width: 100%; max-width: 440px; margin: 52px auto 0; }
+  .hero-card-stack { height: 440px; }
+  .hero-float-card:nth-child(2) { right: 0 !important; }
+  .hero-float-card:nth-child(3) { left: 0 !important; }
   .how-grid { grid-template-columns: repeat(2,1fr); }
   .services-grid { grid-template-columns: repeat(2,1fr); }
   .barter-grid { grid-template-columns: repeat(2,1fr); }
@@ -561,6 +564,8 @@ strong { color: var(--ink); font-weight: 600; }
   .form-row { grid-template-columns: 1fr; }
   .hero-stats { gap: 22px; }
   .sys-tab { padding: 9px 6px; font-size: 0.78rem; }
+  .hero-visual { max-width: 330px; margin-top: 42px; }
+  .hero-card-stack { height: 400px; }
 }
 
 /* ── NOTIFICATION TOAST ── */
