@@ -439,8 +439,9 @@ router.get("/messages/squad/:squadId/group", authenticate, async (req, res): Pro
 router.post("/messages/conversations/:conversationId/messages", authenticate, async (req, res): Promise<void> => {
   const convId = String(req.params.conversationId);
   const { messageText, attachments } = req.body;
+  const hasAtts = Array.isArray(attachments) && attachments.length > 0;
 
-  if (!messageText?.trim()) { res.status(400).json({ success: false, message: "Message cannot be empty" }); return; }
+  if (!messageText?.trim() && !hasAtts) { res.status(400).json({ success: false, message: "Message cannot be empty" }); return; }
 
   const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, convId));
   if (!conv) { res.status(404).json({ success: false, message: "Conversation not found" }); return; }
@@ -461,7 +462,7 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
   // conversations with an admin recipient, the real details are kept so the
   // platform can help — admins see the original, other users never do. Group
   // (circle) chats keep real details too, so members can reach each other.
-  let finalText = messageText.trim();
+  let finalText = (messageText || "").trim();
   const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
   if (!isGroup && !(admin && admin.id === recipientId)) {
     const contactPattern = /(?:\+?\d{1,3}[-.\s]?\d{5}[-.\s]?\d{4,})|(?:\d{5}[-.\s]?\d{4,})|(?:\b\d{7,15}\b)|(?:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
@@ -488,7 +489,7 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
     .replace(/<[^>]*>/g, "")
     .replace(/\s+/g, " ")
     .trim()
-    .slice(0, 80);
+    .slice(0, 80) || (hasAtts ? "[Attachment]" : "");
   const notificationMsg = isGroup && notifText ? `${req.user!.firstName}: ${notifText}` : notifText;
 
   if (isGroup && recipientId === null) {

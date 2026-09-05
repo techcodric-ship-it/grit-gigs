@@ -4516,7 +4516,10 @@ function linkify(text, mine) {
 function renderMsg(m, myId) {
   const mine = m.senderId === myId;
   const raw = m.messageText || '';
-  const parts = raw.split(/(https?:\/\/[^\s<]+|www\.[^\s<]+|[a-zA-Z0-9][a-zA-Z0-9-]*\.[a-zA-Z]{2,}(?:\/[^\s<]*)?)/g);
+  const attMark = raw.match(/^\s*<svg[^>]*>[\s\S]*?<\/svg>\s*Attachment/i);
+  const isAttOnly = !!attMark;
+  const workRaw = attMark ? raw.slice(attMark[0].length).replace(/^\s+/, '') : raw;
+  const parts = workRaw.split(/(https?:\/\/[^\s<]+|www\.[^\s<]+|[a-zA-Z0-9][a-zA-Z0-9-]*\.[a-zA-Z]{2,}(?:\/[^\s<]*)?)/g);
   let displayText = '';
   for (let i = 0; i < parts.length; i++) {
     if (i % 2 === 1) {
@@ -4553,7 +4556,7 @@ function renderMsg(m, myId) {
       const s = JSON.parse(localStorage.getItem('gg_att_' + oldFmtMatch[1]) || 'null');
       if (s) storedAtts = s;
     } catch(e) {}
-  } else if (mine && displayText === '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-11.9 0L4 6.5A3 3 0 0 1 8 2.5l5.5 5.5"/></svg> Attachment' && activeCovId) {
+  } else if (isAttOnly && mine && activeCovId) {
     // New format: plain text — look up by conversation + send timestamp
     const loaded = _loadAttachLS(activeCovId, m.createdAt);
     if (loaded) storedAtts = loaded;
@@ -4561,7 +4564,7 @@ function renderMsg(m, myId) {
 
   const allAtts = [...(m.attachments || []), ...storedAtts];
   const attachHtml = renderMsgAttachments(allAtts, mine);
-  const hasText = displayText && displayText !== '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-11.9 0L4 6.5A3 3 0 0 1 8 2.5l5.5 5.5"/></svg> Attachment';
+  const hasText = displayText && !isAttOnly;
   const isGroup = !!window._activeConvIsGroup;
   const sender = m.sender;
   const senderName = (!sender || sender.id === myId) ? '' : (((sender.firstName || '') + ' ' + (sender.lastName || '')).trim()) || 'Member';
@@ -4715,7 +4718,7 @@ async function sendMsg() {
         if (uploadRes && uploadRes.success) {
           const serverAtts = uploadRes.data.files;
           await api('/messages/conversations/' + activeCovId + '/messages', {
-            method: 'POST', body: JSON.stringify({ messageText: text || '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-11.9 0L4 6.5A3 3 0 0 1 8 2.5l5.5 5.5"/></svg> Attachment', attachments: serverAtts })
+            method: 'POST', body: JSON.stringify({ messageText: text || '', attachments: serverAtts })
           }).catch(function() {});
         }
       } catch(e) {}
