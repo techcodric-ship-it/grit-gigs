@@ -2408,15 +2408,24 @@ function inputModal(title, label, placeholder, onOk, opts = {}) {
 // ══════════════════════════════════════════════
 //  NOTIFICATION BANNER (top of page, real-time)
 // ══════════════════════════════════════════════
+function cleanNotifText(s) {
+  // Attachment-only chat messages store an <svg> placeholder as their text, and
+  // system messages carry simple markdown markers. Strip all markup and
+  // markdown so a notification never shows literal code instead of real text.
+  let t = String(s ?? '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/`([^`]*)`/g, '$1')
+    .replace(/\*\*?|__?/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (/^attachment$/i.test(t)) t = '[Attachment]';
+  return t;
+}
+
 function showNotifBanner(title, msg, type = 'info', linkUrl = null) {
   const banner = document.getElementById('notifBanner');
-  // Some callers pass a leading <svg>...</svg> embedded in the title for their
-  // icon. The dedicated nb-icon span already renders the proper icon, so strip
-  // any such SVG markup out of the title text (otherwise it would show up as
-  // raw code because the title is HTML-escaped).
-  const _stripSvg = (s) => String(s ?? '').replace(/<svg[^>]*>[\s\S]*?<\/svg>/gi, '');
-  const cleanTitle = _stripSvg(title).trim().slice(0, 80);
-  const cleanMsg = _stripSvg(msg).trim().slice(0, 160);
+  const cleanTitle = cleanNotifText(title).slice(0, 80);
+  const cleanMsg = cleanNotifText(msg).slice(0, 160);
   if (!cleanTitle && !cleanMsg) return;
 
   const item = document.createElement('div');
@@ -2534,7 +2543,7 @@ function connectSocket() {
 
   // Match accepted - show banner, navigate to inbox, and open conversation
   socket.on('match:accepted', async ({ acceptedBy, conversationId, matchId }) => {
-    showNotifBanner('Match accepted!', `${esc(acceptedBy)} accepted your request. Go to Inbox to chat!`, 'ok', '/dashboard#inbox');
+    showNotifBanner('Match accepted!', `${acceptedBy} accepted your request. Go to Inbox to chat!`, 'ok', '/dashboard#inbox');
     showPage('inbox');
     if (conversationId && matchId) {
       _convCtx[conversationId] = { matchId, orderId: null, projectBidId: null };
@@ -2787,7 +2796,7 @@ async function loadNotifDrawer() {
       .forEach(c => {
         const other = c.otherUser || (c.participants || []).find(p => p.id !== u?.id);
         const senderName = other?.firstName || 'Someone';
-        const preview = c.lastMessage?.messageText || 'sent you a message';
+        const preview = cleanNotifText(c.lastMessage?.messageText) || 'sent you a message';
         const truncated = preview.length > 60 ? preview.slice(0, 60) + '…' : preview;
         items.push({
           icon: '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>', link: 'inbox',
@@ -4141,7 +4150,7 @@ function renderConvList() {
     const _isOtherAdmin = conv.isAdminConv;
     const _showOnline = _onlineUsers.has(other?.id) && (!_isOtherAdmin || isAdminUser);
     const _dispName = esc(firstName + ' ' + lastName);
-    const _dispMsg = esc(last?.messageText || 'Start conversation');
+    const _dispMsg = esc(cleanNotifText(last?.messageText) || 'Start conversation');
     if (_isGroup) {
       const grpName = conv.groupName || 'Circle chat';
       const grpMembersList = conv.members || [];

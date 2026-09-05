@@ -477,7 +477,19 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
 
   await db.update(conversationsTable).set({ lastMessageAt: new Date() }).where(eq(conversationsTable.id, convId));
 
-  const notificationTitle = isGroup ? `${req.user!.firstName} in ${conv.groupName ?? "Circle"}` : `New message from ${req.user!.firstName}`;
+  const notificationTitle = isGroup
+    ? (conv.groupName && conv.groupName !== "Circle" ? conv.groupName : "Circle chat")
+    : `New message from ${req.user!.firstName}`;
+
+  // Attachment-only messages store an <svg> placeholder and system messages use
+  // simple markdown; scrub both so the notification shows real text, not code.
+  const notifText = (finalText || "")
+    .replace(/<svg[^>]*>[\s\S]*?<\/svg>\s*Attachment/gi, "[Attachment]")
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+  const notificationMsg = isGroup && notifText ? `${req.user!.firstName}: ${notifText}` : notifText;
 
   if (isGroup && recipientId === null) {
     const participants = await db
@@ -489,7 +501,7 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
         userId: p.userId,
         type: "NEW_MESSAGE",
         title: notificationTitle,
-        message: finalText.slice(0, 80),
+        message: notificationMsg,
         linkUrl: "/dashboard#inbox",
       })));
     }
@@ -498,7 +510,7 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
       userId: recipientId,
       type: "NEW_MESSAGE",
       title: notificationTitle,
-      message: finalText.slice(0, 80),
+      message: notificationMsg,
       linkUrl: "/dashboard#inbox",
     });
   }
@@ -513,14 +525,14 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
       io.to(`conv:${convId}`).emit("notification:new", {
         type: "NEW_MESSAGE",
         title: notificationTitle,
-        message: finalText.slice(0, 60),
+        message: notificationMsg,
         conversationId: convId,
       });
     } else if (recipientId) {
       io.to(`user:${recipientId}`).emit("notification:new", {
         type: "NEW_MESSAGE",
         title: req.user!.firstName,
-        message: finalText.slice(0, 60),
+        message: notifText,
         conversationId: convId,
       });
     }
