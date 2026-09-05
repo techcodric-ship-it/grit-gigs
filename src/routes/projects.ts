@@ -995,15 +995,10 @@ router.post('/projects/:id/release-payment', authenticate, async (req: Request, 
     return res.status(409).json({ success: false, message: 'Payment already released' });
   }
 
-  // Calculate commission based on freelancer's plan (0% for referred clients' first project)
-  const plan = await getActivePlanForUser(_ab.userId);
-  const commissionPct = project.zeroCommission ? 0 : plan.serviceFeePercent;
-  const commission = Math.round(_pay * commissionPct / 100);
-  const netAmount = _pay - commission;
-
   // If the accepted bidder belongs to a Grit Circle, split the payout equally
-  // among all active squad members on release.
-  let creditRecipients: { userId: string; amount: number }[] = [{ userId: _ab.userId, amount: netAmount }];
+  // among all active squad members on release, then apply each member's own
+  // plan commission to their share.
+  const splitMemberIds = [_ab.userId];
   const bidderSquad = await db
     .select({ squadId: squadMembersTable.squadId })
     .from(squadMembersTable)
@@ -1015,16 +1010,30 @@ router.post('/projects/:id/release-payment', authenticate, async (req: Request, 
       .select({ userId: squadMembersTable.userId })
       .from(squadMembersTable)
       .where(eq(squadMembersTable.squadId, bidderSquad[0].squadId));
-    if (members.length > 1) {
-      const perShare = Math.floor(netAmount / members.length);
-      let remainder = netAmount - perShare * members.length;
-      creditRecipients = members.map((m) => {
-        const share = perShare + (remainder > 0 ? 1 : 0);
-        if (remainder > 0) remainder--;
-        return { userId: m.userId, amount: share };
-      });
-    }
+    if (members.length > 1) splitMemberIds.splice(0, splitMemberIds.length, ...members.map(m => m.userId));
   }
+
+  const perShare = Math.floor(_pay / splitMemberIds.length);
+  let remainder = _pay - perShare * splitMemberIds.length;
+  const grossShares = splitMemberIds.map((userId) => {
+    const amount = perShare + (remainder > 0 ? 1 : 0);
+    if (remainder > 0) remainder--;
+    return { userId, amount };
+  });
+  const creditRecipients: { userId: string; grossAmount: number; commission: number; commissionPct: number; netAmount: number }[] = [];
+  for (const gs of grossShares) {
+    const mPlan = await getActivePlanForUser(gs.userId);
+    const mPct = project.zeroCommission ? 0 : mPlan.serviceFeePercent;
+    const mCommission = Math.round(gs.amount * mPct / 100);
+    creditRecipients.push({
+      userId: gs.userId,
+      grossAmount: gs.amount,
+      commission: mCommission,
+      commissionPct: mPct,
+      netAmount: gs.amount - mCommission,
+    });
+  }
+  const totalCommission = creditRecipients.reduce((s, m) => s + m.commission, 0);
 
   // Wallet operations + transaction records in a DB transaction
   try {
@@ -1037,26 +1046,36 @@ router.post('/projects/:id/release-payment', authenticate, async (req: Request, 
       }
 
       for (const rc of creditRecipients) {
+        if (rc.netAmount <= 0) continue;
         const creditResult = await tx.execute(
-          sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${rc.amount}, total_earned = COALESCE(total_earned, 0) + ${rc.amount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${rc.userId}`
+          sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${rc.netAmount}, total_earned = COALESCE(total_earned, 0) + ${rc.netAmount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${rc.userId}`
         );
         if (creditResult.rowCount === 0) {
           await tx.insert(freelanceWalletsTable).values({
             userId: rc.userId,
-            balance: rc.amount,
-            totalEarned: rc.amount,
+            balance: rc.netAmount,
+            totalEarned: rc.netAmount,
             updatedAt: new Date(),
           });
         }
         await tx.insert(transactionsTable).values({
           userId: rc.userId,
           type: 'SERVICE_EARNING',
-          amount: rc.amount,
+          amount: rc.netAmount,
           description: creditRecipients.length > 1
-            ? `Equal share of project payout for "${project.title}" (split across ${creditRecipients.length} circle members)`
+            ? `Your share of project payout for "${project.title}" after ${rc.commissionPct}% commission (split across ${creditRecipients.length} circle members)`
             : `Payment received for project "${project.title}"`,
           status: 'COMPLETED',
         });
+        if (rc.commission > 0) {
+          await tx.insert(transactionsTable).values({
+            userId: rc.userId,
+            type: 'COMMISSION',
+            amount: rc.commission,
+            description: `Platform commission (${rc.commissionPct}%) on your share of project "${project.title}"`,
+            status: 'COMPLETED',
+          });
+        }
       }
 
       await tx.insert(transactionsTable).values({
@@ -1066,16 +1085,6 @@ router.post('/projects/:id/release-payment', authenticate, async (req: Request, 
         description: `Payment for project "${project.title}"`,
         status: 'COMPLETED',
       });
-
-      if (commission > 0) {
-        await tx.insert(transactionsTable).values({
-          userId: _ab.userId,
-          type: 'COMMISSION',
-          amount: commission,
-          description: `Platform commission (${commissionPct}%) on project "${project.title}"`,
-          status: 'COMPLETED',
-        });
-      }
     });
   } catch (e) {
     await db.execute(sql`UPDATE ${sql.identifier("projects")} SET status = 'DELIVERED', updated_at = NOW() WHERE id = ${project.id}`);
@@ -1099,16 +1108,16 @@ router.post('/projects/:id/release-payment', authenticate, async (req: Request, 
       type: 'PROJECT_PAYMENT_RELEASED',
       title: 'Payment received!',
       message: creditRecipients.length > 1
-        ? `You received your ₹${rc.amount} share for "${project.title}" — the ₹${netAmount} payout was split across ${creditRecipients.length} circle members.`
-        : `You received ₹${netAmount} for "${project.title}" (${commissionPct}% commission: ₹${commission}). Thank you!`,
+        ? `You received ₹${rc.netAmount} for "${project.title}" (₹${rc.grossAmount} share, ${rc.commissionPct}% commission: ₹${rc.commission}).`
+        : `You received ₹${rc.netAmount} for "${project.title}" (${rc.commissionPct}% commission: ₹${rc.commission}). Thank you!`,
       linkUrl: '/dashboard.html#my-projects',
     });
   }
 
   const breakdown = creditRecipients.length > 1
-    ? ` split equally across ${creditRecipients.length} circle members (each ₹${creditRecipients[0].amount})`
+    ? ` split equally across ${creditRecipients.length} circle members (each ₹${creditRecipients[0].grossAmount} before commission)`
     : '';
-  return res.json({ success: true, message: `Payment of ₹${_pay} released! Freelancer receives ₹${netAmount} (${commissionPct}% commission: ₹${commission})${breakdown}.` });
+  return res.json({ success: true, message: `Payment of ₹${_pay} released! ₹${_pay} split equally across ${creditRecipients.length} circle member${creditRecipients.length === 1 ? '' : 's'}${breakdown} (₹${totalCommission} total commission).` });
 });
 
 export default router;
