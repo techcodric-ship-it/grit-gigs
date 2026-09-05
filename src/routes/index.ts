@@ -27,6 +27,7 @@ import equityRouter from "./equity";
 import referralsRouter from "./referrals";
 import toolRouter from "./tool";
 import squadsRouter from "./squads";
+import aiSupportRouter from "./ai-support";
 
 const router: IRouter = Router();
 
@@ -59,6 +60,7 @@ router.use(referralsRouter);
 router.use(toolRouter);
 router.use(squadsRouter);
 router.use(adminRouter);
+router.use(aiSupportRouter);
 
 router.use((_req: any, res: any) => {
   res.status(404).json({ success: false, message: "Route not found" });

@@ -2281,7 +2281,7 @@ function setEquityJoined(){
     isDragging = false;
     btn.style.cursor = 'grab';
     btn.style.transition = 'all .25s';
-    if (!moved) openLiveChat();
+    if (!moved) openAISupport();
   }
   btn.addEventListener('mousedown', onStart);
   document.addEventListener('mousemove', onMove);
@@ -9249,6 +9249,153 @@ async function openLiveChat() {
 function updateLiveChatBadge(unread) {
   const badge = document.getElementById('liveChatBadge');
   if (badge) badge.style.display = unread > 0 ? 'block' : 'none';
+}
+
+// ══════════════════════════════════════════════
+//  AI SUPPORT ASSISTANT
+// ══════════════════════════════════════════════
+const _AI_LS_KEY = 'se_ai_support';
+let _AiMsgs = [];
+let _AiBusy = false;
+try { const saved = JSON.parse(localStorage.getItem(_AI_LS_KEY) || '[]'); if (Array.isArray(saved)) _AiMsgs = saved; } catch(e) { _AiMsgs = []; }
+const _AI_SUGGEST = ['How do I get paid?', 'How does escrow work?', 'What is the commission?', 'How do I withdraw money?', 'How do I join or create a Grit Circle?', 'How do I get KYC verified?', 'How do plans and pricing work?', 'How do I raise a dispute?'];
+
+const AI_ROBOT_SVG = '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4M9 4h6M8 13h.01M16 13h.01"/><circle cx="12" cy="3" r="0"/></svg>';
+const AI_SUGGESTION_CHIPS = ['How do I get paid?','What is the commission?','How does escrow work?','How do I withdraw money?'];
+
+function _aiSave() { try { localStorage.setItem(_AI_LS_KEY, JSON.stringify(_AiMsgs.slice(-40))); } catch(e) {} }
+function aiArr() {
+  return _AiMsgs.filter(m => m && (m.role === 'user' || m.role === 'assistant') && m.content && m.content !== '');
+}
+
+function aiMsgHtml(role, text) {
+  if (role === 'user') {
+    return '<div style="display:flex;justify-content:flex-end;margin-bottom:8px;"><div style="max-width:82%;background:var(--violet);color:#fff;font-size:.78rem;line-height:1.55;padding:8px 12px;border-radius:14px 14px 2px 14px;white-space:pre-wrap;word-break:break-word;">' + esc(text) + '</div></div>';
+  }
+  return '<div style="display:flex;gap:8px;margin-bottom:8px;"><div style="flex-shrink:0;width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#6C3FE8,#A855F7);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.8rem;">' + AI_ROBOT_SVG + '</div><div style="max-width:78%;background:var(--bg);color:var(--ink);font-size:.78rem;line-height:1.55;padding:8px 12px;border-radius:14px 14px 14px 2px;white-space:pre-wrap;word-break:break-word;">' + esc(text) + '</div></div>';
+}
+
+function aiRenderAll() {
+  const body = document.getElementById('aiChatBody');
+  if (!body) return;
+  body.innerHTML = _AiMsgs.length ? _AiMsgs.map(m => aiMsgHtml(m.role, m.content)).join('') : '';
+  body.scrollTop = body.scrollHeight;
+}
+
+function _aiChipRow() {
+  return '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">' + AI_SUGGESTION_CHIPS.map(c => '<button type="button" onclick="aiQuick(\'' + esc(c).replace(/'/g, "\\'") + '\')" style="font-size:.68rem;padding:5px 10px;border-radius:99px;border:1px solid var(--bd);background:transparent;color:var(--sec);cursor:pointer;">' + esc(c) + '</button>').join('') + '</div>';
+}
+
+function openAISupport() {
+  let wrap = document.getElementById('aiSupportWrap');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.id = 'aiSupportWrap';
+    wrap.style.cssText = 'position:fixed;bottom:88px;right:24px;width:360px;max-width:calc(100vw - 32px);max-height:min(520px,calc(100vh - 120px));height:520px;background:var(--card,#1C1C2E);border:1px solid var(--bd);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.45);z-index:10000;display:flex;flex-direction:column;overflow:hidden;font-family:inherit;';
+    wrap.innerHTML = '<div style="display:flex;align-items:center;gap:10px;padding:14px 14px 12px;background:linear-gradient(135deg,#6C3FE8,#A855F7);color:#fff;flex-shrink:0;">' +
+      '<div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">' + AI_ROBOT_SVG + '</div>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-weight:800;font-size:.86rem;letter-spacing:.02em;">Grit&Gigs Assistant</div>' +
+        '<div style="font-size:.66rem;opacity:.85;">AI support &#8226; answers about the platform</div>' +
+      '</div>' +
+      '<button onclick="closeAISupport()" style="background:rgba(255,255,255,.12);border:none;color:#fff;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center;" title="Close">✕</button>' +
+    '</div>' +
+    '<div style="flex:1;overflow-y:auto;padding:14px;background:var(--bg,#12121A);" id="aiChatBody"></div>' +
+    '<div style="flex-shrink:0;padding:10px 12px;border-top:1px solid var(--bd);background:var(--card,#1C1C2E);">' +
+      '<div style="display:flex;gap:8px;align-items:flex-end;">' +
+        '<input id="aiChatInput" type="text" placeholder="Ask about Grit&Gigs..." style="flex:1;background:var(--bg);border:1px solid var(--bd);border-radius:10px;color:var(--ink);font-size:.8rem;padding:9px 12px;outline:none;" autocomplete="off"/>' +
+        '<button onclick="aiSendChat()" id="aiSendBtn" style="background:var(--violet);border:none;color:#fff;width:36px;height:36px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="Send">' + AI_ROBOT_SVG + '</button>' +
+      '</div>' +
+      '<button onclick="openLiveChat()" style="margin-top:8px;width:100%;background:transparent;border:1px solid var(--bd);color:var(--sec);font-size:.7rem;padding:6px;border-radius:8px;cursor:pointer;">Talk to a human &#8226; Live agent support</button>' +
+    '</div>';
+    wrap.querySelector('#aiChatInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); aiSendChat(); } });
+    document.body.appendChild(wrap);
+    const body = document.getElementById('aiChatBody');
+    if (!_AiMsgs.length) {
+      _AiMsgs.push({ role: 'assistant', content: 'Hi! I am the Grit&Gigs assistant. Ask me anything about the platform — payments, commissions, plans, Grit Circles, projects, services, KYC and more.' });
+    }
+    body.innerHTML = (_AiMsgs.some(m => m.role === 'user') ? _AiMsgs.map(m => aiMsgHtml(m.role, m.content)).join('') : aiMsgHtml('assistant', _AiMsgs[0]?.content || 'Hi! Ask me anything about the platform.')) + _aiChipRow();
+    body.scrollTop = body.scrollHeight;
+  } else {
+    wrap.style.display = 'flex';
+    const body = document.getElementById('aiChatBody');
+    aiRenderAll();
+    if (!_AiMsgs.some(m => m.role === 'user')) body.insertAdjacentHTML('beforeend', _aiChipRow());
+    body.scrollTop = body.scrollHeight;
+  }
+  document.getElementById('aiChatInput')?.focus();
+}
+
+function closeAISupport() {
+  const wrap = document.getElementById('aiSupportWrap');
+  if (wrap) wrap.style.display = 'none';
+}
+
+function toggleAISupport() {
+  const wrap = document.getElementById('aiSupportWrap');
+  if (wrap && wrap.style.display !== 'none') closeAISupport();
+  else openAISupport();
+}
+
+function aiAppend(role, text) {
+  _AiMsgs.push({ role, content: text });
+  _aiSave();
+  const body = document.getElementById('aiChatBody');
+  if (body) { body.insertAdjacentHTML('beforeend', aiMsgHtml(role, text)); body.scrollTop = body.scrollHeight; }
+}
+
+function aiShowTyping() {
+  const body = document.getElementById('aiChatBody');
+  if (!body) return;
+  if (!document.getElementById('_aiTyping')) {
+    body.insertAdjacentHTML('beforeend', '<div id="_aiTyping" style="display:flex;gap:8px;margin-bottom:8px;"><div style="flex-shrink:0;width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#6C3FE8,#A855F7);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.8rem;">' + AI_ROBOT_SVG + '</div><div style="background:var(--bg);color:var(--ink);font-size:.78rem;padding:8px 12px;border-radius:14px 14px 14px 2px;">typing...</div></div>');
+  }
+  body.scrollTop = body.scrollHeight;
+}
+
+function aiRemoveTyping() {
+  document.getElementById('_aiTyping')?.remove();
+}
+
+async function aiSendText(text) {
+  text = (text || '').trim();
+  if (!text || _AiBusy) return;
+  _AiBusy = true;
+  const sendBtn = document.getElementById('aiSendBtn');
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.style.opacity = .5; }
+  aiAppend('user', text);
+  aiShowTyping();
+  const history = aiArr().slice(0, -1).map(m => ({ role: m.role, content: m.content }));
+  try {
+    const d = await api('/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message: text, history })
+    });
+    aiRemoveTyping();
+    if (d.success && d.data && d.data.reply) {
+      aiAppend('assistant', d.data.reply);
+    } else {
+      aiAppend('assistant', 'Sorry, I could not reach the AI right now. ' + (d.message || 'Please try again in a moment.'));
+    }
+  } catch(e) {
+    aiRemoveTyping();
+    aiAppend('assistant', 'Sorry, something went wrong. Please try again in a moment.');
+  } finally {
+    _AiBusy = false;
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.style.opacity = 1; }
+  }
+}
+
+function aiSendChat() {
+  const inp = document.getElementById('aiChatInput');
+  if (!inp) return;
+  const text = inp.value;
+  inp.value = '';
+  aiSendText(text);
+}
+
+function aiQuick(text) {
+  aiSendText(text);
 }
 </script>
 </body>
