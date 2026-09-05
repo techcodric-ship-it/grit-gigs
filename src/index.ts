@@ -801,6 +801,24 @@ app.set("io", io);
       await col(`ALTER TABLE squad_orders ADD COLUMN IF NOT EXISTS revisions INTEGER DEFAULT 2 NOT NULL`);
       await col(`ALTER TABLE squad_order_deliveries ADD COLUMN IF NOT EXISTS revision_number INTEGER DEFAULT 0 NOT NULL`);
       await col(`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS squad_order_id UUID REFERENCES squad_orders(id) ON DELETE CASCADE`);
+      await col(`ALTER TABLE squads ADD COLUMN IF NOT EXISTS rating_avg REAL DEFAULT 0 NOT NULL`);
+      await col(`ALTER TABLE squads ADD COLUMN IF NOT EXISTS review_count INTEGER DEFAULT 0 NOT NULL`);
+      await col(`
+        CREATE TABLE IF NOT EXISTS squad_reviews (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          squad_id UUID NOT NULL REFERENCES squads(id) ON DELETE CASCADE,
+          reviewer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          rating INTEGER NOT NULL,
+          review_text TEXT,
+          source TEXT NOT NULL,
+          project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
+          squad_order_id UUID REFERENCES squad_orders(id) ON DELETE SET NULL,
+          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_squad_reviews_project ON squad_reviews(project_id) WHERE project_id IS NOT NULL;
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_squad_reviews_order ON squad_reviews(squad_order_id) WHERE squad_order_id IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS idx_squad_reviews_squad ON squad_reviews(squad_id);
+      `);
       await col(`
 DO $mig$
 BEGIN

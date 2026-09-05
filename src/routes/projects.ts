@@ -50,7 +50,7 @@ async function attachSquadTags(items: { userId?: string | null }[]) {
     .from(squadMembersTable)
     .innerJoin(squadsTable, eq(squadMembersTable.squadId, squadsTable.id))
     .where(and(inArray(squadMembersTable.userId, userIds), eq(squadsTable.isActive, true)));
-  const byUser: Record<string, { id: string; name: string; avatar: string | null; leaderId: string; memberCount: number }> = {};
+  const byUser: Record<string, { id: string; name: string; avatar: string | null; leaderId: string; memberCount: number; ratingAvg: number; reviewCount: number }> = {};
   for (const r of rows) {
     if (!byUser[r.userId]) {
       byUser[r.userId] = {
@@ -59,6 +59,8 @@ async function attachSquadTags(items: { userId?: string | null }[]) {
         avatar: r.squad.avatar,
         leaderId: r.squad.leaderId,
         memberCount: Number(r.memberCount),
+        ratingAvg: r.squad.ratingAvg ?? 0,
+        reviewCount: r.squad.reviewCount ?? 0,
       };
     }
   }

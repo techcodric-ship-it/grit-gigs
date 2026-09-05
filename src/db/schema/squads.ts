@@ -1,6 +1,7 @@
-import { pgTable, pgEnum, text, boolean, integer, timestamp, uuid } from "drizzle-orm/pg-core";
+import { pgTable, pgEnum, text, boolean, integer, real, timestamp, uuid } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
 import { orderStatusEnum } from "./orders";
+import { projectsTable } from "./projects";
 
 export const squadRoleEnum = pgEnum("squad_role", ["LEADER", "MEMBER"]);
 export const squadInviteStatusEnum = pgEnum("squad_invite_status", ["PENDING", "ACCEPTED", "DECLINED"]);
@@ -19,6 +20,8 @@ export const squadsTable = pgTable("squads", {
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   isActive: boolean("is_active").default(true).notNull(),
+  ratingAvg: real("rating_avg").default(0).notNull(),
+  reviewCount: integer("review_count").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -115,6 +118,26 @@ export const squadJoinRequestsTable = pgTable("squad_join_requests", {
   respondedAt: timestamp("responded_at"),
 });
 
+export const squadReviewsTable = pgTable("squad_reviews", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  squadId: uuid("squad_id")
+    .notNull()
+    .references(() => squadsTable.id, { onDelete: "cascade" }),
+  reviewerId: uuid("reviewer_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  rating: integer("rating").notNull(),
+  reviewText: text("review_text"),
+  source: text("source").notNull(),
+  projectId: uuid("project_id")
+    .unique()
+    .references(() => projectsTable.id, { onDelete: "set null" }),
+  squadOrderId: uuid("squad_order_id")
+    .unique()
+    .references(() => squadOrdersTable.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export type Squad = typeof squadsTable.$inferSelect;
 export type SquadMember = typeof squadMembersTable.$inferSelect;
 export type SquadInvite = typeof squadInvitesTable.$inferSelect;
@@ -122,3 +145,4 @@ export type SquadService = typeof squadServicesTable.$inferSelect;
 export type SquadOrder = typeof squadOrdersTable.$inferSelect;
 export type SquadOrderDelivery = typeof squadOrderDeliveriesTable.$inferSelect;
 export type SquadJoinRequest = typeof squadJoinRequestsTable.$inferSelect;
+export type SquadReview = typeof squadReviewsTable.$inferSelect;

@@ -11,6 +11,7 @@ import {
   squadOrdersTable,
   squadOrderDeliveriesTable,
   squadJoinRequestsTable,
+  squadReviewsTable,
   conversationsTable,
   conversationParticipantsTable,
   messagesTable,
@@ -60,6 +61,8 @@ function squadLite(squad: typeof squadsTable.$inferSelect, extras: Record<string
     skills: squad.skills ?? [],
     leaderId: squad.leaderId,
     isActive: squad.isActive,
+    ratingAvg: squad.ratingAvg ?? 0,
+    reviewCount: squad.reviewCount ?? 0,
     createdAt: squad.createdAt,
     ...extras,
   };
@@ -725,6 +728,8 @@ router.get("/squads/services", optionalAuth, async (req: Request, res: Response)
       squadName: r.squad.name,
       squadAvatar: r.squad.avatar ?? null,
       squadMemberCount: Number(r.memberCount),
+      squadRatingAvg: r.squad.ratingAvg ?? 0,
+      squadReviewCount: r.squad.reviewCount ?? 0,
       isOwnSquad: mySquadIds.has(r.squad.id),
       leader: r.leader ? { id: r.leader.id, firstName: r.leader.firstName, lastName: r.leader.lastName ?? "", profilePhoto: r.leader.profilePhoto ?? null } : null,
     })),
@@ -1117,6 +1122,17 @@ async function squadOrderConversationId(order: typeof squadOrdersTable.$inferSel
   return gconv.id;
 }
 
+async function refreshSquadRating(squadId: string) {
+  const [agg] = await db
+    .select({ avg: sql<number>`COALESCE(AVG(rating), 0)::float`, cnt: sql<number>`COUNT(*)::int` })
+    .from(squadReviewsTable)
+    .where(eq(squadReviewsTable.squadId, squadId));
+  await db
+    .update(squadsTable)
+    .set({ ratingAvg: Number(agg?.avg || 0), reviewCount: Number(agg?.cnt || 0), updatedAt: new Date() })
+    .where(eq(squadsTable.id, squadId));
+}
+
 async function squadOrderJson(order: typeof squadOrdersTable.$inferSelect, viewerId: string) {
   const [service] = await db.select().from(squadServicesTable).where(eq(squadServicesTable.id, order.serviceId)).limit(1);
   const [squad] = await db.select().from(squadsTable).where(eq(squadsTable.id, order.squadId)).limit(1);
@@ -1135,6 +1151,7 @@ async function squadOrderJson(order: typeof squadOrdersTable.$inferSelect, viewe
     .from(squadOrderDeliveriesTable)
     .where(eq(squadOrderDeliveriesTable.orderId, order.id))
     .orderBy(desc(squadOrderDeliveriesTable.createdAt));
+  const [review] = await db.select().from(squadReviewsTable).where(eq(squadReviewsTable.squadOrderId, order.id)).limit(1);
   const isViewerMember = await isSquadMemberOfService(order.serviceId, viewerId);
   return {
     id: order.id,
@@ -1151,9 +1168,10 @@ async function squadOrderJson(order: typeof squadOrdersTable.$inferSelect, viewe
     createdAt: order.createdAt,
     updatedAt: order.updatedAt,
     service: service ? serviceJson(service) : null,
-    squad: squad ? { id: squad.id, name: squad.name, avatar: squad.avatar ?? null } : null,
+    squad: squad ? { id: squad.id, name: squad.name, avatar: squad.avatar ?? null, ratingAvg: squad.ratingAvg ?? 0, reviewCount: squad.reviewCount ?? 0 } : null,
     buyer,
     deliveries,
+    reviewed: !!review,
     isViewerMember,
     canAct: isViewerMember && order.buyerId !== viewerId,
   };
@@ -1464,6 +1482,43 @@ router.put("/squad-orders/:id/complete", authenticate, async (req: Request, res:
   }
 
   res.json({ success: true, message: `Order completed! ₹${order.priceInr} split equally across ${creditRecipients.length} team member${creditRecipients.length === 1 ? '' : 's'} (₹${totalCommission} total commission).` });
+});
+
+// Rate a squad after a completed squad order (buyer reviews the circle)
+router.post("/squads/orders/:id/review", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const user = req.user!.id;
+  const { rating, reviewText } = req.body || {};
+  const ratingNum = Number(rating);
+  if (!ratingNum || ratingNum < 1 || ratingNum > 5) {
+    res.status(400).json({ success: false, message: "Rating must be 1-5" });
+    return;
+  }
+  const [order] = await db.select().from(squadOrdersTable).where(eq(squadOrdersTable.id, String(req.params.id))).limit(1);
+  if (!order) { res.status(404).json({ success: false, message: "Order not found" }); return; }
+  if (order.buyerId !== user) { res.status(403).json({ success: false, message: "Only the buyer can review" }); return; }
+  if (order.status !== "COMPLETED") { res.status(400).json({ success: false, message: "Order must be completed before reviewing" }); return; }
+  const [existing] = await db.select().from(squadReviewsTable).where(eq(squadReviewsTable.squadOrderId, order.id)).limit(1);
+  if (existing) { res.status(400).json({ success: false, message: "Review already submitted" }); return; }
+
+  await db.insert(squadReviewsTable).values({
+    squadId: order.squadId,
+    reviewerId: user,
+    rating: ratingNum,
+    reviewText: reviewText != null && String(reviewText).trim() ? String(reviewText).trim().slice(0, 1000) : null,
+    source: "ORDER",
+    squadOrderId: order.id,
+  });
+  await refreshSquadRating(order.squadId);
+
+  const members = await db.select({ userId: squadMembersTable.userId }).from(squadMembersTable).where(eq(squadMembersTable.squadId, order.squadId));
+  const [squad] = await db.select().from(squadsTable).where(eq(squadsTable.id, order.squadId)).limit(1);
+  const notifBase = { type: "SQUAD_REVIEW", title: "Your circle was rated!", message: `A buyer rated ${squad?.name ?? "your circle"} ${ratingNum}★ for squad order #${order.id.slice(-8)}.`, linkUrl: "/dashboard#grit-circle" };
+  for (const m of members) {
+    await db.insert(notificationsTable).values({ userId: m.userId, ...notifBase });
+    try { req.app?.get("io")?.to(`user:${m.userId}`).emit("notification:new", notifBase); } catch {}
+  }
+
+  res.json({ success: true, message: "Review submitted!" });
 });
 
 // Cancel a squad order (buyer or squad member)
