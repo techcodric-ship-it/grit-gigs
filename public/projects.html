@@ -655,9 +655,7 @@ async function loadProjects() {
 // ── Open project detail ──
 async function openProjectDetail(projectId) {
   // Show project in a lightweight modal — proposals are public and viewable by anyone
-  {
-    // Show project in a lightweight modal
-    const d = await _api('/projects/' + projectId);
+  const d = await _api('/projects/' + projectId);
     if (!d.success) { _toast('Could not load project', 'error'); return; }
     const p = d.data.project;
     const u = _gU();
@@ -726,7 +724,6 @@ async function openProjectDetail(projectId) {
     overlay.addEventListener('click', e => { if (e.target === overlay) { overlay.remove(); document.body.style.overflow=''; } });
     document.body.appendChild(overlay);
     document.body.style.overflow = 'hidden';
-  }
 }
 
 // ── Open proposal modal ──
