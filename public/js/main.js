@@ -483,27 +483,25 @@ window.openServiceModal = async function(serviceId, title, price, profilePhoto, 
   const reviewsHtml = s.reviews?.length ? s.reviews.slice(0,3).map(r => {
     const ri = ((r.reviewer?.firstName||'?')[0]+(r.reviewer?.lastName||'')[0]).toUpperCase();
     const rpp = r.reviewer?.profilePhoto || '';
-    const rProfUrl = 'profile.html?id=' + encodeURIComponent(r.reviewerId);
-    const rAv = rpp ? `<img src="${rpp}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="closeModal('serviceModal');location.href='${rProfUrl}'"/>` : `<div class="avatar-placeholder avatar-v" style="width:28px;height:28px;font-size:10px;cursor:pointer;" onclick="closeModal('serviceModal');location.href='${rProfUrl}'">${ri}</div>`;
+    const rAv = rpp ? `<img src="${rpp}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation();closeModal('serviceModal');openUserProfile('${r.reviewerId}')"/>` : `<div class="avatar-placeholder avatar-v" style="width:28px;height:28px;font-size:10px;cursor:pointer;" onclick="event.stopPropagation();closeModal('serviceModal');openUserProfile('${r.reviewerId}')">${ri}</div>`;
     return `<div style="padding:12px 0;border-bottom:1px solid var(--border);">
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px;">
         ${rAv}
-        <span style="font-weight:600;font-size:0.84rem;cursor:pointer;" onclick="closeModal('serviceModal');location.href='${rProfUrl}'">${r.reviewer?.firstName||'?'} ${r.reviewer?.lastName||''}</span>
+        <span style="font-weight:600;font-size:0.84rem;cursor:pointer;" onclick="event.stopPropagation();closeModal('serviceModal');openUserProfile('${r.reviewerId}')" title="View profile">${r.reviewer?.firstName||'?'} ${r.reviewer?.lastName||''}</span>
         <span style="color:#F59E0B;margin-left:auto;">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</span>
       </div>
       <p style="font-size:0.82rem;color:var(--text-secondary);">${r.reviewText||''}</p>
     </div>`;
   }).join('') : '<div style="padding:12px 0;color:var(--muted);font-size:0.84rem;">No reviews yet — be the first buyer!</div>';
 
-  const profileUrl = 'profile.html?id=' + encodeURIComponent(s.sellerId);
-  const sellerAv = profilePhoto ? `<img src="${decodeURIComponent(profilePhoto)}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="closeModal('serviceModal');location.href='${profileUrl}'"/>` : `<div class="avatar-placeholder avatar-v" style="width:34px;height:34px;font-size:12px;cursor:pointer;" onclick="closeModal('serviceModal');location.href='${profileUrl}'">${((s.seller?.firstName||'?')[0]+(s.seller?.lastName||'')[0]).toUpperCase()}</div>`;
+  const sellerAv = profilePhoto ? `<img src="${decodeURIComponent(profilePhoto)}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation();closeModal('serviceModal');openUserProfile('${s.sellerId}')" title="View profile"/>` : `<div class="avatar-placeholder avatar-v" style="width:34px;height:34px;font-size:12px;cursor:pointer;" onclick="event.stopPropagation();closeModal('serviceModal');openUserProfile('${s.sellerId}')" title="View profile">${((s.seller?.firstName||'?')[0]+(s.seller?.lastName||'')[0]).toUpperCase()}</div>`;
 
   modal.querySelector('.modal').innerHTML = `
     <button class="modal-close" onclick="closeModal('serviceModal')">×</button>
     <img src="${img}" alt="${s.title}" style="width:100%;height:200px;object-fit:cover;border-radius:14px;margin-bottom:18px;"/>
     <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;">
       ${sellerAv}
-      <div><div style="font-weight:600;font-size:0.9rem;cursor:pointer;" onclick="closeModal('serviceModal');location.href='${profileUrl}'">${sellerName}${kycBadge(s.seller?.kycVerified)}${planBadge(s.seller?.planBadge)}${banBadge(s.seller)}</div><div style="font-size:0.75rem;color:var(--text-muted);">${s.seller?.city||'India'} · Rep ${s.seller?.reputationScore||0}</div></div>
+      <div><div style="font-weight:600;font-size:0.9rem;cursor:pointer;" onclick="event.stopPropagation();closeModal('serviceModal');openUserProfile('${s.sellerId}')" title="View profile">${sellerName}${kycBadge(s.seller?.kycVerified)}${planBadge(s.seller?.planBadge)}${banBadge(s.seller)}</div><div style="font-size:0.75rem;color:var(--text-muted);">${s.seller?.city||'India'} · Rep ${s.seller?.reputationScore||0}</div></div>
       <div style="margin-left:auto;"><span style="color:#F59E0B;font-weight:700;">${s.ratingAvg?.toFixed(1)||'New'}</span> <span style="color:var(--text-muted);font-size:0.8rem;">(${s.reviewCount||0})</span></div>
     </div>
     <h3 style="font-size:1.05rem;margin-bottom:8px;line-height:1.4;">${s.title}</h3>
@@ -1018,4 +1016,118 @@ async function submitOnboarding() {
     if (err) { err.textContent = data.message || 'Something went wrong. Please try again.'; err.style.display = 'block'; }
   }
 }
+
+// ═══════════════════════════════════════════════════════
+//  PUBLIC PROFILE POPUP (browse / barter / freelance)
+// ═══════════════════════════════════════════════════════
+(function ensureUserPopupStyles() {
+  if (document.getElementById('upf-styles')) return;
+  var st = document.createElement('style');
+  st.id = 'upf-styles';
+  st.textContent = '.upf-mo{position:fixed;inset:0;z-index:3000;background:rgba(10,10,15,.55);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .22s;}.upf-mo.open{opacity:1;pointer-events:all;}.upf-md{background:#fff;border-radius:20px;padding:26px;max-width:560px;width:100%;max-height:88vh;overflow-y:auto;transform:translateY(20px);transition:transform .22s;position:relative;box-shadow:0 24px 60px rgba(10,10,15,.25);}.upf-mo.open .upf-md{transform:translateY(0);}.upf-mc{position:absolute;top:14px;right:16px;background:rgba(10,10,15,.06);border:none;width:30px;height:30px;border-radius:50%;font-size:18px;line-height:1;cursor:pointer;color:#555;display:flex;align-items:center;justify-content:center;padding:0;}.upf-mc:hover{background:rgba(10,10,15,.12);}';
+  document.head.appendChild(st);
+})();
+
+window.openUserProfile = async function(userId) {
+  if (!userId) return;
+  if (!document.getElementById('upf-styles')) { var ev = document.createEvent('HTMLEvents'); ev.initEvent('DOMContentLoaded', false, false); }
+  var d = await api('/users/' + userId);
+  if (!d.success || !d.data || !d.data.user) { showToast('Could not load profile', 'error'); return; }
+  var u = d.data.user;
+  function escU(s) { if (s === undefined || s === null) return ''; return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+  function safeHttpU(url) { if (!url) return '#'; return /^https?:\/\//i.test(String(url)) ? String(url) : '#'; }
+  var ini = ((u.firstName || '?')[0] || '?').toUpperCase();
+  var memberSince = u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) : '';
+  var gigs = Array.isArray(d.data.gigs) ? d.data.gigs : [];
+  var ratingAvg = d.data.avgRating || 0;
+  var reviewCount = d.data.reviewCount || 0;
+  var reviews = Array.isArray(d.data.reviews) ? d.data.reviews : [];
+  var completedProjects = d.data.completedProjects || 0;
+  var skillsOffered = Array.isArray(u.skillsOffered) ? u.skillsOffered : [];
+  var skillsNeeded = Array.isArray(u.skillsNeeded) ? u.skillsNeeded : [];
+  var languages = Array.isArray(u.languages) ? u.languages : [];
+  var portfolioLinks = Array.isArray(u.portfolioLinks) ? u.portfolioLinks : [];
+  var socialLinks = (typeof u.socialLinks === 'object' && u.socialLinks) ? u.socialLinks : {};
+  function chip(t, c) { return '<span style="display:inline-block;background:' + (c || 'var(--surface-3)') + ';color:' + (c === 'var(--violet)' ? '#fff' : 'var(--ink)') + ';border-radius:99px;padding:4px 11px;font-size:.72rem;font-weight:600;">' + escU(t) + '</span>'; }
+  var skillsHtml = skillsOffered.length ? skillsOffered.map(function(s) { return chip(s); }).join('') : '<span style="font-size:.74rem;color:var(--text-muted);font-style:italic;">None listed</span>';
+  var skillsNeededHtml = skillsNeeded.length ? skillsNeeded.map(function(s) { return chip(s, 'var(--violet-light)'); }).join('') : '<span style="font-size:.74rem;color:var(--text-muted);font-style:italic;">None listed</span>';
+  var langHtml = languages.length ? languages.map(function(l) { return chip(l); }).join('') : '<span style="font-size:.74rem;color:var(--text-muted);font-style:italic;">Not specified</span>';
+  var portfolioHtml = portfolioLinks.length ? portfolioLinks.map(function(p) {
+    var label = (typeof p === 'object') ? (p.label || p.url || String(p)) : String(p);
+    var url = (typeof p === 'object') ? (p.url || p.label || String(p)) : String(p);
+    return '<div style="padding:3px 0;"><a href="' + safeHttpU(url) + '" target="_blank" rel="noopener" style="color:var(--violet);font-size:.78rem;word-break:break-all;text-decoration:none;font-weight:600;">' + escU(label) + '</a></div>';
+  }).join('') : '<span style="font-size:.74rem;color:var(--text-muted);font-style:italic;">No portfolio links added</span>';
+  var socialHtml = Object.keys(socialLinks).filter(function(k) { return socialLinks[k]; }).map(function(k) {
+    return '<div style="padding:3px 0;"><a href="' + safeHttpU(socialLinks[k]) + '" target="_blank" rel="noopener" style="color:var(--violet);font-size:.78rem;word-break:break-all;text-decoration:none;font-weight:600;">' + escU(k.charAt(0).toUpperCase() + k.slice(1)) + '</a></div>';
+  }).join('');
+  var starDisplay = '<span style="color:#F59E0B;letter-spacing:2px;font-size:.82rem;">' + '★'.repeat(Math.floor(ratingAvg)) + (ratingAvg % 1 >= 0.5 ? '½' : '') + '</span>';
+  var typeLabels = { service: 'Gig order', client: 'Client review', barter: 'Barter exchange', project: 'Project review' };
+  var reviewsHtml = reviews.length ? reviews.map(function(r) {
+    return '<div style="padding:9px 0;border-bottom:1px solid var(--border);">' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">' +
+      (r.fromUser && r.fromUser.profilePhoto ? '<img src="' + escU(r.fromUser.profilePhoto) + '" style="width:20px;height:20px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.style.display=\'none\'"/>' : '<div style="width:20px;height:20px;border-radius:50%;background:var(--surface-3);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--text-muted);flex-shrink:0;">' + escU(((r.fromUser && (r.fromUser.firstName || '')) || (r.reviewerName || 'C'))[0] || 'C') + '</div>') +
+      '<span style="color:#F59E0B;font-size:.74rem;">' + '★'.repeat(Math.floor(r.rating || 0)) + '</span>' +
+      '<span style="font-size:.68rem;font-weight:600;color:var(--ink);">' + escU((r.fromUser && r.fromUser.firstName) || r.reviewerName || 'Anonymous') + '</span>' +
+      '<span style="font-size:.6rem;padding:1px 6px;border-radius:99px;background:var(--surface-3);color:var(--text-muted);border:1px solid var(--border);">' + escU(typeLabels[r.type] || r.type || 'Review') + '</span>' +
+      (r.createdAt ? '<span style="font-size:.6rem;color:var(--text-muted);margin-left:auto;">' + new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + '</span>' : '') +
+      '</div>' +
+      (r.reviewText ? '<div style="font-size:.73rem;color:var(--text-secondary);line-height:1.5;">' + escU(r.reviewText) + '</div>' : '') +
+      '</div>';
+  }).join('') : '';
+  var gigsHtml = gigs.length ? '<div style="background:var(--surface);padding:14px 16px;border:1px solid var(--border);border-radius:14px;margin-bottom:16px;">' +
+    '<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:8px;">Active Gigs (' + gigs.length + ')</div>' +
+    gigs.map(function(g) { return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--surface-2);border-radius:9px;padding:8px 12px;margin-bottom:5px;font-size:.78rem;color:var(--ink);"><span style="flex:1;">' + escU(g.title || '') + '</span>' + (g.startingPrice ? '<span style="font-weight:700;color:var(--violet);white-space:nowrap;">₹' + Number(g.startingPrice).toLocaleString('en-IN') + '+</span>' : '') + '</div>'; }).join('') +
+    '</div>' : '';
+  var availBadge = u.isAvailable !== false ? '<span style="display:inline-flex;align-items:center;gap:5px;font-size:.68rem;background:rgba(26,122,94,.1);color:var(--success);font-weight:700;padding:3px 9px;border-radius:99px;"><span style="width:6px;height:6px;border-radius:50%;background:var(--success);display:inline-block;"></span>Available for work</span>' : '<span style="display:inline-flex;align-items:center;gap:5px;font-size:.68rem;background:rgba(122,122,133,.12);color:var(--text-muted);font-weight:700;padding:3px 9px;border-radius:99px;"><span style="width:6px;height:6px;border-radius:50%;background:var(--text-muted);display:inline-block;"></span>Not available</span>';
+  var avHtml = u.profilePhoto
+    ? '<img src="' + escU(u.profilePhoto) + '" style="width:58px;height:58px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid #fff;box-shadow:0 4px 14px rgba(10,10,15,.18);" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';"/>'
+    : '';
+  var iniHtml = '<div style="width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#6C3FE8,#9A5FF0);color:#fff;display:' + (u.profilePhoto ? 'none' : 'flex') + ';align-items:center;justify-content:center;font-size:22px;font-weight:700;flex-shrink:0;">' + ini + '</div>';
+  var div = document.createElement('div');
+  div.className = 'upf-mo';
+  div.innerHTML = '<div class="upf-md">' +
+    '<button class="upf-mc" onclick="this.closest(\'.upf-mo\').remove();document.body.style.overflow=\'\';">&times;</button>' +
+    '<div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;">' + avHtml + iniHtml +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-weight:700;font-size:1.08rem;line-height:1.25;color:var(--ink);">' + escU(u.firstName || '') + ' ' + escU(u.lastName || '') + banBadge(u) + '</div>' +
+        '<div style="font-size:.62rem;color:var(--text-muted);letter-spacing:.03em;margin-top:2px;">' + escU((u.ggId || '')) + '</div>' +
+        (u.tagline ? '<div style="font-size:.8rem;color:var(--text-secondary);margin-top:3px;">' + escU(u.tagline) + '</div>' : '') +
+        ((u.city || u.country) ? '<div style="font-size:.74rem;color:var(--text-muted);margin-top:4px;">📍 ' + escU([u.city, u.country].filter(Boolean).join(', ')) + '</div>' : '') +
+        '<div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap;align-items:center;">' +
+          '<span style="font-size:.74rem;font-weight:700;color:var(--violet);">★ ' + escU(u.reputationScore || 0) + ' Rep</span>' +
+          (u.planBadge ? planBadge(u.planBadge) : '') +
+          (u.hourlyRate ? '<span style="font-size:.74rem;font-weight:600;color:var(--ink);">₹' + Number(u.hourlyRate).toLocaleString('en-IN') + '/hr</span>' : '') +
+          (u.emailVerified ? '<span style="font-size:.68rem;color:var(--success);font-weight:600;">✓ Email Verified</span>' : '') +
+          kycBadge(u.kycVerified) +
+          (memberSince ? '<span style="font-size:.68rem;color:var(--text-muted);">Member since ' + memberSince + '</span>' : '') +
+        '</div>' +
+        '<div style="margin-top:8px;">' + availBadge + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:16px;">' +
+      '<div style="flex:1;min-width:80px;"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);">Rating</div><div style="font-weight:700;font-size:.92rem;color:var(--ink);">' + starDisplay + ' ' + (ratingAvg ? Number(ratingAvg).toFixed(1) : 'New') + '</div></div>' +
+      '<div style="flex:1;min-width:80px;"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);">Reviews</div><div style="font-weight:700;font-size:.92rem;color:var(--ink);">' + reviewCount + '</div></div>' +
+      '<div style="flex:1;min-width:80px;"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);">Projects Done</div><div style="font-weight:700;font-size:.92rem;color:var(--ink);">' + completedProjects + '</div></div>' +
+    '</div>' +
+    '<div style="margin-bottom:16px;"><div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px;">About</div>' +
+      (u.bio ? '<div style="font-size:.8rem;color:var(--text-secondary);line-height:1.65;background:var(--surface-2);padding:10px 13px;border-radius:12px;">' + escU(u.bio) + '</div>' : '<div style="font-size:.75rem;color:var(--text-muted);font-style:italic;">No bio added yet.</div>') +
+    '</div>' +
+    gigsHtml +
+    (reviewCount > 0 ? '<div style="background:var(--surface);padding:14px 16px;border:1px solid var(--border);border-radius:14px;margin-bottom:16px;">' +
+      '<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px;">Ratings &amp; Reviews</div>' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:' + (reviewsHtml ? '6px' : '0') + ';">' + starDisplay + '<span style="font-weight:700;font-size:.88rem;color:var(--ink);">' + Number(ratingAvg).toFixed(1) + '</span><span style="font-size:.74rem;color:var(--text-muted);">(' + reviewCount + ' review' + (reviewCount !== 1 ? 's' : '') + ')</span></div>' +
+      (reviewsHtml ? '<div style="max-height:190px;overflow-y:auto;">' + reviewsHtml + '</div>' : '') +
+    '</div>' : '') +
+    '<div style="margin-bottom:16px;"><div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px;">Skills Offered</div><div style="display:flex;flex-wrap:wrap;gap:5px;">' + skillsHtml + '</div></div>' +
+    '<div style="margin-bottom:16px;"><div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px;">Skills Needed</div><div style="display:flex;flex-wrap:wrap;gap:5px;">' + skillsNeededHtml + '</div></div>' +
+    '<div style="margin-bottom:16px;"><div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px;">Languages</div><div style="display:flex;flex-wrap:wrap;gap:5px;">' + langHtml + '</div></div>' +
+    '<div style="margin-bottom:4px;"><div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px;">Portfolio / Work Samples</div>' + portfolioHtml + '</div>' +
+    (socialHtml ? '<div style="margin-top:10px;"><div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px;">Social Links</div>' + socialHtml + '</div>' : '') +
+  '</div>';
+  div.addEventListener('click', function(e) { if (e.target === div) { div.remove(); document.body.style.overflow = ''; } });
+  div.addEventListener('keydown', function(e) { if (e.key === 'Escape') { div.remove(); document.body.style.overflow = ''; } });
+  document.body.appendChild(div);
+  requestAnimationFrame(function() { div.classList.add('open'); });
+  if (document.body.style.overflow !== 'hidden') document.body.style.overflow = 'hidden';
+};
 

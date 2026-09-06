@@ -739,14 +739,14 @@ document.addEventListener('DOMContentLoaded', function() {
       var sellerNameEsc = sellerName.replace(/'/g, "\\'");
       var ago = s.createdAt ? ' &nbsp;·&nbsp; <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;display:inline-block;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> ' + timeAgo(s.createdAt) : '';
       var desc = s.description ? escHtml(s.description.slice(0, 120)) : '';
-      var sellerAv = pp ? '<img src="' + escAttr(pp) + '" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;"/>' : '<div class="avatar-placeholder avatar-v" style="width:28px;height:28px;font-size:11px;">' + initials + '</div>';
+      var sellerAv = pp ? '<img src="' + escAttr(pp) + '" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation();openUserProfile(\'' + escJsStr(s.sellerId || '') + '\')" title="View profile"/>' : '<div class="avatar-placeholder avatar-v" style="width:28px;height:28px;font-size:11px;cursor:pointer;" onclick="event.stopPropagation();openUserProfile(\'' + escJsStr(s.sellerId || '') + '\')" title="View profile">' + initials + '</div>';
 
       return '<div class="service-list-card" onclick="openServiceModal(\'' + escJsStr(s.id) + '\',\'' + titleEsc + '\',' + price + ',\'' + ppEnc + '\',\'' + sellerNameEsc + '\')">' +
         '<div class="slc-img"><img src="' + escAttr(img) + '" alt="' + escAttr(s.title) + '" loading="lazy"/></div>' +
         '<div class="slc-body">' +
           '<div class="slc-seller">' +
             sellerAv +
-            '<span class="slc-seller-name">' + escHtml(sellerName) + kycBadge(s.seller?.kycVerified) + planBadge(s.seller?.planBadge) + banBadge(s.seller) + '</span>' +
+            '<span class="slc-seller-name" style="cursor:pointer;" onclick="event.stopPropagation();openUserProfile(\'' + escJsStr(s.sellerId || '') + '\')" title="View profile">' + escHtml(sellerName) + kycBadge(s.seller?.kycVerified) + planBadge(s.seller?.planBadge) + banBadge(s.seller) + '</span>' +
             '<span class="badge ' + levelClass + '" style="font-size:0.68rem;padding:2px 8px;">' + levelBadge + '</span>' +
           '</div>' +
           '<div class="slc-title">' + escHtml(s.title) + '</div>' +
