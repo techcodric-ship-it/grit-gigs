@@ -15,7 +15,8 @@ function kycBadge(v) { return v ? '<span style="display:inline-flex;align-items:
 function banBadge(u) { return (u && u.isActive === false) ? '<span style="display:inline-flex;align-items:center;gap:2px;background:#fee2e2;color:#b91c1c;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">\u26d4 Banned</span>' : ''; }
 if (typeof planBadge !== 'function') { window.planBadge = function(v) { if (!v) return ''; var g={STARTER:'#059669',PRO:'#7C3AED',SQUAD:'#D97706'}; return '<span style="display:inline-flex;align-items:center;gap:2px;background:' + (g[v]||'#6C3FE8') + ';color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>'; }; }
 
-async function api(endpoint, opts = {}) {
+let _rp = null;
+async function api(endpoint, opts = {}, _rt = false) {
   try {
     const r = await fetch(API + endpoint, {
       ...opts,
@@ -25,7 +26,26 @@ async function api(endpoint, opts = {}) {
         ...opts.headers,
       },
     });
-    return r.json();
+    const data = await r.json();
+    if (r.status === 401 && endpoint !== '/auth/login' && !_rt) {
+      if (!_rp) {
+        const rf = localStorage.getItem('se_refresh');
+        _rp = rf
+          ? fetch(API + '/auth/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken: rf }) })
+              .then(r2 => r2.json()).catch(() => ({ success: false }))
+          : Promise.resolve({ success: false });
+      }
+      const rd = await _rp; _rp = null;
+      if (rd.success && rd.data?.accessToken) {
+        localStorage.setItem('se_token', rd.data.accessToken);
+        if (rd.data.refreshToken) localStorage.setItem('se_refresh', rd.data.refreshToken);
+        if (rd.data.user) { try { sU(rd.data.user); } catch(e) {} }
+        return api(endpoint, opts, true);
+      }
+      try { localStorage.removeItem('se_token'); localStorage.removeItem('se_refresh'); localStorage.removeItem('se_user'); } catch(e) {}
+      return { success: false, message: 'Session expired — please log in again.' };
+    }
+    return data;
   } catch (e) {
     return { success: false, message: 'Request failed — check your connection or try again.' };
   }

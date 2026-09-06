@@ -498,13 +498,33 @@ const _API = '/api';
 const _gT = () => localStorage.getItem('se_token');
 const _gU = () => { try { return JSON.parse(localStorage.getItem('se_user')||'null'); } catch(e) { return null; } };
 
-async function _api(ep, opts = {}) {
+let _rpr = null;
+async function _api(ep, opts = {}, _rt = false) {
   try {
     const r = await fetch(_API + ep, {
       ...opts,
       headers: { 'Content-Type': 'application/json', ...(_gT() && { Authorization: 'Bearer ' + _gT() }), ...(opts.headers||{}) }
     });
-    return r.json();
+    const data = await r.json();
+    if (r.status === 401 && ep !== '/auth/login' && ep !== '/auth/register' && !_rt) {
+      if (!_rpr) {
+        const rf = localStorage.getItem('se_refresh');
+        _rpr = rf
+          ? fetch(_API + '/auth/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken: rf }) })
+              .then(r2 => r2.json()).catch(() => ({ success: false }))
+          : Promise.resolve({ success: false });
+      }
+      const rd = await _rpr; _rpr = null;
+      if (rd.success && rd.data?.accessToken) {
+        localStorage.setItem('se_token', rd.data.accessToken);
+        if (rd.data.refreshToken) localStorage.setItem('se_refresh', rd.data.refreshToken);
+        if (rd.data.user) { try { sU(rd.data.user); } catch(e){} }
+        return _api(ep, opts, true);
+      }
+      try { localStorage.removeItem('se_token'); localStorage.removeItem('se_refresh'); localStorage.removeItem('se_user'); } catch(e) {}
+      return { success: false, message: 'Session expired. Please log in again.' };
+    }
+    return data;
   } catch(e) { return { success: false, message: 'Network error' }; }
 }
 
