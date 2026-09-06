@@ -138,7 +138,7 @@ router.get("/messages/conversations", authenticate, async (req, res): Promise<vo
     (async () => {
       const res = await pool.query(
         `SELECT conversation_id, COUNT(*)::int AS cnt
-         FROM messages WHERE conversation_id = ANY($1::uuid[]) AND sender_id != $2 AND read = FALSE
+         FROM messages WHERE conversation_id = ANY($1::uuid[]) AND sender_id != $2 AND read_at IS NULL
          GROUP BY conversation_id`,
         [convIds, myId],
       );
