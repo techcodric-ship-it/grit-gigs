@@ -1042,7 +1042,7 @@ window.openUserProfile = async function(userId) {
   var ratingAvg = d.data.avgRating || 0;
   var reviewCount = d.data.reviewCount || 0;
   var reviews = Array.isArray(d.data.reviews) ? d.data.reviews : [];
-  var completedProjects = d.data.completedProjects || 0;
+  var completedProjects = Array.isArray(d.data.completedProjects) ? d.data.completedProjects : [];
   var skillsOffered = Array.isArray(u.skillsOffered) ? u.skillsOffered : [];
   var skillsNeeded = Array.isArray(u.skillsNeeded) ? u.skillsNeeded : [];
   var languages = Array.isArray(u.languages) ? u.languages : [];
@@ -1107,7 +1107,7 @@ window.openUserProfile = async function(userId) {
     '<div style="display:flex;gap:8px;flex-wrap:wrap;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:16px;">' +
       '<div style="flex:1;min-width:80px;"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);">Rating</div><div style="font-weight:700;font-size:.92rem;color:var(--ink);">' + starDisplay + ' ' + (ratingAvg ? Number(ratingAvg).toFixed(1) : 'New') + '</div></div>' +
       '<div style="flex:1;min-width:80px;"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);">Reviews</div><div style="font-weight:700;font-size:.92rem;color:var(--ink);">' + reviewCount + '</div></div>' +
-      '<div style="flex:1;min-width:80px;"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);">Projects Done</div><div style="font-weight:700;font-size:.92rem;color:var(--ink);">' + completedProjects + '</div></div>' +
+      '<div style="flex:1;min-width:80px;"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);">Projects Done</div><div style="font-weight:700;font-size:.92rem;color:var(--ink);">' + completedProjects.length + '</div></div>' +
     '</div>' +
     '<div style="margin-bottom:16px;"><div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px;">About</div>' +
       (u.bio ? '<div style="font-size:.8rem;color:var(--text-secondary);line-height:1.65;background:var(--surface-2);padding:10px 13px;border-radius:12px;">' + escU(u.bio) + '</div>' : '<div style="font-size:.75rem;color:var(--text-muted);font-style:italic;">No bio added yet.</div>') +
