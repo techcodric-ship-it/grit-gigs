@@ -196,6 +196,41 @@ router.get("/squads", optionalAuth, async (req: Request, res: Response): Promise
       ).map((r) => r.squadId)
     : [];
 
+  // Completed projects won by each squad's members (accepted bid belongs to a squad member)
+  const completedMap: Record<string, any[]> = {};
+  try {
+    const squadIds = squadRows.map((r) => r.squad.id);
+    if (squadIds.length) {
+      const projRes = await db.execute(sql`
+        SELECT sm.squad_id, p.id, p.title, p.category, p.skills, p.budget_min, p.budget_max, p.deadline, p.created_at,
+               pb.user_id AS winner_id, u.first_name, u.last_name, u.profile_photo
+        FROM projects p
+        JOIN project_bids pb ON pb.id = p.accepted_bid_id
+        JOIN squad_members sm ON sm.user_id = pb.user_id
+        LEFT JOIN users u ON u.id = pb.user_id
+        WHERE sm.squad_id = ANY(${squadIds}::uuid[]) AND p.status = 'COMPLETED'
+        ORDER BY p.created_at DESC`);
+      for (const row of (projRes as any).rows || []) {
+        if (!completedMap[row.squad_id]) completedMap[row.squad_id] = [];
+        completedMap[row.squad_id].push({
+          id: row.id,
+          title: row.title,
+          category: row.category,
+          skills: row.skills,
+          budgetMin: row.budget_min,
+          budgetMax: row.budget_max,
+          deadline: row.deadline,
+          createdAt: row.created_at,
+          status: "COMPLETED",
+          statusLabel: "Completed",
+          winner: row.winner_id ? { id: row.winner_id, firstName: row.first_name, lastName: row.last_name ?? "", profilePhoto: row.profile_photo ?? null } : null,
+        });
+      }
+    }
+  } catch (e) {
+    console.error("squad completed projects query error:", e);
+  }
+
   res.json({
     success: true,
     data: squadRows.map((r) => {
@@ -205,6 +240,8 @@ router.get("/squads", optionalAuth, async (req: Request, res: Response): Promise
         leader: r.leader ? { id: r.leader.id, firstName: r.leader.firstName, lastName: r.leader.lastName ?? "", profilePhoto: r.leader.profilePhoto ?? null, tagline: r.leader.tagline ?? null } : null,
         joined: viewerId ? viewerSquadIds.includes(squadId) : false,
         requestStatus: viewerId ? (viewerPendingIds.includes(squadId) ? "PENDING" : null) : null,
+        completedProjects: completedMap[squadId] || [],
+        completedProjectsCount: (completedMap[squadId] || []).length,
       };
     }),
   });

@@ -5,7 +5,7 @@ import { squadsTable, squadMembersTable } from '../db/schema/squads';
 import { conversationsTable, conversationParticipantsTable } from '../db/schema/messages';
 import { notificationsTable, usersTable } from '../db/schema/users';
 import { freelanceWalletsTable, transactionsTable } from '../db/schema/wallet';
-import { eq, desc, and, not, or, count, sql, inArray, isNull } from 'drizzle-orm';
+import { eq, desc, and, not, or, count, sql, inArray, isNull, ne } from 'drizzle-orm';
 import { reviewsTable } from '../db/schema/orders';
 import { clientReviewsTable } from '../db/schema/client-reviews';
 import { authenticate, optionalAuth } from '../middlewares/authenticate';
@@ -29,6 +29,12 @@ const _projUpload = multer({
   }),
   limits: { fileSize: 8 * 1024 * 1024 },
 });
+
+function projectStatusLabel(status: string): string {
+  if (status === 'COMPLETED') return 'Completed';
+  if (status === 'OPEN') return 'Open';
+  return 'Ongoing';
+}
 
 function toPositiveInt(value: unknown): number | null {
   const parsed = typeof value === 'number' ? value : parseInt(String(value ?? ''), 10);
@@ -156,14 +162,14 @@ router.get('/projects', optionalAuth, async (req: Request, res: Response) => {
   const [totalResult] = await db
     .select({ value: count() })
     .from(projectsTable)
-    .where(and(eq(projectsTable.status, 'OPEN'), isNull(projectsTable.acceptedBidId)));
+    .where(ne(projectsTable.status, 'CANCELLED'));
   const total = Number(totalResult?.value ?? 0);
   const totalPages = Math.ceil(total / safeLimit);
 
   const projects = await db
     .select()
     .from(projectsTable)
-    .where(and(eq(projectsTable.status, 'OPEN'), isNull(projectsTable.acceptedBidId)))
+    .where(ne(projectsTable.status, 'CANCELLED'))
     .orderBy(desc(projectsTable.createdAt))
     .limit(safeLimit)
     .offset(offset);
@@ -183,7 +189,7 @@ router.get('/projects', optionalAuth, async (req: Request, res: Response) => {
 
       const userBid = userId ? bids.find(b => b.userId === userId) || null : null;
 
-      return { ...p, user: owner, _count: { bids: bids.length }, _userBid: userBid };
+      return { ...p, statusLabel: projectStatusLabel(p.status), user: owner, _count: { bids: bids.length }, _userBid: userBid };
     })
   );
 

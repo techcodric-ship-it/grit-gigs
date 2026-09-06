@@ -417,6 +417,55 @@ router.get("/users/:id", optionalAuth, async (req, res): Promise<void> => {
     }
     const gigsWithPrice = gigs.map(g => ({ ...g, startingPrice: minPriceMap[g.id] ?? null }));
 
+    // Completed projects — won by this user as a freelancer, or posted and completed as a client
+    const completedProjects: any[] = [];
+    try {
+      const projRes = await pool.query(
+        `SELECT p.id, p.title, p.description, p.category, p.skills, p.budget_min, p.budget_max, p.deadline, p.created_at,
+                p.user_id AS owner_id, pb.user_id AS winner_id,
+                pr.rating AS review_rating, pr.comment AS review_comment
+         FROM projects p
+         LEFT JOIN project_bids pb ON pb.id = p.accepted_bid_id
+         LEFT JOIN project_reviews pr ON pr.project_id = p.id AND pr.reviewee_id = pb.user_id
+         WHERE p.status = 'COMPLETED' AND (p.user_id = $1 OR pb.user_id = $1)
+         ORDER BY p.created_at DESC`,
+        [user.id]
+      );
+      const projectRows = projRes.rows;
+      const peopleIds = [...new Set([...projectRows.map((x: any) => x.owner_id), ...projectRows.map((x: any) => x.winner_id)].filter(Boolean))];
+      const people: Record<string, any> = {};
+      if (peopleIds.length) {
+        const peopleRows = await db.select({
+          id: usersTable.id,
+          firstName: usersTable.firstName,
+          lastName: usersTable.lastName,
+          profilePhoto: usersTable.profilePhoto,
+        }).from(usersTable).where(inArray(usersTable.id, peopleIds as string[]));
+        for (const u of peopleRows) people[u.id] = { id: u.id, firstName: u.firstName, lastName: u.lastName ?? "", profilePhoto: u.profilePhoto ?? null };
+      }
+      for (const x of projectRows) {
+        completedProjects.push({
+          id: x.id,
+          title: x.title,
+          description: x.description,
+          category: x.category,
+          skills: x.skills,
+          budgetMin: x.budget_min,
+          budgetMax: x.budget_max,
+          deadline: x.deadline,
+          createdAt: x.created_at,
+          status: 'COMPLETED',
+          statusLabel: 'Completed',
+          role: x.winner_id === user.id ? 'freelancer' : 'client',
+          client: people[x.owner_id] || null,
+          winner: people[x.winner_id] || null,
+          review: x.review_rating !== null ? { rating: x.review_rating, comment: x.review_comment } : null,
+        });
+      }
+    } catch (e) {
+      console.error('completed projects query error:', e);
+    }
+
     // Review summary — fetch reviews from both tables
     const allReviews: { id: string; reviewerId: string; rating: number; reviewText: string | null; createdAt: Date; type: string }[] = [];
 
@@ -549,6 +598,7 @@ router.get("/users/:id", optionalAuth, async (req, res): Promise<void> => {
       data: {
         user: profileUser,
         gigs: gigsWithPrice,
+        completedProjects,
         reviewCount: allReviews.length,
         avgRating,
         reviews,
