@@ -654,8 +654,8 @@ async function loadProjects() {
 
 // ── Open project detail ──
 async function openProjectDetail(projectId) {
-  // Go to dashboard with the project detail opened
-  if (_gT()) {
+  // Show project in a lightweight modal — proposals are public and viewable by anyone
+  {
     // Show project in a lightweight modal
     const d = await _api('/projects/' + projectId);
     if (!d.success) { _toast('Could not load project', 'error'); return; }
@@ -726,8 +726,6 @@ async function openProjectDetail(projectId) {
     overlay.addEventListener('click', e => { if (e.target === overlay) { overlay.remove(); document.body.style.overflow=''; } });
     document.body.appendChild(overlay);
     document.body.style.overflow = 'hidden';
-  } else {
-    openModal('loginModal');
   }
 }
 
