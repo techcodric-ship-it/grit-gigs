@@ -803,6 +803,8 @@ app.set("io", io);
       await col(`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS squad_order_id UUID REFERENCES squad_orders(id) ON DELETE CASCADE`);
       await col(`ALTER TABLE squads ADD COLUMN IF NOT EXISTS rating_avg REAL DEFAULT 0 NOT NULL`);
       await col(`ALTER TABLE squads ADD COLUMN IF NOT EXISTS review_count INTEGER DEFAULT 0 NOT NULL`);
+      await col(`ALTER TABLE squad_orders ADD COLUMN IF NOT EXISTS split_members UUID[] DEFAULT '{}' NOT NULL`);
+      await col(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS squad_split_members UUID[] DEFAULT '{}' NOT NULL`);
       await col(`
         CREATE TABLE IF NOT EXISTS squad_reviews (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

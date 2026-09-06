@@ -1277,6 +1277,13 @@ router.post("/squad-orders", authenticate, async (req: Request, res: Response): 
         ))
         .limit(1);
       if (existing) throw new Error("DUPLICATE_ORDER");
+      // Snapshot the team at order time so the payout splits exactly among the
+      // people who were in the circle when the order was placed — nobody can
+      // add, remove or swap members afterwards to redirect the money.
+      const teamRows = await tx
+        .select({ userId: squadMembersTable.userId })
+        .from(squadMembersTable)
+        .where(eq(squadMembersTable.squadId, service.squadId));
       return tx
         .insert(squadOrdersTable)
         .values({
@@ -1287,6 +1294,7 @@ router.post("/squad-orders", authenticate, async (req: Request, res: Response): 
           revisions: service.revisions,
           requirements: requirements ? String(requirements).trim().slice(0, 5000) : null,
           deliveryDate: new Date(Date.now() + (service.deliveryDays || 7) * 86400000),
+          splitMembers: teamRows.map((r) => r.userId),
         })
         .returning();
     });
@@ -1420,13 +1428,6 @@ router.put("/squad-orders/:id/complete", authenticate, async (req: Request, res:
   if (order.buyerId !== user) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
   if (order.status !== "DELIVERED") { res.status(400).json({ success: false, message: "Order has not been delivered" }); return; }
 
-  const claimResult = await db.execute(
-    sql`UPDATE ${sql.identifier("squad_orders")} SET status = 'COMPLETED', completed_at = NOW(), updated_at = NOW() WHERE id = ${order.id} AND status = 'DELIVERED'`
-  );
-  if (claimResult.rowCount === 0) {
-    res.status(409).json({ success: false, message: "Order already completed" });
-    return;
-  }
   const [squad] = await db.select().from(squadsTable).where(eq(squadsTable.id, order.squadId)).limit(1);
   const sellerId = squad?.leaderId ?? order.squadId;
 
@@ -1434,9 +1435,11 @@ router.put("/squad-orders/:id/complete", authenticate, async (req: Request, res:
     .select({ userId: squadMembersTable.userId })
     .from(squadMembersTable)
     .where(eq(squadMembersTable.squadId, order.squadId));
-  const splitMembers = memberRows.length
-    ? memberRows.map((m) => m.userId)
-    : [sellerId];
+  const liveMembers = memberRows.map((m) => m.userId);
+  const snapshot = (order.splitMembers || []).filter((id) => id !== order.buyerId);
+  const splitMembers = snapshot.length
+    ? snapshot
+    : (liveMembers.length ? liveMembers.filter((id) => id !== order.buyerId) : [sellerId]);
   const perShare = Math.floor(order.priceInr / splitMembers.length);
   let rem = order.priceInr - perShare * splitMembers.length;
   const grossShares = splitMembers.map((userId) => {
@@ -1459,8 +1462,14 @@ router.put("/squad-orders/:id/complete", authenticate, async (req: Request, res:
   }
   const totalCommission = creditRecipients.reduce((s, m) => s + m.commission, 0);
 
+  // Claim the DELIVERED→COMPLETED transition and move the money in ONE
+  // transaction so a crash or retry can never double-pay or strand the order.
   try {
     await db.transaction(async (tx) => {
+      const claimResult = await tx.execute(
+        sql`UPDATE ${sql.identifier("squad_orders")} SET status = 'COMPLETED', completed_at = NOW(), updated_at = NOW() WHERE id = ${order.id} AND status = 'DELIVERED'`
+      );
+      if (claimResult.rowCount === 0) throw new Error("ALREADY_COMPLETED");
       const deductResult = await tx.execute(
         sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${order.priceInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${order.buyerId} AND balance >= ${order.priceInr}`
       );
@@ -1481,8 +1490,9 @@ router.put("/squad-orders/:id/complete", authenticate, async (req: Request, res:
       }
     });
   } catch (e) {
-    await db.execute(sql`UPDATE ${sql.identifier("squad_orders")} SET status = 'DELIVERED', updated_at = NOW() WHERE id = ${order.id}`);
-    if (e instanceof Error && e.message === "Insufficient funds") {
+    if (e instanceof Error && e.message === "ALREADY_COMPLETED") {
+      res.status(409).json({ success: false, message: "Order already completed" });
+    } else if (e instanceof Error && e.message === "Insufficient funds") {
       res.status(400).json({ success: false, message: "You don't have enough funds in your wallet. Please add funds and try again." });
     } else {
       res.status(500).json({ success: false, message: "Payment processing failed. Please try again." });
@@ -1535,16 +1545,30 @@ router.post("/squads/orders/:id/review", authenticate, async (req: Request, res:
   res.json({ success: true, message: "Review submitted!" });
 });
 
-// Cancel a squad order (buyer or squad member)
+// Cancel a squad order (buyer or circle leader, only before delivery)
 router.put("/squad-orders/:id/cancel", authenticate, async (req: Request, res: Response): Promise<void> => {
   const { reason } = req.body || {};
   const user = req.user!.id;
   const [order] = await db.select().from(squadOrdersTable).where(eq(squadOrdersTable.id, String(req.params.id))).limit(1);
   if (!order) { res.status(404).json({ success: false, message: "Order not found" }); return; }
-  const memberOk = order.buyerId === user || (await isSquadMemberOfService(order.serviceId, user));
-  if (!memberOk) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
-  if (["COMPLETED", "CANCELLED"].includes(order.status)) { res.status(400).json({ success: false, message: "Order cannot be cancelled" }); return; }
-  await db.update(squadOrdersTable).set({ status: "CANCELLED", cancelledAt: new Date(), updatedAt: new Date() }).where(eq(squadOrdersTable.id, order.id));
+  const [squad] = await db.select({ leaderId: squadsTable.leaderId }).from(squadsTable).where(eq(squadsTable.id, order.squadId)).limit(1);
+  const isBuyer = order.buyerId === user;
+  const isLeader = squad?.leaderId === user;
+  if (!isBuyer && !isLeader) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
+  if (!["PENDING", "ACCEPTED", "IN_PROGRESS", "REVISION_REQUESTED"].includes(order.status)) {
+    const msg = order.status === "DELIVERED"
+      ? "Work has been delivered. Request a revision or contact support instead of cancelling."
+      : "Order cannot be cancelled";
+    res.status(400).json({ success: false, message: msg });
+    return;
+  }
+  const upd = await db.update(squadOrdersTable)
+    .set({ status: "CANCELLED", cancelledAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(squadOrdersTable.id, order.id), sql`${squadOrdersTable.status} IN ('PENDING', 'ACCEPTED', 'IN_PROGRESS', 'REVISION_REQUESTED')`));
+  if (upd.rowCount === 0) {
+    res.status(409).json({ success: false, message: "Order state changed — please refresh and try again" });
+    return;
+  }
   res.json({ success: true, message: "Order cancelled" });
 });
 

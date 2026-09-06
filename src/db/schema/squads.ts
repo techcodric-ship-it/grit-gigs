@@ -86,6 +86,7 @@ export const squadOrdersTable = pgTable("squad_orders", {
   requirements: text("requirements"),
   status: orderStatusEnum("status").default("PENDING").notNull(),
   deliveryDate: timestamp("delivery_date"),
+  splitMembers: uuid("split_members").array().default([]).notNull(),
   completedAt: timestamp("completed_at"),
   cancelledAt: timestamp("cancelled_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

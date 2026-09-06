@@ -171,12 +171,16 @@ router.post("/subscriptions/verify-payment", authenticate, async (req: Request, 
 
   // Always derive plan from stored transaction — never trust client-supplied planId
   const [txn] = await db
-    .select({ id: transactionsTable.id, description: transactionsTable.description, status: transactionsTable.status, amount: transactionsTable.amount })
+    .select({ id: transactionsTable.id, description: transactionsTable.description, status: transactionsTable.status, amount: transactionsTable.amount, userId: transactionsTable.userId })
     .from(transactionsTable)
     .where(eq(transactionsTable.gatewayTxnId, razorpayOrderId))
     .limit(1);
   if (!txn) {
     res.status(400).json({ success: false, message: "Transaction not found" });
+    return;
+  }
+  if (txn.userId !== req.user!.id) {
+    res.status(403).json({ success: false, message: "Unauthorized" });
     return;
   }
   if (txn.status === "COMPLETED") {
@@ -196,29 +200,37 @@ router.post("/subscriptions/verify-payment", authenticate, async (req: Request, 
     return;
   }
 
-  // Server-side verify with Razorpay API — never trust the client
-  if (razorpayPaymentId) {
-    try {
-      const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
-      const pmtResp = await fetch(`https://api.razorpay.com/v1/payments/${razorpayPaymentId}`, {
-        headers: { Authorization: `Basic ${auth}` },
-      });
-      if (pmtResp.ok) {
-        const payment = await pmtResp.json() as { status: string; amount: number; order_id: string };
-        if (payment.status !== "captured") {
-          res.status(400).json({ success: false, message: "Payment not captured" });
-          return;
-        }
-        if (payment.order_id !== razorpayOrderId) {
-          res.status(400).json({ success: false, message: "Order mismatch" });
-          return;
-        }
-        if (payment.amount !== Math.round(plan.priceInr * 100)) {
-          res.status(400).json({ success: false, message: "Amount mismatch" });
-          return;
-        }
-      }
-    } catch { /* fall through for resilience */ }
+  // Server-side verify with Razorpay API — never trust the client. A plan can
+  // only be activated for a confirmed captured payment.
+  if (!razorpayPaymentId) {
+    res.status(400).json({ success: false, message: "Missing payment ID" });
+    return;
+  }
+  try {
+    const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
+    const pmtResp = await fetch(`https://api.razorpay.com/v1/payments/${razorpayPaymentId}`, {
+      headers: { Authorization: `Basic ${auth}` },
+    });
+    if (!pmtResp.ok) {
+      res.status(502).json({ success: false, message: "Unable to verify payment with Razorpay" });
+      return;
+    }
+    const payment = await pmtResp.json() as { status: string; amount: number; order_id: string };
+    if (payment.status !== "captured") {
+      res.status(400).json({ success: false, message: "Payment not captured" });
+      return;
+    }
+    if (payment.order_id !== razorpayOrderId) {
+      res.status(400).json({ success: false, message: "Order mismatch" });
+      return;
+    }
+    if (payment.amount !== Math.round(plan.priceInr * 100)) {
+      res.status(400).json({ success: false, message: "Amount mismatch" });
+      return;
+    }
+  } catch {
+    res.status(502).json({ success: false, message: "Unable to verify payment with Razorpay" });
+    return;
   }
 
   // Activate plan and mark transaction completed in one transaction

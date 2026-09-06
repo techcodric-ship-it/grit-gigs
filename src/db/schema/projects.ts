@@ -47,6 +47,7 @@ export const projectsTable = pgTable("projects", {
   status: projectStatusEnum("status").default("OPEN").notNull(),
   acceptedBidId: uuid("accepted_bid_id"),
   zeroCommission: boolean("zero_commission").default(false).notNull(),
+  squadSplitMembers: uuid("squad_split_members").array().default([]).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

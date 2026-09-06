@@ -113,29 +113,43 @@ router.post("/credits/verify-payment", authenticate, async (req: Request, res: R
     return;
   }
 
-  // Server-side verify with Razorpay API — never trust the client
-  if (razorpayPaymentId) {
-    try {
-      const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
-      const pmtResp = await fetch(`https://api.razorpay.com/v1/payments/${razorpayPaymentId}`, {
-        headers: { Authorization: `Basic ${auth}` },
-      });
-      if (pmtResp.ok) {
-        const payment = await pmtResp.json() as { status: string; amount: number; order_id: string };
-        if (payment.status !== "captured") {
-          res.status(400).json({ success: false, message: "Payment not captured" });
-          return;
-        }
-        if (payment.order_id !== razorpayOrderId) {
-          res.status(400).json({ success: false, message: "Order mismatch" });
-          return;
-        }
-        if (payment.amount !== Math.round(amtInr * 100)) {
-          res.status(400).json({ success: false, message: "Amount mismatch" });
-          return;
-        }
-      }
-    } catch { /* fall through — if Razorpay is unreachable, still process for resilience */ }
+  // Server-side verify with Razorpay API — never trust the client. A payment
+  // that cannot be confirmed as captured must never credit the wallet.
+  if (!razorpayPaymentId) {
+    res.status(400).json({ success: false, message: "Missing payment ID" });
+    return;
+  }
+  try {
+    const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
+    const pmtResp = await fetch(`https://api.razorpay.com/v1/payments/${razorpayPaymentId}`, {
+      headers: { Authorization: `Basic ${auth}` },
+    });
+    if (!pmtResp.ok) {
+      res.status(502).json({ success: false, message: "Unable to verify payment with Razorpay" });
+      return;
+    }
+    const payment = await pmtResp.json() as { status: string; amount: number; order_id: string };
+    if (payment.status !== "captured") {
+      res.status(400).json({ success: false, message: "Payment not captured" });
+      return;
+    }
+    if (payment.order_id !== razorpayOrderId) {
+      res.status(400).json({ success: false, message: "Order mismatch" });
+      return;
+    }
+    if (payment.amount !== Math.round(amtInr * 100)) {
+      res.status(400).json({ success: false, message: "Amount mismatch" });
+      return;
+    }
+  } catch {
+    res.status(502).json({ success: false, message: "Unable to verify payment with Razorpay" });
+    return;
+  }
+
+  const cap = await isWalletCreditAllowed(req.user!.id, amtInr);
+  if (!cap.allowed) {
+    res.status(403).json({ success: false, message: `Your ${cap.planName} plan caps wallet balance at ₹${cap.limit.toLocaleString("en-IN")}. Upgrade your plan for an unlimited wallet.` });
+    return;
   }
 
   // Atomically credit wallet and mark transaction completed (only if still PENDING)
@@ -193,17 +207,25 @@ router.get("/credits/check-order/:orderId", authenticate, async (req: Request, r
       });
       if (rzResp.ok) {
         const rzData = await rzResp.json() as { items?: { status: string; id: string }[] };
-        const captured = (rzData.items || []).find((p: { status: string }) => p.status === "captured" || p.status === "authorized");
+        const captured = (rzData.items || []).find((p: { status: string }) => p.status === "captured");
         if (captured) {
           await db.transaction(async (tx) => {
-            const [current] = await tx.select({ status: transactionsTable.status }).from(transactionsTable).where(eq(transactionsTable.id, txn.id)).limit(1);
-            if (current?.status !== "PENDING") return;
-            await tx.execute(
+            const claim = await tx
+              .update(transactionsTable)
+              .set({ status: "COMPLETED", gatewayTxnId: captured.id, updatedAt: new Date() })
+              .where(and(eq(transactionsTable.id, txn.id), eq(transactionsTable.status, "PENDING")));
+            if (claim.rowCount === 0) return;
+            const addResult = await tx.execute(
               sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${txn.amount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${req.user!.id}`
             );
-            await tx.update(transactionsTable)
-              .set({ status: "COMPLETED", gatewayTxnId: captured.id, updatedAt: new Date() })
-              .where(eq(transactionsTable.id, txn.id));
+            if (addResult.rowCount === 0) {
+              await tx.insert(freelanceWalletsTable).values({
+                userId: req.user!.id,
+                balance: txn.amount,
+                totalEarned: 0,
+                updatedAt: new Date(),
+              });
+            }
           });
           await db.insert(notificationsTable).values({
             userId: req.user!.id,
@@ -245,17 +267,25 @@ router.post("/credits/check-pending", authenticate, async (req: Request, res: Re
       if (!payResp.ok) continue;
       const payData = await payResp.json() as { items?: { status: string; id: string }[] };
       const payments = payData.items || [];
-      const captured = payments.find((p: { status: string }) => p.status === "captured" || p.status === "authorized");
+      const captured = payments.find((p: { status: string }) => p.status === "captured");
       if (captured) {
         await db.transaction(async (tx) => {
-          const [current] = await tx.select({ status: transactionsTable.status }).from(transactionsTable).where(eq(transactionsTable.id, txn.id)).limit(1);
-          if (current?.status !== "PENDING") return;
-          await tx.execute(
+          const claim = await tx
+            .update(transactionsTable)
+            .set({ status: "COMPLETED", gatewayTxnId: captured.id, updatedAt: new Date() })
+            .where(and(eq(transactionsTable.id, txn.id), eq(transactionsTable.status, "PENDING")));
+          if (claim.rowCount === 0) return;
+          const addResult = await tx.execute(
             sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${txn.amount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${req.user!.id}`
           );
-          await tx.update(transactionsTable)
-            .set({ status: "COMPLETED", gatewayTxnId: captured.id, updatedAt: new Date() })
-            .where(eq(transactionsTable.id, txn.id));
+          if (addResult.rowCount === 0) {
+            await tx.insert(freelanceWalletsTable).values({
+              userId: req.user!.id,
+              balance: txn.amount,
+              totalEarned: 0,
+              updatedAt: new Date(),
+            });
+          }
         });
         totalAmount += txn.amount;
         credited = true;

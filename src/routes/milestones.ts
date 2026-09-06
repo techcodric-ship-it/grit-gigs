@@ -103,15 +103,6 @@ router.post("/milestones/:id/approve", authenticate, async (req: Request, res: R
   const [bid] = await db.select().from(projectBidsTable).where(eq(projectBidsTable.id, ms.bidId)).limit(1);
   if (!bid) { res.status(500).json({ success: false, message: "Could not find associated bid" }); return; }
 
-  // Atomically claim the transition — only the first request succeeds
-  const claimResult = await db.execute(
-    sql`UPDATE ${sql.identifier("project_milestones")} SET status = 'APPROVED', approved_at = NOW() WHERE id = ${ms.id} AND status = 'DELIVERED'`
-  );
-  if (claimResult.rowCount === 0) {
-    res.status(409).json({ success: false, message: "Milestone already approved" });
-    return;
-  }
-
   // Calculate commission based on freelancer's plan (0% for referred clients' first hire)
   const plan = await getActivePlanForUser(bid.userId);
   const milestoneAmount = Number(ms.amount) || 0;
@@ -120,9 +111,17 @@ router.post("/milestones/:id/approve", authenticate, async (req: Request, res: R
   let commission = 0;
   let netAmount = 0;
 
-  // Wallet operations + transaction records in a DB transaction
+  // Wallet operations + transaction records in a DB transaction. The
+  // DELIVERED→APPROVED claim lives inside the same transaction so a crash or
+  // retry can never double-approve or strand the milestone.
   try {
     await db.transaction(async (tx) => {
+      const claimResult = await tx.execute(
+        sql`UPDATE ${sql.identifier("project_milestones")} SET status = 'APPROVED', approved_at = NOW() WHERE id = ${ms.id} AND status = 'DELIVERED'`
+      );
+      if (claimResult.rowCount === 0) {
+        throw new Error("ALREADY_APPROVED");
+      }
       const deductResult = await tx.execute(
         sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${milestoneAmount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${project.userId} AND balance >= ${milestoneAmount}`
       );
@@ -176,8 +175,9 @@ router.post("/milestones/:id/approve", authenticate, async (req: Request, res: R
       }
     });
   } catch (e) {
-    await db.execute(sql`UPDATE ${sql.identifier("project_milestones")} SET status = 'DELIVERED' WHERE id = ${ms.id}`);
-    if (e instanceof Error && e.message === "Insufficient funds") {
+    if (e instanceof Error && e.message === "ALREADY_APPROVED") {
+      res.status(409).json({ success: false, message: "Milestone already approved" });
+    } else if (e instanceof Error && e.message === "Insufficient funds") {
       res.status(400).json({ success: false, message: 'You don\'t have enough funds in your wallet. Please add funds and try again.' });
     } else {
       res.status(500).json({ success: false, message: "Payment processing failed. Please try again." });

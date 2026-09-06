@@ -607,8 +607,12 @@ router.put('/projects/bids/:bidId/accept', authenticate, async (req: Request, re
       .select({ userId: squadMembersTable.userId })
       .from(squadMembersTable)
       .where(eq(squadMembersTable.squadId, squadId));
-    const memberIds = squadMembers.map(m => m.userId);
+    const teamMemberIds = squadMembers.map(m => m.userId);
+    const memberIds = [...teamMemberIds];
     if (!memberIds.includes(project.userId)) memberIds.push(project.userId);
+    // Snapshot the circle roster at bid-accept time — the final payout splits
+    // among exactly these people (trusted, immutable payout recipients).
+    await db.update(projectsTable).set({ squadSplitMembers: teamMemberIds }).where(eq(projectsTable.id, project.id));
 
     // The project team chat is unique per accepted bid (its own conversation).
     let [gconv] = await db
@@ -1017,31 +1021,33 @@ router.post('/projects/:id/release-payment', authenticate, async (req: Request, 
   if (!_ab) return res.status(400).json({ success: false, message: 'No accepted bid found' });
   const _pay = _ab.amount;
 
-  // Atomically claim the transition — only the first request succeeds
-  const claimResult = await db.execute(
-    sql`UPDATE ${sql.identifier("projects")} SET status = 'COMPLETED', updated_at = NOW() WHERE id = ${project.id} AND status = 'DELIVERED'`
-  );
-  if (claimResult.rowCount === 0) {
-    return res.status(409).json({ success: false, message: 'Payment already released' });
-  }
-
   // If the accepted bidder belongs to a Grit Circle, split the payout equally
-  // among all active squad members on release, then apply each member's own
-  // plan commission to their share.
-  const splitMemberIds = [_ab.userId];
-  const bidderSquad = await db
-    .select({ squadId: squadMembersTable.squadId })
-    .from(squadMembersTable)
-    .innerJoin(squadsTable, eq(squadsTable.id, squadMembersTable.squadId))
-    .where(and(eq(squadMembersTable.userId, _ab.userId), eq(squadsTable.isActive, true)))
-    .limit(1);
-  if (bidderSquad?.[0]) {
-    const members = await db
-      .select({ userId: squadMembersTable.userId })
+  // among the members snapshotted at bid-accept time — never the live roster —
+  // and always exclude the client (project owner). Nobody can add, remove or
+  // swap members (or the buyer) afterwards to redirect the money.
+  let splitMemberIds = [_ab.userId];
+  const snapTeam = (project.squadSplitMembers || []).filter((id) => id !== project.userId);
+  if (snapTeam.length) {
+    splitMemberIds = snapTeam;
+  } else {
+    const bidderSquad = await db
+      .select({ squadId: squadMembersTable.squadId })
       .from(squadMembersTable)
-      .where(eq(squadMembersTable.squadId, bidderSquad[0].squadId));
-    if (members.length > 1) splitMemberIds.splice(0, splitMemberIds.length, ...members.map(m => m.userId));
+      .innerJoin(squadsTable, eq(squadsTable.id, squadMembersTable.squadId))
+      .where(and(eq(squadMembersTable.userId, _ab.userId), eq(squadsTable.isActive, true)))
+      .limit(1);
+    if (bidderSquad?.[0]) {
+      const members = await db
+        .select({ userId: squadMembersTable.userId })
+        .from(squadMembersTable)
+        .where(eq(squadMembersTable.squadId, bidderSquad[0].squadId));
+      if (members.length > 1) {
+        const live = members.map((m) => m.userId).filter((id) => id !== project.userId);
+        if (live.length) splitMemberIds = live;
+      }
+    }
   }
+  splitMemberIds = splitMemberIds.filter((id) => id !== project.userId);
 
   const perShare = Math.floor(_pay / splitMemberIds.length);
   let remainder = _pay - perShare * splitMemberIds.length;
@@ -1065,9 +1071,16 @@ router.post('/projects/:id/release-payment', authenticate, async (req: Request, 
   }
   const totalCommission = creditRecipients.reduce((s, m) => s + m.commission, 0);
 
-  // Wallet operations + transaction records in a DB transaction
+  // Claim the DELIVERED→COMPLETED transition and move the money in ONE
+  // transaction so a crash or retry can never double-pay or strand the project.
   try {
     await db.transaction(async (tx) => {
+      const claimResult = await tx.execute(
+        sql`UPDATE ${sql.identifier("projects")} SET status = 'COMPLETED', updated_at = NOW() WHERE id = ${project.id} AND status = 'DELIVERED'`
+      );
+      if (claimResult.rowCount === 0) {
+        throw new Error('ALREADY_COMPLETED');
+      }
       const deductResult = await tx.execute(
         sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${_pay}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${project.userId} AND balance >= ${_pay}`
       );
@@ -1117,7 +1130,9 @@ router.post('/projects/:id/release-payment', authenticate, async (req: Request, 
       });
     });
   } catch (e) {
-    await db.execute(sql`UPDATE ${sql.identifier("projects")} SET status = 'DELIVERED', updated_at = NOW() WHERE id = ${project.id}`);
+    if (e instanceof Error && e.message === 'ALREADY_COMPLETED') {
+      return res.status(409).json({ success: false, message: 'Payment already released' });
+    }
     if (e instanceof Error && e.message === "Insufficient funds") {
       return res.status(400).json({ success: false, message: "You don't have enough funds in your wallet. Please add funds and try again." });
     }

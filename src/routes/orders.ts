@@ -257,24 +257,22 @@ router.put("/orders/:id/complete", authenticate, async (req, res): Promise<void>
   if (order.buyerId !== req.user!.id) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
   if (order.status !== "DELIVERED") { res.status(400).json({ success: false, message: "Order has not been delivered" }); return; }
 
-  // Atomically claim the transition — only the first request succeeds
-  const claimResult = await db.execute(
-    sql`UPDATE ${sql.identifier("orders")} SET status = 'COMPLETED', completed_at = NOW(), updated_at = NOW() WHERE id = ${order.id} AND status = 'DELIVERED'`
-  );
-  if (claimResult.rowCount === 0) {
-    res.status(409).json({ success: false, message: "Order already completed" });
-    return;
-  }
-
   // Calculate commission based on seller's plan
   const plan = await getActivePlanForUser(order.sellerId);
   const commissionPct = plan.serviceFeePercent;
   const commission = Math.round(order.priceInr * commissionPct / 100);
   const netAmount = order.priceInr - commission;
 
-  // Wallet operations + transaction records in a DB transaction
+  // Claim the DELIVERED→COMPLETED transition and move the money in ONE
+  // transaction so a crash or retry can never double-pay or strand the order.
   try {
     await db.transaction(async (tx) => {
+      const claimResult = await tx.execute(
+        sql`UPDATE ${sql.identifier("orders")} SET status = 'COMPLETED', completed_at = NOW(), updated_at = NOW() WHERE id = ${order.id} AND status = 'DELIVERED'`
+      );
+      if (claimResult.rowCount === 0) {
+        throw new Error("ALREADY_COMPLETED");
+      }
       const deductResult = await tx.execute(
         sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${order.priceInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${order.buyerId} AND balance >= ${order.priceInr}`
       );
@@ -320,9 +318,9 @@ router.put("/orders/:id/complete", authenticate, async (req, res): Promise<void>
       }
     });
   } catch (e) {
-    // Roll back the order status claim if the transaction failed
-    await db.execute(sql`UPDATE ${sql.identifier("orders")} SET status = 'DELIVERED', updated_at = NOW() WHERE id = ${order.id}`);
-    if (e instanceof Error && e.message === "Insufficient funds") {
+    if (e instanceof Error && e.message === "ALREADY_COMPLETED") {
+      res.status(409).json({ success: false, message: "Order already completed" });
+    } else if (e instanceof Error && e.message === "Insufficient funds") {
       res.status(400).json({ success: false, message: "You don't have enough funds in your wallet. Please add funds and try again." });
     } else {
       res.status(500).json({ success: false, message: "Payment processing failed. Please try again." });
@@ -353,9 +351,19 @@ router.put("/orders/:id/cancel", authenticate, async (req, res): Promise<void> =
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, String(req.params.id)));
   if (!order) { res.status(404).json({ success: false, message: "Order not found" }); return; }
   if (order.buyerId !== req.user!.id && order.sellerId !== req.user!.id) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
-  if (["COMPLETED", "CANCELLED"].includes(order.status)) { res.status(400).json({ success: false, message: "Order cannot be cancelled" }); return; }
+  if (!["PENDING", "ACCEPTED", "IN_PROGRESS", "REVISION_REQUESTED"].includes(order.status)) {
+    const msg = order.status === "DELIVERED"
+      ? "Work has been delivered. Request a revision or contact support instead of cancelling."
+      : "Order cannot be cancelled";
+    res.status(400).json({ success: false, message: msg });
+    return;
+  }
 
-  await db.update(ordersTable).set({ status: "CANCELLED", cancelledAt: new Date(), updatedAt: new Date() }).where(eq(ordersTable.id, order.id));
+  const upd = await db.update(ordersTable).set({ status: "CANCELLED", cancelledAt: new Date(), updatedAt: new Date() }).where(and(eq(ordersTable.id, order.id), sql`${ordersTable.status} IN ('PENDING', 'ACCEPTED', 'IN_PROGRESS', 'REVISION_REQUESTED')`));
+  if (upd.rowCount === 0) {
+    res.status(409).json({ success: false, message: "Order state changed — please refresh and try again" });
+    return;
+  }
 
   const otherUserId = req.user!.id === order.buyerId ? order.sellerId : order.buyerId;
   await db.insert(notificationsTable).values({
