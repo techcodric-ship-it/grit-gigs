@@ -363,42 +363,42 @@
   <div class="container">
     <h3 style="margin-bottom:24px;font-size:1.1rem;">Browse by category</h3>
     <div class="cat-grid">
-      <a class="cat-card" href="javascript:void(0)" onclick="document.getElementById('flCatSelect').value='Design &amp; Creative';runFreelanceFilter()">
+      <a class="cat-card" href="javascript:void(0)" data-cat="Design &amp; Creative" onclick="document.getElementById('flCatSelect').value='Design &amp; Creative';runFreelanceFilter()">
         <div class="cat-card-img"><img src="https://images.unsplash.com/photo-1561070791-2526d30994b5?w=100&q=70" alt="Design"/></div>
         <div class="cat-card-name">Design &amp; Creative</div>
         <div class="cat-card-count" data-cat-count>— services</div>
       </a>
-      <a class="cat-card" href="javascript:void(0)" onclick="document.getElementById('flCatSelect').value='Development';runFreelanceFilter()">
+      <a class="cat-card" href="javascript:void(0)" data-cat="Development" onclick="document.getElementById('flCatSelect').value='Development';runFreelanceFilter()">
         <div class="cat-card-img"><img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=100&q=70" alt="Dev"/></div>
         <div class="cat-card-name">Development</div>
         <div class="cat-card-count" data-cat-count>— services</div>
       </a>
-      <a class="cat-card" href="javascript:void(0)" onclick="document.getElementById('flCatSelect').value='Writing &amp; Content';runFreelanceFilter()">
+      <a class="cat-card" href="javascript:void(0)" data-cat="Writing &amp; Content" onclick="document.getElementById('flCatSelect').value='Writing &amp; Content';runFreelanceFilter()">
         <div class="cat-card-img"><img src="https://images.unsplash.com/photo-1455390582262-044cdead277a?w=100&q=70" alt="Writing"/></div>
         <div class="cat-card-name">Writing &amp; Content</div>
         <div class="cat-card-count" data-cat-count>— services</div>
       </a>
-      <a class="cat-card" href="javascript:void(0)" onclick="document.getElementById('flCatSelect').value='Digital Marketing';runFreelanceFilter()">
+      <a class="cat-card" href="javascript:void(0)" data-cat="Digital Marketing" onclick="document.getElementById('flCatSelect').value='Digital Marketing';runFreelanceFilter()">
         <div class="cat-card-img"><img src="https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?w=100&q=70" alt="Marketing"/></div>
         <div class="cat-card-name">Digital Marketing</div>
         <div class="cat-card-count" data-cat-count>— services</div>
       </a>
-      <a class="cat-card" href="javascript:void(0)" onclick="document.getElementById('flCatSelect').value='Video &amp; Animation';runFreelanceFilter()">
+      <a class="cat-card" href="javascript:void(0)" data-cat="Video &amp; Animation" onclick="document.getElementById('flCatSelect').value='Video &amp; Animation';runFreelanceFilter()">
         <div class="cat-card-img"><img src="https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=100&q=70" alt="Video"/></div>
         <div class="cat-card-name">Video &amp; Animation</div>
         <div class="cat-card-count" data-cat-count>— services</div>
       </a>
-      <a class="cat-card" href="javascript:void(0)" onclick="document.getElementById('flCatSelect').value='Business';runFreelanceFilter()">
+      <a class="cat-card" href="javascript:void(0)" data-cat="Business" onclick="document.getElementById('flCatSelect').value='Business';runFreelanceFilter()">
         <div class="cat-card-img"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=70" alt="Business"/></div>
         <div class="cat-card-name">Business</div>
         <div class="cat-card-count" data-cat-count>— services</div>
       </a>
-      <a class="cat-card" href="javascript:void(0)" onclick="document.getElementById('flCatSelect').value='Music &amp; Audio';runFreelanceFilter()">
+      <a class="cat-card" href="javascript:void(0)" data-cat="Music &amp; Audio" onclick="document.getElementById('flCatSelect').value='Music &amp; Audio';runFreelanceFilter()">
         <div class="cat-card-img"><img src="https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=100&q=70" alt="Music"/></div>
         <div class="cat-card-name">Music &amp; Audio</div>
         <div class="cat-card-count" data-cat-count>— services</div>
       </a>
-      <a class="cat-card" href="javascript:void(0)" onclick="document.getElementById('flCatSelect').value='Education';runFreelanceFilter()">
+      <a class="cat-card" href="javascript:void(0)" data-cat="Education" onclick="document.getElementById('flCatSelect').value='Education';runFreelanceFilter()">
         <div class="cat-card-img"><img src="https://images.unsplash.com/photo-1488190211105-8b0e65b80b4e?w=100&q=70" alt="Education"/></div>
         <div class="cat-card-name">Education</div>
         <div class="cat-card-count" data-cat-count>— services</div>
@@ -431,7 +431,7 @@
         <label class="filter-option"><input type="checkbox" onchange="runFreelanceFilter()"/><span class="filter-option-label">Education</span><span class="filter-option-count">—</span></label>
       </div>
 
-      <div class="filter-group">
+      <div class="filter-group" id="filterLevels">
         <div class="filter-group-title">Seller level</div>
         <label class="filter-option"><input type="checkbox"/><span class="filter-option-label">Top Rated</span><span class="filter-option-count">128</span></label>
         <label class="filter-option"><input type="checkbox"/><span class="filter-option-label">Level 2</span><span class="filter-option-count">310</span></label>
@@ -817,6 +817,37 @@ document.addEventListener('DOMContentLoaded', function() {
 
   window.loadFreelanceServices = loadFreelanceServices;
 
+  function loadServiceStats() {
+    api('/services/stats').then(function(d) {
+      if (!d.success || !d.data) return;
+      var cats = d.data.categories || [];
+      var catMap = {};
+      cats.forEach(function(c) { catMap[String(c.name || '').trim().toLowerCase()] = c.count || 0; });
+      var countFor = function(name) { return catMap[String(name || '').trim().toLowerCase()] || 0; };
+      var levels = d.data.levels || {};
+      var levelMap = { 'Top Rated': levels.topRated || 0, 'Level 2': levels.level2 || 0, 'Level 1': levels.level1 || 0, 'New seller': levels.newSeller || 0 };
+      document.querySelectorAll('.cat-card[data-cat]').forEach(function(card) {
+        var el = card.querySelector('.cat-card-count');
+        if (!el) return;
+        var n = countFor(card.getAttribute('data-cat'));
+        el.textContent = n + ' service' + (n === 1 ? '' : 's');
+      });
+      document.querySelectorAll('#filterCats .filter-option').forEach(function(opt) {
+        var label = opt.querySelector('.filter-option-label');
+        var countEl = opt.querySelector('.filter-option-count');
+        if (!label || !countEl) return;
+        countEl.textContent = countFor(label.textContent.trim()).toLocaleString('en-IN');
+      });
+      document.querySelectorAll('#filterLevels .filter-option').forEach(function(opt) {
+        var label = opt.querySelector('.filter-option-label');
+        var countEl = opt.querySelector('.filter-option-count');
+        if (!label || !countEl) return;
+        countEl.textContent = String(levelMap[label.textContent.trim()] || 0).toLocaleString('en-IN');
+      });
+    }).catch(function() {});
+  }
+
+  loadServiceStats();
   loadFreelanceServices();
 
   var svcId = new URLSearchParams(window.location.search).get('id');

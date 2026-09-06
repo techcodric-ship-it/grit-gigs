@@ -155,6 +155,29 @@ router.get("/services/mine", authenticate, async (req, res): Promise<void> => {
   res.json({ success: true, data: { services: result } });
 });
 
+router.get("/services/stats", optionalAuth, async (_req, res): Promise<void> => {
+  try {
+    const categories = await db
+      .select({ name: servicesTable.category, count: sql<number>`count(*)::int` })
+      .from(servicesTable)
+      .where(eq(servicesTable.status, "ACTIVE"))
+      .groupBy(servicesTable.category);
+    const [levels] = await db
+      .select({
+        topRated: sql<number>`count(*) FILTER (WHERE ${servicesTable.orderCount} > 200)::int`,
+        level2: sql<number>`count(*) FILTER (WHERE ${servicesTable.orderCount} > 50 AND ${servicesTable.orderCount} <= 200)::int`,
+        level1: sql<number>`count(*) FILTER (WHERE ${servicesTable.orderCount} > 10 AND ${servicesTable.orderCount} <= 50)::int`,
+        newSeller: sql<number>`count(*) FILTER (WHERE ${servicesTable.orderCount} <= 10)::int`,
+      })
+      .from(servicesTable)
+      .where(eq(servicesTable.status, "ACTIVE"));
+    res.json({ success: true, data: { categories, levels } });
+  } catch (err) {
+    console.error("GET /services/stats error:", err);
+    res.status(500).json({ success: false, message: "Failed to load service stats" });
+  }
+});
+
 router.get("/services/:id", optionalAuth, async (req, res): Promise<void> => {
   const [service] = await db.select().from(servicesTable).where(eq(servicesTable.id, String(req.params.id)));
   if (!service || service.status === "DELETED") {

@@ -668,9 +668,9 @@ async function openProjectDetail(projectId) {
 
     const overlay = document.createElement('div');
     overlay.className = 'proposal-mo open';
-    overlay.innerHTML = `<div class="proposal-md" style="max-width:620px;padding:0;border-radius:20px;overflow:hidden;">
+    overlay.innerHTML = `<div class="proposal-md" style="max-width:620px;padding:0;border-radius:20px;">
       ${p.imageUrl
-        ? `<div style="position:relative;"><img src="${p.imageUrl}" alt="" style="width:100%;height:200px;object-fit:cover;display:block;"/>
+        ? `<div style="position:relative;border-radius:18px 18px 0 0;overflow:hidden;"><img src="${p.imageUrl}" alt="" style="width:100%;height:200px;object-fit:cover;display:block;"/>
            <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 35%,rgba(10,10,15,.6));"></div>
            <button class="proposal-close" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,.9);border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.2);" onclick="this.closest('.proposal-mo').remove();document.body.style.overflow='';">✕</button>
            <div style="position:absolute;bottom:14px;left:18px;right:50px;">
