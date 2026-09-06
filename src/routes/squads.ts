@@ -202,7 +202,7 @@ router.get("/squads", optionalAuth, async (req: Request, res: Response): Promise
     const squadIds = squadRows.map((r) => r.squad.id);
     if (squadIds.length) {
       const projRes = await db.execute(sql`
-        SELECT sm.squad_id, p.id, p.title, p.category, p.skills, p.budget_min, p.budget_max, p.deadline, p.created_at,
+        SELECT sm.squad_id, p.id, p.title, p.category, p.skills, p.budget_min, p.budget_max, p.deadline, p.created_at, p.status,
                pb.user_id AS winner_id, u.first_name, u.last_name, u.profile_photo
         FROM projects p
         JOIN project_bids pb ON pb.id = p.accepted_bid_id
@@ -221,8 +221,8 @@ router.get("/squads", optionalAuth, async (req: Request, res: Response): Promise
           budgetMax: row.budget_max,
           deadline: row.deadline,
           createdAt: row.created_at,
-          status: "COMPLETED",
-          statusLabel: "Completed",
+          status: row.status,
+          statusLabel: row.status === "COMPLETED" ? "Completed" : row.status === "OPEN" ? "Open" : "Ongoing",
           winner: row.winner_id ? { id: row.winner_id, firstName: row.first_name, lastName: row.last_name ?? "", profilePhoto: row.profile_photo ?? null } : null,
         });
       }
