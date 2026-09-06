@@ -183,13 +183,25 @@ router.get('/projects', optionalAuth, async (req: Request, res: Response) => {
         .limit(1);
 
       const bids = await db
-        .select({ id: projectBidsTable.id, userId: projectBidsTable.userId, status: projectBidsTable.status })
+        .select()
         .from(projectBidsTable)
-        .where(eq(projectBidsTable.projectId, p.id));
+        .where(eq(projectBidsTable.projectId, p.id))
+        .orderBy(desc(projectBidsTable.isHighlighted), desc(projectBidsTable.createdAt));
 
-      const userBid = userId ? bids.find(b => b.userId === userId) || null : null;
+      const bidsWithUsers = await Promise.all(
+        bids.map(async (b) => {
+          const [u] = await db
+            .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, reputationScore: usersTable.reputationScore, kycVerified: usersTable.kycVerified, isActive: usersTable.isActive })
+            .from(usersTable)
+            .where(eq(usersTable.id, b.userId))
+            .limit(1);
+          return { ...b, user: u };
+        })
+      );
 
-      return { ...p, statusLabel: projectStatusLabel(p.status), user: owner, _count: { bids: bids.length }, _userBid: userBid };
+      const userBid = userId ? bidsWithUsers.find((b) => b.userId === userId) || null : null;
+
+      return { ...p, statusLabel: projectStatusLabel(p.status), user: owner, bids: bidsWithUsers, _count: { bids: bids.length }, _userBid: userBid };
     })
   );
 
@@ -202,10 +214,15 @@ router.get('/projects', optionalAuth, async (req: Request, res: Response) => {
       )
     : result;
 
-  // Attach review stats for all owners
-  const allOwners = filtered.map(p => p.user).filter(Boolean);
-  await attachReviewStats(allOwners);
-  await attachPlanBadges(allOwners);
+  // Attach review stats, plan badges and squad tags to owners + bidders
+  const allUsers: any[] = [
+    ...filtered.map((x: any) => x.user),
+    ...filtered.flatMap((x: any) => (x.bids || []).map((b: any) => b.user)),
+  ].filter(Boolean);
+  await attachReviewStats(allUsers);
+  await attachPlanBadges(allUsers);
+  const allBids = filtered.flatMap((x: any) => x.bids || []);
+  if (allBids.length) await attachSquadTags(allBids);
 
   return res.json({ success: true, data: { projects: filtered, page: safePage, totalPages, total } });
 });
