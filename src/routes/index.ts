@@ -28,6 +28,7 @@ import referralsRouter from "./referrals";
 import toolRouter from "./tool";
 import squadsRouter from "./squads";
 import aiSupportRouter from "./ai-support";
+import portfolioRouter from "./portfolio";
 
 const router: IRouter = Router();
 
@@ -60,6 +61,7 @@ router.use(referralsRouter);
 router.use(toolRouter);
 router.use(squadsRouter);
 router.use(aiSupportRouter);
+router.use(portfolioRouter);
 router.use(adminRouter);
 
 router.use((_req: any, res: any) => {

@@ -589,40 +589,62 @@
   </div>
 </section>
 
-<!-- ── CASE STUDY STRIP ── -->
-<section style="background:linear-gradient(160deg,#0D0D18 0%,#1A1233 100%);padding:64px 0;">
-  <div class="container" style="max-width:960px;">
-    <div style="display:flex;align-items:flex-start;gap:48px;flex-wrap:wrap;">
-      <div style="flex:1 1 380px;">
-        <span style="display:inline-block;background:rgba(108,63,232,0.18);color:#8B5CF6;font-size:.68rem;font-weight:700;letter-spacing:.06em;padding:5px 14px;border-radius:99px;margin-bottom:16px;">Featured client work</span>
-        <h2 style="margin:0 0 12px;color:#fff;font-size:1.6rem;line-height:1.25;">This marketplace was built as a Grit&Gigs deliverable</h2>
-        <p style="margin:0 0 20px;color:rgba(255,255,255,0.58);font-size:.95rem;line-height:1.7;">Full-stack build — design system, escrow payments, Razorpay wallets, AI matching, barter engine, admin dashboard, 20+ SEO pages. Built end-to-end by a Grit&Gigs founder, using the same skills you'll find on the platform.</p>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <span style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.65);font-size:.72rem;padding:6px 14px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);">React + Vite frontend</span>
-          <span style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.65);font-size:.72rem;padding:6px 14px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);">Node + Express API</span>
-          <span style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.65);font-size:.72rem;padding:6px 14px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);">PostgreSQL</span>
-          <span style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.65);font-size:.72rem;padding:6px 14px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);">Razorpay</span>
-          <span style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.65);font-size:.72rem;padding:6px 14px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);">AI barter matching</span>
-          <span style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.65);font-size:.72rem;padding:6px 14px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);">SEO landing pages</span>
-        </div>
-      </div>
-      <div style="flex:1 1 280px;display:flex;align-items:center;justify-content:center;">
-        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:28px 32px;text-align:center;width:100%;">
-          <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#6C3FE8,#8B5CF6);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-          </div>
-          <div style="color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:6px;">Grit&Gigs</div>
-          <div style="color:rgba(255,255,255,0.45);font-size:.76rem;line-height:1.6;">Full-stack marketplace platform<br/>Design → Build → Launch</div>
-          <div style="margin-top:16px;display:flex;gap:12px;justify-content:center;">
-            <span style="color:#6C3FE8;font-size:.82rem;font-weight:700;">Live now</span>
-            <span style="color:rgba(255,255,255,0.25);">|</span>
-            <span style="color:rgba(255,255,255,0.5);font-size:.78rem;">Spec work by founder</span>
-          </div>
-        </div>
-      </div>
+<!-- ── PROOF STRIP: COMPLETED ON GRIT&GIGS ── -->
+<section id="proof-strip" style="background:linear-gradient(160deg,#0D0D18 0%,#1A1233 100%);padding:64px 0;display:none;">
+  <div class="container" style="max-width:1080px;">
+    <div style="text-align:center;margin-bottom:40px;">
+      <span style="display:inline-block;background:rgba(108,63,232,0.18);color:#8B5CF6;font-size:.68rem;font-weight:700;letter-spacing:.06em;padding:5px 14px;border-radius:99px;margin-bottom:12px;">Completed on Grit&amp;Gigs</span>
+      <h2 style="margin:0 0 8px;color:#fff;font-size:1.5rem;">Real work, delivered on this platform</h2>
+      <p style="margin:0;color:rgba(255,255,255,0.5);font-size:.9rem;">Every project, order, and exchange below was completed and reviewed by the people who hired them.</p>
     </div>
+    <div id="proof-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;"></div>
   </div>
 </section>
+
+<script>
+(function(){
+  var section=document.getElementById('proof-strip');
+  var grid=document.getElementById('proof-grid');
+  if(!section||!grid)return;
+  fetch('/api/portfolio/featured').then(function(r){return r.json()}).then(function(d){
+    var items=d&&d.data&&d.data.items;
+    if(!items||!items.length)return;
+    section.style.display='block';
+    var html='';
+    for(var i=0;i<items.length;i++){
+      var it=items[i];
+      var fn=it.freelancer;
+      var name=fn?(fn.firstName||'')+(fn.lastName?' '+fn.lastName:''):'Freelancer';
+      var initials=(fn&&fn.firstName?fn.firstName[0]:'')+(fn&&fn.lastName?fn.lastName[0]:'');
+      var rating=it.reviewRating;
+      var stars='';
+      if(rating){
+        for(var s=0;s<5;s++) stars+='<span style="color:'+(s<Math.round(rating)?'#F59E0B':'rgba(255,255,255,0.2)')+';">★</span>';
+      }
+      var typeLabel=it.type==='project'?'Project':it.type==='order'?'Service':'Exchange';
+      var typeColor=it.type==='project'?'#6C3FE8':it.type==='order'?'#059669':'#2563EB';
+      var budget='';
+      if(it.type==='project'&&it.bidAmount) budget='₹'+Number(it.bidAmount).toLocaleString('en-IN');
+      else if(it.type==='order'&&it.priceInr) budget='₹'+Number(it.priceInr).toLocaleString('en-IN');
+      html+='<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:22px 24px;">'
+        +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">'
+        +'<div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,'+typeColor+','+typeColor+'cc);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.7rem;font-weight:700;">'+initials.toUpperCase()+'</div>'
+        +'<div style="flex:1;min-width:0;"><div style="color:#fff;font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+name+'</div>'
+        +'<div style="color:rgba(255,255,255,0.4);font-size:.72rem;">'+typeLabel+(budget?' · '+budget:'')+'</div></div>'
+        +'<span style="background:'+typeColor+'22;color:'+typeColor+';font-size:.62rem;font-weight:700;padding:3px 10px;border-radius:99px;white-space:nowrap;">Completed</span>'
+        +'</div>'
+        +'<div style="color:rgba(255,255,255,0.8);font-weight:600;font-size:.85rem;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(it.title||'Untitled')+'</div>'
+        +(it.description?'<div style="color:rgba(255,255,255,0.45);font-size:.78rem;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">'+it.description+'</div>':'')
+        +'<div style="display:flex;align-items:center;gap:8px;margin-top:12px;">'
+        +(stars?'<span style="font-size:.82rem;">'+stars+'</span><span style="color:rgba(255,255,255,0.35);font-size:.72rem;">'+Number(rating).toFixed(1)+'</span>':'<span style="color:rgba(255,255,255,0.25);font-size:.72rem;">No review yet</span>')
+        +'</div>'
+        +(it.reviewComment?'<div style="margin-top:10px;color:rgba(255,255,255,0.5);font-size:.76rem;font-style:italic;line-height:1.5;border-left:2px solid rgba(108,63,232,0.4);padding-left:10px;">"'+it.reviewComment.slice(0,120)+(it.reviewComment.length>120?'…':'')+'"</div>':'')
+        +'</div>';
+    }
+    grid.innerHTML=html;
+  }).catch(function(){});
+})();
+</script>
 
 <!-- ── FREELANCE SECTION ── -->
 <section class="section" style="background:white;" id="freelance">
