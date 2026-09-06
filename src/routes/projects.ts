@@ -505,7 +505,7 @@ router.post('/projects/:id/bids', authenticate, async (req: Request, res: Respon
           userId,
           type: 'SERVICE_PAYMENT',
           amount: HIGHLIGHT_FEE,
-          description: 'Bid highlight fee',
+          description: `Bid highlight fee (bid ${bid.id})`,
           status: 'COMPLETED',
         });
       }
@@ -892,7 +892,7 @@ router.post('/projects/bids/:bidId/highlight', authenticate, async (req: Request
         userId,
         type: 'SERVICE_PAYMENT',
         amount: HIGHLIGHT_FEE,
-        description: 'Bid highlight fee',
+        description: `Bid highlight fee (bid ${bid.id})`,
         status: 'COMPLETED',
       });
       [updated] = await tx

@@ -974,6 +974,39 @@ $mig$
       // ── UNIQUE constraints (safe to run repeatedly) ──
       try { await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_saved_items_user_item ON saved_items(user_id, COALESCE(item_type, ''), COALESCE(item_id, ''))`); } catch {}
 
+      // ── Backfill: charge ₹50 for already-highlighted bids that were never
+      //    debited (old free-credit path). Idempotent — skips any freelancer
+      //    who already has a matching "Bid highlight fee" transaction.
+      await col(`
+        DO $hl$
+        DECLARE
+          b RECORD;
+          w RECORD;
+        BEGIN
+          FOR b IN
+            SELECT id, user_id FROM project_bids WHERE is_highlighted = TRUE
+          LOOP
+            IF EXISTS (
+              SELECT 1 FROM transactions
+              WHERE user_id = b.user_id
+                AND type = 'SERVICE_PAYMENT'
+                AND amount = 50
+                AND (description = 'Bid highlight fee'
+                     OR description = 'Bid highlight fee (bid ' || b.id || ')')
+            ) THEN
+              CONTINUE;
+            END IF;
+            SELECT id, balance INTO w FROM freelance_wallets WHERE user_id = b.user_id;
+            IF w.id IS NOT NULL AND COALESCE(w.balance, 0) >= 50 THEN
+              UPDATE freelance_wallets SET balance = balance - 50, updated_at = NOW() WHERE id = w.id;
+              INSERT INTO transactions (user_id, type, amount, currency, status, description)
+              VALUES (b.user_id, 'SERVICE_PAYMENT', 50, 'INR', 'COMPLETED', 'Bid highlight fee (bid ' || b.id || ')');
+            END IF;
+          END LOOP;
+        END
+        $hl$
+      `);
+
       logger.info("DB auto-migration: all tables ready");
     } catch (_me: unknown) {
       logger.error({ err: _me instanceof Error ? _me : new Error(String(_me)) }, "DB migration error (continuing)");
