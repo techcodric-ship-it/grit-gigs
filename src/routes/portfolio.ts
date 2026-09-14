@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, usersTable, servicesTable } from "../db";
 import { pool } from "../db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, inArray } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -117,7 +117,7 @@ router.get("/portfolio/featured", async (_req, res): Promise<void> => {
           profilePhoto: usersTable.profilePhoto,
         })
         .from(usersTable)
-        .where(sql`${usersTable.id} = ANY(${freelancerIds})`);
+        .where(inArray(usersTable.id, freelancerIds));
       for (const u of rows) {
         freelancers[u.id] = {
           id: u.id,
