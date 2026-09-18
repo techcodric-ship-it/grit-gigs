@@ -17,6 +17,35 @@ const FROM_EMAIL = process.env.EMAIL_FROM || "Grit&Gigs <team@gritandgigs.in>";
 const APP_URL = (process.env.APP_URL || "https://www.gritandgigs.in").trim();
 const DEFAULT_REPLY_TO = process.env.REPLY_TO_EMAIL || "gritandgigsofficial@gmail.com";
 
+// ── Daily email quota guard ──────────────────────────────────────────────
+// Resend's free tier is 100 emails/day. Bulk notifications can burn that in
+// one batch and block critical OTP / verification / welcome emails for users,
+// which manifests as "can't log in / can't sign up". We keep an in-memory
+// rolling 24h counter and cap non-critical sends so the quota is always
+// reserved for auth-critical mail.
+const DAILY_EMAIL_LIMIT = Number(process.env.EMAIL_DAILY_LIMIT || 90);
+const BULK_LISTING_CAP = Number(process.env.EMAIL_BULK_LISTING_CAP || 80);
+const SENT_TIMES: number[] = [];
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function emailsSentInWindow(): number {
+  const cutoff = Date.now() - DAY_MS;
+  while (SENT_TIMES.length && SENT_TIMES[0] < cutoff) SENT_TIMES.shift();
+  return SENT_TIMES.length;
+}
+
+function markEmailSent(): void {
+  SENT_TIMES.push(Date.now());
+}
+
+function canSendEmail(): boolean {
+  return emailsSentInWindow() < DAILY_EMAIL_LIMIT;
+}
+
+function canSendBatch(count: number): boolean {
+  return emailsSentInWindow() + count <= DAILY_EMAIL_LIMIT;
+}
+
 interface EmailOptions {
   to: string;
   subject: string;
@@ -77,6 +106,11 @@ async function sendResend({ to, subject, html, replyTo }: EmailOptions): Promise
     return false;
   }
 
+  if (!canSendEmail()) {
+    logger.warn({ to, subject }, "Email skipped — daily email quota reached");
+    return false;
+  }
+
   try {
     const body = { from: FROM_EMAIL, to, subject, html: layout(html) } as any;
     body.reply_to = replyTo || DEFAULT_REPLY_TO;
@@ -96,6 +130,7 @@ async function sendResend({ to, subject, html, replyTo }: EmailOptions): Promise
       return false;
     }
 
+    markEmailSent();
     logger.info({ to, subject }, "Email sent");
     return true;
   } catch (err) {
@@ -235,9 +270,17 @@ export async function notifyAllUsersNewListing(
 
     if (!recipients.length) return;
 
+    // Never let a single listing burn the whole daily quota (free tier = 100/day).
+    // Cap recipients and skip entirely when we can't fit the batch.
+    const batch = recipients.slice(0, BULK_LISTING_CAP);
+    if (!canSendBatch(batch.length)) {
+      logger.warn({ listingType, title, attempted: batch.length }, "Bulk listing notification skipped — daily email quota reached");
+      return;
+    }
+
     const { subject, html } = getListingEmailContent(listingType, posterName, title, linkUrl);
     let sent = 0;
-    for (const email of recipients) {
+    for (const email of batch) {
       try {
         const r = await fetch("https://api.resend.com/emails", {
           method: "POST",
@@ -253,15 +296,17 @@ export async function notifyAllUsersNewListing(
             reply_to: DEFAULT_REPLY_TO,
           }),
         });
-        if (r.ok) sent++;
-        else {
+        if (r.ok) {
+          sent++;
+          markEmailSent();
+        } else {
           const body = await r.text();
           logger.error({ email, status: r.status, body }, "Resend individual email error");
         }
       } catch (e) { logger.error({ email, err: e }, "Resend individual email error"); }
     }
 
-    logger.info({ listingType, title, recipients: recipients.length, sent }, "Bulk listing notification sent");
+    logger.info({ listingType, title, recipients: batch.length, sent }, "Bulk listing notification sent");
   } catch (err) {
     logger.error({ err, listingType }, "Failed to send bulk listing notification");
   }
