@@ -806,8 +806,19 @@ if (!document.getElementById('serviceModal')) {
   document.body.appendChild(mo);
 }
 
-// ── Google Sign-In (popup redirect flow) ──────────────────────────────────
+// ── Google Sign-In (popup redirect flow, full-page fallback on mobile) ─────
+function isMobileDevice() {
+  return /Android|iPhone|iPod|iPad|Mobile|Opera Mini|IEMobile|BlackBerry/i.test(navigator.userAgent)
+    || (navigator.maxTouchPoints > 0 && Math.min(screen.width, screen.height) < 768);
+}
 function googleSignIn() {
+  // Popups are unreliable on mobile (iOS Safari blocks/handles them as new tabs),
+  // so use a full-page redirect there. The server callback detects no window.opener
+  // and redirects to /google-callback, which stores the session and lands on /dashboard.
+  if (isMobileDevice()) {
+    window.location.href = '/api/auth/google/login';
+    return;
+  }
   var w = 500, h = 600;
   var left = Math.max(0, (screen.width - w) / 2);
   var top = Math.max(0, (screen.height - h) / 2);
@@ -817,7 +828,8 @@ function googleSignIn() {
     'width=' + w + ',height=' + h + ',left=' + left + ',top=' + top + ',resizable=yes,scrollbars=yes'
   );
   if (!popup) {
-    showToast('Popup was blocked. Please allow popups for this site.', 'error');
+    // Popup blocked — fall back to full-page redirect instead of dead-ending.
+    window.location.href = '/api/auth/google/login';
     return;
   }
 }
