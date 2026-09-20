@@ -1,6 +1,6 @@
 ﻿import { Router, type IRouter, type Request, type Response } from "express";
-import { eq, and, desc, count, sql, inArray, type SQL } from "drizzle-orm";
-import { db, usersTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable } from "../db";
+import { eq, and, desc, count, sql, inArray, or, ilike, type SQL } from "drizzle-orm";
+import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { logger } from "../lib/logger";
 
@@ -34,6 +34,15 @@ function avatarUrl(user: { profilePhoto?: string | null; email?: string | null }
   if (user.profilePhoto) return user.profilePhoto;
   const email = user.email || "grit@gritandgigs.in";
   return `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(email)}&backgroundColor=ff5c1a,c8f522,0e0e0c&bold=true`;
+}
+
+async function notify(userId: string, type: string, title: string, message: string, linkUrl: string | null = null) {
+  if (!userId) return;
+  try {
+    await db.insert(notificationsTable).values({ userId, type, title, message, linkUrl });
+  } catch (err) {
+    logger.warn({ err }, "Failed to insert community notification");
+  }
 }
 
 interface PostRowShape {
@@ -168,9 +177,23 @@ router.get("/community/feed", optionalAuth, async (req: Request, res: Response):
   const kind = kindWhitelist(String(req.query.kind || ""), "");
   const filter = String(req.query.filter || "for-you"); // for-you | following | local | top
   const limit = Math.min(30, Math.max(1, Number(req.query.limit) || 20));
+  const authorId = String(req.query.authorId || "").trim();
+  const q = String(req.query.q || "").trim();
 
   let where: SQL | undefined;
   if (kind) where = eq(communityPostsTable.kind, kind as typeof communityPostsTable.$inferSelect.kind);
+  if (authorId) {
+    const authorCond: SQL = eq(communityPostsTable.userId, authorId);
+    where = where ? and(where, authorCond) : authorCond;
+  }
+  if (q) {
+    const searchCond: SQL = or(
+      ilike(communityPostsTable.content, `%${q}%`),
+      ilike(sql`${communityPostsTable.tags}::text`, `%${q}%`),
+      ilike(communityPostsTable.location, `%${q}%`),
+    ) as SQL;
+    where = where ? and(where, searchCond) : searchCond;
+  }
 
   let basePosts: (typeof communityPostsTable.$inferSelect)[];
 
@@ -288,6 +311,15 @@ router.post("/community/posts", authenticate, async (req: Request, res: Response
 router.post("/community/posts/:id/like", authenticate, async (req: Request, res: Response): Promise<void> => {
   const postId = String(req.params.id);
   const userId = req.user!.id;
+  const [post] = await db
+    .select({ id: communityPostsTable.id, userId: communityPostsTable.userId, likeCount: communityPostsTable.likeCount })
+    .from(communityPostsTable)
+    .where(eq(communityPostsTable.id, postId))
+    .limit(1);
+  if (!post) {
+    res.status(404).json({ success: false, message: "Post not found" });
+    return;
+  }
   const [like] = await db
     .select({ id: communityLikesTable.id })
     .from(communityLikesTable)
@@ -302,13 +334,17 @@ router.post("/community/posts/:id/like", authenticate, async (req: Request, res:
     await db.update(communityPostsTable).set({ likeCount: sql`like_count + 1`, updatedAt: new Date() }).where(eq(communityPostsTable.id, postId));
   }
 
-  const [post] = await db
+  const [updated] = await db
     .select({ likeCount: communityPostsTable.likeCount })
     .from(communityPostsTable)
     .where(eq(communityPostsTable.id, postId))
     .limit(1);
 
-  res.status(200).json({ success: true, data: { liked: !like, likeCount: post?.likeCount ?? 0 } });
+  if (!like && post.userId !== userId) {
+    notify(post.userId, "COMMUNITY_LIKE", "Someone liked your post", `${req.user!.firstName} liked your post on the Hustle Feed.`, `/feed`);
+  }
+
+  res.status(200).json({ success: true, data: { liked: !like, likeCount: updated?.likeCount ?? 0 } });
 });
 
 // â”€â”€ POST /community/posts/:id/comment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -319,7 +355,7 @@ router.post("/community/posts/:id/comment", authenticate, async (req: Request, r
     return;
   }
   const [post] = await db
-    .select({ id: communityPostsTable.id, commentCount: communityPostsTable.commentCount })
+    .select({ id: communityPostsTable.id, commentCount: communityPostsTable.commentCount, userId: communityPostsTable.userId })
     .from(communityPostsTable)
     .where(eq(communityPostsTable.id, String(req.params.id)))
     .limit(1);
@@ -340,6 +376,10 @@ router.post("/community/posts/:id/comment", authenticate, async (req: Request, r
       .from(usersTable)
       .where(eq(usersTable.id, req.user!.id))
       .limit(1);
+
+    if (post.userId !== req.user!.id) {
+      notify(post.userId, "COMMUNITY_COMMENT", "New comment on your post", `${req.user!.firstName} commented on your post: ${content.slice(0, 80)}`, `/feed`);
+    }
 
     res.status(201).json({
       success: true,
@@ -447,7 +487,40 @@ router.post("/community/users/:id/follow", authenticate, async (req: Request, re
     res.status(200).json({ success: true, data: { following: false } });
   } else {
     await db.insert(communityFollowsTable).values({ followerId: meId, followingId: targetId });
+    notify(targetId, "COMMUNITY_FOLLOW", "New follower", `${req.user!.firstName} started following you on the Hustle Feed.`, null);
     res.status(200).json({ success: true, data: { following: true } });
+  }
+});
+
+// â”€â”€ GET /community/notifications â€” my feed notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+router.get("/community/notifications", authenticate, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
+    const unreadCount = await db
+      .select({ c: count() })
+      .from(notificationsTable)
+      .where(and(eq(notificationsTable.userId, req.user!.id), eq(notificationsTable.isRead, false)));
+    const rows = await db
+      .select()
+      .from(notificationsTable)
+      .where(eq(notificationsTable.userId, req.user!.id))
+      .orderBy(desc(notificationsTable.createdAt))
+      .limit(limit);
+    res.status(200).json({ success: true, data: { unread: Number(unreadCount?.[0]?.c ?? 0), notifications: rows } });
+  } catch (err) {
+    logger.error({ err }, "Failed to load community notifications");
+    res.status(500).json({ success: false, message: "Something went wrong. Please try again." });
+  }
+});
+
+// â”€â”€ POST /community/notifications/read â€” mark all as read â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+router.post("/community/notifications/read", authenticate, async (req: Request, res: Response): Promise<void> => {
+  try {
+    await db.update(notificationsTable).set({ isRead: true }).where(eq(notificationsTable.userId, req.user!.id));
+    res.status(200).json({ success: true, data: { read: true } });
+  } catch (err) {
+    logger.error({ err }, "Failed to mark notifications read");
+    res.status(500).json({ success: false, message: "Something went wrong. Please try again." });
   }
 });
 

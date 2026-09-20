@@ -1,15 +1,23 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="robots" content="noindex, follow"/>
-<title>Profile — Grit&Gigs Hustle Feed</title>
+<title>Explore — Grit&Gigs Hustle Feed</title>
 <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=3"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Sora:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/assets/feed.css"/>
+<style>
+  .board-card{cursor:pointer;}
+  .board-card .top a{display:flex;align-items:center;gap:10px;flex:1;min-width:0;}
+  .board-card .top img{width:36px;height:36px;border-radius:10px;object-fit:cover;background:var(--ink-3);border:1px solid var(--line);flex:0 0 36px;}
+  .kind-pad{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px;}
+  .kind-pad button{border:1px solid var(--line);background:var(--ink-2);color:var(--dusk);font-size:.72rem;font-weight:600;padding:8px 14px;border-radius:99px;}
+  .kind-pad button.on{background:var(--volt);color:var(--ink);border-color:var(--volt);}
+</style>
 </head>
 <body>
 <div class="texture"></div>
@@ -22,10 +30,10 @@
     </a>
     <nav class="nav">
       <a href="/feed"><span class="ic">◉</span> Hustle Feed</a>
-      <a href="/explore.html"><span class="ic">⌕</span> Explore</a>
-      <a href="/explore.html?b=GIG"><span class="ic">▤</span> Boards</a>
+      <a href="/explore.html" class="on"><span class="ic">⌕</span> Explore</a>
+      <a href="/explore.html?b=GIG" id="navBoard"><span class="ic">▤</span> Boards</a>
       <a href="/notifications.html"><span class="ic">✉</span> Inbox</a>
-      <a href="/profile.html" class="on"><span class="ic">▣</span> Profile</a>
+      <a href="/profile.html" id="navProfile"><span class="ic">▣</span> Profile</a>
     </nav>
     <div class="compose-btn">
       <button id="composeBtn">+ Share your grind</button>
@@ -34,18 +42,25 @@
   </aside>
 
   <main class="feed">
-    <div class="feed-title">
-      <span class="mono" id="pageMono">02 — PROFILE</span>
-      <span id="pageTitle">Profile</span>
+    <div class="feed-top">
+      <div class="feed-title">
+        <span class="mono" id="pageMono">03 — EXPLORE THE GRIND</span>
+        <span id="pageTitle">Explore</span>
+      </div>
+      <div class="search-bar">
+        <input type="text" id="searchQ" placeholder="Search hustles, gigs, skills…"/>
+        <button id="searchBtn">Search</button>
+      </div>
     </div>
-    <div id="profileCard" class="profile-card" style="margin-top:18px;">
-      <div class="loading">LOADING PROFILE…</div>
+    <div class="kind-pad" id="kindPad">
+      <button class="on" data-k="">All</button>
+      <button data-k="GIG">Gigs</button>
+      <button data-k="BARTER">Barter</button>
+      <button data-k="WIN">Wins</button>
+      <button data-k="TIPS">Tips</button>
+      <button data-k="POST">Posts</button>
     </div>
-    <div class="feed-title" style="margin-top:30px;">
-      <span class="mono">02 — THEIR GRIND</span>
-      Posts
-    </div>
-    <div class="posts" id="posts"></div>
+    <div class="board-grid" id="grid"></div>
   </main>
 
   <aside class="side">
@@ -79,20 +94,11 @@
         <label>Price (₹)</label>
         <input type="number" id="pPrice" placeholder="499"/>
       </div>
-      <div class="fld">
-        <label>Tags</label>
-        <input type="text" id="pTags" placeholder="logo,design,fiverr"/>
-      </div>
+      <div class="fld"><label>Tags</label><input type="text" id="pTags" placeholder="logo,design,fiverr"/></div>
     </div>
     <div class="fld-row">
-      <div class="fld">
-        <label>Delivery (days)</label>
-        <input type="number" id="pDelivery" placeholder="3"/>
-      </div>
-      <div class="fld">
-        <label>Location</label>
-        <input type="text" id="pLocation" placeholder="Mumbai"/>
-      </div>
+      <div class="fld"><label>Delivery (days)</label><input type="number" id="pDelivery" placeholder="3"/></div>
+      <div class="fld"><label>Location</label><input type="text" id="pLocation" placeholder="Mumbai"/></div>
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" id="composeCancel">Cancel</button>
@@ -158,8 +164,16 @@
 (function () {
   var c = window.community;
   var params = new URLSearchParams(location.search);
-  var uid = params.get('id') || (c.me() && c.me().id) || null;
-  var profileId = uid;
+  var board = params.get('b') || '';
+  var kind = board || '';
+  var q = '';
+
+  if (board) {
+    document.getElementById('pageMono').textContent = '03 — BOARD · ' + board;
+    document.getElementById('pageTitle').textContent = board === 'GIG' ? 'Gigs Board' : board === 'BARTER' ? 'Barter Board' : 'Boards';
+    document.getElementById('navBoard').classList.add('on');
+    document.querySelector('.nav a.on').classList.remove('on');
+  }
 
   document.getElementById('gotoRegister').addEventListener('click', function (e) { e.preventDefault(); c.openRegister(); });
   document.getElementById('gotoLogin').addEventListener('click', function (e) { e.preventDefault(); c.openLogin(); });
@@ -170,11 +184,28 @@
     if (el) el.addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
   });
 
-  function compose() {
+  document.getElementById('searchBtn').addEventListener('click', function () {
+    q = document.getElementById('searchQ').value.trim();
+    loadGrid();
+  });
+  document.getElementById('searchQ').addEventListener('keydown', function (e) { if (e.key === 'Enter') document.getElementById('searchBtn').click(); });
+
+  document.getElementById('kindPad').addEventListener('click', function (e) {
+    var k = e.target.closest('button');
+    if (!k) return;
+    document.querySelectorAll('#kindPad button').forEach(function (x) { x.classList.remove('on'); });
+    k.classList.add('on');
+    kind = k.dataset.k;
+    loadGrid();
+  });
+
+  // sync pad highlight for boards
+  if (board === 'GIG') { var g = document.querySelector('#kindPad [data-k="GIG"]'); if (g) { document.querySelectorAll('#kindPad button').forEach(function (x) { x.classList.remove('on'); }); g.classList.add('on'); } }
+
+  document.getElementById('composeBtn').addEventListener('click', function () {
     if (!c.token()) { c.openLogin(); return; }
     document.getElementById('composeModal').classList.add('open');
-  }
-  document.getElementById('composeBtn').addEventListener('click', compose);
+  });
   document.getElementById('kindRow').addEventListener('click', function (e) {
     var k = e.target.closest('.kind');
     if (!k) return;
@@ -204,73 +235,50 @@
       if (!r.ok) { c.toast(r.d.message || 'Failed', true); return; }
       document.getElementById('composeModal').classList.remove('open');
       ['pContent','pTags','pPrice','pDelivery','pLocation'].forEach(function (f) { document.getElementById(f).value = ''; });
-      var postsEl = document.getElementById('posts');
-      postsEl.insertBefore(c.renderPost(r.d.data), postsEl.firstChild);
       c.toast('Posted!');
+      loadGrid();
     });
   });
 
-  function loadProfile() {
-    if (!profileId) {
-      document.getElementById('profileCard').innerHTML = '<div class="empty"><h3>No profile</h3><p>Sign in or open a profile from the feed.</p>' +
-        '<p style="margin-top:14px;"><button class="profile-follow" onclick="community.openLogin()">Sign in</button></p></div>';
-      return;
-    }
-    c.api('/community/users/' + encodeURIComponent(profileId)).then(function (r) {
-      if (!r.ok) {
-        document.getElementById('profileCard').innerHTML = '<div class="empty"><h3>User not found</h3></div>';
-        return;
-      }
-      var d = r.d.data;
-      var u = d.user;
-      var me = c.me();
-      var isMe = me && me.id === u.id;
-      document.getElementById('pageTitle').textContent = (u.firstName || 'Hustler') + ' ' + (u.lastName || '');
-      document.getElementById('pageMono').textContent = '02 — PROFILE · ' + ((u.city || 'INDIA') + '').toUpperCase();
-      var skills = (u.skillsOffered && u.skillsOffered.length) ? u.skillsOffered.map(function (s) { return '<span class="tag">' + c.esc(s) + '</span>'; }).join('') : '';
-      document.getElementById('profileCard').innerHTML =
-        '<img class="pic" src="' + c.esc(c.avatarFor(u)) + '" alt=""/>' +
-        '<div class="info">' +
-          '<div class="nm">' + c.esc(u.firstName + ' ' + (u.lastName || '')) + (u.kycVerified ? ' <span class="vh">VERIFIED</span>' : '') + '</div>' +
-          '<div class="hand">' + c.esc(c.handleFor(u)) + (u.city ? ' · ' + c.esc(u.city) : '') + (u.tagline ? ' · ' + c.esc(u.tagline) : '') + '</div>' +
-          (u.bio ? '<p class="bio">' + c.esc(u.bio) + '</p>' : '') +
-          (skills ? '<div class="tags" style="margin-top:12px;">' + skills + '</div>' : '') +
-          '<div class="profile-stats">' +
-            '<div class="st"><div class="n">' + d.posts + '</div><div class="l">POSTS</div></div>' +
-            '<div class="st"><div class="n">' + d.followers + '</div><div class="l">FOLLOWERS</div></div>' +
-            '<div class="st"><div class="n">' + d.likes + '</div><div class="l">LIKES</div></div>' +
-          '</div>' +
-          (isMe ? '' : '<button class="profile-follow' + (d.following ? ' on' : '') + '" id="pfFollow">' + (d.following ? 'Following' : 'Follow') + '</button>') +
-        '</div>';
-      var pf = document.getElementById('pfFollow');
-      if (pf) pf.addEventListener('click', function () {
-        if (!c.token()) { c.openLogin(); return; }
-        c.api('/community/users/' + encodeURIComponent(profileId) + '/follow', { method: 'POST' }).then(function (x) {
-          if (!x.ok) { c.toast(x.d.message || 'Failed', true); return; }
-          pf.classList.toggle('on', x.d.data.following);
-          pf.textContent = x.d.data.following ? 'Following' : 'Follow';
-          c.toast(x.d.data.following ? 'Following ' + (u.firstName || '') : 'Unfollowed');
-        });
-      });
-      // their posts
-      loadPosts();
+  function loadGrid() {
+    var grid = document.getElementById('grid');
+    grid.innerHTML = '<div class="loading">LOADING…</div>';
+    var url = '/community/feed?limit=24';
+    if (kind) url += '&kind=' + encodeURIComponent(kind);
+    if (q) url += '&q=' + encodeURIComponent(q);
+    c.api(url).then(function (r) {
+      if (!r.ok) { grid.innerHTML = '<div class="empty"><h3>Could not load</h3><p>' + c.esc(r.d.message || '') + '</p></div>'; return; }
+      var posts = (r.d.data && r.d.data.posts) || [];
+      if (!posts.length) { grid.innerHTML = '<div class="empty"><h3>Nothing found.</h3><p>Try a different board or search.</p></div>'; return; }
+      grid.innerHTML = '';
+      posts.forEach(function (row) { grid.appendChild(boardCard(row)); });
     }).catch(function () {
-      document.getElementById('profileCard').innerHTML = '<div class="empty"><h3>Network error</h3></div>';
+      grid.innerHTML = '<div class="empty"><h3>Network error</h3></div>';
     });
   }
 
-  function loadPosts() {
-    var postsEl = document.getElementById('posts');
-    postsEl.innerHTML = '<div class="loading">LOADING THE GRIND…</div>';
-    c.api('/community/feed?authorId=' + encodeURIComponent(profileId) + '&limit=25').then(function (r) {
-      if (!r.ok) { postsEl.innerHTML = '<div class="empty"><h3>Could not load posts</h3></div>'; return; }
-      var posts = (r.d.data && r.d.data.posts) || [];
-      if (!posts.length) { postsEl.innerHTML = '<div class="empty"><h3>No posts yet.</h3><p>This hustler hasn\'t posted yet.</p></div>'; return; }
-      postsEl.innerHTML = '';
-      posts.forEach(function (row) { postsEl.appendChild(c.renderPost(row)); });
-    }).catch(function () {
-      postsEl.innerHTML = '<div class="empty"><h3>Network error</h3></div>';
+  function boardCard(row) {
+    var p = row.post;
+    var a = row.author || {};
+    var tags = (p.tags && p.tags.length) ? p.tags : [];
+    var div = document.createElement('div');
+    div.className = 'board-card';
+    div.innerHTML =
+      '<div class="top"><a href="/profile.html?id=' + c.esc(a.id) + '"><img src="' + c.esc(c.avatarFor(a)) + '" alt=""/><div><div class="nm">' + c.esc(a.firstName || 'Hustler') + '</div><div class="ct">' + c.esc(c.timeAgo(p.createdAt)) + ' · ' + (p.kind || 'POST') + (p.location ? ' · ' + c.esc(p.location) : '') + '</div></div></a></div>' +
+      '<div class="tx">' + c.esc(p.content) + '</div>' +
+      (p.kind === 'GIG' && p.priceInr ? '<div class="ft"><span class="gig-chip">₹<b>' + Number(p.priceInr).toLocaleString('en-IN') + '</b> · ' + (p.deliveryDays ? p.deliveryDays + ' days' : 'negotiable') + '</span></div>' : '') +
+      (tags.length ? '<div class="tags">' + tags.map(function (t) { return '<span class="tag">#' + c.esc(t) + '</span>'; }).join('') + '</div>' : '') +
+      '<div class="ft" style="margin-top:12px;"><span style="font-family:Space Mono,monospace;font-size:.66rem;color:var(--dusk);">♥ ' + Number(p.likeCount || 0) + ' · 💬 ' + Number(p.commentCount || 0) + '</span><a href="#" style="margin-left:auto;color:var(--volt);font-size:.76rem;font-weight:600;" data-open="' + p.id + '">View →</a></div>';
+    div.querySelector('[data-open]').addEventListener('click', function (e) {
+      e.preventDefault();
+      document.getElementById('grid').innerHTML = '<div class="loading">LOADING POST…</div>';
+      c.api('/community/posts/' + p.id).then(function (r) {
+        if (!r.ok) { document.getElementById('grid').innerHTML = '<div class="empty"><h3>Could not load</h3></div>'; return; }
+        document.getElementById('grid').innerHTML = '';
+        document.getElementById('grid').appendChild(c.renderPost(r.d.data));
+      });
     });
+    return div;
   }
 
   function loadTop() {
@@ -291,7 +299,7 @@
     });
   }
 
-  loadProfile();
+  loadGrid();
   loadTop();
 })();
 </script>

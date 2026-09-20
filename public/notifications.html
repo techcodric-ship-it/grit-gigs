@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="robots" content="noindex, follow"/>
-<title>Profile — Grit&Gigs Hustle Feed</title>
+<title>Notifications — Grit&Gigs Hustle Feed</title>
 <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=3"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -24,8 +24,8 @@
       <a href="/feed"><span class="ic">◉</span> Hustle Feed</a>
       <a href="/explore.html"><span class="ic">⌕</span> Explore</a>
       <a href="/explore.html?b=GIG"><span class="ic">▤</span> Boards</a>
-      <a href="/notifications.html"><span class="ic">✉</span> Inbox</a>
-      <a href="/profile.html" class="on"><span class="ic">▣</span> Profile</a>
+      <a href="/notifications.html" class="on"><span class="ic">✉</span> Inbox</a>
+      <a href="/profile.html" id="navProfile"><span class="ic">▣</span> Profile</a>
     </nav>
     <div class="compose-btn">
       <button id="composeBtn">+ Share your grind</button>
@@ -34,18 +34,16 @@
   </aside>
 
   <main class="feed">
-    <div class="feed-title">
-      <span class="mono" id="pageMono">02 — PROFILE</span>
-      <span id="pageTitle">Profile</span>
+    <div class="feed-top">
+      <div class="feed-title">
+        <span class="mono">04 — INBOX</span>
+        Notifications
+      </div>
+      <button class="tab" id="markRead" style="border:1px solid var(--line);background:var(--ink-2);color:var(--bone);">Mark all read</button>
     </div>
-    <div id="profileCard" class="profile-card" style="margin-top:18px;">
-      <div class="loading">LOADING PROFILE…</div>
+    <div id="notifList" style="margin-top:6px;">
+      <div class="loading">LOADING INBOX…</div>
     </div>
-    <div class="feed-title" style="margin-top:30px;">
-      <span class="mono">02 — THEIR GRIND</span>
-      Posts
-    </div>
-    <div class="posts" id="posts"></div>
   </main>
 
   <aside class="side">
@@ -70,29 +68,14 @@
       <button class="kind" data-kind="WIN">Win</button>
       <button class="kind" data-kind="TIPS">Tips</button>
     </div>
-    <div class="fld">
-      <label>What's happening in your hustle?</label>
-      <textarea id="pContent" rows="4" placeholder="Earned my first ₹5,000 this month..."></textarea>
+    <div class="fld"><label>What's happening in your hustle?</label><textarea id="pContent" rows="4" placeholder="Earned my first ₹5,000 this month..."></textarea></div>
+    <div class="fld-row">
+      <div class="fld" id="pPriceFld"><label>Price (₹)</label><input type="number" id="pPrice" placeholder="499"/></div>
+      <div class="fld"><label>Tags</label><input type="text" id="pTags" placeholder="logo,design,fiverr"/></div>
     </div>
     <div class="fld-row">
-      <div class="fld" id="pPriceFld">
-        <label>Price (₹)</label>
-        <input type="number" id="pPrice" placeholder="499"/>
-      </div>
-      <div class="fld">
-        <label>Tags</label>
-        <input type="text" id="pTags" placeholder="logo,design,fiverr"/>
-      </div>
-    </div>
-    <div class="fld-row">
-      <div class="fld">
-        <label>Delivery (days)</label>
-        <input type="number" id="pDelivery" placeholder="3"/>
-      </div>
-      <div class="fld">
-        <label>Location</label>
-        <input type="text" id="pLocation" placeholder="Mumbai"/>
-      </div>
+      <div class="fld"><label>Delivery (days)</label><input type="number" id="pDelivery" placeholder="3"/></div>
+      <div class="fld"><label>Location</label><input type="text" id="pLocation" placeholder="Mumbai"/></div>
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" id="composeCancel">Cancel</button>
@@ -157,9 +140,6 @@
 <script>
 (function () {
   var c = window.community;
-  var params = new URLSearchParams(location.search);
-  var uid = params.get('id') || (c.me() && c.me().id) || null;
-  var profileId = uid;
 
   document.getElementById('gotoRegister').addEventListener('click', function (e) { e.preventDefault(); c.openRegister(); });
   document.getElementById('gotoLogin').addEventListener('click', function (e) { e.preventDefault(); c.openLogin(); });
@@ -170,11 +150,10 @@
     if (el) el.addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
   });
 
-  function compose() {
+  document.getElementById('composeBtn').addEventListener('click', function () {
     if (!c.token()) { c.openLogin(); return; }
     document.getElementById('composeModal').classList.add('open');
-  }
-  document.getElementById('composeBtn').addEventListener('click', compose);
+  });
   document.getElementById('kindRow').addEventListener('click', function (e) {
     var k = e.target.closest('.kind');
     if (!k) return;
@@ -204,72 +183,48 @@
       if (!r.ok) { c.toast(r.d.message || 'Failed', true); return; }
       document.getElementById('composeModal').classList.remove('open');
       ['pContent','pTags','pPrice','pDelivery','pLocation'].forEach(function (f) { document.getElementById(f).value = ''; });
-      var postsEl = document.getElementById('posts');
-      postsEl.insertBefore(c.renderPost(r.d.data), postsEl.firstChild);
       c.toast('Posted!');
     });
   });
 
-  function loadProfile() {
-    if (!profileId) {
-      document.getElementById('profileCard').innerHTML = '<div class="empty"><h3>No profile</h3><p>Sign in or open a profile from the feed.</p>' +
+  document.getElementById('markRead').addEventListener('click', function () {
+    if (!c.token()) { c.openLogin(); return; }
+    c.api('/community/notifications/read', { method: 'POST' }).then(function (r) {
+      if (!r.ok) { c.toast(r.d.message || 'Failed', true); return; }
+      document.querySelectorAll('.notif').forEach(function (n) { n.classList.remove('unread'); });
+      c.toast('All caught up.');
+    });
+  });
+
+  function loadNotifs() {
+    var list = document.getElementById('notifList');
+    if (!c.token()) {
+      list.innerHTML = '<div class="empty"><h3>Sign in to see your inbox</h3><p>Likes, comments and followers land here.</p>' +
         '<p style="margin-top:14px;"><button class="profile-follow" onclick="community.openLogin()">Sign in</button></p></div>';
       return;
     }
-    c.api('/community/users/' + encodeURIComponent(profileId)).then(function (r) {
-      if (!r.ok) {
-        document.getElementById('profileCard').innerHTML = '<div class="empty"><h3>User not found</h3></div>';
+    list.innerHTML = '<div class="loading">LOADING INBOX…</div>';
+    c.api('/community/notifications?limit=50').then(function (r) {
+      if (!r.ok) { list.innerHTML = '<div class="empty"><h3>Could not load</h3></div>'; return; }
+      var dd = r.d.data;
+      var notifs = (dd && dd.notifications) || [];
+      list.innerHTML = '';
+      if (!notifs.length) {
+        list.innerHTML = '<div class="empty"><h3>No notifications yet.</h3><p>Likes, comments and new followers will show up here.</p></div>';
         return;
       }
-      var d = r.d.data;
-      var u = d.user;
-      var me = c.me();
-      var isMe = me && me.id === u.id;
-      document.getElementById('pageTitle').textContent = (u.firstName || 'Hustler') + ' ' + (u.lastName || '');
-      document.getElementById('pageMono').textContent = '02 — PROFILE · ' + ((u.city || 'INDIA') + '').toUpperCase();
-      var skills = (u.skillsOffered && u.skillsOffered.length) ? u.skillsOffered.map(function (s) { return '<span class="tag">' + c.esc(s) + '</span>'; }).join('') : '';
-      document.getElementById('profileCard').innerHTML =
-        '<img class="pic" src="' + c.esc(c.avatarFor(u)) + '" alt=""/>' +
-        '<div class="info">' +
-          '<div class="nm">' + c.esc(u.firstName + ' ' + (u.lastName || '')) + (u.kycVerified ? ' <span class="vh">VERIFIED</span>' : '') + '</div>' +
-          '<div class="hand">' + c.esc(c.handleFor(u)) + (u.city ? ' · ' + c.esc(u.city) : '') + (u.tagline ? ' · ' + c.esc(u.tagline) : '') + '</div>' +
-          (u.bio ? '<p class="bio">' + c.esc(u.bio) + '</p>' : '') +
-          (skills ? '<div class="tags" style="margin-top:12px;">' + skills + '</div>' : '') +
-          '<div class="profile-stats">' +
-            '<div class="st"><div class="n">' + d.posts + '</div><div class="l">POSTS</div></div>' +
-            '<div class="st"><div class="n">' + d.followers + '</div><div class="l">FOLLOWERS</div></div>' +
-            '<div class="st"><div class="n">' + d.likes + '</div><div class="l">LIKES</div></div>' +
-          '</div>' +
-          (isMe ? '' : '<button class="profile-follow' + (d.following ? ' on' : '') + '" id="pfFollow">' + (d.following ? 'Following' : 'Follow') + '</button>') +
-        '</div>';
-      var pf = document.getElementById('pfFollow');
-      if (pf) pf.addEventListener('click', function () {
-        if (!c.token()) { c.openLogin(); return; }
-        c.api('/community/users/' + encodeURIComponent(profileId) + '/follow', { method: 'POST' }).then(function (x) {
-          if (!x.ok) { c.toast(x.d.message || 'Failed', true); return; }
-          pf.classList.toggle('on', x.d.data.following);
-          pf.textContent = x.d.data.following ? 'Following' : 'Follow';
-          c.toast(x.d.data.following ? 'Following ' + (u.firstName || '') : 'Unfollowed');
-        });
+      notifs.forEach(function (n) {
+        var div = document.createElement('div');
+        div.className = 'notif' + (n.isRead ? '' : ' unread');
+        var link = n.linkUrl ? '<a href="' + c.esc(n.linkUrl) + '" style="display:inline-block;margin-top:8px;color:var(--volt);font-size:.76rem;font-weight:600;">View →</a>' : '';
+        div.innerHTML = '<span class="dot' + (n.isRead ? ' read' : '') + '"></span>' +
+          '<div style="flex:1;"><div class="tt">' + c.esc(n.title) + '</div>' +
+          '<div class="msg">' + c.esc(n.message) + '</div>' +
+          '<div class="tm">' + c.esc(c.timeAgo(n.createdAt)) + ' · ' + c.esc(n.type) + '</div>' + link + '</div>';
+        list.appendChild(div);
       });
-      // their posts
-      loadPosts();
     }).catch(function () {
-      document.getElementById('profileCard').innerHTML = '<div class="empty"><h3>Network error</h3></div>';
-    });
-  }
-
-  function loadPosts() {
-    var postsEl = document.getElementById('posts');
-    postsEl.innerHTML = '<div class="loading">LOADING THE GRIND…</div>';
-    c.api('/community/feed?authorId=' + encodeURIComponent(profileId) + '&limit=25').then(function (r) {
-      if (!r.ok) { postsEl.innerHTML = '<div class="empty"><h3>Could not load posts</h3></div>'; return; }
-      var posts = (r.d.data && r.d.data.posts) || [];
-      if (!posts.length) { postsEl.innerHTML = '<div class="empty"><h3>No posts yet.</h3><p>This hustler hasn\'t posted yet.</p></div>'; return; }
-      postsEl.innerHTML = '';
-      posts.forEach(function (row) { postsEl.appendChild(c.renderPost(row)); });
-    }).catch(function () {
-      postsEl.innerHTML = '<div class="empty"><h3>Network error</h3></div>';
+      list.innerHTML = '<div class="empty"><h3>Network error</h3></div>';
     });
   }
 
@@ -291,7 +246,7 @@
     });
   }
 
-  loadProfile();
+  loadNotifs();
   loadTop();
 })();
 </script>
