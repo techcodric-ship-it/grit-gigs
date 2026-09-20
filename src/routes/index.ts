@@ -30,6 +30,7 @@ import squadsRouter from "./squads";
 import aiSupportRouter from "./ai-support";
 import portfolioRouter from "./portfolio";
 import waitlistRouter from "./waitlist";
+import communityRouter from "./community";
 
 const router: IRouter = Router();
 
@@ -64,6 +65,7 @@ router.use(squadsRouter);
 router.use(aiSupportRouter);
 router.use(portfolioRouter);
 router.use(waitlistRouter);
+router.use(communityRouter);
 router.use(adminRouter);
 
 router.use((_req: any, res: any) => {

@@ -13,3 +13,4 @@ export * from "./tool-leads";
 export * from "./jobs";
 export * from "./squads";
 export * from "./waitlist-leads";
+export * from "./community";

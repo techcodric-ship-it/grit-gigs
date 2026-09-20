@@ -622,6 +622,55 @@ app.set("io", io);
             created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
           );
 
+          DO $$ BEGIN CREATE TYPE post_kind AS ENUM ('POST','GIG','BARTER','WIN','TIPS'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+          CREATE TABLE IF NOT EXISTS community_posts (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            kind post_kind NOT NULL DEFAULT 'POST',
+            content TEXT NOT NULL,
+            media JSONB DEFAULT '[]'::jsonb NOT NULL,
+            tags TEXT[] DEFAULT '{}',
+            price_inr INTEGER,
+            delivery_days INTEGER,
+            location TEXT,
+            is_remote BOOLEAN DEFAULT TRUE NOT NULL,
+            status TEXT DEFAULT 'ACTIVE' NOT NULL,
+            like_count INTEGER DEFAULT 0 NOT NULL,
+            comment_count INTEGER DEFAULT 0 NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
+
+          CREATE TABLE IF NOT EXISTS community_likes (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            post_id UUID NOT NULL REFERENCES community_posts(id) ON DELETE CASCADE,
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            CONSTRAINT community_likes_post_user_unique UNIQUE (post_id, user_id)
+          );
+
+          CREATE TABLE IF NOT EXISTS community_comments (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            post_id UUID NOT NULL REFERENCES community_posts(id) ON DELETE CASCADE,
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            content TEXT NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
+
+          CREATE TABLE IF NOT EXISTS community_follows (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            follower_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            following_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            CONSTRAINT community_follows_unique UNIQUE (follower_id, following_id)
+          );
+
+          CREATE INDEX IF NOT EXISTS idx_community_posts_created ON community_posts(created_at DESC);
+          CREATE INDEX IF NOT EXISTS idx_community_posts_kind ON community_posts(kind);
+          CREATE INDEX IF NOT EXISTS idx_community_comments_post ON community_comments(post_id);
+          CREATE INDEX IF NOT EXISTS idx_community_follows_follower ON community_follows(follower_id);
+
           CREATE TABLE IF NOT EXISTS jobs (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             title TEXT NOT NULL,
