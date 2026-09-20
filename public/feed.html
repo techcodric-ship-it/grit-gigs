@@ -1,84 +1,81 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="robots" content="noindex, follow"/>
-<title>Hustle Feed — Grit&Gigs Community</title>
+<title>Hustle Feed — Grit&Gigs</title>
 <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=3"/>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Sora:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/assets/feed.css"/>
 </head>
 <body>
-<div class="texture"></div>
+<div class="toast" id="toast"></div>
 
-<div class="wrap-app">
-  <aside class="rail">
-    <a class="logo" href="/">
-      <span class="logo-mark">G&amp;G</span>
-      <span class="logo-name">Grit<em>&amp;Gigs</em></span>
-    </a>
-    <nav class="nav">
-      <a href="/feed" class="on"><span class="ic">◉</span> Hustle Feed</a>
-      <a href="/explore.html"><span class="ic">⌕</span> Explore</a>
-      <a href="/explore.html?b=GIG"><span class="ic">▤</span> Boards</a>
-      <a href="/notifications.html"><span class="ic">✉</span> Inbox</a>
-      <a href="/profile.html" id="navProfile"><span class="ic">▣</span> Profile</a>
-    </nav>
-    <div class="compose-btn">
-      <button id="composeBtn">+ Share your grind</button>
-    </div>
-    <div id="railUser"></div>
-  </aside>
+<header class="topnav">
+  <a class="brand" href="/feed">Grit<span>&amp;Gigs</span></a>
+  <div class="searchbox"><input id="navSearch" placeholder="Search gigs, projects, barter…"/></div>
+  <div class="icons">
+    <a href="/feed" title="Feed" class="on">🏠</a>
+    <a href="/explore.html" title="Explore">⌕</a>
+    <a href="/messages.html" title="Messages" hidden>✉</a>
+    <a href="/notifications.html" class="badge" title="Inbox">❤<span class="cnt" id="notifBadge" style="display:none;">0</span></a>
+    <a href="/profile.html" id="navProfile" title="Profile"><img id="navAv" class="avatar" src="https://api.dicebear.com/9.x/initials/svg?seed=grit&backgroundColor=f0f0f0&textColor=262626" alt=""/></a>
+  </div>
+</header>
 
-  <main class="feed">
-    <div class="feed-top">
-      <div class="feed-title">
-        <span class="mono">01 — THE HUSTLE FEED</span>
-        Hustle Feed
-      </div>
-      <div class="tabs">
-        <button class="tab on" data-filter="for-you">For You</button>
-        <button class="tab" data-filter="following">Following</button>
-        <button class="tab" data-filter="top">Top Grind</button>
-        <button class="tab" data-filter="local">Local</button>
+<div class="wrap">
+  <main class="col-main">
+    <div class="stories" id="stories"></div>
+
+    <div class="card" style="padding:10px 16px;margin-bottom:18px;">
+      <div class="card-comment-form" style="border:none;padding:6px 0;">
+        <img class="av" src="https://api.dicebear.com/9.x/initials/svg?seed=grit&backgroundColor=f0f0f0&textColor=262626" alt="" style="width:34px;height:34px;border-radius:50%;object-fit:cover;background:var(--line);"/>
+        <input id="quickPost" placeholder="Share your grind — a win, gig, or question…" readonly/>
+        <button id="quickBtn" style="flex:0 0 auto;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-weight:600;">Post</button>
       </div>
     </div>
+
     <div class="posts" id="posts"></div>
   </main>
 
-  <aside class="side">
-    <h4>On the Grind</h4>
-    <div class="top-list" id="topList"></div>
-    <div class="boost">
-      <b>Get seen.</b>
-      <p>Boost a post to the top of the Local board for 24 hours — ₹49.</p>
-      <button>Boost a post</button>
+  <aside class="col-side">
+    <div class="sidebar">
+      <div class="side-card">
+        <h4>On the grind</h4>
+        <div id="suggestList"></div>
+      </div>
+      <div class="side-card" id="railUser"></div>
+      <p style="font-size:11px;color:var(--dusk);padding:0 4px;">© 2026 Grit&amp;Gigs</p>
     </div>
   </aside>
 </div>
 
-<!-- composer modal -->
+<!-- compose modal -->
 <div class="modal-backdrop" id="composeModal">
   <div class="modal">
-    <h3>Share your grind</h3>
-    <div class="sub">Post · Gig · Barter · Win · Tips</div>
+    <h3 id="compTitle">Share your grind</h3>
+    <div class="sub">Pick a type, add a cover image or short video (reel).</div>
     <div class="kind-row" id="kindRow">
       <button class="kind on" data-kind="POST">Post</button>
       <button class="kind" data-kind="GIG">Gig</button>
       <button class="kind" data-kind="BARTER">Barter</button>
+      <button class="kind" data-kind="PROJECT">Project</button>
       <button class="kind" data-kind="WIN">Win</button>
       <button class="kind" data-kind="TIPS">Tips</button>
+      <button class="kind" data-kind="REEL">Reel</button>
     </div>
     <div class="fld">
-      <label>What's happening in your hustle?</label>
-      <textarea id="pContent" rows="4" placeholder="Earned my first ₹5,000 this month..."></textarea>
+      <label id="contentLabel">Caption</label>
+      <textarea id="pContent" rows="4" placeholder="What's happening in your hustle?"></textarea>
+    </div>
+    <div class="media-pick" id="mediaPick"></div>
+    <div class="fld">
+      <label>Covers / media (image or short video)</label>
+      <input type="file" id="pFile" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" multiple/>
     </div>
     <div class="fld-row">
       <div class="fld" id="pPriceFld">
-        <label>Price (₹)</label>
+        <label id="priceLabel">Price (₹)</label>
         <input type="number" id="pPrice" placeholder="499"/>
       </div>
       <div class="fld">
@@ -88,7 +85,7 @@
     </div>
     <div class="fld-row">
       <div class="fld">
-        <label>Delivery (days)</label>
+        <label id="deliveryLabel">Delivery (days)</label>
         <input type="number" id="pDelivery" placeholder="3"/>
       </div>
       <div class="fld">
@@ -96,33 +93,35 @@
         <input type="text" id="pLocation" placeholder="Mumbai"/>
       </div>
     </div>
-    <div class="modal-actions">
-      <button class="btn-cancel" id="composeCancel">Cancel</button>
-      <button class="btn-submit" id="composeSubmit">Post it</button>
+    <div class="fld-row">
+      <div class="fld" id="pWantFld" style="display:none;">
+        <label>You want (for barter)</label>
+        <input type="text" id="pWantText" placeholder="e.g. Logo design, website fix"/>
+      </div>
+      <div class="fld" id="pRevFld" style="display:none;">
+        <label>Revisions included</label>
+        <input type="number" id="pRevisions" value="2" min="0" max="10"/>
+      </div>
     </div>
+    <div class="err" id="composeErr"></div>
+    <div class="actions">
+      <button class="ghost" id="composeCancel">Cancel</button>
+      <button class="primary" id="composeSubmit">Post it</button>
+    </div>
+    <div class="note" id="quotaNote"></div>
   </div>
 </div>
 
 <!-- login modal -->
 <div class="modal-backdrop" id="loginModal">
-  <div class="modal login-card">
-    <h3>Sign in to the feed</h3>
-    <div class="sub">Join the hustle</div>
-    <div class="fields">
-      <div class="fld">
-        <label>Email</label>
-        <input type="email" id="loginEmail" placeholder="you@email.com"/>
-      </div>
-      <div class="fld">
-        <label>Password</label>
-        <input type="password" id="loginPass" placeholder="••••••••"/>
-      </div>
-    </div>
-    <div class="login-err" id="loginErr"></div>
-    <div class="modal-actions">
-      <button class="btn-submit" id="loginSubmit">Sign in</button>
-    </div>
-    <p class="login-note">No account? <a href="#" id="gotoRegister" style="color:var(--volt);">Create one here</a> — takes 30 seconds.</p>
+  <div class="modal">
+    <h3>Sign in</h3>
+    <div class="sub">Your hustle, one login.</div>
+    <div class="fld"><label>Email</label><input type="email" id="loginEmail" placeholder="you@email.com"/></div>
+    <div class="fld"><label>Password</label><input type="password" id="loginPass" placeholder="••••••••"/></div>
+    <div class="err" id="loginErr"></div>
+    <div class="actions"><button class="primary" id="loginSubmit">Sign in</button></div>
+    <div class="note">No account? <a href="#" id="gotoRegister">Create one here</a> — 30 seconds.</div>
   </div>
 </div>
 
@@ -130,7 +129,7 @@
 <div class="modal-backdrop" id="registerModal">
   <div class="modal">
     <h3>Create your Hustle account</h3>
-    <div class="sub">Join the grind</div>
+    <div class="sub">Join the grind — it's free.</div>
     <div class="fld-row">
       <div class="fld"><label>First name</label><input type="text" id="regFirst" placeholder="Arjun"/></div>
       <div class="fld"><label>Last name</label><input type="text" id="regLast" placeholder="Kumar"/></div>
@@ -138,158 +137,306 @@
     <div class="fld"><label>Email</label><input type="email" id="regEmail" placeholder="you@email.com"/></div>
     <div class="fld"><label>Phone (WhatsApp)</label><input type="tel" id="regPhone" placeholder="+91 98765 43210"/></div>
     <div class="fld"><label>Password (8+ chars)</label><input type="password" id="regPass" placeholder="••••••••"/></div>
-    <div class="login-err" id="regErr"></div>
-    <div class="modal-actions">
-      <button class="btn-cancel" id="regCancel">Cancel</button>
-      <button class="btn-submit" id="regSubmit">Create account</button>
+    <div class="err" id="regErr"></div>
+    <div class="actions">
+      <button class="ghost" id="regCancel">Cancel</button>
+      <button class="primary" id="regSubmit">Create account</button>
     </div>
-    <p class="login-note">We'll email you a 6-digit code to verify. Already registered? <a href="#" id="gotoLogin" style="color:var(--volt);">Sign in</a></p>
+    <div class="note">We'll email a 6-digit code. Already registered? <a href="#" id="gotoLogin">Sign in</a></div>
   </div>
 </div>
 
 <!-- verify modal -->
 <div class="modal-backdrop" id="verifyModal">
-  <div class="modal login-card">
+  <div class="modal">
     <h3>Verify your email</h3>
-    <div class="sub">We sent a code to you</div>
-    <p style="font-size:.84rem;color:var(--dusk);margin-bottom:4px;">Code sent to</p>
-    <p id="verifyEmail" style="font-family:'Space Mono',monospace;font-size:.9rem;color:var(--volt);margin-bottom:16px;"></p>
+    <div class="sub">We sent a code to you.</div>
+    <p class="note" id="verifyEmail" style="font-weight:600;color:var(--ink);"></p>
     <div class="fld"><label>6-digit code</label><input type="text" id="verifyOtp" maxlength="6" placeholder="123456"/></div>
-    <div class="login-err" id="verifyErr"></div>
-    <div class="modal-actions">
-      <button class="btn-cancel" id="verifyCancel">Cancel</button>
-      <button class="btn-submit" id="verifySubmit">Verify &amp; continue</button>
+    <div class="err" id="verifyErr"></div>
+    <div class="actions">
+      <button class="ghost" id="verifyCancel">Cancel</button>
+      <button class="primary" id="verifySubmit">Verify &amp; continue</button>
     </div>
-    <p class="login-note">Not received? Register again to resend.</p>
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<!-- post detail modal -->
+<div class="modal-backdrop" id="postModal" style="overflow-y:auto;">
+  <div class="modal" style="max-width:900px;"></div>
+</div>
+
+<!-- order / bid / offer modal -->
+<div class="modal-backdrop" id="orderModal">
+  <div class="modal">
+    <h3 id="orderTitle">Order</h3>
+    <div class="sub">Send your requirements — you'll get updates and revisions here.</div>
+    <div class="fld"><label>Requirements</label><textarea id="orderReq" rows="5" placeholder="Describe what you need…"></textarea></div>
+    <div class="fld" id="orderAmtRow"><label>Amount (₹)</label><input type="number" id="orderAmt" placeholder="₹"/></div>
+    <div class="err" id="orderErr"></div>
+    <div class="actions">
+      <button class="ghost" id="orderCancel">Cancel</button>
+      <button class="primary" id="orderSubmit">Send</button>
+    </div>
+  </div>
+</div>
 
 <script src="/assets/feed-app.js"></script>
 <script>
 (function () {
-  var API = '/api';
   var c = window.community;
+  var API = '/api';
 
-  // nav: profile id once authed
-  function setNavProfile() {
+  function setNav() {
     var me = c.me();
-    var p = document.getElementById('navProfile');
-    if (p && me && me.id) p.setAttribute('href', '/profile.html?id=' + encodeURIComponent(me.id));
+    if (me && me.id) {
+      var p = document.getElementById('navProfile');
+      if (p) p.setAttribute('href', '/profile.html?id=' + encodeURIComponent(me.id));
+      var av = document.getElementById('navAv');
+      if (av) av.src = c.avatarFor(me);
+    }
   }
-  window.onAuthed = function () { setNavProfile(); };
-  setNavProfile();
+  window.onAuthed = function () { setNav(); };
+  setNav();
 
-  // register / login modal cross-links
-  var goReg = document.getElementById('gotoRegister');
-  if (goReg) goReg.addEventListener('click', function (e) { e.preventDefault(); c.openRegister(); });
-  var goLogin = document.getElementById('gotoLogin');
-  if (goLogin) goLogin.addEventListener('click', function (e) { e.preventDefault(); c.openLogin(); });
-  document.getElementById('regCancel').addEventListener('click', function () { document.getElementById('registerModal').classList.remove('open'); });
-  document.getElementById('verifyCancel').addEventListener('click', function () { document.getElementById('verifyModal').classList.remove('open'); });
-  ['registerModal','verifyModal'].forEach(function (id) {
-    document.getElementById(id).addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+  // modal cross-links
+  function $(x) { return document.getElementById(x); }
+  if ($('gotoRegister')) $('gotoRegister').addEventListener('click', function (e) { e.preventDefault(); c.openRegister(); });
+  if ($('gotoLogin')) $('gotoLogin').addEventListener('click', function (e) { e.preventDefault(); c.openLogin(); });
+  if ($('regCancel')) $('regCancel').addEventListener('click', function () { $('registerModal').classList.remove('open'); });
+  if ($('verifyCancel')) $('verifyCancel').addEventListener('click', function () { $('verifyModal').classList.remove('open'); });
+  if ($('loginModal')) $('loginModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+  if ($('registerModal')) $('registerModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+  if ($('verifyModal')) $('verifyModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+  if ($('composeModal')) $('composeModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+
+  // ── stories (quick kind filter chips) ──
+  var storyDefs = [
+    { k: '', lbl: 'Your Feed' },
+    { k: 'GIG', lbl: 'Gigs', emoji: '💼' },
+    { k: 'PROJECT', lbl: 'Projects', emoji: '📋' },
+    { k: 'BARTER', lbl: 'Barter', emoji: '⟷' },
+    { k: 'REEL', lbl: 'Reels', emoji: '▶' },
+    { k: 'WIN', lbl: 'Wins', emoji: '🏆' },
+    { k: 'TIPS', lbl: 'Tips', emoji: '💡' },
+  ];
+  var storiesEl = $('stories');
+  storyDefs.forEach(function (s) {
+    var st = document.createElement('div');
+    st.className = 'story' + (s.k ? ' new' : '');
+    st.innerHTML = '<div class="ring"><img src="' + c.esc('https://api.dicebear.com/9.x/shapes/svg?seed=' + encodeURIComponent(s.lbl)) + '"/></div><div class="lbl">' + s.lbl + '</div>';
+    st.addEventListener('click', function () {
+      if (s.k === '') { loadFeed(''); } else { location.href = '/explore.html?kind=' + s.k; }
+    });
+    storiesEl.appendChild(st);
   });
-  document.getElementById('loginModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
 
-  var postsEl = document.getElementById('posts');
-  var currentFilter = 'for-you';
+  // ── compose: media upload state ──
+  var pickedMedia = [];
+  var currentKind = 'POST';
 
-  function loadFeed() {
-    postsEl.innerHTML = '<div class="loading">LOADING THE GRIND…</div>';
-    c.api('/community/feed?filter=' + currentFilter + '&limit=25').then(function (r) {
-      if (!r.ok) {
-        postsEl.innerHTML = '<div class="empty"><h3>Could not load the feed</h3><p>' + c.esc(r.d.message || 'Try again in a moment.') + '</p></div>';
-        return;
-      }
-      var posts = (r.d.data && r.d.data.posts) || [];
-      if (!posts.length) {
-        postsEl.innerHTML = '<div class="empty"><h3>The feed is fresh.</h3><p>Be the first to share your grind, a gig, or a win.</p></div>';
-        return;
-      }
-      postsEl.innerHTML = '';
-      posts.forEach(function (row) { postsEl.appendChild(c.renderPost(row)); });
-    }).catch(function () {
-      postsEl.innerHTML = '<div class="empty"><h3>Network error</h3><p>Check your connection and try again.</p></div>';
+  function resetComposer() {
+    pickedMedia = [];
+    currentKind = 'POST';
+    $('pContent').value = '';
+    $('pTags').value = '';
+    $('pPrice').value = '';
+    $('pDelivery').value = '';
+    $('pLocation').value = '';
+    $('pWantText').value = '';
+    $('pRevisions').value = '2';
+    $('pFile').value = '';
+    $('composeErr').textContent = '';
+    $('kindRow').querySelectorAll('.kind').forEach(function (x, i) { x.classList.toggle('on', i === 0); });
+    drawPicks();
+    syncKindFields();
+  }
+  function drawPicks() {
+    var box = $('mediaPick');
+    box.innerHTML = '';
+    pickedMedia.forEach(function (m, i) {
+      var th = document.createElement('div');
+      th.className = 'th';
+      th.innerHTML = (m.type === 'video'
+        ? '<video src="' + c.esc(m.url) + '" muted preload="metadata"></video>'
+        : '<img src="' + c.esc(m.url) + '" alt=""/>') +
+        '<button class="x" data-rm="' + i + '">×</button>';
+      box.appendChild(th);
+    });
+    var add = document.createElement('button');
+    add.className = 'add';
+    add.textContent = '+';
+    add.addEventListener('click', function () { $('pFile').click(); });
+    box.appendChild(add);
+    box.querySelectorAll('[data-rm]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        pickedMedia.splice(Number(b.dataset.rm), 1);
+        drawPicks();
+      });
     });
   }
 
-  // tabs
-  document.querySelectorAll('.tab').forEach(function (t) {
-    t.addEventListener('click', function () {
-      document.querySelectorAll('.tab').forEach(function (x) { x.classList.remove('on'); });
-      t.classList.add('on');
-      currentFilter = t.dataset.filter;
-      loadFeed();
+  function doUpload(files, done) {
+    var fd = new FormData();
+    for (var i = 0; i < files.length; i++) fd.append('files', files[i]);
+    fetch(API + '/community/upload', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + c.token() },
+      body: fd,
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.success) { done(null, d.message || 'Upload failed'); return; }
+      done(d.data.files, null);
+    }).catch(function () { done(null, 'Network error'); });
+  }
+
+  $('pFile').addEventListener('change', function () {
+    var files = this.files;
+    if (!files.length) return;
+    var btn = $('composeSubmit');
+    btn.disabled = true;
+    c.toast('Uploading media…');
+    doUpload(files, function (res, err) {
+      btn.disabled = false;
+      if (err) { c.toast(err, true); return; }
+      res.forEach(function (f) { pickedMedia.push({ type: f.type, url: f.url }); });
+      drawPicks();
+      c.toast('Added ' + res.length + ' file(s)');
     });
   });
 
-  // composer
-  var composeModal = document.getElementById('composeModal');
-  var composeKind = 'POST';
-  document.getElementById('composeBtn').addEventListener('click', function () {
-    if (!c.token()) { c.openLogin(); return; }
-    composeModal.classList.add('open');
-  });
-  document.getElementById('kindRow').addEventListener('click', function (e) {
+  function syncKindFields() {
+    var k = currentKind;
+    $('priceLabel').textContent = (k === 'PROJECT') ? 'Budget from (₹)' : 'Price (₹)';
+    $('deliveryLabel').textContent = 'Delivery (days)';
+    $('pPriceFld').style.display = (k === 'GIG' || k === 'PROJECT') ? '' : 'none';
+    $('pRevFld').style.display = (k === 'GIG' || k === 'BARTER' || k === 'PROJECT') ? '' : 'none';
+    $('pWantFld').style.display = (k === 'BARTER') ? '' : 'none';
+    $('contentLabel').textContent = (k === 'REEL') ? 'Reel caption' : (k === 'GIG' ? 'What you can do' : (k === 'PROJECT' ? 'Project description' : (k === 'BARTER' ? 'What you offer' : 'Caption')));
+    $('pContent').placeholder =
+      k === 'GIG' ? 'I can design a logo, build a website, edit a reel…' :
+      k === 'PROJECT' ? 'I need a website built, a brand kit, a video…' :
+      k === 'BARTER' ? 'I\u0027ll design your logo if you build my website…' :
+      k === 'REEL' ? 'Add a short video to show your hustle…' :
+      'Earned my first ₹5,000 this month…';
+    $('compTitle').textContent = k === 'REEL' ? 'Post a reel' : k === 'GIG' ? 'Post a gig' : k === 'PROJECT' ? 'Post a project' : k === 'BARTER' ? 'Post a barter' : 'Share your grind';
+  }
+
+  $('kindRow').addEventListener('click', function (e) {
     var k = e.target.closest('.kind');
     if (!k) return;
-    document.querySelectorAll('.kind').forEach(function (x) { x.classList.remove('on'); });
+    $('kindRow').querySelectorAll('.kind').forEach(function (x) { x.classList.remove('on'); });
     k.classList.add('on');
-    composeKind = k.dataset.kind;
-    var priceFld = document.getElementById('pPriceFld');
-    if (priceFld) priceFld.style.display = composeKind === 'GIG' ? '' : 'none';
+    currentKind = k.dataset.kind;
+    syncKindFields();
   });
-  document.getElementById('composeCancel').addEventListener('click', function () { composeModal.classList.remove('open'); });
-  composeModal.addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
 
-  document.getElementById('composeSubmit').addEventListener('click', function () {
-    var content = document.getElementById('pContent').value.trim();
+  function openCompose() {
+    if (!c.token()) { c.openLogin(); return; }
+    resetComposer();
+    $('composeModal').classList.add('open');
+  }
+  $('quickBtn').addEventListener('click', openCompose);
+  $('quickPost').addEventListener('click', openCompose);
+  $('composeCancel').addEventListener('click', function () { $('composeModal').classList.remove('open'); });
+
+  $('composeSubmit').addEventListener('click', function () {
+    var content = $('pContent').value.trim();
     if (!content) { c.toast('Write something first.', true); return; }
-    var tags = (document.getElementById('pTags').value || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+    if (currentKind === 'REEL' && !pickedMedia.some(function (m) { return m.type === 'video'; })) {
+      c.toast('Add a short video for your reel.', true); return;
+    }
+    var tags = ($('pTags').value || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean);
     var body = {
-      kind: composeKind,
+      kind: currentKind,
       content: content,
       tags: tags,
-      priceInr: composeKind === 'GIG' ? Number(document.getElementById('pPrice').value) : undefined,
-      deliveryDays: composeKind === 'GIG' ? Number(document.getElementById('pDelivery').value) : undefined,
-      location: document.getElementById('pLocation').value.trim() || undefined,
+      media: pickedMedia.map(function (m) { return { type: m.type, url: m.url }; }),
+      coverUrl: pickedMedia.length ? pickedMedia[0].url : undefined,
+      priceInr: (currentKind === 'GIG' || currentKind === 'PROJECT') ? Number($('pPrice').value) || undefined : undefined,
+      deliveryDays: (currentKind === 'GIG' || currentKind === 'PROJECT') ? Number($('pDelivery').value) || undefined : undefined,
+      revisions: Number($('pRevisions').value) || 0,
+      wantText: currentKind === 'BARTER' ? ($('pWantText').value.trim() || undefined) : undefined,
+      location: $('pLocation').value.trim() || undefined,
     };
     var btn = this;
     btn.disabled = true; btn.textContent = 'Posting…';
     c.api('/community/posts', { method: 'POST', body: body }).then(function (r) {
       btn.disabled = false; btn.textContent = 'Post it';
       if (!r.ok) { c.toast(r.d.message || 'Failed', true); return; }
-      composeModal.classList.remove('open');
-      ['pContent','pTags','pPrice','pDelivery','pLocation'].forEach(function (f) { document.getElementById(f).value = ''; });
+      $('composeModal').classList.remove('open');
+      resetComposer();
+      var postsEl = $('posts');
       postsEl.insertBefore(c.renderPost(r.d.data), postsEl.firstChild);
       c.toast('Posted! Go get noticed.');
-      loadTop();
+      loadSuggest();
     });
   });
 
-  // side rail — top posts
-  function loadTop() {
+  // ── search in nav ──
+  var navSearch = $('navSearch');
+  navSearch.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && navSearch.value.trim()) {
+      location.href = '/explore.html?q=' + encodeURIComponent(navSearch.value.trim());
+    }
+  });
+
+  // ── feed ──
+  var postsEl = $('posts');
+  function loadFeed(kind) {
+    postsEl.innerHTML = '<div class="loading">Loading feed…</div>';
+    var url = '/community/feed?limit=25' + (kind ? '&kind=' + encodeURIComponent(kind) : '');
+    c.api(url).then(function (r) {
+      if (!r.ok) { postsEl.innerHTML = '<div class="empty"><h3>Could not load the feed</h3><p>' + c.esc(r.d.message || '') + '</p></div>'; return; }
+      var posts = (r.d.data && r.d.data.posts) || [];
+      if (!posts.length) { postsEl.innerHTML = '<div class="empty"><h3>The feed is fresh.</h3><p>Be the first to share a win, gig, or question.</p></div>'; return; }
+      postsEl.innerHTML = '';
+      posts.forEach(function (row) { postsEl.appendChild(c.renderPost(row)); });
+    }).catch(function () { postsEl.innerHTML = '<div class="empty"><h3>Network error</h3></div>'; });
+  }
+
+  function loadSuggest() {
     c.api('/community/feed?filter=top&limit=5').then(function (r) {
       if (!r.ok) return;
       var posts = (r.d.data && r.d.data.posts) || [];
-      var el = document.getElementById('topList');
+      var el = $('suggestList');
       el.innerHTML = '';
-      posts.forEach(function (row, i) {
+      posts.forEach(function (row) {
         var a = row.author || {};
-        var it = document.createElement('a');
+        var it = document.createElement('div');
         it.className = 'top-item';
-        it.href = '/profile.html?id=' + encodeURIComponent(a.id || '');
-        it.innerHTML = '<span class="rank">' + String(i + 1).padStart(2, '0') + '</span>' +
-          '<div style="min-width:0;"><div class="nm">' + c.esc(a.firstName || 'hustler') + '</div><div class="ct">' + Number(row.post.likeCount || 0).toLocaleString('en-IN') + ' likes · ' + (row.post.kind || 'POST') + '</div></div>';
+        it.style.cursor = 'pointer';
+        it.innerHTML = '<img class="av" src="' + c.esc(c.avatarFor(a)) + '" alt=""/><div style="min-width:0;"><div class="nm">' + c.esc(a.firstName || 'Hustler') + '</div><div class="ct">' + Number(row.post.likeCount || 0).toLocaleString('en-IN') + ' likes · ' + (row.post.kind || 'POST') + '</div></div>';
+        it.addEventListener('click', function () { c.openPost(row.post.id); });
         el.appendChild(it);
       });
     });
   }
 
-  loadFeed();
-  loadTop();
+  // ── order modal wiring ──
+  $('orderCancel').addEventListener('click', function () { $('orderModal').classList.remove('open'); });
+  $('orderModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+  $('orderSubmit').addEventListener('click', function () {
+    var m = $('orderModal');
+    var postId = m.dataset.post;
+    var kind = m.dataset.kind;
+    var req = $('orderReq').value.trim();
+    if (!req) { $('orderErr').textContent = 'Tell them what you need.'; return; }
+    var amt = Number($('orderAmt').value);
+    var btn = this;
+    btn.disabled = true;
+    var body = { content: req };
+    if (amt > 0) body.amount = amt;
+    c.api('/community/posts/' + postId + '/order', { method: 'POST', body: body }).then(function (r) {
+      btn.disabled = false;
+      if (!r.ok) { $('orderErr').textContent = r.d.message || 'Failed'; return; }
+      $('orderModal').classList.remove('open');
+      $('orderReq').value = ''; $('orderAmt').value = ''; $('orderErr').textContent = '';
+      c.toast('Sent to the creator!');
+    }).catch(function () { btn.disabled = false; $('orderErr').textContent = 'Network error'; });
+  });
+
+  loadFeed('');
+  loadSuggest();
 })();
 </script>
 </body>

@@ -16,6 +16,8 @@ export const postKindEnum = pgEnum("post_kind", [
   "BARTER",
   "WIN",
   "TIPS",
+  "REEL",
+  "PROJECT",
 ]);
 
 export const communityPostsTable = pgTable("community_posts", {
@@ -25,11 +27,16 @@ export const communityPostsTable = pgTable("community_posts", {
     .references(() => usersTable.id, { onDelete: "cascade" }),
   kind: postKindEnum("kind").default("POST").notNull(),
   content: text("content").notNull(),
-  media: jsonb("media").$type<{ type: "image" | "embed"; url: string }[]>().default([]).notNull(),
+  media: jsonb("media").$type<{ type: "image" | "video" | "embed"; url: string }[]>().default([]).notNull(),
+  coverUrl: text("cover_url"),
   tags: text("tags").array().default([]).notNull(),
-  // GIG / BARTER extras
+  // GIG / BARTER / PROJECT extras
   priceInr: integer("price_inr"),
+  priceMaxInr: integer("price_max_inr"),
   deliveryDays: integer("delivery_days"),
+  revisions: integer("revisions").default(0).notNull(),
+  wantInr: integer("want_inr"),
+  wantText: text("want_text"),
   location: text("location"),
   isRemote: boolean("is_remote").default(true).notNull(),
   status: text("status").default("ACTIVE").notNull(), // ACTIVE | CLOSED | SOLD

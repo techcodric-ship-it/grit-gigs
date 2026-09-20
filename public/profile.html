@@ -4,121 +4,69 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="robots" content="noindex, follow"/>
-<title>Profile — Grit&Gigs Hustle Feed</title>
+<title>Profile — Grit&Gigs</title>
 <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=3"/>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Sora:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/assets/feed.css"/>
 </head>
 <body>
-<div class="texture"></div>
+<div class="toast" id="toast"></div>
 
-<div class="wrap-app">
-  <aside class="rail">
-    <a class="logo" href="/">
-      <span class="logo-mark">G&amp;G</span>
-      <span class="logo-name">Grit<em>&amp;Gigs</em></span>
-    </a>
-    <nav class="nav">
-      <a href="/feed"><span class="ic">◉</span> Hustle Feed</a>
-      <a href="/explore.html"><span class="ic">⌕</span> Explore</a>
-      <a href="/explore.html?b=GIG"><span class="ic">▤</span> Boards</a>
-      <a href="/notifications.html"><span class="ic">✉</span> Inbox</a>
-      <a href="/profile.html" class="on"><span class="ic">▣</span> Profile</a>
-    </nav>
-    <div class="compose-btn">
-      <button id="composeBtn">+ Share your grind</button>
-    </div>
-    <div id="railUser"></div>
-  </aside>
-
-  <main class="feed">
-    <div class="feed-title">
-      <span class="mono" id="pageMono">02 — PROFILE</span>
-      <span id="pageTitle">Profile</span>
-    </div>
-    <div id="profileCard" class="profile-card" style="margin-top:18px;">
-      <div class="loading">LOADING PROFILE…</div>
-    </div>
-    <div class="feed-title" style="margin-top:30px;">
-      <span class="mono">02 — THEIR GRIND</span>
-      Posts
-    </div>
-    <div class="posts" id="posts"></div>
-  </main>
-
-  <aside class="side">
-    <h4>On the Grind</h4>
-    <div class="top-list" id="topList"></div>
-    <div class="boost">
-      <b>Get seen.</b>
-      <p>Boost a post to the top of the Local board for 24 hours — ₹49.</p>
-      <button>Boost a post</button>
-    </div>
-  </aside>
-</div>
-
-<div class="modal-backdrop" id="composeModal">
-  <div class="modal">
-    <h3>Share your grind</h3>
-    <div class="sub">Post · Gig · Barter · Win · Tips</div>
-    <div class="kind-row" id="kindRow">
-      <button class="kind on" data-kind="POST">Post</button>
-      <button class="kind" data-kind="GIG">Gig</button>
-      <button class="kind" data-kind="BARTER">Barter</button>
-      <button class="kind" data-kind="WIN">Win</button>
-      <button class="kind" data-kind="TIPS">Tips</button>
-    </div>
-    <div class="fld">
-      <label>What's happening in your hustle?</label>
-      <textarea id="pContent" rows="4" placeholder="Earned my first ₹5,000 this month..."></textarea>
-    </div>
-    <div class="fld-row">
-      <div class="fld" id="pPriceFld">
-        <label>Price (₹)</label>
-        <input type="number" id="pPrice" placeholder="499"/>
-      </div>
-      <div class="fld">
-        <label>Tags</label>
-        <input type="text" id="pTags" placeholder="logo,design,fiverr"/>
-      </div>
-    </div>
-    <div class="fld-row">
-      <div class="fld">
-        <label>Delivery (days)</label>
-        <input type="number" id="pDelivery" placeholder="3"/>
-      </div>
-      <div class="fld">
-        <label>Location</label>
-        <input type="text" id="pLocation" placeholder="Mumbai"/>
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-cancel" id="composeCancel">Cancel</button>
-      <button class="btn-submit" id="composeSubmit">Post it</button>
-    </div>
+<header class="topnav">
+  <a class="brand" href="/feed">Grit<span>&amp;Gigs</span></a>
+  <div class="searchbox"><input id="navSearch" placeholder="Search gigs, projects, barter…"/></div>
+  <div class="icons">
+    <a href="/feed" title="Feed">🏠</a>
+    <a href="/explore.html" title="Explore">⌕</a>
+    <a href="/notifications.html" class="badge" title="Inbox">❤<span class="cnt" id="notifBadge" style="display:none;">0</span></a>
+    <a href="/profile.html" id="navProfile" title="Profile"><img id="navAv" class="avatar" src="https://api.dicebear.com/9.x/initials/svg?seed=grit&backgroundColor=f0f0f0&textColor=262626" alt=""/></a>
   </div>
+</header>
+
+<div class="wrap">
+  <main style="width:100%;max-width:935px;">
+    <div class="loading" id="loading">Loading profile…</div>
+
+    <div id="profileBody" style="display:none;">
+      <div class="prof">
+        <img id="pAv" class="big" src="https://api.dicebear.com/9.x/initials/svg?seed=grit&backgroundColor=f0f0f0&textColor=262626" alt=""/>
+        <div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div class="pname" id="pName">Hustler</div>
+            <button class="pbtn" id="pBtn" style="display:none;">Follow</button>
+          </div>
+          <div class="stats">
+            <span><b id="pPosts">0</b> posts</span>
+            <span><b id="pFollowers">0</b> followers</span>
+            <span><b id="pLikes">0</b> likes</span>
+          </div>
+          <div class="bio" id="pBio"></div>
+          <div class="skills" id="pSkills"></div>
+        </div>
+      </div>
+
+      <div class="prof-caption">
+        <div class="on">POSTS</div>
+      </div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </main>
 </div>
 
+<!-- login modal -->
 <div class="modal-backdrop" id="loginModal">
-  <div class="modal login-card">
-    <h3>Sign in to the feed</h3>
-    <div class="sub">Join the hustle</div>
-    <div class="fields">
-      <div class="fld"><label>Email</label><input type="email" id="loginEmail" placeholder="you@email.com"/></div>
-      <div class="fld"><label>Password</label><input type="password" id="loginPass" placeholder="••••••••"/></div>
-    </div>
-    <div class="login-err" id="loginErr"></div>
-    <div class="modal-actions"><button class="btn-submit" id="loginSubmit">Sign in</button></div>
-    <p class="login-note">No account? <a href="#" id="gotoRegister" style="color:var(--volt);">Create one here</a> — takes 30 seconds.</p>
+  <div class="modal">
+    <h3>Sign in</h3>
+    <div class="fld"><label>Email</label><input type="email" id="loginEmail" placeholder="you@email.com"/></div>
+    <div class="fld"><label>Password</label><input type="password" id="loginPass" placeholder="••••••••"/></div>
+    <div class="err" id="loginErr"></div>
+    <div class="actions"><button class="primary" id="loginSubmit">Sign in</button></div>
+    <div class="note">No account? <a href="#" id="gotoRegister">Create one here</a></div>
   </div>
 </div>
 
 <div class="modal-backdrop" id="registerModal">
   <div class="modal">
     <h3>Create your Hustle account</h3>
-    <div class="sub">Join the grind</div>
     <div class="fld-row">
       <div class="fld"><label>First name</label><input type="text" id="regFirst" placeholder="Arjun"/></div>
       <div class="fld"><label>Last name</label><input type="text" id="regLast" placeholder="Kumar"/></div>
@@ -126,173 +74,140 @@
     <div class="fld"><label>Email</label><input type="email" id="regEmail" placeholder="you@email.com"/></div>
     <div class="fld"><label>Phone (WhatsApp)</label><input type="tel" id="regPhone" placeholder="+91 98765 43210"/></div>
     <div class="fld"><label>Password (8+ chars)</label><input type="password" id="regPass" placeholder="••••••••"/></div>
-    <div class="login-err" id="regErr"></div>
-    <div class="modal-actions">
-      <button class="btn-cancel" id="regCancel">Cancel</button>
-      <button class="btn-submit" id="regSubmit">Create account</button>
+    <div class="err" id="regErr"></div>
+    <div class="actions">
+      <button class="ghost" id="regCancel">Cancel</button>
+      <button class="primary" id="regSubmit">Create account</button>
     </div>
-    <p class="login-note">We'll email you a 6-digit code to verify. Already registered? <a href="#" id="gotoLogin" style="color:var(--volt);">Sign in</a></p>
   </div>
 </div>
 
 <div class="modal-backdrop" id="verifyModal">
-  <div class="modal login-card">
+  <div class="modal">
     <h3>Verify your email</h3>
-    <div class="sub">We sent a code to you</div>
-    <p style="font-size:.84rem;color:var(--dusk);margin-bottom:4px;">Code sent to</p>
-    <p id="verifyEmail" style="font-family:'Space Mono',monospace;font-size:.9rem;color:var(--volt);margin-bottom:16px;"></p>
+    <p class="note" id="verifyEmail"></p>
     <div class="fld"><label>6-digit code</label><input type="text" id="verifyOtp" maxlength="6" placeholder="123456"/></div>
-    <div class="login-err" id="verifyErr"></div>
-    <div class="modal-actions">
-      <button class="btn-cancel" id="verifyCancel">Cancel</button>
-      <button class="btn-submit" id="verifySubmit">Verify &amp; continue</button>
+    <div class="err" id="verifyErr"></div>
+    <div class="actions">
+      <button class="ghost" id="verifyCancel">Cancel</button>
+      <button class="primary" id="verifySubmit">Verify</button>
     </div>
-    <p class="login-note">Not received? Register again to resend.</p>
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="modal-backdrop" id="postModal" style="overflow-y:auto;">
+  <div class="modal" style="max-width:900px;"></div>
+</div>
 
 <script src="/assets/feed-app.js"></script>
 <script>
 (function () {
   var c = window.community;
+  function $(x) { return document.getElementById(x); }
   var params = new URLSearchParams(location.search);
-  var uid = params.get('id') || (c.me() && c.me().id) || null;
-  var profileId = uid;
+  var profId = params.get('id');
 
-  document.getElementById('gotoRegister').addEventListener('click', function (e) { e.preventDefault(); c.openRegister(); });
-  document.getElementById('gotoLogin').addEventListener('click', function (e) { e.preventDefault(); c.openLogin(); });
-  document.getElementById('regCancel').addEventListener('click', function () { document.getElementById('registerModal').classList.remove('open'); });
-  document.getElementById('verifyCancel').addEventListener('click', function () { document.getElementById('verifyModal').classList.remove('open'); });
-  ['registerModal','verifyModal','loginModal'].forEach(function (id) {
-    var el = document.getElementById(id);
-    if (el) el.addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
-  });
-
-  function compose() {
-    if (!c.token()) { c.openLogin(); return; }
-    document.getElementById('composeModal').classList.add('open');
+  function initNav(me) {
+    if (!me || !me.id) return;
+    var p = $('navProfile'); if (p) p.href = '/profile.html?id=' + encodeURIComponent(me.id);
+    var av = $('navAv'); if (av) av.src = c.avatarFor(me);
+    if (!profId) {
+      profId = me.id;
+      $('pBtn').style.display = 'none';
+      loadProfile();
+    }
   }
-  document.getElementById('composeBtn').addEventListener('click', compose);
-  document.getElementById('kindRow').addEventListener('click', function (e) {
-    var k = e.target.closest('.kind');
-    if (!k) return;
-    document.querySelectorAll('.kind').forEach(function (x) { x.classList.remove('on'); });
-    k.classList.add('on');
-    window.curKind = k.dataset.kind;
-    document.getElementById('pPriceFld').style.display = window.curKind === 'GIG' ? '' : 'none';
+  window.onAuthed = function () { initNav(c.me()); };
+  var me0 = c.me();
+  if (me0 && me0.id) initNav(me0);
+
+  if ($('gotoRegister')) $('gotoRegister').addEventListener('click', function (e) { e.preventDefault(); c.openRegister(); });
+  if ($('regCancel')) $('regCancel').addEventListener('click', function () { $('registerModal').classList.remove('open'); });
+  if ($('verifyCancel')) $('verifyCancel').addEventListener('click', function () { $('verifyModal').classList.remove('open'); });
+  if ($('loginModal')) $('loginModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+  if ($('registerModal')) $('registerModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+  if ($('postModal')) $('postModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+
+  var navSearch = $('navSearch');
+  navSearch.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && navSearch.value.trim()) location.href = '/explore.html?q=' + encodeURIComponent(navSearch.value.trim());
   });
-  document.getElementById('composeCancel').addEventListener('click', function () { document.getElementById('composeModal').classList.remove('open'); });
-  document.getElementById('composeModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
-  document.getElementById('composeSubmit').addEventListener('click', function () {
-    var content = document.getElementById('pContent').value.trim();
-    if (!content) { c.toast('Write something first.', true); return; }
-    var tags = (document.getElementById('pTags').value || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean);
-    var body = {
-      kind: window.curKind || 'POST',
-      content: content,
-      tags: tags,
-      priceInr: (window.curKind === 'GIG') ? Number(document.getElementById('pPrice').value) : undefined,
-      deliveryDays: (window.curKind === 'GIG') ? Number(document.getElementById('pDelivery').value) : undefined,
-      location: document.getElementById('pLocation').value.trim() || undefined,
-    };
-    var btn = this;
-    btn.disabled = true; btn.textContent = 'Posting…';
-    c.api('/community/posts', { method: 'POST', body: body }).then(function (r) {
-      btn.disabled = false; btn.textContent = 'Post it';
-      if (!r.ok) { c.toast(r.d.message || 'Failed', true); return; }
-      document.getElementById('composeModal').classList.remove('open');
-      ['pContent','pTags','pPrice','pDelivery','pLocation'].forEach(function (f) { document.getElementById(f).value = ''; });
-      var postsEl = document.getElementById('posts');
-      postsEl.insertBefore(c.renderPost(r.d.data), postsEl.firstChild);
-      c.toast('Posted!');
-    });
-  });
+
+  var grid = $('grid');
+  function tile(row) {
+    var p = row.post;
+    var med = c.primeMedia(row);
+    var kind = c.kindCode(p.kind);
+    var div = document.createElement('div');
+    div.className = 'tile';
+    var img;
+    if (med && med.url) {
+      var isReel = kind === 'REEL' || med.type === 'video';
+      if (isReel) {
+        div.classList.add('long');
+        img = med.type === 'video'
+          ? '<video src="' + c.esc(med.url) + '" muted loop playsinline preload="metadata"></video>'
+          : '<img src="' + c.esc(med.url) + '" loading="lazy"/>';
+      } else {
+        img = '<img src="' + c.esc(med.url) + '" loading="lazy"/>';
+      }
+    } else {
+      img = '<div style="position:absolute;inset:0;display:grid;place-items:center;background:#efefef;">💬</div>';
+    }
+    div.innerHTML = img + '<span class="kindtag">' + kind + '</span>' +
+      (kind === 'REEL' || med.type === 'video' ? '<span class="reel-ic">▶</span>' : '') +
+      '<div class="over"><span>♥ ' + Number(p.likeCount || 0) + '</span><span>💬 ' + Number(p.commentCount || 0) + '</span></div>';
+    div.addEventListener('click', function () { c.openPost(p.id); });
+    return div;
+  }
 
   function loadProfile() {
-    if (!profileId) {
-      document.getElementById('profileCard').innerHTML = '<div class="empty"><h3>No profile</h3><p>Sign in or open a profile from the feed.</p>' +
-        '<p style="margin-top:14px;"><button class="profile-follow" onclick="community.openLogin()">Sign in</button></p></div>';
-      return;
-    }
-    c.api('/community/users/' + encodeURIComponent(profileId)).then(function (r) {
-      if (!r.ok) {
-        document.getElementById('profileCard').innerHTML = '<div class="empty"><h3>User not found</h3></div>';
-        return;
-      }
+    if (!profId) { $('loading').textContent = 'No profile selected.'; return; }
+    $('loading').style.display = 'block';
+    $('profileBody').style.display = 'none';
+    c.api('/community/users/' + encodeURIComponent(profId)).then(function (r) {
+      $('loading').style.display = 'none';
+      if (!r.ok) { $('loading').textContent = r.d.message || 'Could not load profile.'; return; }
       var d = r.d.data;
       var u = d.user;
-      var me = c.me();
-      var isMe = me && me.id === u.id;
-      document.getElementById('pageTitle').textContent = (u.firstName || 'Hustler') + ' ' + (u.lastName || '');
-      document.getElementById('pageMono').textContent = '02 — PROFILE · ' + ((u.city || 'INDIA') + '').toUpperCase();
-      var skills = (u.skillsOffered && u.skillsOffered.length) ? u.skillsOffered.map(function (s) { return '<span class="tag">' + c.esc(s) + '</span>'; }).join('') : '';
-      document.getElementById('profileCard').innerHTML =
-        '<img class="pic" src="' + c.esc(c.avatarFor(u)) + '" alt=""/>' +
-        '<div class="info">' +
-          '<div class="nm">' + c.esc(u.firstName + ' ' + (u.lastName || '')) + (u.kycVerified ? ' <span class="vh">VERIFIED</span>' : '') + '</div>' +
-          '<div class="hand">' + c.esc(c.handleFor(u)) + (u.city ? ' · ' + c.esc(u.city) : '') + (u.tagline ? ' · ' + c.esc(u.tagline) : '') + '</div>' +
-          (u.bio ? '<p class="bio">' + c.esc(u.bio) + '</p>' : '') +
-          (skills ? '<div class="tags" style="margin-top:12px;">' + skills + '</div>' : '') +
-          '<div class="profile-stats">' +
-            '<div class="st"><div class="n">' + d.posts + '</div><div class="l">POSTS</div></div>' +
-            '<div class="st"><div class="n">' + d.followers + '</div><div class="l">FOLLOWERS</div></div>' +
-            '<div class="st"><div class="n">' + d.likes + '</div><div class="l">LIKES</div></div>' +
-          '</div>' +
-          (isMe ? '' : '<button class="profile-follow' + (d.following ? ' on' : '') + '" id="pfFollow">' + (d.following ? 'Following' : 'Follow') + '</button>') +
-        '</div>';
-      var pf = document.getElementById('pfFollow');
-      if (pf) pf.addEventListener('click', function () {
-        if (!c.token()) { c.openLogin(); return; }
-        c.api('/community/users/' + encodeURIComponent(profileId) + '/follow', { method: 'POST' }).then(function (x) {
-          if (!x.ok) { c.toast(x.d.message || 'Failed', true); return; }
-          pf.classList.toggle('on', x.d.data.following);
-          pf.textContent = x.d.data.following ? 'Following' : 'Follow';
-          c.toast(x.d.data.following ? 'Following ' + (u.firstName || '') : 'Unfollowed');
-        });
-      });
-      // their posts
-      loadPosts();
-    }).catch(function () {
-      document.getElementById('profileCard').innerHTML = '<div class="empty"><h3>Network error</h3></div>';
-    });
-  }
-
-  function loadPosts() {
-    var postsEl = document.getElementById('posts');
-    postsEl.innerHTML = '<div class="loading">LOADING THE GRIND…</div>';
-    c.api('/community/feed?authorId=' + encodeURIComponent(profileId) + '&limit=25').then(function (r) {
-      if (!r.ok) { postsEl.innerHTML = '<div class="empty"><h3>Could not load posts</h3></div>'; return; }
-      var posts = (r.d.data && r.d.data.posts) || [];
-      if (!posts.length) { postsEl.innerHTML = '<div class="empty"><h3>No posts yet.</h3><p>This hustler hasn\'t posted yet.</p></div>'; return; }
-      postsEl.innerHTML = '';
-      posts.forEach(function (row) { postsEl.appendChild(c.renderPost(row)); });
-    }).catch(function () {
-      postsEl.innerHTML = '<div class="empty"><h3>Network error</h3></div>';
-    });
-  }
-
-  function loadTop() {
-    c.api('/community/feed?filter=top&limit=5').then(function (r) {
-      if (!r.ok) return;
-      var posts = (r.d.data && r.d.data.posts) || [];
-      var el = document.getElementById('topList');
-      el.innerHTML = '';
-      posts.forEach(function (row, i) {
-        var a = row.author || {};
-        var it = document.createElement('a');
-        it.className = 'top-item';
-        it.href = '/profile.html?id=' + encodeURIComponent(a.id || '');
-        it.innerHTML = '<span class="rank">' + String(i + 1).padStart(2, '0') + '</span>' +
-          '<div style="min-width:0;"><div class="nm">' + c.esc(a.firstName || 'hustler') + '</div><div class="ct">' + Number(row.post.likeCount || 0).toLocaleString('en-IN') + ' likes · ' + (row.post.kind || 'POST') + '</div></div>';
-        el.appendChild(it);
+      $('profileBody').style.display = 'block';
+      $('pAv').src = c.avatarFor(u);
+      $('pName').textContent = (u.firstName || 'Hustler') + (u.lastName ? ' ' + u.lastName : '');
+      $('pPosts').textContent = d.posts;
+      $('pFollowers').textContent = d.followers;
+      $('pLikes').textContent = d.likes;
+      var bio = [u.tagline, u.bio].filter(Boolean).join(' — ');
+      $('pBio').textContent = bio || '';
+      $('pSkills').innerHTML = (u.skillsOffered || []).map(function (s) { return '<span>' + c.esc(s) + '</span>'; }).join('');
+      var btn = $('pBtn');
+      if (c.token() && me0 && me0.id !== profId) {
+        btn.style.display = '';
+        btn.textContent = d.following ? 'Following' : 'Follow';
+        btn.classList.toggle('on', !!d.following);
+        btn.onclick = function () {
+          if (!c.token()) { c.openLogin(); return; }
+          c.api('/community/users/' + encodeURIComponent(profId) + '/follow', { method: 'POST' }).then(function (rr) {
+            if (!rr.ok) { c.toast(rr.d.message || 'Failed', true); return; }
+            btn.textContent = rr.d.data.following ? 'Following' : 'Follow';
+            btn.classList.toggle('on', rr.d.data.following);
+            $('pFollowers').textContent = Number($('pFollowers').textContent) + (rr.d.data.following ? 1 : -1);
+          });
+        };
+      } else if (me0 && me0.id === profId) {
+        btn.style.display = 'none';
+      }
+      c.api('/community/feed?authorId=' + encodeURIComponent(profId) + '&limit=30').then(function (fr) {
+        var posts = (fr.d.data && fr.d.data.posts) || [];
+        if (!posts.length) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1;"><h3>No posts yet.</h3></div>'; return; }
+        grid.innerHTML = '';
+        posts.forEach(function (row) { grid.appendChild(tile(row)); });
       });
     });
   }
 
   loadProfile();
-  loadTop();
+  var t = c.token();
+  if (t) { c.openPost && null; }
 })();
 </script>
 </body>

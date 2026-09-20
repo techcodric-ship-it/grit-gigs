@@ -4,127 +4,55 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="robots" content="noindex, follow"/>
-<title>Explore — Grit&Gigs Hustle Feed</title>
+<title>Explore — Grit&Gigs</title>
 <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=3"/>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Sora:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/assets/feed.css"/>
-<style>
-  .board-card{cursor:pointer;}
-  .board-card .top a{display:flex;align-items:center;gap:10px;flex:1;min-width:0;}
-  .board-card .top img{width:36px;height:36px;border-radius:10px;object-fit:cover;background:var(--ink-3);border:1px solid var(--line);flex:0 0 36px;}
-  .kind-pad{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px;}
-  .kind-pad button{border:1px solid var(--line);background:var(--ink-2);color:var(--dusk);font-size:.72rem;font-weight:600;padding:8px 14px;border-radius:99px;}
-  .kind-pad button.on{background:var(--volt);color:var(--ink);border-color:var(--volt);}
-</style>
 </head>
 <body>
-<div class="texture"></div>
+<div class="toast" id="toast"></div>
 
-<div class="wrap-app">
-  <aside class="rail">
-    <a class="logo" href="/">
-      <span class="logo-mark">G&amp;G</span>
-      <span class="logo-name">Grit<em>&amp;Gigs</em></span>
-    </a>
-    <nav class="nav">
-      <a href="/feed"><span class="ic">◉</span> Hustle Feed</a>
-      <a href="/explore.html" class="on"><span class="ic">⌕</span> Explore</a>
-      <a href="/explore.html?b=GIG" id="navBoard"><span class="ic">▤</span> Boards</a>
-      <a href="/notifications.html"><span class="ic">✉</span> Inbox</a>
-      <a href="/profile.html" id="navProfile"><span class="ic">▣</span> Profile</a>
-    </nav>
-    <div class="compose-btn">
-      <button id="composeBtn">+ Share your grind</button>
-    </div>
-    <div id="railUser"></div>
-  </aside>
+<header class="topnav">
+  <a class="brand" href="/feed">Grit<span>&amp;Gigs</span></a>
+  <div class="searchbox"><input id="navSearch" placeholder="Search gigs, projects, barter…"/></div>
+  <div class="icons">
+    <a href="/feed" title="Feed">🏠</a>
+    <a href="/explore.html" title="Explore" class="on">⌕</a>
+    <a href="/notifications.html" class="badge" title="Inbox">❤<span class="cnt" id="notifBadge" style="display:none;">0</span></a>
+    <a href="/profile.html" id="navProfile" title="Profile"><img id="navAv" class="avatar" src="https://api.dicebear.com/9.x/initials/svg?seed=grit&backgroundColor=f0f0f0&textColor=262626" alt=""/></a>
+  </div>
+</header>
 
-  <main class="feed">
-    <div class="feed-top">
-      <div class="feed-title">
-        <span class="mono" id="pageMono">03 — EXPLORE THE GRIND</span>
-        <span id="pageTitle">Explore</span>
-      </div>
-      <div class="search-bar">
-        <input type="text" id="searchQ" placeholder="Search hustles, gigs, skills…"/>
-        <button id="searchBtn">Search</button>
-      </div>
-    </div>
-    <div class="kind-pad" id="kindPad">
+<div class="wrap">
+  <main style="width:100%;max-width:935px;">
+    <div class="ex-tabs" id="kindPad">
       <button class="on" data-k="">All</button>
       <button data-k="GIG">Gigs</button>
       <button data-k="BARTER">Barter</button>
       <button data-k="WIN">Wins</button>
       <button data-k="TIPS">Tips</button>
       <button data-k="POST">Posts</button>
+      <button data-k="REEL">Reels</button>
+      <button data-k="PROJECT">Projects</button>
     </div>
-    <div class="board-grid" id="grid"></div>
+    <div class="grid" id="grid"></div>
   </main>
-
-  <aside class="side">
-    <h4>On the Grind</h4>
-    <div class="top-list" id="topList"></div>
-    <div class="boost">
-      <b>Get seen.</b>
-      <p>Boost a post to the top of the Local board for 24 hours — ₹49.</p>
-      <button>Boost a post</button>
-    </div>
-  </aside>
 </div>
 
-<div class="modal-backdrop" id="composeModal">
-  <div class="modal">
-    <h3>Share your grind</h3>
-    <div class="sub">Post · Gig · Barter · Win · Tips</div>
-    <div class="kind-row" id="kindRow">
-      <button class="kind on" data-kind="POST">Post</button>
-      <button class="kind" data-kind="GIG">Gig</button>
-      <button class="kind" data-kind="BARTER">Barter</button>
-      <button class="kind" data-kind="WIN">Win</button>
-      <button class="kind" data-kind="TIPS">Tips</button>
-    </div>
-    <div class="fld">
-      <label>What's happening in your hustle?</label>
-      <textarea id="pContent" rows="4" placeholder="Earned my first ₹5,000 this month..."></textarea>
-    </div>
-    <div class="fld-row">
-      <div class="fld" id="pPriceFld">
-        <label>Price (₹)</label>
-        <input type="number" id="pPrice" placeholder="499"/>
-      </div>
-      <div class="fld"><label>Tags</label><input type="text" id="pTags" placeholder="logo,design,fiverr"/></div>
-    </div>
-    <div class="fld-row">
-      <div class="fld"><label>Delivery (days)</label><input type="number" id="pDelivery" placeholder="3"/></div>
-      <div class="fld"><label>Location</label><input type="text" id="pLocation" placeholder="Mumbai"/></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-cancel" id="composeCancel">Cancel</button>
-      <button class="btn-submit" id="composeSubmit">Post it</button>
-    </div>
-  </div>
-</div>
-
+<!-- login modal -->
 <div class="modal-backdrop" id="loginModal">
-  <div class="modal login-card">
-    <h3>Sign in to the feed</h3>
-    <div class="sub">Join the hustle</div>
-    <div class="fields">
-      <div class="fld"><label>Email</label><input type="email" id="loginEmail" placeholder="you@email.com"/></div>
-      <div class="fld"><label>Password</label><input type="password" id="loginPass" placeholder="••••••••"/></div>
-    </div>
-    <div class="login-err" id="loginErr"></div>
-    <div class="modal-actions"><button class="btn-submit" id="loginSubmit">Sign in</button></div>
-    <p class="login-note">No account? <a href="#" id="gotoRegister" style="color:var(--volt);">Create one here</a> — takes 30 seconds.</p>
+  <div class="modal">
+    <h3>Sign in</h3>
+    <div class="fld"><label>Email</label><input type="email" id="loginEmail" placeholder="you@email.com"/></div>
+    <div class="fld"><label>Password</label><input type="password" id="loginPass" placeholder="••••••••"/></div>
+    <div class="err" id="loginErr"></div>
+    <div class="actions"><button class="primary" id="loginSubmit">Sign in</button></div>
+    <div class="note">No account? <a href="#" id="gotoRegister">Create one here</a></div>
   </div>
 </div>
 
 <div class="modal-backdrop" id="registerModal">
   <div class="modal">
     <h3>Create your Hustle account</h3>
-    <div class="sub">Join the grind</div>
     <div class="fld-row">
       <div class="fld"><label>First name</label><input type="text" id="regFirst" placeholder="Arjun"/></div>
       <div class="fld"><label>Last name</label><input type="text" id="regLast" placeholder="Kumar"/></div>
@@ -132,175 +60,125 @@
     <div class="fld"><label>Email</label><input type="email" id="regEmail" placeholder="you@email.com"/></div>
     <div class="fld"><label>Phone (WhatsApp)</label><input type="tel" id="regPhone" placeholder="+91 98765 43210"/></div>
     <div class="fld"><label>Password (8+ chars)</label><input type="password" id="regPass" placeholder="••••••••"/></div>
-    <div class="login-err" id="regErr"></div>
-    <div class="modal-actions">
-      <button class="btn-cancel" id="regCancel">Cancel</button>
-      <button class="btn-submit" id="regSubmit">Create account</button>
+    <div class="err" id="regErr"></div>
+    <div class="actions">
+      <button class="ghost" id="regCancel">Cancel</button>
+      <button class="primary" id="regSubmit">Create account</button>
     </div>
-    <p class="login-note">We'll email you a 6-digit code to verify. Already registered? <a href="#" id="gotoLogin" style="color:var(--volt);">Sign in</a></p>
   </div>
 </div>
 
 <div class="modal-backdrop" id="verifyModal">
-  <div class="modal login-card">
+  <div class="modal">
     <h3>Verify your email</h3>
-    <div class="sub">We sent a code to you</div>
-    <p style="font-size:.84rem;color:var(--dusk);margin-bottom:4px;">Code sent to</p>
-    <p id="verifyEmail" style="font-family:'Space Mono',monospace;font-size:.9rem;color:var(--volt);margin-bottom:16px;"></p>
+    <p class="note" id="verifyEmail"></p>
     <div class="fld"><label>6-digit code</label><input type="text" id="verifyOtp" maxlength="6" placeholder="123456"/></div>
-    <div class="login-err" id="verifyErr"></div>
-    <div class="modal-actions">
-      <button class="btn-cancel" id="verifyCancel">Cancel</button>
-      <button class="btn-submit" id="verifySubmit">Verify &amp; continue</button>
+    <div class="err" id="verifyErr"></div>
+    <div class="actions">
+      <button class="ghost" id="verifyCancel">Cancel</button>
+      <button class="primary" id="verifySubmit">Verify</button>
     </div>
-    <p class="login-note">Not received? Register again to resend.</p>
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="modal-backdrop" id="postModal" style="overflow-y:auto;">
+  <div class="modal" style="max-width:900px;"></div>
+</div>
 
 <script src="/assets/feed-app.js"></script>
 <script>
 (function () {
   var c = window.community;
+  function $(x) { return document.getElementById(x); }
   var params = new URLSearchParams(location.search);
-  var board = params.get('b') || '';
-  var kind = board || '';
-  var q = '';
+  var kind = params.get('kind') || '';
+  var q0 = params.get('q') || '';
+  var q = q0;
 
-  if (board) {
-    document.getElementById('pageMono').textContent = '03 — BOARD · ' + board;
-    document.getElementById('pageTitle').textContent = board === 'GIG' ? 'Gigs Board' : board === 'BARTER' ? 'Barter Board' : 'Boards';
-    document.getElementById('navBoard').classList.add('on');
-    document.querySelector('.nav a.on').classList.remove('on');
+  if (kind) {
+    $('kindPad').querySelectorAll('button').forEach(function (b) {
+      b.classList.toggle('on', b.dataset.k === kind);
+    });
   }
 
-  document.getElementById('gotoRegister').addEventListener('click', function (e) { e.preventDefault(); c.openRegister(); });
-  document.getElementById('gotoLogin').addEventListener('click', function (e) { e.preventDefault(); c.openLogin(); });
-  document.getElementById('regCancel').addEventListener('click', function () { document.getElementById('registerModal').classList.remove('open'); });
-  document.getElementById('verifyCancel').addEventListener('click', function () { document.getElementById('verifyModal').classList.remove('open'); });
-  ['registerModal','verifyModal','loginModal'].forEach(function (id) {
-    var el = document.getElementById(id);
-    if (el) el.addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
-  });
+  // nav
+  window.onAuthed = function () {
+    var me = c.me();
+    if (me && me.id) {
+      var p = $('navProfile'); if (p) p.setAttribute('href', '/profile.html?id=' + encodeURIComponent(me.id));
+      var av = $('navAv'); if (av) av.src = c.avatarFor(me);
+    }
+  };
+  var me0 = c.me();
+  if (me0 && me0.id) { var av = $('navAv'); if (av) av.src = c.avatarFor(me0); var pp = $('navProfile'); if (pp) pp.href = '/profile.html?id=' + encodeURIComponent(me0.id); }
 
-  document.getElementById('searchBtn').addEventListener('click', function () {
-    q = document.getElementById('searchQ').value.trim();
-    loadGrid();
-  });
-  document.getElementById('searchQ').addEventListener('keydown', function (e) { if (e.key === 'Enter') document.getElementById('searchBtn').click(); });
+  if ($('gotoRegister')) $('gotoRegister').addEventListener('click', function (e) { e.preventDefault(); c.openRegister(); });
+  if ($('regCancel')) $('regCancel').addEventListener('click', function () { $('registerModal').classList.remove('open'); });
+  if ($('verifyCancel')) $('verifyCancel').addEventListener('click', function () { $('verifyModal').classList.remove('open'); });
+  if ($('loginModal')) $('loginModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+  if ($('registerModal')) $('registerModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
 
-  document.getElementById('kindPad').addEventListener('click', function (e) {
-    var k = e.target.closest('button');
-    if (!k) return;
-    document.querySelectorAll('#kindPad button').forEach(function (x) { x.classList.remove('on'); });
-    k.classList.add('on');
-    kind = k.dataset.k;
-    loadGrid();
-  });
-
-  // sync pad highlight for boards
-  if (board === 'GIG') { var g = document.querySelector('#kindPad [data-k="GIG"]'); if (g) { document.querySelectorAll('#kindPad button').forEach(function (x) { x.classList.remove('on'); }); g.classList.add('on'); } }
-
-  document.getElementById('composeBtn').addEventListener('click', function () {
-    if (!c.token()) { c.openLogin(); return; }
-    document.getElementById('composeModal').classList.add('open');
-  });
-  document.getElementById('kindRow').addEventListener('click', function (e) {
-    var k = e.target.closest('.kind');
-    if (!k) return;
-    document.querySelectorAll('.kind').forEach(function (x) { x.classList.remove('on'); });
-    k.classList.add('on');
-    window.curKind = k.dataset.kind;
-    document.getElementById('pPriceFld').style.display = window.curKind === 'GIG' ? '' : 'none';
-  });
-  document.getElementById('composeCancel').addEventListener('click', function () { document.getElementById('composeModal').classList.remove('open'); });
-  document.getElementById('composeModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
-  document.getElementById('composeSubmit').addEventListener('click', function () {
-    var content = document.getElementById('pContent').value.trim();
-    if (!content) { c.toast('Write something first.', true); return; }
-    var tags = (document.getElementById('pTags').value || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean);
-    var body = {
-      kind: window.curKind || 'POST',
-      content: content,
-      tags: tags,
-      priceInr: (window.curKind === 'GIG') ? Number(document.getElementById('pPrice').value) : undefined,
-      deliveryDays: (window.curKind === 'GIG') ? Number(document.getElementById('pDelivery').value) : undefined,
-      location: document.getElementById('pLocation').value.trim() || undefined,
-    };
-    var btn = this;
-    btn.disabled = true; btn.textContent = 'Posting…';
-    c.api('/community/posts', { method: 'POST', body: body }).then(function (r) {
-      btn.disabled = false; btn.textContent = 'Post it';
-      if (!r.ok) { c.toast(r.d.message || 'Failed', true); return; }
-      document.getElementById('composeModal').classList.remove('open');
-      ['pContent','pTags','pPrice','pDelivery','pLocation'].forEach(function (f) { document.getElementById(f).value = ''; });
-      c.toast('Posted!');
+  var ns = $('navSearch');
+  if (q0) ns.value = q0;
+  ns.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      q = ns.value.trim();
       loadGrid();
-    });
+    }
   });
 
+  $('kindPad').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    $('kindPad').querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); });
+    b.classList.add('on');
+    kind = b.dataset.k;
+    loadGrid();
+  });
+
+  var grid = $('grid');
   function loadGrid() {
-    var grid = document.getElementById('grid');
-    grid.innerHTML = '<div class="loading">LOADING…</div>';
-    var url = '/community/feed?limit=24';
+    grid.innerHTML = '<div class="loading" style="grid-column:1/-1;">Exploring…</div>';
+    var url = '/community/feed?limit=48';
     if (kind) url += '&kind=' + encodeURIComponent(kind);
     if (q) url += '&q=' + encodeURIComponent(q);
     c.api(url).then(function (r) {
-      if (!r.ok) { grid.innerHTML = '<div class="empty"><h3>Could not load</h3><p>' + c.esc(r.d.message || '') + '</p></div>'; return; }
+      if (!r.ok) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1;"><h3>Could not load</h3></div>'; return; }
       var posts = (r.d.data && r.d.data.posts) || [];
-      if (!posts.length) { grid.innerHTML = '<div class="empty"><h3>Nothing found.</h3><p>Try a different board or search.</p></div>'; return; }
+      if (!posts.length) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1;"><h3>Nothing found' + (q ? ' for "' + c.esc(q) + '"' : '') + '.</h3><p>Try a different search or tab.</p></div>'; return; }
       grid.innerHTML = '';
-      posts.forEach(function (row) { grid.appendChild(boardCard(row)); });
-    }).catch(function () {
-      grid.innerHTML = '<div class="empty"><h3>Network error</h3></div>';
-    });
+      posts.forEach(function (row) { grid.appendChild(tile(row)); });
+    }).catch(function () { grid.innerHTML = '<div class="empty" style="grid-column:1/-1;"><h3>Network error</h3></div>'; });
   }
 
-  function boardCard(row) {
+  function tile(row) {
     var p = row.post;
     var a = row.author || {};
-    var tags = (p.tags && p.tags.length) ? p.tags : [];
+    var med = c.primeMedia(row);
+    var kind = c.kindCode(p.kind);
     var div = document.createElement('div');
-    div.className = 'board-card';
+    div.className = 'tile';
+    var img;
+    if (med && med.url) {
+      if (kind === 'REEL' && med.type === 'video') {
+        img = '<video src="' + c.esc(med.url) + '" muted loop playsinline preload="metadata"></video>';
+        div.classList.add('long');
+      } else {
+        img = '<img src="' + c.esc(med.url) + '" loading="lazy"/>';
+      }
+    } else {
+      img = '<div style="position:absolute;inset:0;display:grid;place-items:center;background:#efefef;font-size:30px;">' + (kind === 'REEL' ? '▶' : '💬') + '</div>';
+    }
     div.innerHTML =
-      '<div class="top"><a href="/profile.html?id=' + c.esc(a.id) + '"><img src="' + c.esc(c.avatarFor(a)) + '" alt=""/><div><div class="nm">' + c.esc(a.firstName || 'Hustler') + '</div><div class="ct">' + c.esc(c.timeAgo(p.createdAt)) + ' · ' + (p.kind || 'POST') + (p.location ? ' · ' + c.esc(p.location) : '') + '</div></div></a></div>' +
-      '<div class="tx">' + c.esc(p.content) + '</div>' +
-      (p.kind === 'GIG' && p.priceInr ? '<div class="ft"><span class="gig-chip">₹<b>' + Number(p.priceInr).toLocaleString('en-IN') + '</b> · ' + (p.deliveryDays ? p.deliveryDays + ' days' : 'negotiable') + '</span></div>' : '') +
-      (tags.length ? '<div class="tags">' + tags.map(function (t) { return '<span class="tag">#' + c.esc(t) + '</span>'; }).join('') + '</div>' : '') +
-      '<div class="ft" style="margin-top:12px;"><span style="font-family:Space Mono,monospace;font-size:.66rem;color:var(--dusk);">♥ ' + Number(p.likeCount || 0) + ' · 💬 ' + Number(p.commentCount || 0) + '</span><a href="#" style="margin-left:auto;color:var(--volt);font-size:.76rem;font-weight:600;" data-open="' + p.id + '">View →</a></div>';
-    div.querySelector('[data-open]').addEventListener('click', function (e) {
-      e.preventDefault();
-      document.getElementById('grid').innerHTML = '<div class="loading">LOADING POST…</div>';
-      c.api('/community/posts/' + p.id).then(function (r) {
-        if (!r.ok) { document.getElementById('grid').innerHTML = '<div class="empty"><h3>Could not load</h3></div>'; return; }
-        document.getElementById('grid').innerHTML = '';
-        document.getElementById('grid').appendChild(c.renderPost(r.d.data));
-      });
-    });
+      img +
+      '<span class="kindtag">' + kind + '</span>' +
+      (kind === 'REEL' ? '<span class="reel-ic">▶</span>' : '') +
+      '<div class="over"><span>♥ ' + Number(p.likeCount || 0) + '</span><span>💬 ' + Number(p.commentCount || 0) + '</span></div>';
+    div.addEventListener('click', function () { c.openPost(p.id); });
     return div;
   }
 
-  function loadTop() {
-    c.api('/community/feed?filter=top&limit=5').then(function (r) {
-      if (!r.ok) return;
-      var posts = (r.d.data && r.d.data.posts) || [];
-      var el = document.getElementById('topList');
-      el.innerHTML = '';
-      posts.forEach(function (row, i) {
-        var a = row.author || {};
-        var it = document.createElement('a');
-        it.className = 'top-item';
-        it.href = '/profile.html?id=' + encodeURIComponent(a.id || '');
-        it.innerHTML = '<span class="rank">' + String(i + 1).padStart(2, '0') + '</span>' +
-          '<div style="min-width:0;"><div class="nm">' + c.esc(a.firstName || 'hustler') + '</div><div class="ct">' + Number(row.post.likeCount || 0).toLocaleString('en-IN') + ' likes · ' + (row.post.kind || 'POST') + '</div></div>';
-        el.appendChild(it);
-      });
-    });
-  }
-
   loadGrid();
-  loadTop();
 })();
 </script>
 </body>

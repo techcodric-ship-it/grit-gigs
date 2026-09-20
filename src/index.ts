@@ -622,7 +622,10 @@ app.set("io", io);
             created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
           );
 
-          DO $$ BEGIN CREATE TYPE post_kind AS ENUM ('POST','GIG','BARTER','WIN','TIPS'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE post_kind AS ENUM ('POST','GIG','BARTER','WIN','TIPS','REEL','PROJECT'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+          ALTER TYPE post_kind ADD VALUE IF NOT EXISTS 'REEL';
+          ALTER TYPE post_kind ADD VALUE IF NOT EXISTS 'PROJECT';
 
           CREATE TABLE IF NOT EXISTS community_posts (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -630,9 +633,14 @@ app.set("io", io);
             kind post_kind NOT NULL DEFAULT 'POST',
             content TEXT NOT NULL,
             media JSONB DEFAULT '[]'::jsonb NOT NULL,
+            cover_url TEXT,
             tags TEXT[] DEFAULT '{}',
             price_inr INTEGER,
+            price_max_inr INTEGER,
             delivery_days INTEGER,
+            revisions INTEGER DEFAULT 0 NOT NULL,
+            want_inr INTEGER,
+            want_text TEXT,
             location TEXT,
             is_remote BOOLEAN DEFAULT TRUE NOT NULL,
             status TEXT DEFAULT 'ACTIVE' NOT NULL,
@@ -641,6 +649,12 @@ app.set("io", io);
             created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
             updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
           );
+
+          ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS cover_url TEXT;
+          ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS price_max_inr INTEGER;
+          ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS revisions INTEGER DEFAULT 0 NOT NULL;
+          ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS want_inr INTEGER;
+          ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS want_text TEXT;
 
           CREATE TABLE IF NOT EXISTS community_likes (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

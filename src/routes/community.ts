@@ -1,14 +1,57 @@
 ﻿import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and, desc, count, sql, inArray, or, ilike, type SQL } from "drizzle-orm";
-import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable } from "../db";
+import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable, conversationsTable, messagesTable } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { logger } from "../lib/logger";
+import { uploadToSupabase } from "../lib/storage";
+import { PROJECT_ROOT } from "../lib/root";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 
 const router: IRouter = Router();
 
+// ——— media uploads (images + short video reels) ———
+const communityUploadsDir = path.join(PROJECT_ROOT, "uploads", "community");
+if (!fs.existsSync(communityUploadsDir)) fs.mkdirSync(communityUploadsDir, { recursive: true });
+
+const mediaStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, communityUploadsDir),
+  filename: (_req, file, cb) => {
+    cb(null, Date.now() + "-" + Math.random().toString(36).slice(2) + path.extname(file.originalname));
+  },
+});
+const mediaUpload = multer({
+  storage: mediaStorage,
+  limits: { fileSize: 60 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ok = /^image\/(jpeg|png|webp|gif)$/.test(file.mimetype) || /^video\/(mp4|webm|quicktime)$/.test(file.mimetype);
+    cb(null, !!ok);
+  },
+});
+
+router.post("/community/upload", authenticate, mediaUpload.array("files", 10), async (req, res): Promise<void> => {
+  const files = (req.files as Express.Multer.File[]) ?? [];
+  if (!files.length) {
+    res.status(400).json({ success: false, message: "No files uploaded" });
+    return;
+  }
+  const results: { url: string; type: "image" | "video" }[] = [];
+  for (const f of files) {
+    const isVideo = /^video\//.test(f.mimetype);
+    const url = await uploadToSupabase(fs.readFileSync(f.path), f.originalname, "community");
+    if (url) {
+      results.push({ url, type: isVideo ? "video" : "image" });
+    } else {
+      results.push({ url: `/uploads/community/${f.filename}`, type: isVideo ? "video" : "image" });
+    }
+  }
+  res.status(201).json({ success: true, data: { files: results } });
+});
+
 // â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function kindWhitelist(kind: string | undefined, fallback: string): string {
-  const allowed = ["POST", "GIG", "BARTER", "WIN", "TIPS"];
+  const allowed = ["POST", "GIG", "BARTER", "WIN", "TIPS", "REEL", "PROJECT"];
   if (kind && allowed.includes(kind)) return kind;
   return fallback;
 }
@@ -265,7 +308,7 @@ router.get("/community/posts/:id", optionalAuth, async (req: Request, res: Respo
 
 // â”€â”€ POST /community/posts â€” create a post â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post("/community/posts", authenticate, async (req: Request, res: Response): Promise<void> => {
-  const { kind, content, tags, media, priceInr, deliveryDays, location, isRemote } = req.body ?? {};
+  const { kind, content, tags, media, priceInr, priceMaxInr, deliveryDays, revisions, wantInr, wantText, coverUrl, location, isRemote } = req.body ?? {};
 
   const k = kindWhitelist(String(kind || "POST"), "POST");
   if (!content || !String(content).trim()) {
@@ -274,14 +317,24 @@ router.post("/community/posts", authenticate, async (req: Request, res: Response
   }
 
   let price: number | null = null;
-  if (k === "GIG") {
+  if (k === "GIG" || k === "PROJECT") {
     const p = Number(priceInr);
     if (!Number.isFinite(p) || p <= 0) {
-      res.status(400).json({ success: false, message: "Gig posts need a price in â‚¹" });
+      res.status(400).json({ success: false, message: "Gig and project posts need a price in ₹" });
       return;
     }
     price = Math.round(p);
   }
+
+  const cleanMedia: { type: "image" | "video" | "embed"; url: string }[] = Array.isArray(media)
+    ? (media as { url?: string; type?: string }[])
+        .slice(0, 9)
+        .map((m) => {
+          if (!m || typeof m.url !== "string" || !m.url) return null;
+          return { type: m.type === "video" ? ("video" as const) : ("image" as const), url: String(m.url) };
+        })
+        .filter((x): x is { type: "image" | "video"; url: string } => !!x)
+    : [];
 
   try {
     const [post] = await db
@@ -291,9 +344,14 @@ router.post("/community/posts", authenticate, async (req: Request, res: Response
         kind: k as typeof communityPostsTable.$inferSelect.kind,
         content: String(content).trim().slice(0, 5000),
         tags: cleanTags(tags),
-        media: Array.isArray(media) ? media.slice(0, 9) : [],
+        media: cleanMedia,
+        coverUrl: coverUrl ? String(coverUrl) : null,
         priceInr: price,
+        priceMaxInr: Number.isFinite(Number(priceMaxInr)) && Number(priceMaxInr) > 0 ? Math.round(Number(priceMaxInr)) : null,
         deliveryDays: Number.isFinite(Number(deliveryDays)) && Number(deliveryDays) > 0 ? Math.round(Number(deliveryDays)) : null,
+        revisions: k === "GIG" || k === "BARTER" || k === "PROJECT" ? Math.max(0, Math.min(10, Math.round(Number(revisions) || 0))) : 0,
+        wantInr: k === "BARTER" && Number.isFinite(Number(wantInr)) && Number(wantInr) > 0 ? Math.round(Number(wantInr)) : null,
+        wantText: k === "BARTER" && wantText ? String(wantText).trim().slice(0, 200) : null,
         location: location ? String(location).trim().slice(0, 100) : req.user!.city ?? null,
         isRemote: isRemote !== false,
       })
@@ -525,6 +583,96 @@ router.post("/community/notifications/read", authenticate, async (req: Request, 
 });
 
 // â”€â”€ POST /community/posts/:id/delete â€” author deletes post â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── POST /community/posts/:id/order — send an order / proposal / barter offer as a DM ──
+router.post("/community/posts/:id/order", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const postId = String(req.params.id);
+  const meId = req.user!.id;
+  const content = String(req.body?.content || "").trim().slice(0, 3000);
+  const amount = Number(req.body?.amount);
+
+  if (!content) {
+    res.status(400).json({ success: false, message: "Tell them what you need." });
+    return;
+  }
+
+  const [post] = await db
+    .select({ id: communityPostsTable.id, userId: communityPostsTable.userId, kind: communityPostsTable.kind, content: communityPostsTable.content, priceInr: communityPostsTable.priceInr })
+    .from(communityPostsTable)
+    .where(eq(communityPostsTable.id, postId))
+    .limit(1);
+  if (!post) {
+    res.status(404).json({ success: false, message: "Post not found" });
+    return;
+  }
+  if (post.kind !== "GIG" && post.kind !== "PROJECT" && post.kind !== "BARTER") {
+    res.status(400).json({ success: false, message: "Only gig, project and barter posts can take requests." });
+    return;
+  }
+  if (post.userId === meId) {
+    res.status(400).json({ success: false, message: "You can't request your own post." });
+    return;
+  }
+
+  const [author] = await db
+    .select({ id: usersTable.id, firstName: usersTable.firstName })
+    .from(usersTable)
+    .where(eq(usersTable.id, post.userId))
+    .limit(1);
+  if (!author) {
+    res.status(404).json({ success: false, message: "Post author not found" });
+    return;
+  }
+
+  try {
+    // reuse an existing generic DM between the two users if one exists
+    const [existing] = await db
+      .select()
+      .from(conversationsTable)
+      .where(
+        and(
+          or(
+            and(eq(conversationsTable.user1Id, meId), eq(conversationsTable.user2Id, post.userId)),
+            and(eq(conversationsTable.user1Id, post.userId), eq(conversationsTable.user2Id, meId)),
+          ),
+          sql`${conversationsTable.orderId} IS NULL AND ${conversationsTable.matchId} IS NULL AND ${conversationsTable.projectBidId} IS NULL AND ${conversationsTable.isGroup} = FALSE`,
+        ),
+      )
+      .limit(1);
+
+    let conv = existing;
+    if (!conv) {
+      [conv] = await db
+        .insert(conversationsTable)
+        .values({ user1Id: meId, user2Id: post.userId, lastMessageAt: new Date() })
+        .returning();
+    }
+
+    const label = post.kind === "GIG" ? "📦 Gig order request" : post.kind === "PROJECT" ? "📋 Project proposal" : "🔁 Barter proposal";
+    const amountLine = Number.isFinite(amount) && amount > 0 ? ` (₹${Math.round(amount)})` : "";
+    const snippet = content.length > 240 ? content.slice(0, 240) + "…" : content;
+
+    const [message] = await db
+      .insert(messagesTable)
+      .values({ conversationId: conv.id, senderId: meId, messageText: `${label}${amountLine}:\n${snippet}`, attachments: [] })
+      .returning();
+
+    await db.update(conversationsTable).set({ lastMessageAt: new Date() }).where(eq(conversationsTable.id, conv.id));
+
+    notify(
+      author.id,
+      "COMMUNITY_ORDER",
+      `New ${post.kind === "GIG" ? "gig order" : post.kind === "PROJECT" ? "project proposal" : "barter offer"}`,
+      `${req.user!.firstName} sent you a request: ${snippet}`,
+      `/feed`,
+    );
+
+    res.status(201).json({ success: true, data: { conversationId: conv.id, messageId: message.id, createdConversation: !existing } });
+  } catch (err) {
+    logger.error({ err }, "Failed to send community order request");
+    res.status(500).json({ success: false, message: "Something went wrong. Please try again." });
+  }
+});
+
 router.post("/community/posts/:id/delete", authenticate, async (req: Request, res: Response): Promise<void> => {
   const [post] = await db
     .select({ id: communityPostsTable.id, userId: communityPostsTable.userId })
