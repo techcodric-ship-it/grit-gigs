@@ -4,12 +4,11 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="robots" content="index, follow, max-image-preview:large"/>
-<title>Grit&Gigs — India's #1 Skill Barter & Freelance Marketplace</title>
-<meta name="description" content="Trade skills without money, freelance for real income, and invest in local businesses — all on one platform. India's first skill barter marketplace."/>
-<meta name="keywords" content="skill barter India, trade skills without money, freelance marketplace India, skill exchange platform, MicroEquity India, barter services online"/>
+<title>Grit&Gigs — Under Maintenance · Rebuilding as a Community Platform</title>
+<meta name="description" content="Grit&Gigs is under scheduled maintenance while we rebuild it into a community platform — share your grind, trade skills, and earn. Back soon. Your account and data carry over."/>
 <link rel="canonical" href="https://www.gritandgigs.in/"/>
-<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=1"/>
-<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=1"/>
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=2"/>
+<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=2"/>
 <link rel="apple-touch-icon" href="/logo-og.png"/>
 <meta property="og:type" content="website"/>
 <meta property="og:image" content="https://www.gritandgigs.in/logo-og.png"/>
@@ -17,13 +16,13 @@
 <meta property="og:image:height" content="630"/>
 <meta name="twitter:image" content="https://www.gritandgigs.in/logo-og.png"/>
 <meta property="og:url" content="https://www.gritandgigs.in/"/>
-<meta property="og:title" content="Grit&Gigs — India's #1 Skill Barter & Freelance Marketplace"/>
-<meta property="og:description" content="Trade skills without money, freelance for real income, and invest in local businesses. India's first platform for skill barter, freelancing & MicroEquity."/>
+<meta property="og:title" content="Grit&Gigs — Under Maintenance · Rebuilding as a Community Platform"/>
+<meta property="og:description" content="We're rebuilding Grit&Gigs into a community platform — share your grind, trade skills, and earn. Back soon. Your account and data carry over."/>
 <meta property="og:site_name" content="Grit&Gigs"/>
 <meta property="og:locale" content="en_IN"/>
 <meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="Grit&Gigs — Skill Barter & Freelance Marketplace"/>
-<meta name="twitter:description" content="Trade skills without money, freelance for real income, and invest in local businesses — all on one platform."/>
+<meta name="twitter:title" content="Grit&Gigs — Under Maintenance"/>
+<meta name="twitter:description" content="We're rebuilding Grit&Gigs into a community platform. Back soon."/>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -33,1378 +32,222 @@
       "@id": "https://www.gritandgigs.in/#organization",
       "name": "Grit&Gigs",
       "url": "https://www.gritandgigs.in/",
-      "description": "India's first platform combining skill barter, freelancing, and business investment.",
+      "description": "Community platform for students and young freelancers to share their grind, trade skills, and earn.",
       "foundingDate": "2025",
       "areaServed": "IN",
-      "knowsAbout": ["Skill Barter", "Freelancing", "MicroEquity", "Skill Exchange"],
-      "founder": {
-        "@type": "Person",
-        "name": "Amuthavanan",
-        "jobTitle": "Founder",
-        "url": "https://www.gritandgigs.in/"
-      },
+      "founder": { "@type": "Person", "name": "Amuthavanan", "jobTitle": "Founder" },
       "logo": "https://www.gritandgigs.in/logo-og.png",
       "image": "https://www.gritandgigs.in/logo-og.png",
-      "sameAs": ["https://www.instagram.com/gritandgigs/"]
+      "sameAs": ["https://www.instagram.com/gritandgigs/"],
+      "potentialAction": {
+        "@type": "Action",
+        "name": "Report status"
+      }
     },
     {
       "@type": "WebSite",
       "@id": "https://www.gritandgigs.in/#website",
       "url": "https://www.gritandgigs.in/",
       "name": "Grit&Gigs",
-      "description": "Trade skills without money, freelance for real income, and invest in local businesses.",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": {
-          "@type": "EntryPoint",
-          "urlTemplate": "https://www.gritandgigs.in/?q={search_term_string}"
-        },
-        "query-input": "required name=search_term_string"
-      },
       "inLanguage": "en-IN",
       "publisher": { "@id": "https://www.gritandgigs.in/#organization" }
-    },
-    {
-      "@type": "WebApplication",
-      "@id": "https://www.gritandgigs.in/#webapp",
-      "url": "https://www.gritandgigs.in/",
-      "name": "Grit&Gigs",
-      "description": "India's #1 skill barter and freelance marketplace",
-      "applicationCategory": "BusinessApplication",
-      "operatingSystem": "All",
-      "browserRequirements": "Requires JavaScript",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "INR"
-      }
     }
   ]
 }
 </script>
-<link rel="stylesheet" href="css/main.css"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Sora:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <style>
-  /* G&G logo mark: auto-width so G&G fits inside the box */
-  .nav-logo-mark{width:auto!important;min-width:44px!important;padding:0 8px!important;}
-  .footer .nav-logo-mark{width:auto!important;min-width:38px!important;padding:0 6px!important;}
-  .modal-logo .nav-logo-mark{width:auto!important;min-width:38px!important;padding:0 6px!important;}
-  
-  /* Option A: Clean & Professional overrides */
-  .hero-bg { background: white !important; }
-  .hero-grid { opacity: 0.015 !important; }
-  .section { padding: 120px 0 !important; }
-  .section-sm { padding: 80px 0 !important; }
-  .cta-section { padding: 100px 60px !important; }
-  @media(max-width:768px) {
-    .section { padding: 80px 0 !important; }
-    .cta-section { padding: 60px 28px !important; }
+  :root{
+    --ink:#0E0E0C;
+    --ink-2:#14140F;
+    --rice:#F7F5F0;
+    --bone:#F5F4EE;
+    --volt:#C8F522;
+    --signal:#FF5C1A;
+    --dusk:#9C978A;
+    --line:#2E2E28;
+    --tint:rgba(200,245,34,0.07);
   }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--ink);
+    color:var(--bone);
+    font-family:'Sora',system-ui,sans-serif;
+    font-weight:400;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  /* halftone grit texture */
+  .texture{
+    position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
+    background-image:radial-gradient(rgba(200,245,34,0.05) 1px, transparent 1.6px);
+    background-size:26px 26px;
+    -webkit-mask-image:linear-gradient(180deg,transparent,black 18%,black 82%,transparent);
+            mask-image:linear-gradient(180deg,transparent,black 18%,black 82%,transparent);
+  }
+  .wrap{position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:0 24px;}
 
-  @media(max-width:900px) {
-    .gc-grid, .about-grid { grid-template-columns: 1fr !important; }
+  /* ── header ── */
+  header{padding:26px 0;}
+  .bar{display:flex;align-items:center;justify-content:space-between;gap:16px;}
+  .logo{display:flex;align-items:center;gap:12px;text-decoration:none;}
+  .logo-mark{
+    font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;letter-spacing:-.02em;
+    width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+    background:var(--volt);color:var(--ink);border-radius:10px;
+    box-shadow:0 0 0 1px rgba(200,245,34,.25), 0 4px 24px rgba(200,245,34,.15);
   }
-  @media(max-width:820px) {
-    .gc-cards { grid-template-columns: 1fr !important; }
+  .logo-name{font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:-.02em;color:var(--bone);}
+  .logo-name em{font-style:normal;color:var(--volt);}
+  .status-chip{
+    font-family:'Space Mono',monospace;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;
+    display:inline-flex;align-items:center;gap:9px;
+    padding:8px 14px;border:1px solid var(--line);border-radius:999px;background:var(--ink-2);color:var(--bone);
   }
-  </style>
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--signal);box-shadow:0 0 12px rgba(255,92,26,.8);animation:pulse 1.6s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.45;transform:scale(.82);}}
+
+  /* ── hero ── */
+  .hero{padding:84px 0 40px;}
+  .eyebrow{
+    font-family:'Space Mono',monospace;font-size:.74rem;letter-spacing:.18em;text-transform:uppercase;color:var(--volt);
+    display:flex;align-items:center;gap:12px;margin-bottom:22px;
+  }
+  .eyebrow::before{content:'';width:34px;height:2px;background:var(--volt);display:block;}
+  h1{
+    font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(2.4rem,6vw,4.2rem);
+    line-height:1.05;letter-spacing:-.03em;color:var(--bone);max-width:17ch;
+  }
+  h1 .outline{color:transparent;-webkit-text-stroke:1.6px var(--bone);}
+  h1 .volt{color:var(--volt);}
+  .lead{margin-top:26px;max-width:56ch;font-size:1.06rem;color:var(--dusk);}
+  .lead strong{color:var(--bone);font-weight:600;}
+
+  /* ── module cards ── */
+  .modules{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:64px;}
+  .mod{
+    border:1px solid var(--line);border-radius:14px;background:var(--ink-2);
+    padding:22px 20px 20px;position:relative;overflow:hidden;
+  }
+  .mod::after{
+    content:'';position:absolute;right:-26px;top:-26px;width:90px;height:90px;border-radius:50%;
+    background:var(--tint);pointer-events:none;
+  }
+  .mod-num{font-family:'Space Mono',monospace;font-size:.7rem;letter-spacing:.16em;color:var(--dusk);display:block;margin-bottom:12px;}
+  .mod h3{font-family:'Syne',sans-serif;font-weight:700;font-size:1.02rem;letter-spacing:-.01em;color:var(--bone);margin-bottom:8px;}
+  .mod p{font-size:.86rem;color:var(--dusk);}
+  .mod p b{color:var(--bone);font-weight:600;}
+
+  /* ── ticket / eta ── */
+  .ticket{
+    margin-top:16px;border:1px solid var(--line);border-radius:14px;background:var(--ink-2);
+    display:flex;flex-wrap:wrap;align-items:stretch;justify-content:space-between;gap:20px;
+    padding:26px 26px;position:relative;
+  }
+  .ticket::before,.ticket::after{
+    content:'';position:absolute;top:50%;width:20px;height:20px;border-radius:50%;
+    background:var(--ink);border:1px solid var(--line);transform:translateY(-50%);
+  }
+  .ticket::before{left:-11px;}
+  .ticket::after{right:-11px;}
+  .ticket-l{display:flex;align-items:center;gap:16px;}
+  .pulse-badge{
+    width:44px;height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:center;
+    background:var(--volt);color:var(--ink);border-radius:12px;font-family:'Space Mono',monospace;font-weight:700;
+  }
+  .ticket-l b{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;letter-spacing:-.01em;display:block;}
+  .ticket-l span{font-size:.84rem;color:var(--dusk);}
+  .ticket-r{font-family:'Space Mono',monospace;font-size:.78rem;letter-spacing:.08em;color:var(--volt);text-align:right;line-height:2;}
+  .ticket-r a{color:var(--volt);text-decoration:underline;text-underline-offset:4px;}
+  .ticket-r a:hover{color:var(--rice);}
+
+  /* ── footer ── */
+  footer{border-top:1px solid var(--line);margin-top:80px;padding:28px 0 34px;}
+  .foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;color:var(--dusk);font-size:.82rem;}
+  .foot .mono{font-family:'Space Mono',monospace;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--dusk);}
+  .foot a{color:var(--dusk);text-decoration:none;margin-left:18px;}
+  .foot a:hover{color:var(--volt);}
+
+  @media(max-width:860px){
+    .modules{grid-template-columns:1fr;}
+    .hero{padding:60px 0 30px;}
+    footer{margin-top:64px;}
+  }
+</style>
 </head>
 <body>
+<div class="texture"></div>
 
-<!-- ── NAVBAR ── -->
-<nav class="nav" id="mainNav">
-  <div class="nav-inner">
-    <a href="#" class="nav-logo">
-  
-  <div class="nav-logo-mark">
-    <span class="logo-g-black">G</span>
-    <span class="logo-g-blue">&amp;G</span>
+<header>
+  <div class="wrap bar">
+    <a class="logo" href="/" aria-label="Grit&Gigs home">
+      <span class="logo-mark">G&amp;G</span>
+      <span class="logo-name">Grit<em>&amp;Gigs</em></span>
+    </a>
+    <span class="status-chip"><span class="dot"></span>Under maintenance</span>
   </div>
+</header>
 
-  <span class="nav-logo-text">
-    <span class="logo-text-black">Grit</span>
-    <span class="logo-text-blue">&amp;Gigs</span>
-  </span>
+<main>
+  <section class="wrap hero">
+    <p class="eyebrow">Planned system upgrade</p>
+    <h1>We're building the<br/><span class="outline">community</span> <span class="volt">next.</span></h1>
+    <p class="lead">
+      Grit&Gigs is temporarily under maintenance while we rebuild it into a
+      <strong>community platform</strong> — share your daily grind, trade skills, and earn,
+      all in one feed. The marketplace will return as part of the new experience.
+      Back shortly.
+    </p>
 
-</a>
-    <div class="nav-links">
-      <a href="#how-it-works">How it works</a>
-      <a href="#barter">Skill Exchange</a>
-      <a href="#freelance">Freelance</a>
-      <a href="/projects">Browse Projects</a>
-      <a href="#about">About</a>
+    <div class="modules">
+      <div class="mod">
+        <span class="mod-num">01 — Where we are</span>
+        <h3>Parked &amp; rebuilding</h3>
+        <p>The old marketplace is briefly offline while we ship the new
+        <b>community-first experience</b> on top of it.</p>
+      </div>
+      <div class="mod">
+        <span class="mod-num">02 — What's coming</span>
+        <h3>Your grind, your feed</h3>
+        <p>Profiles, posts, gigs &amp; barter — <b>skill exchange stays</b>, now inside a
+        living community where every hustle is visible.</p>
+      </div>
+      <div class="mod">
+        <span class="mod-num">03 — What stays</span>
+        <h3>Your account &amp; data</h3>
+        <p>Accounts, verified income proof, and earnings carry over. <b>Nothing is lost.</b>
+        Log in exactly as before.</p>
+      </div>
     </div>
-    <div class="nav-actions" id="siteNavActions">
-        <button class="btn btn-secondary btn-sm" onclick="openModal('loginModal')">Sign in</button>
-        <button class="btn btn-primary btn-sm" onclick="openModal('signupModal')">Join free</button>
-      </div>
-      <script>
-      (function() {
-        try {
-          var t = localStorage.getItem('se_token');
-          var raw = t && localStorage.getItem('se_user');
-          var u = raw && JSON.parse(raw);
-          if (u && u.firstName) {
-            var el = document.getElementById('siteNavActions');
-            if (el) {
-              var planBadge = '';
-              try {
-                var cached = JSON.parse(localStorage.getItem('se_plan_cache') || 'null');
-                var b = cached && cached.badge;
-                planBadge = b ? (function(){var g={STARTER:'#059669',PRO:'#7C3AED',SQUAD:'#D97706'};return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+(g[b]||'#6C3FE8')+';color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;vertical-align:middle;">'+b+'</span>';})() : '';
-              } catch(e2){}
-              el.innerHTML = planBadge +
-                '<a href="/dashboard" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
-                '<button class="btn btn-primary btn-sm" onclick="window.doLogout && window.doLogout()">Sign out</button>';
-            }
-          }
-          if (u && u.firstName) {
-            document.addEventListener('DOMContentLoaded', function() {
-              var ctaBtn = document.getElementById('ctaMainBtn');
-              if (ctaBtn) ctaBtn.childNodes[0].textContent = 'Go to dashboard ';
-            });
-          }
-        } catch(e) {}
-      })();
-      </script>
-    <div class="nav-hamburger" aria-label="Menu">
-      <span></span><span></span><span></span>
-    </div>
-  </div>
-</nav>
 
-<!-- ── MOBILE MENU ── -->
-<div class="mobile-menu" id="mobileMenu">
-  <a href="#how-it-works">How it works</a>
-  <a href="#barter">Skill Exchange</a>
-  <a href="#freelance">Freelance</a>
-  <a href="/projects">Browse Projects</a>
-  <a href="#about">About</a>
-  <button class="btn btn-secondary" onclick="openModal('loginModal')">Sign in</button>
-  <button class="btn btn-primary" onclick="openModal('signupModal')">Join free</button>
-</div>
-
-<!-- ── HERO ── -->
-<section class="hero" id="home">
-  <div class="hero-bg"></div>
-  <div class="hero-grid"></div>
-  <div class="hero-glows"><div class="hero-glow g1"></div><div class="hero-glow g2"></div></div>
-  <div class="hero-inner">
-    <div class="hero-content">
-      <div class="hero-eyebrow anim-fade-up">
-        <span class="badge badge-violet">
-          <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><circle cx="4" cy="4" r="4" fill="#6C3FE8"/></svg>
-          India's first all-in-one skills platform
-        </span>
-      </div>
-      <h1 class="hero-title anim-fade-up anim-delay-1">
-        Exchange skills.<br/>
-        <span class="accent">Earn freely.</span><br/>
-        Build wealth.
-      </h1>
-      <p class="hero-sub anim-fade-up anim-delay-2">
-        Trade your skills without money, work as a freelancer to earn real income, or invest in local businesses — all from one powerful platform built for India.
-      </p>
-      <div class="hero-actions anim-fade-up anim-delay-3">
-        <button class="btn btn-primary btn-lg" onclick="localStorage.getItem('se_token')?location.href='/dashboard':openModal('signupModal')">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          Start for free
-        </button>
-        <a href="#how-it-works" class="btn btn-secondary btn-lg">See how it works</a>
-      </div>
-      <div class="hero-stats anim-fade-up anim-delay-4">
+    <div class="ticket">
+      <div class="ticket-l">
+        <span class="pulse-badge">ETA</span>
         <div>
-          <div class="hero-stat-num"><span data-target="28000" data-suffix="+">0+</span></div>
-          <div class="hero-stat-label">Active members</div>
-        </div>
-        <div>
-          <div class="hero-stat-num"><span data-target="9400" data-suffix="+">0+</span></div>
-          <div class="hero-stat-label">Exchanges completed</div>
-        </div>
-        <div>
-          <div class="hero-stat-num">&#8377;<span data-target="4" data-suffix="Cr+">0</span></div>
-          <div class="hero-stat-label">Earned by freelancers</div>
+          <b>New feed loading</b>
+          <span>Maintenance window — expect the upgraded platform shortly.</span>
         </div>
       </div>
-    </div>
-
-    <!-- Hero visual -->
-    <div class="hero-visual anim-fade-up anim-delay-2">
-      <div class="hero-card-stack">
-        <div class="hero-main-card">
-          <div class="hero-video-thumb">
-            <video autoplay muted loop playsinline poster="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&q=80">
-              <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4"/>
-            </video>
-            <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(108,63,232,0.5),rgba(10,10,15,0.4));"></div>
-            <div style="position:absolute;bottom:16px;left:16px;">
-              <div style="font-family:var(--font-display);color:white;font-weight:700;font-size:1rem;">Skills meet opportunity</div>
-              <div style="color:rgba(255,255,255,0.75);font-size:0.78rem;">Join 28,000+ members across India</div>
-            </div>
-          </div>
-          <div class="hero-card-body">
-            <div class="hero-card-meta">
-              <div class="hero-user">
-                <div class="avatar-placeholder avatar-v">PK</div>
-                <div>
-                  <div class="user-name">Priya K.</div>
-                  <div class="user-meta">UI Designer — Chennai</div>
-                </div>
-              </div>
-              <div>
-                <div class="stars">★★★★★</div>
-                <div style="font-size:0.72rem;color:var(--text-muted);text-align:right">4.9 (142)</div>
-              </div>
-            </div>
-            <div style="font-size:0.85rem;color:var(--text-secondary);line-height:1.55;">
-              "Exchanged my design skills for web development help — saved ₹30,000 and made a great connection."
-            </div>
-          </div>
-        </div>
-
-        <!-- Float card 1 -->
-        <div class="hero-float-card" style="bottom:90px;right:-16px;width:180px;">
-          <div class="float-label">This week's earnings</div>
-          <div class="float-val">&#8377;18,400</div>
-          <div class="float-sub">+23% vs last week</div>
-        </div>
-
-        <!-- Float card 2 -->
-        <div class="hero-float-card" style="bottom:10px;left:-16px;width:185px;">
-          <div class="float-label">New match found</div>
-          <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
-            <div class="avatar-placeholder avatar-g" style="width:28px;height:28px;font-size:11px;">RV</div>
-            <div>
-              <div style="font-size:0.82rem;font-weight:600;color:var(--ink);">Ravi V.</div>
-              <div style="font-size:0.72rem;color:var(--text-muted);">React Dev — Bangalore</div>
-            </div>
-          </div>
-        </div>
+      <div class="ticket-r">
+        Questions? <a href="mailto:support@gritandgigs.in">support@gritandgigs.in</a><br/>
+        Follow the build: <a href="https://www.instagram.com/gritandgigs/" rel="noopener" target="_blank">@gritandgigs</a>
       </div>
     </div>
-  </div>
-</section>
+  </section>
+</main>
 
-<!-- ── TRUST BAR ── -->
-<div class="trust-bar">
-  <div class="trust-track">
-    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">28,000+ active members</span></div>
-    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">9,400+ skills exchanged</span></div>
-    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">Launched in Chennai</span></div>
-    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">&#8377;4 Crore+ paid to freelancers</span></div>
-    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">Razorpay secured payments</span></div>
-    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">2,000+ verified freelancers</span></div>
-    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">Free to start, no card needed</span></div>
-    <!-- duplicate for seamless loop -->
-    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">28,000+ active members</span></div>
-    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">9,400+ skills exchanged</span></div>
-    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">Launched in Chennai</span></div>
-    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">&#8377;4 Crore+ paid to freelancers</span></div>
-    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">Razorpay secured payments</span></div>
-    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">2,000+ verified freelancers</span></div>
-    <div class="trust-item"><div class="trust-dot"></div><span class="trust-item-label">Free to start, no card needed</span></div>
-  </div>
-</div>
-
-<!-- ── HOW IT WORKS ── -->
-<section class="section" id="how-it-works">
-  <div class="container">
-    <div class="section-header">
-      <span class="badge badge-violet">How it works</span>
-      <h2>Three systems, one platform</h2>
-      <p>Whether you have money or not, Grit&Gigs has a path for you — from your first skill trade to your first paycheck.</p>
-    </div>
-    <div class="how-grid">
-      <div class="how-card anim-fade-up">
-        <div class="how-card-video">
-          <video muted loop playsinline poster="https://images.unsplash.com/photo-1552664730-d307ca884978?w=500&q=70">
-            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4"/>
-          </video>
-          <div class="how-card-video-overlay"></div>
-          <div class="how-card-num">01</div>
-        </div>
-        <div class="how-card-body">
-          <div class="badge badge-violet" style="margin-bottom:10px;font-size:0.72rem;">Free &amp; zero money</div>
-          <div class="how-card-title">Skill Exchange</div>
-          <div class="how-card-desc">Post what you need and what you offer. Our AI matches you with the right person. Trade skills directly — no credits, no cash, no barriers.</div>
-        </div>
-      </div>
-      <div class="how-card anim-fade-up anim-delay-1">
-        <div class="how-card-video">
-          <video muted loop playsinline poster="https://images.unsplash.com/photo-1600880292089-90a7e086ee0c?w=500&q=70">
-            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4"/>
-          </video>
-          <div class="how-card-video-overlay"></div>
-          <div class="how-card-num">02</div>
-        </div>
-        <div class="how-card-body">
-          <div class="badge badge-gold" style="margin-bottom:10px;font-size:0.72rem;">Earn real money</div>
-          <div class="how-card-title">Freelance Marketplace</div>
-          <div class="how-card-desc">List your services, get hired, get paid. Use our secure wallet system. Withdraw directly to your bank account.</div>
-        </div>
-      </div>
-      <div class="how-card anim-fade-up anim-delay-2" style="position:relative;">
-        <div class="how-card-video">
-          <video muted loop playsinline poster="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=500&q=70">
-            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4"/>
-          </video>
-          <div class="how-card-video-overlay"></div>
-          <div class="how-card-num">03</div>
-        </div>
-        <div class="how-card-body">
-          <div class="badge badge-coming" style="margin-bottom:10px;font-size:0.72rem;">Coming soon</div>
-          <div class="how-card-title">MicroEquity Investment</div>
-          <div class="how-card-desc">Invest from ₹10,000 in verified local businesses and earn quarterly dividends. Build long-term wealth with businesses you know and trust.</div>
-        </div>
-        <div class="coming-soon-overlay">
-          <div style="text-align:center;">
-            <span class="badge badge-coming" style="font-size:0.85rem;padding:8px 20px;">Coming Soon</span>
-            <div style="margin-top:10px;font-size:0.82rem;color:var(--text-muted);">Launching Q3 2026</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ── SYSTEMS DEEP DIVE ── -->
-<section class="section" style="background:white;" id="systems">
-  <div class="container">
-    <div class="section-header" style="text-align:left;max-width:none;margin-bottom:36px;">
-      <span class="badge badge-violet">Platform features</span>
-      <h2 style="margin-top:10px;">Everything you need to grow</h2>
-    </div>
-    <div class="systems-tabs" id="sysTabs">
-      <button class="sys-tab active" data-tab="panel-barter">Skill Exchange</button>
-      <button class="sys-tab" data-tab="panel-freelance">Freelance</button>
-      <button class="sys-tab" data-tab="panel-invest" style="opacity:0.5;cursor:default;" disabled>Invest (Soon)</button>
-    </div>
-
-    <!-- Barter Panel -->
-    <div class="sys-panel active" id="panel-barter">
-      <div class="sys-content">
-        <h2>Trade skills, not money</h2>
-        <p>No bank account needed. No credit card. No subscription fee. Just two people who need what the other has. It's the world's oldest economy — reimagined for 2026.</p>
-        <div class="sys-steps">
-          <div class="sys-step">
-            <div class="sys-step-dot">1</div>
-            <div class="sys-step-text"><strong>Post your exchange.</strong> Tell us what skill you're offering and what you need in return.</div>
-          </div>
-          <div class="sys-step">
-            <div class="sys-step-dot">2</div>
-            <div class="sys-step-text"><strong>Get AI-matched.</strong> Our algorithm finds the best complementary match based on skills, location, and availability.</div>
-          </div>
-          <div class="sys-step">
-            <div class="sys-step-dot">3</div>
-            <div class="sys-step-text"><strong>Chat, agree, deliver.</strong> Discuss terms, complete the work, and both parties confirm. Build your reputation with every trade.</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <button class="btn btn-primary" onclick="localStorage.getItem('se_token')?location.href='/dashboard?tab=post-exchange':openModal('barterModal')">Post an exchange</button>
-          <a href="#barter" class="btn btn-secondary">Browse matches</a>
-        </div>
-      </div>
-      <div class="sys-visual">
-        <div class="sys-visual-video">
-          <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=640&q=80" alt="Team collaboration" style="width:100%;height:100%;object-fit:cover;"/>
-        </div>
-        <div class="sys-visual-footer">
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <div>
-              <div style="font-weight:600;font-size:0.9rem;color:var(--ink);">9,400+ exchanges completed</div>
-              <div style="font-size:0.8rem;color:var(--text-muted);">Zero fees. Pure skill trade.</div>
-            </div>
-            <div class="badge badge-violet">Free forever</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Freelance Panel -->
-    <div class="sys-panel" id="panel-freelance">
-      <div class="sys-content">
-        <h2>Your skills are worth real money</h2>
-        <p>List your services, get discovered by thousands of buyers, and get paid securely. Your balance is always displayed in real ₹.</p>
-        <div class="sys-steps">
-          <div class="sys-step">
-            <div class="sys-step-dot">1</div>
-            <div class="sys-step-text"><strong>Create your service.</strong> Set your packages, prices, and delivery time. Takes under 5 minutes.</div>
-          </div>
-          <div class="sys-step">
-            <div class="sys-step-dot">2</div>
-            <div class="sys-step-text"><strong>Get hired.</strong> Buyers pay into escrow. You only start working after payment is secured.</div>
-          </div>
-          <div class="sys-step">
-            <div class="sys-step-dot">3</div>
-            <div class="sys-step-text"><strong>Deliver and withdraw.</strong> Complete the work, get paid, and withdraw to your bank in 3–5 days.</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <button class="btn btn-primary" onclick="localStorage.getItem('se_token')?location.href='/dashboard':openModal('signupModal')">Start selling</button>
-          <a href="#freelance" class="btn btn-secondary">Browse services</a>
-        </div>
-      </div>
-      <div class="sys-visual">
-        <div class="sys-visual-video">
-          <img src="https://images.unsplash.com/photo-1551434678-e076c223a692?w=640&q=80" alt="Working on laptop" style="width:100%;height:100%;object-fit:cover;"/>
-        </div>
-        <div class="sys-visual-footer">
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <div>
-              <div style="font-weight:600;font-size:0.9rem;color:var(--ink);">&#8377;4 Crore+ paid to freelancers</div>
-              <div style="font-size:0.8rem;color:var(--text-muted);">10% platform fee. 90% yours.</div>
-            </div>
-            <div class="badge badge-gold">Secure escrow</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ── GRIT CIRCLES & SQUADS ── -->
-<section class="section" style="background:#0D0D18;" id="grit-circles">
-  <div class="container">
-    <div class="section-header">
-      <span class="badge badge-violet">Grit Circles &amp; Squads</span>
-      <h2 style="color:#fff;">Win bigger, together</h2>
-      <p style="color:rgba(255,255,255,0.6);">Solo work builds income. Squad work builds empires. Gather 4–6 trusted freelancers into a <strong style="color:#fff;">Grit Circle</strong>, bid on projects too big for one person, and divide the payout — transparently, on a plan built for teams.</p>
-    </div>
-
-    <div class="gc-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;margin-bottom:56px;">
-      <div>
-        <div class="sys-steps">
-          <div class="sys-step">
-            <div class="sys-step-dot" style="background:#6C3FE8;">1</div>
-            <div class="sys-step-text" style="color:rgba(255,255,255,0.65);"><strong style="color:#fff;">Form your circle.</strong> Start a Grit Circle and invite 4–6 freelancers you trust — a designer, a developer, a writer, a marketer. Each member brings the skill the next project needs.</div>
-          </div>
-          <div class="sys-step">
-            <div class="sys-step-dot" style="background:#6C3FE8;">2</div>
-            <div class="sys-step-text" style="color:rgba(255,255,255,0.65);"><strong style="color:#fff;">Bid as a team.</strong> Squads publish squad services and win multi-skill projects solo freelancers can't deliver — the whole circle works, the whole circle earns.</div>
-          </div>
-          <div class="sys-step">
-            <div class="sys-step-dot" style="background:#6C3FE8;">3</div>
-            <div class="sys-step-text" style="color:rgba(255,255,255,0.65);"><strong style="color:#fff;">Deliver &amp; split fairly.</strong> Agree your payout split, deliver together, and build a shared reputation that compounds on every win.</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <button class="btn btn-primary" onclick="localStorage.getItem('se_token')?location.href='/dashboard':location.href='/'">Build your squad</button>
-          <a href="/blog-how-squads-earn-2026" class="btn" style="background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.14);">See how squads earn</a>
-        </div>
-      </div>
-
-      <div class="sys-visual" style="box-shadow:0 24px 80px rgba(108,63,232,0.25);">
-        <div class="sys-visual-video" style="background:linear-gradient(160deg,#1A1233 0%,#0D0D18 100%);padding:28px;">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px;">
-            <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#6C3FE8,#8B5CF6);display:flex;align-items:center;justify-content:center;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            </div>
-            <div>
-              <div style="font-weight:700;color:#fff;font-size:.92rem;font-family:'Syne',sans-serif;">Pixel Forge</div>
-              <div style="font-size:.72rem;color:rgba(255,255,255,0.45);">5 members · Squad plan</div>
-            </div>
-            <span style="margin-left:auto;background:#F0ECFD;color:#6C3FE8;font-size:.62rem;font-weight:700;padding:4px 10px;border-radius:99px;">Active</span>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:10px;">
-            <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px 12px;">
-              <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#6C3FE8,#8B5CF6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem;font-weight:700;">SA</div>
-              <div style="flex:1;"><div style="font-size:.78rem;font-weight:600;color:#fff;">Amuthavanan</div><div style="font-size:.66rem;color:rgba(255,255,255,0.45);">Founder · Full-stack</div></div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px 12px;">
-              <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#E8A020,#F5C04A);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem;font-weight:700;">SD</div>
-              <div style="flex:1;"><div style="font-size:.78rem;font-weight:600;color:#fff;">Sneha D.</div><div style="font-size:.66rem;color:rgba(255,255,255,0.45);">UI/UX Designer</div></div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px 12px;">
-              <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#10B981,#34D399);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem;font-weight:700;">RV</div>
-              <div style="flex:1;"><div style="font-size:.78rem;font-weight:600;color:#fff;">Ravi V.</div><div style="font-size:.66rem;color:rgba(255,255,255,0.45);">Backend Engineer</div></div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px 12px;">
-              <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#EF4444,#F87171);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem;font-weight:700;">AC</div>
-              <div style="flex:1;"><div style="font-size:.78rem;font-weight:600;color:#fff;">Ananya C.</div><div style="font-size:.66rem;color:rgba(255,255,255,0.45);">Content &amp; SEO</div></div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px 12px;">
-              <div style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px dashed rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-              </div>
-              <div style="font-size:.76rem;color:rgba(255,255,255,0.5);">Invite a member</div>
-            </div>
-          </div>
-        </div>
-        <div class="sys-visual-footer" style="background:rgba(255,255,255,0.03);">
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <div>
-              <div style="font-weight:700;font-size:.9rem;color:#fff;">Squad service — full product in 14 days</div>
-              <div style="font-size:.78rem;color:rgba(255,255,255,0.45);">Design + build + content · ₹1,20,000</div>
-            </div>
-            <span class="badge badge-gold">Squad plan</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="gc-cards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">
-      <div class="sys-inline-card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:26px;">
-        <div style="width:46px;height:46px;border-radius:13px;background:var(--violet-light);color:var(--violet);display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2"/><path d="M8 10h8"/></svg>
-        </div>
-        <div style="font-family:'Syne',sans-serif;font-weight:700;color:#fff;font-size:1rem;margin-bottom:8px;">Your Grit Circle</div>
-        <p style="font-size:.86rem;line-height:1.65;color:rgba(255,255,255,0.6);margin:0;">A private team of freelancers you trust. Lead it, invite members, and keep the roster ready for your next big pitch.</p>
-      </div>
-      <div class="sys-inline-card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:26px;">
-        <div style="width:46px;height:46px;border-radius:13px;background:var(--gold-light);color:#9B5E00;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-        </div>
-        <div style="font-family:'Syne',sans-serif;font-weight:700;color:#fff;font-size:1rem;margin-bottom:8px;">Squad services</div>
-        <p style="font-size:.86rem;line-height:1.65;color:rgba(255,255,255,0.6);margin:0;">Publish a package your whole circle delivers — one price, one delivery date, and a shared reputation for the work.</p>
-      </div>
-      <div class="sys-inline-card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:26px;">
-        <div style="width:46px;height:46px;border-radius:13px;background:var(--violet-light);color:var(--violet);display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
-        </div>
-        <div style="font-family:'Syne',sans-serif;font-weight:700;color:#fff;font-size:1rem;margin-bottom:8px;">Squad plan</div>
-        <p style="font-size:.86rem;line-height:1.65;color:rgba(255,255,255,0.6);margin:0;">Built for teams — up to 6 squad members, 1% commission, and every squad service your circle can publish.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ── BARTER SECTION ── -->
-<section class="section" id="barter">
-  <div class="container">
-    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:40px;flex-wrap:wrap;gap:16px;">
-      <div>
-        <span class="badge badge-violet" style="margin-bottom:12px;">Skill Exchange</span>
-        <h2 style="margin:0;">Live exchange requests</h2>
-        <p style="margin-top:8px;">These people are looking for someone exactly like you.</p>
-      </div>
-      <button class="btn btn-primary" onclick="localStorage.getItem('se_token')?location.href='/dashboard?tab=post-exchange':openModal('barterModal')">Post your exchange</button>
-    </div>
-
-    <div class="barter-grid"></div>
-  </div>
-</section>
-
-<!-- ── PROOF STRIP: COMPLETED ON GRIT&GIGS ── -->
-<section id="proof-strip" style="background:linear-gradient(160deg,#0D0D18 0%,#1A1233 100%);padding:64px 0;display:none;">
-  <div class="container" style="max-width:1080px;">
-    <div style="text-align:center;margin-bottom:40px;">
-      <span style="display:inline-block;background:rgba(108,63,232,0.18);color:#8B5CF6;font-size:.68rem;font-weight:700;letter-spacing:.06em;padding:5px 14px;border-radius:99px;margin-bottom:12px;">Completed on Grit&amp;Gigs</span>
-      <h2 style="margin:0 0 8px;color:#fff;font-size:1.5rem;">Real work, delivered on this platform</h2>
-      <p style="margin:0;color:rgba(255,255,255,0.5);font-size:.9rem;">Every project, order, and exchange below was completed and reviewed by the people who hired them.</p>
-    </div>
-    <div id="proof-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;"></div>
-  </div>
-</section>
-
-<script>
-(function(){
-  var section=document.getElementById('proof-strip');
-  var grid=document.getElementById('proof-grid');
-  if(!section||!grid)return;
-  fetch('/api/portfolio/featured').then(function(r){return r.json()}).then(function(d){
-    var items=d&&d.data&&d.data.items;
-    if(!items||!items.length)return;
-    section.style.display='block';
-    var html='';
-    for(var i=0;i<items.length;i++){
-      var it=items[i];
-      var fn=it.freelancer;
-      var name=fn?(fn.firstName||'')+(fn.lastName?' '+fn.lastName:''):'Freelancer';
-      var initials=(fn&&fn.firstName?fn.firstName[0]:'')+(fn&&fn.lastName?fn.lastName[0]:'');
-      var rating=it.reviewRating;
-      var stars='';
-      if(rating){
-        for(var s=0;s<5;s++) stars+='<span style="color:'+(s<Math.round(rating)?'#F59E0B':'rgba(255,255,255,0.2)')+';">★</span>';
-      }
-      var typeLabel=it.type==='project'?'Project':it.type==='order'?'Service':'Exchange';
-      var typeColor=it.type==='project'?'#6C3FE8':it.type==='order'?'#059669':'#2563EB';
-      var budget='';
-      if(it.type==='project'&&it.bidAmount) budget='₹'+Number(it.bidAmount).toLocaleString('en-IN');
-      else if(it.type==='order'&&it.priceInr) budget='₹'+Number(it.priceInr).toLocaleString('en-IN');
-      html+='<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:22px 24px;">'
-        +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">'
-        +'<div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,'+typeColor+','+typeColor+'cc);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.7rem;font-weight:700;">'+initials.toUpperCase()+'</div>'
-        +'<div style="flex:1;min-width:0;"><div style="color:#fff;font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+name+'</div>'
-        +'<div style="color:rgba(255,255,255,0.4);font-size:.72rem;">'+typeLabel+(budget?' · '+budget:'')+'</div></div>'
-        +'<span style="background:'+typeColor+'22;color:'+typeColor+';font-size:.62rem;font-weight:700;padding:3px 10px;border-radius:99px;white-space:nowrap;">Completed</span>'
-        +'</div>'
-        +'<div style="color:rgba(255,255,255,0.8);font-weight:600;font-size:.85rem;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(it.title||'Untitled')+'</div>'
-        +(it.description?'<div style="color:rgba(255,255,255,0.45);font-size:.78rem;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">'+it.description+'</div>':'')
-        +'<div style="display:flex;align-items:center;gap:8px;margin-top:12px;">'
-        +(stars?'<span style="font-size:.82rem;">'+stars+'</span><span style="color:rgba(255,255,255,0.35);font-size:.72rem;">'+Number(rating).toFixed(1)+'</span>':'<span style="color:rgba(255,255,255,0.25);font-size:.72rem;">No review yet</span>')
-        +'</div>'
-        +(it.reviewComment?'<div style="margin-top:10px;color:rgba(255,255,255,0.5);font-size:.76rem;font-style:italic;line-height:1.5;border-left:2px solid rgba(108,63,232,0.4);padding-left:10px;">"'+it.reviewComment.slice(0,120)+(it.reviewComment.length>120?'…':'')+'"</div>':'')
-        +'</div>';
-    }
-    grid.innerHTML=html;
-  }).catch(function(){});
-})();
-</script>
-
-<!-- ── FREELANCE SECTION ── -->
-<section class="section" style="background:white;" id="freelance">
-  <div class="container">
-    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:16px;">
-      <div>
-        <span class="badge badge-gold" style="margin-bottom:12px;">Freelance Marketplace</span>
-        <h2 style="margin:0;">Hire a skilled professional</h2>
-        <p style="margin-top:8px;">Browse verified services from talented Indian professionals.</p>
-      </div>
-      <button class="btn btn-primary" onclick="localStorage.getItem('se_token')?location.href='/dashboard':openModal('signupModal')">Sell your skills</button>
-    </div>
-
-    <!-- Category pills -->
-    <div class="categories-scroll">
-      <div class="cat-pill active">All</div>
-      <div class="cat-pill">Design &amp; Creative</div>
-      <div class="cat-pill">Development</div>
-      <div class="cat-pill">Writing &amp; Content</div>
-      <div class="cat-pill">Digital Marketing</div>
-      <div class="cat-pill">Video &amp; Animation</div>
-      <div class="cat-pill">Business</div>
-      <div class="cat-pill">Music &amp; Audio</div>
-      <div class="cat-pill">Data &amp; Analytics</div>
-      <div class="cat-pill">Education</div>
-    </div>
-
-    <!-- Search bar -->
-    <div style="margin-bottom:36px;">
-      <div class="search-bar" style="max-width:560px;">
-        <input type="text" placeholder="Search for any service — logo design, video editing, copywriting..."/>
-        <button type="button">Search</button>
-      </div>
-    </div>
-
-    <div class="services-grid">
-      <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);" id="servicesLoading">Loading services...</div>
-    </div>
-
-    <div style="text-align:center;margin-top:40px;">
-      <button class="btn btn-secondary" onclick="localStorage.getItem('se_token')?location.href='/freelance':openModal('signupModal')">
-        View all services
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </button>
-    </div>
-  </div>
-</section>
-
-<!-- ── FREE TOOL BANNER ── -->
-<section class="section" style="background:linear-gradient(135deg,#5B2FC0 0%,#6C3DE0 45%,#8b5cf6 100%);padding:70px 24px;position:relative;overflow:hidden;">
-  <div style="position:absolute;top:-120px;right:-80px;width:340px;height:340px;border-radius:50%;background:rgba(255,255,255,.08);pointer-events:none;"></div>
-  <div style="position:absolute;bottom:-140px;left:-100px;width:380px;height:380px;border-radius:50%;background:rgba(255,255,255,.06);pointer-events:none;"></div>
-  <div style="position:absolute;top:40%;left:12%;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.05);pointer-events:none;"></div>
-  <div class="container tool-banner-grid" style="position:relative;display:grid;grid-template-columns:1.15fr .85fr;gap:48px;align-items:center;">
-    <div style="text-align:left;">
-      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.16);color:#fff;font-size:0.78rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:7px 18px;border-radius:24px;margin-bottom:20px;border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(4px);">
-        <span style="width:8px;height:8px;border-radius:50%;background:#7CFC9F;box-shadow:0 0 10px #7CFC9F;"></span>
-        Free Tool
-      </div>
-      <h2 style="font-family:var(--font-display);font-size:2.5rem;font-weight:800;margin:0 0 14px;max-width:560px;color:#fff;line-height:1.12;">Not sure what to charge — or what it should cost?</h2>
-      <p style="font-size:1.1rem;color:rgba(255,255,255,.92);max-width:520px;margin:0 0 28px;line-height:1.6;">Get instant market-based freelance rates in India. Enter your details and receive a personalised estimate by email — free.</p>
-      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-        <a href="/rate-calculator" class="btn" style="background:#fff;color:#6C3DE0;font-weight:800;padding:15px 38px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.22);text-decoration:none;display:inline-flex;align-items:center;gap:8px;font-size:1rem;transition:transform .18s,box-shadow .18s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 14px 38px rgba(0,0,0,.3)'" onmouseout="this.style.transform='';this.style.boxShadow='0 10px 30px rgba(0,0,0,.22)'">
-          Try the free calculator →
-        </a>
-      </div>
-      <p style="font-size:0.85rem;color:rgba(255,255,255,.78);margin-top:16px;">Works for freelancers and clients. No sign-up needed.</p>
-      <div style="display:flex;gap:26px;flex-wrap:wrap;margin-top:30px;">
-        <div style="display:flex;align-items:center;gap:8px;color:#fff;font-size:0.85rem;font-weight:600;">
-          <span style="width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.16);display:inline-flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></span> Instant results
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;color:#fff;font-size:0.85rem;font-weight:600;">
-          <span style="width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.16);display:inline-flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></span> Emailed to you
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;color:#fff;font-size:0.85rem;font-weight:600;">
-          <span style="width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.16);display:inline-flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg></span> Free forever
-        </div>
-      </div>
-    </div>
-    <div style="background:#fff;border-radius:20px;padding:26px;box-shadow:0 20px 50px rgba(0,0,0,.28);transform:rotate(1.5deg);">
-      <div style="font-size:0.7rem;font-weight:800;color:#8b5cf6;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;">Sample estimate</div>
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-        <span style="width:42px;height:42px;border-radius:12px;background:#f3effe;display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
-        <div>
-          <div style="font-size:0.92rem;font-weight:700;color:#1a1a2e;">Web Development</div>
-          <div style="font-size:0.78rem;color:#8a8a99;">3-5 yrs experience · 40 hrs</div>
-        </div>
-      </div>
-      <div style="background:#faf8ff;border:1px solid #eee;border-radius:12px;padding:14px 16px;margin-bottom:10px;">
-        <div style="font-size:0.72rem;font-weight:700;color:#8b5cf6;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">Hourly rate</div>
-        <div style="font-size:1.4rem;font-weight:800;color:#1a1a2e;">₹425 – ₹625</div>
-      </div>
-      <div style="background:#faf8ff;border:1px solid #eee;border-radius:12px;padding:14px 16px;margin-bottom:10px;">
-        <div style="font-size:0.72rem;font-weight:700;color:#8b5cf6;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">Fixed project</div>
-        <div style="font-size:1.4rem;font-weight:800;color:#1a1a2e;">₹18,750 – ₹30,000</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:#16a34a;font-weight:600;padding-top:4px;"><svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg> Full report also emailed to you</div>
-    </div>
-  </div>
-  <style>
-    @media(max-width:820px){
-      .tool-banner-grid{grid-template-columns:1fr!important;}
-    }
-  </style>
-</section>
-
-<!-- ── DASHBOARD PREVIEW ── -->
-<section class="section" id="about">
-  <div class="container">
-    <div class="about-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;">
-      <div>
-        <span class="badge badge-violet" style="margin-bottom:16px;">Your command centre</span>
-        <h2 style="margin-bottom:16px;">One dashboard for everything</h2>
-        <p style="margin-bottom:24px;line-height:1.75;">Track your exchanges, manage orders, watch your earnings grow — all in a clean, fast dashboard designed to help you move quickly.</p>
-        <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:32px;">
-          <div style="display:flex;gap:12px;align-items:flex-start;">
-            <div style="width:28px;height:28px;border-radius:50%;background:var(--violet-light);color:var(--violet);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            </div>
-            <div style="font-size:0.92rem;color:var(--text-secondary);"><strong style="color:var(--ink);">Real-time notifications</strong> for every match, order, payment, and message.</div>
-          </div>
-          <div style="display:flex;gap:12px;align-items:flex-start;">
-            <div style="width:28px;height:28px;border-radius:50%;background:var(--violet-light);color:var(--violet);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            </div>
-            <div style="font-size:0.92rem;color:var(--text-secondary);"><strong style="color:var(--ink);">Earnings analytics</strong> with charts showing your income over time.</div>
-          </div>
-          <div style="display:flex;gap:12px;align-items:flex-start;">
-            <div style="width:28px;height:28px;border-radius:50%;background:var(--violet-light);color:var(--violet);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            </div>
-            <div style="font-size:0.92rem;color:var(--text-secondary);"><strong style="color:var(--ink);">Separate wallets</strong> for freelance earnings and future investment funds.</div>
-          </div>
-        </div>
-        <button class="btn btn-primary" onclick="localStorage.getItem('se_token')?location.href='/dashboard':openModal('signupModal')">Open your dashboard</button>
-      </div>
-      <div class="dashboard-preview">
-        <div class="db-topbar">
-          <div class="db-dot" style="background:#FF6B6B;"></div>
-          <div class="db-dot" style="background:#FFD93D;"></div>
-          <div class="db-dot" style="background:#6BCB77;"></div>
-          <span style="font-size:0.72rem;color:rgba(255,255,255,0.3);margin-left:12px;">Grit&Gigs Dashboard</span>
-        </div>
-        <div class="db-body">
-          <div class="db-sidebar">
-            <div class="db-nav-item active">Overview</div>
-            <div class="db-nav-item">Exchanges</div>
-            <div class="db-nav-item">Orders</div>
-            <div class="db-nav-item">Wallet</div>
-            <div class="db-nav-item">Messages</div>
-            <div class="db-nav-item" style="margin-top:auto;opacity:0.4;font-size:0.75rem;">MicroEquity <span style="font-size:0.65rem;">(Soon)</span></div>
-          </div>
-          <div class="db-main">
-            <div class="db-stats">
-              <div class="db-stat-card">
-                <div class="db-stat-label">Balance</div>
-                <div class="db-stat-val">₹38,000</div>
-                <div class="db-stat-change">+45 this week</div>
-              </div>
-              <div class="db-stat-card">
-                <div class="db-stat-label">Exchanges</div>
-                <div class="db-stat-val">12</div>
-                <div class="db-stat-change">3 active</div>
-              </div>
-              <div class="db-stat-card">
-                <div class="db-stat-label">Earned (&#8377;)</div>
-                <div class="db-stat-val">38K</div>
-                <div class="db-stat-change">This month</div>
-              </div>
-            </div>
-            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:var(--radius-md);padding:16px;">
-              <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.05em;">Recent activity</div>
-              <div style="display:flex;flex-direction:column;gap:10px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                  <span style="font-size:0.82rem;color:rgba(255,255,255,0.7);">Order #1082 completed</span>
-                  <span style="font-size:0.78rem;color:#1A7A5E;font-weight:600;">+₹9,000</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                  <span style="font-size:0.82rem;color:rgba(255,255,255,0.7);">New barter match</span>
-                  <span style="font-size:0.78rem;color:rgba(108,63,232,0.9);font-weight:600;">Pending</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                  <span style="font-size:0.82rem;color:rgba(255,255,255,0.7);">Withdrawal processed</span>
-                  <span style="font-size:0.78rem;color:rgba(255,255,255,0.4);font-weight:500;">&#8377;9,000</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ── TESTIMONIALS ── -->
-<section class="section" style="background:white;">
-  <div class="container">
-    <div class="section-header">
-      <span class="badge badge-violet">Stories</span>
-      <h2>Real people. Real results.</h2>
-      <p>From students to senior professionals, Grit&Gigs works for everyone.</p>
-    </div>
-    <div class="testimonials-grid">
-      <div class="testimonial-card anim-fade-up">
-        <div class="testimonial-quote">"</div>
-        <p class="testimonial-text">I was a student with zero money but strong React skills. I traded web dev help for a complete brand identity. Saved at least ₹40,000 and built an amazing portfolio.</p>
-        <div class="testimonial-user">
-          <div class="avatar-placeholder avatar-v">AK</div>
-          <div>
-            <div class="testimonial-name">Arjun K.</div>
-            <div class="testimonial-role">CS Student, Chennai</div>
-          </div>
-        </div>
-      </div>
-      <div class="testimonial-card anim-fade-up anim-delay-1">
-        <div class="testimonial-quote">"</div>
-        <p class="testimonial-text">I quit my agency job and went full freelance on Grit&Gigs. Within 3 months I was earning more than my salary and working from home.</p>
-        <div class="testimonial-user">
-          <div class="avatar-placeholder avatar-g">SR</div>
-          <div>
-            <div class="testimonial-name">Sunita R.</div>
-            <div class="testimonial-role">Freelance Designer, Pune</div>
-          </div>
-        </div>
-      </div>
-      <div class="testimonial-card anim-fade-up anim-delay-2">
-        <div class="testimonial-quote">"</div>
-        <p class="testimonial-text">The platform is incredibly clean. I hired a video editor, a copywriter, and a developer in the same week. The escrow system makes me feel completely safe.</p>
-        <div class="testimonial-user">
-          <div class="avatar-placeholder avatar-a">VN</div>
-          <div>
-            <div class="testimonial-name">Varun N.</div>
-            <div class="testimonial-role">Startup Founder, Bangalore</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ── CTA ── -->
-<section class="section-sm">
-  <div class="cta-section">
-    <div class="cta-bg"></div>
-    <div class="cta-inner">
-      <span class="badge badge-coming" style="margin-bottom:20px;">Join 28,000+ members</span>
-      <h2>Start exchanging today.<br/>It's completely free.</h2>
-      <p>No credit card. No hidden fees. Just sign up and start trading your skills for things you actually need.</p>
-      <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
-        <button class="btn btn-primary btn-lg" id="ctaMainBtn" onclick="localStorage.getItem('se_token')?location.href='/dashboard':openModal('signupModal')">
-          Create free account
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-        </button>
-        <a href="#how-it-works" class="btn btn-lg" style="background:rgba(255,255,255,0.12);color:white;border:1.5px solid rgba(255,255,255,0.25);">Learn more</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ── FOOTER ── -->
-<footer class="footer">
-  <div class="footer-grid">
-    <div class="footer-brand">
-     <div class="nav-logo">
-
-  <div class="nav-logo-mark">
-    <span class="logo-g-black">G</span>
-    <span class="logo-g-blue">&amp;G</span>
-  </div>
-
-  <div class="nav-logo-text">
-    <span class="logo-text-black" style="color:black;">Grit</span>
-    <span class="logo-text-blue">&amp;Gigs</span>
-  </div>
-
-</div>
-      <p>India's first platform that combines skill barter, freelancing, and business investment — built to empower every Indian with a skill.</p>
-    </div>
-    <div class="footer-col">
-      <h4>Platform</h4>
-      <a href="#barter">Skill Exchange</a>
-      <a href="#freelance">Freelance</a>
-      <a href="/rate-calculator">Rate Calculator</a>
-      <a href="/refer-and-earn">Refer &amp; Earn</a>
-      <a href="#">MicroEquity <span style="font-size:0.72rem;opacity:0.5;">(soon)</span></a>
-      <a href="#">Pricing</a>
-    </div>
-    <div class="footer-col">
-      <h4>Company</h4>
-      <a href="/about">About us</a>
-      <a href="/blog">Blog</a>
-      <a href="/faq">FAQ</a>
-      <a href="/blog-top-skills-to-trade">Top Skills to Trade</a>
-      <a href="/blog-freelance-guide">Freelancing Guide India</a>
-      <a href="/blog-skill-barter">Skill Barter Guide</a>
-      <a href="/blog-freelance-portfolio">Freelance Portfolio Tips</a>
-      <a href="/blog-microequity-future">MicroEquity Future</a>
-      <a href="/careers">Careers</a>
-      <a href="/press">Press</a>
-    </div>
-    <div class="footer-col">
-      <h4>Support</h4>
-      <a href="/contact">Contact Us</a>
-      <a href="/shipping">Shipping & Delivery</a>
-      <a href="/refund">Refund Policy</a>
-    </div>
-    <div class="footer-col">
-      <h4>Legal</h4>
-      <a href="/terms">Terms of service</a>
-      <a href="/privacy">Privacy policy</a>
-      <a href="/cookie">Cookie policy</a>
-    </div>
-  </div>
-  <div class="footer-bottom">
-    <p>© 2026 Grit&Gigs Technologies Pvt. Ltd. All rights reserved.</p>
-    <p>Built with love in Chennai, India</p>
+<footer>
+  <div class="wrap foot">
+    <span class="mono">Grit&Gigs — rebuild in progress</span>
+    <span>
+      <a href="mailto:support@gritandgigs.in">Support</a>
+      <a href="https://www.instagram.com/gritandgigs/" rel="noopener" target="_blank">Instagram</a>
+    </span>
   </div>
 </footer>
-
-<!-- ── MODALS ── -->
-
-<!-- Signup Modal -->
-<div class="modal-overlay" id="signupModal">
-  <div class="modal">
-
-    <button class="modal-close" onclick="closeModal('signupModal')">&times;</button>
-
-    <div class="modal-logo">
-      <div class="nav-logo-mark">
-  <span style="color:#0A0A0F;">G</span><span style="color:var(--violet);">&amp;G</span>
-</div>
-      <span class="nav-logo-text">
-        Grit<span style="color:var(--violet);">&amp;Gigs</span>
-      </span>
-    </div>
-    <h2>Create your account</h2>
-    <p class="modal-sub">Free forever. No credit card needed.</p>
-    <button class="btn-google">
-      <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-      Continue with Google
-    </button>
-    <div class="divider-or">or sign up with email</div>
-    <form id="signupForm">
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">First name</label>
-          <input class="form-input" type="text" placeholder="Arjun" required/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Last name</label>
-          <input class="form-input" type="text" placeholder="Kumar" required/>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Email address</label>
-        <input class="form-input" type="email" placeholder="arjun@email.com" required/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <input class="form-input" type="password" placeholder="Min. 8 characters" required/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Phone number</label>
-        <input class="form-input" type="tel" placeholder="+91 98765 43210" required/>
-      </div>
-      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;">Create account</button>
-    </form>
-    <div id="signupOtpStep" style="display:none;">
-      <div style="text-align:center;padding:8px 0 16px;">
-        <div style="font-size:13px;margin-bottom:4px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;color:var(--violet);" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 6 10-6"/></svg></div>
-        <div style="font-size:.9rem;font-weight:600;margin-bottom:2px;">Check your email</div>
-        <div style="font-size:.78rem;color:var(--muted);" id="otpEmailDisplay"></div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Enter verification code</label>
-        <input class="form-input" id="otpInput" type="text" inputmode="numeric" pattern="[0-9]{6}" placeholder="000000" maxlength="6" style="text-align:center;font-size:1.3rem;letter-spacing:6px;font-weight:700;"/>
-      </div>
-      <button class="btn btn-primary" id="verifyOtpBtn" style="width:100%;justify-content:center;padding:13px;">Verify & Sign In</button>
-      <div style="text-align:center;margin-top:10px;font-size:.75rem;color:var(--muted);">Didn't get it? <a id="resendOtpLink" style="color:var(--violet);cursor:pointer;">Resend</a></div>
-    </div>
-    <p class="modal-footer-text">Already have an account?<a onclick="closeModal('signupModal');openModal('loginModal')">Sign in</a></p>
-  </div>
-</div>
-
-<!-- Login Modal -->
-<div class="modal-overlay" id="loginModal">
-  <div class="modal">
-
-    <button class="modal-close" onclick="closeModal('loginModal')">&times;</button>
-
-    <div class="modal-logo">
-      <div class="nav-logo-mark">
-  <span style="color:#0A0A0F;">G</span><span style="color:var(--violet);">&amp;G</span>
-</div>
-      <span class="nav-logo-text">
-        Grit<span style="color:var(--violet);">&amp;Gigs</span>
-      </span>
-    </div>
-    <h2>Welcome back</h2>
-    <p class="modal-sub">Sign in to your account.</p>
-    <button class="btn-google">
-      <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-      Continue with Google
-    </button>
-    <div class="divider-or">or sign in with email</div>
-    <form id="loginForm">
-      <div class="form-group">
-        <label class="form-label">Email address</label>
-        <input class="form-input" type="email" placeholder="arjun@email.com" required/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <input class="form-input" type="password" placeholder="Your password" required/>
-      </div>
-      <div style="text-align:right;margin-top:-10px;margin-bottom:18px;">
-        <a style="font-size:0.83rem;color:var(--violet);cursor:pointer;" onclick="openModal('forgotPwModal')">Forgot password?</a>
-      </div>
-      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;">Sign in</button>
-    </form>
-    <p class="modal-footer-text">New to Grit&Gigs? <a onclick="closeModal('loginModal');openModal('signupModal')">Create account</a></p>
-  </div>
-</div>
-
-<!-- Forgot Password Modal -->
-<div class="modal-overlay" id="forgotPwModal">
-  <div class="modal" style="max-width:400px;">
-    <button class="modal-close" onclick="closeModal('forgotPwModal')">&times;</button>
-    <div class="modal-logo" style="margin-bottom:8px;">
-      <div class="nav-logo-mark">
-        <span style="color:#0A0A0F;">G</span><span style="color:var(--violet);">&amp;G</span>
-      </div>
-      <span class="nav-logo-text">Grit<span style="color:var(--violet);">&amp;Gigs</span></span>
-    </div>
-    <h2 style="margin-bottom:4px;">Reset password</h2>
-    <p class="modal-sub" style="margin-bottom:16px;">Enter your email and we'll send you a reset link.</p>
-    <form id="forgotPwForm" onsubmit="event.preventDefault();sendForgotPw()">
-      <div class="form-group">
-        <label class="form-label">Email address</label>
-        <input class="form-input" id="forgotEmail" type="email" placeholder="arjun@email.com" required/>
-      </div>
-      <p id="forgotPwMsg" style="font-size:.78rem;margin-bottom:12px;display:none;"></p>
-      <button type="submit" class="btn btn-primary" id="forgotPwBtn" style="width:100%;justify-content:center;padding:13px;">Send reset link</button>
-    </form>
-    <p class="modal-footer-text"><a onclick="closeModal('forgotPwModal');openModal('loginModal')">Back to sign in</a></p>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════ -->
-<!--  WELCOME SPLASH POPUP                                   -->
-<!-- ═══════════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="welcomeSplashModal">
-  <div class="modal" style="max-width:480px;padding:0;overflow:hidden;border-radius:var(--radius-xl);">
-    <div style="background:linear-gradient(135deg,#6C3FE8 0%,#9B6DFF 50%,#C4A1FF 100%);padding:40px 36px 30px;text-align:center;position:relative;">
-      <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin:0 auto 14px;">
-        <div class="nav-logo-mark" style="width:52px;height:52px;font-size:22px;background:#fff;border:none;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
-          <span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span>
-        </div>
-      </div>
-      <h2 style="color:#fff;font-size:1.6rem;margin:0 0 8px;font-family:var(--font-display);">Welcome to Grit&amp;Gigs!</h2>
-      <p style="color:rgba(255,255,255,0.9);font-size:0.92rem;margin:0;line-height:1.5;">You're one step away from getting noticed<br/>by clients and talent across India.</p>
-    </div>
-    <div style="padding:28px 36px 32px;text-align:center;">
-      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
-        <div style="display:flex;align-items:center;gap:12px;text-align:left;padding:10px 14px;background:var(--surface-2);border-radius:10px;">
-          <span style="font-size:20px;flex-shrink:0;">&#9989;</span>
-          <span style="font-size:0.85rem;color:var(--text-secondary);">Get matched with relevant projects</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;text-align:left;padding:10px 14px;background:var(--surface-2);border-radius:10px;">
-          <span style="font-size:20px;flex-shrink:0;">&#128176;</span>
-          <span style="font-size:0.85rem;color:var(--text-secondary);">Start earning or hire top talent</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;text-align:left;padding:10px 14px;background:var(--surface-2);border-radius:10px;">
-          <span style="font-size:20px;flex-shrink:0;">&#128640;</span>
-          <span style="font-size:0.85rem;color:var(--text-secondary);">Complete profiles get 5x more views</span>
-        </div>
-      </div>
-      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:14px;font-size:1rem;font-weight:700;border-radius:12px;background:linear-gradient(135deg,#6C3FE8,#9B6DFF);border:none;box-shadow:0 6px 20px rgba(108,63,232,0.35);" onclick="closeModal('welcomeSplashModal');openModal('onboardingModal');updateObStep();">
-        Complete your profile &#8594;
-      </button>
-      <button onclick="skipFullOnboarding()" style="width:100%;padding:10px;margin-top:6px;background:none;border:none;color:var(--text-muted);font-size:0.82rem;cursor:pointer;font-weight:500;letter-spacing:0.3px;">
-        I'll do this later
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════ -->
-<!--  ONBOARDING MODAL                                      -->
-<!-- ═══════════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="onboardingModal">
-  <div class="modal" style="max-width:520px;max-height:90vh;overflow-y:auto;padding:36px 32px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-      <h2 style="margin:0;">Set up your profile</h2>
-      <button id="obSkipBtn" onclick="skipObStep()" style="font-size:0.82rem;color:var(--violet);cursor:pointer;background:none;border:1.5px solid var(--violet);padding:6px 14px;border-radius:99px;font-weight:600;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='var(--violet)';this.style.color='#fff'" onmouseout="this.style.background='none';this.style.color='var(--violet)'">Skip for now</button>
-    </div>
-    <p class="modal-sub" id="onboardingStepLabel">Step 1 of 4 — Basic Info</p>
-
-    <!-- Progress bar -->
-    <div style="height:4px;background:var(--border);border-radius:4px;margin-bottom:24px;overflow:hidden;">
-      <div id="onboardingProgress" style="height:100%;width:25%;background:var(--violet);border-radius:4px;transition:width .3s ease;"></div>
-    </div>
-
-    <!-- Step 1: Basic Info -->
-    <div id="onboardingStep1">
-      <div class="form-group">
-        <label class="form-label">Tagline (what do you do in one line?)</label>
-        <input class="form-input" id="obTagline" type="text" placeholder="e.g. Full-stack developer & UI designer" maxlength="150"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Short bio</label>
-        <textarea class="form-input" id="obBio" rows="3" placeholder="Tell people a bit about yourself, your experience, and what you're great at..." style="resize:vertical;"></textarea>
-      </div>
-      <div class="form-group">
-        <label class="form-label">City</label>
-        <input class="form-input" id="obCity" type="text" placeholder="e.g. Bangalore, Mumbai, Delhi"/>
-      </div>
-    </div>
-
-    <!-- Step 2: Links -->
-    <div id="onboardingStep2" style="display:none;">
-      <div class="form-group">
-        <label class="form-label">Portfolio link</label>
-        <input class="form-input" id="obPortfolioUrl" type="url" placeholder="https://yourportfolio.com"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">LinkedIn (optional)</label>
-        <input class="form-input" id="obLinkedin" type="url" placeholder="https://linkedin.com/in/yourname"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Instagram / Twitter / Other (optional)</label>
-        <input class="form-input" id="obOtherSocial" type="url" placeholder="https://twitter.com/yourname"/>
-      </div>
-    </div>
-
-    <!-- Step 3: Skills -->
-    <div id="onboardingStep3" style="display:none;">
-      <div class="form-group">
-        <label class="form-label">Skills you offer <span style="color:var(--text-muted);font-weight:400;">(comma separated)</span></label>
-        <input class="form-input" id="obSkillsOffered" type="text" placeholder="e.g. React, Node.js, Figma, Copywriting"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Skills you need <span style="color:var(--text-muted);font-weight:400;">(comma separated)</span></label>
-        <input class="form-input" id="obSkillsNeeded" type="text" placeholder="e.g. Video editing, SEO, Illustration"/>
-      </div>
-    </div>
-
-    <!-- Step 4: Role -->
-    <div id="onboardingStep4" style="display:none;">
-      <p style="font-size:0.92rem;color:var(--text-secondary);margin-bottom:18px;line-height:1.6;">What best describes how you want to use Grit&amp;Gigs?</p>
-      <div style="display:flex;flex-direction:column;gap:12px;">
-        <button type="button" class="ob-role-btn" data-role="freelancer" onclick="selectObRole(this)" style="display:flex;align-items:center;gap:14px;padding:18px 20px;border:2px solid var(--border);border-radius:12px;background:var(--bg);cursor:pointer;text-align:left;transition:all .2s;">
-          <span style="font-size:24px;line-height:1;">&#128187;</span>
-          <div><strong style="font-size:0.95rem;">I'm a freelancer</strong><br/><span style="font-size:0.82rem;color:var(--text-muted);">I want to offer my skills and get paid</span></div>
-        </button>
-        <button type="button" class="ob-role-btn" data-role="client" onclick="selectObRole(this)" style="display:flex;align-items:center;gap:14px;padding:18px 20px;border:2px solid var(--border);border-radius:12px;background:var(--bg);cursor:pointer;text-align:left;transition:all .2s;">
-          <span style="font-size:24px;line-height:1;">&#128176;</span>
-          <div><strong style="font-size:0.95rem;">I'm a client</strong><br/><span style="font-size:0.82rem;color:var(--text-muted);">I want to hire talented people for my projects</span></div>
-        </button>
-        <button type="button" class="ob-role-btn" data-role="both" onclick="selectObRole(this)" style="display:flex;align-items:center;gap:14px;padding:18px 20px;border:2px solid var(--border);border-radius:12px;background:var(--bg);cursor:pointer;text-align:left;transition:all .2s;">
-          <span style="font-size:24px;line-height:1;">&#129309;</span>
-          <div><strong style="font-size:0.95rem;">Both</strong><br/><span style="font-size:0.82rem;color:var(--text-muted);">I want to offer skills and also hire others</span></div>
-        </button>
-      </div>
-    </div>
-
-    <!-- Navigation -->
-    <div style="display:flex;gap:10px;margin-top:24px;">
-      <button id="obBackBtn" class="btn btn-secondary" style="display:none;flex:1;justify-content:center;padding:12px;" onclick="onboardingPrev()">Back</button>
-      <button id="obNextBtn" class="btn btn-primary" style="flex:2;justify-content:center;padding:12px;" onclick="onboardingNext()">Continue</button>
-    </div>
-    <p id="onboardingError" style="color:#C0392B;font-size:0.82rem;margin-top:10px;display:none;"></p>
-  </div>
-</div>
-
-<!-- Barter Post Modal -->
-<div class="modal-overlay" id="barterModal">
-  <div class="modal" style="max-width:500px;">
-    <button class="modal-close" onclick="closeModal('barterModal')">&times;</button>
-    <h2 style="margin-bottom:6px;">Post an exchange</h2>
-    <p class="modal-sub">Tell us what you need and what you're offering. We'll find your match.</p>
-    <form id="barterForm">
-      <div class="form-group">
-        <label class="form-label">I am offering (your skill)</label>
-        <input class="form-input" type="text" placeholder="e.g. React development, Logo design, Copywriting" required/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">I need (what you want in return)</label>
-        <input class="form-input" type="text" placeholder="e.g. SEO content, Video editing, Mobile app" required/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Description</label>
-        <textarea class="form-input" rows="3" placeholder="Describe what you're looking for and what you'll deliver in exchange..." style="resize:vertical;"></textarea>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Timeline</label>
-          <select class="form-input">
-            <option>1–3 days</option>
-            <option>1 week</option>
-            <option>2 weeks</option>
-            <option>1 month</option>
-            <option>Flexible</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Your city</label>
-          <input class="form-input" type="text" placeholder="Chennai"/>
-        </div>
-      </div>
-      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;">Post exchange request</button>
-    </form>
-  </div>
-</div>
-
-<!-- Service Detail Modal -->
-<div class="modal-overlay" id="serviceModal">
-  <div class="modal" style="max-width:580px;max-height:90vh;overflow-y:auto;position:relative;">
-    <!-- filled dynamically by JS -->
-  </div>
-</div>
-
-<!-- Toast -->
-<div id="toast" class="toast"></div>
-
-<script src="js/main.js"></script>
-<script>
-// Category filter patch: fetch all services once, then filter client-side on pill click.
-// The server ignores the ?category= param, so we must filter locally.
-(function() {
-  var _allServices = null; // cached after first fetch
-  function kycBadge(v) { return v ? '<span style="display:inline-flex;align-items:center;gap:2px;background:#d1fae5;color:#065f46;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" width="10" height="10" style="vertical-align:-1px;"><polyline points="20 6 9 17 4 12"/></svg> KYC</span>' : ''; }
-  function planBadge(v) { if (!v) return ''; var g={STARTER:'#059669',PRO:'#7C3AED',SQUAD:'#D97706'}; return '<span style="display:inline-flex;align-items:center;gap:2px;background:' + (g[v]||'#6C3FE8') + ';color:#fff;font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:99px;vertical-align:middle;margin-left:4px;white-space:nowrap;">' + v + '</span>'; }
-
-  function buildCard(s) {
-    var fn = (s.seller && s.seller.firstName) || '?';
-    var ln = (s.seller && s.seller.lastName) || '';
-    var initials = (fn[0] + (ln[0] || '?')).toUpperCase();
-    var pp = (s.seller && s.seller.profilePhoto) || '';
-    var ppEnc = encodeURIComponent(pp);
-    var img = (s.images && s.images[0]) || (typeof getDefaultImg === 'function' ? getDefaultImg(s.category) : '');
-    var price = (s.packages && s.packages[0] && s.packages[0].priceInr) || 0;
-    var cnt = s.orderCount || 0;
-    var lb = cnt > 200 ? 'Top Rated' : cnt > 50 ? 'Level 2' : cnt > 10 ? 'Level 1' : 'New';
-    var lc = lb === 'Top Rated' ? 'badge-violet' : lb === 'Level 2' ? 'badge-gold' : 'badge-surface';
-    var title = (s.title || '').replace(/'/g, "\\'");
-    var rating = s.ratingAvg ? s.ratingAvg.toFixed(1) : 'New';
-    var reviews = s.reviewCount || 0;
-    var sellerAv = pp ? '<img src="' + pp + '" style="width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;"/>' : '<div class="avatar-placeholder avatar-v" style="width:24px;height:24px;font-size:10px;">' + initials + '</div>';
-    return '<div class="service-card" onclick="openServiceModal(\'' + s.id + '\',\'' + title + '\',' + price + ',\'' + ppEnc + '\',\'' + fn + ' ' + ln + '\')">'
-      + '<div class="service-card-img"><img src="' + img + '" alt="' + s.title + '" loading="lazy"/></div>'
-      + '<div class="service-card-body">'
-      + '<div class="service-card-seller">'
-      + sellerAv
-      + '<span class="service-card-seller-name">' + fn + ' ' + ln + kycBadge(s.seller?.kycVerified) + planBadge(s.seller?.planBadge) + '</span>'
-      + '<span class="badge ' + lc + '" style="font-size:0.68rem;padding:2px 7px;">' + lb + '</span>'
-      + '</div>'
-      + '<div class="service-card-title">' + s.title + '</div>'
-      + '<div class="service-card-footer">'
-      + '<div class="service-card-rating"><svg width="12" height="12" viewBox="0 0 24 24" fill="#F59E0B"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>'
-      + rating + ' <span style="color:var(--text-muted);font-weight:400;">(' + reviews + ')</span></div>'
-      + '<div class="service-card-price">From &#8377;' + price.toLocaleString('en-IN') + '</div>'
-      + '</div></div></div>';
-  }
-
-  function applyFilter(category) {
-    var grid = document.querySelector('.services-grid');
-    if (!grid) return;
-
-    // Live data path (after first fetch)
-    if (_allServices !== null) {
-      var filtered = category
-        ? _allServices.filter(function(s) { return s.category === category; })
-        : _allServices.slice(0, 8);
-
-      if (filtered.length) {
-        grid.innerHTML = filtered.map(buildCard).join('');
-      } else if (category) {
-        // No services in this category → show empty state
-        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">No services in <strong>' + category + '</strong> yet. <a href="/dashboard" style="color:var(--violet);font-weight:600;">Be the first to post one!</a></div>';
-      } else {
-        // "All" but no services at all
-        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">No services yet. <a href="/dashboard" style="color:var(--violet);font-weight:600;">Be the first to post one!</a></div>';
-      }
-      return;
-    }
-
-    // No live data yet — fallback: show/hide static placeholder cards by data-category
-    grid.querySelectorAll('.service-card[data-category]').forEach(function(c) {
-      c.style.display = (!category || c.dataset.category === category) ? '' : 'none';
-    });
-  }
-
-  function onPillClick() {
-    var cat = this.textContent.trim();
-    var category = (cat === 'All') ? '' : cat;
-
-    if (_allServices !== null) {
-      // Already fetched — filter immediately
-      applyFilter(category);
-    } else {
-      // First click: fetch all services, cache, then filter
-      api('/services?limit=100').then(function(data) {
-        if (data && data.success && data.data.services && data.data.services.length) {
-          _allServices = data.data.services;
-        } else {
-          _allServices = []; // mark as fetched (empty)
-        }
-        applyFilter(category);
-      }).catch(function() {
-        _allServices = [];
-        applyFilter(category);
-      });
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', function() {
-    // Run after main.js DOMContentLoaded handlers (200ms gap)
-    setTimeout(function() {
-      document.querySelectorAll('.cat-pill').forEach(function(pill) {
-        pill.addEventListener('click', onPillClick);
-      });
-    }, 200);
-  });
-})();
-
-function sendForgotPw() {
-  var btn = document.getElementById('forgotPwBtn');
-  var msg = document.getElementById('forgotPwMsg');
-  var email = document.getElementById('forgotEmail').value.trim();
-  if (!email) return;
-  btn.disabled = true; btn.textContent = 'Sending...';
-  msg.style.display = 'none';
-  fetch('/api/auth/forgot-password', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email}) })
-    .then(function(r){return r.json()})
-    .then(function(d){
-      if (d.success) {
-        msg.style.display = 'block'; msg.style.color = '#16A34A'; msg.textContent = 'Reset link sent! Check your email.';
-        document.getElementById('forgotEmail').value = '';
-      } else {
-        msg.style.display = 'block'; msg.style.color = '#DC2626'; msg.textContent = d.message || 'Failed to send reset link.';
-      }
-    }).catch(function(){
-      msg.style.display = 'block'; msg.style.color = '#DC2626'; msg.textContent = 'Network error. Try again.';
-    }).finally(function(){ btn.disabled = false; btn.textContent = 'Send reset link'; });
-}
-</script>
-<script>
-(function () {
-  try {
-    var params = new URLSearchParams(window.location.search);
-    var ref = params.get('ref');
-    if (ref && /^[A-Z0-9]{6,20}$/i.test(ref)) {
-      document.cookie = 'gg_ref=' + encodeURIComponent(ref) + '; path=/; max-age=' + (60 * 60 * 24 * 30) + '; SameSite=Lax';
-    }
-    if (ref) {
-      var clean = window.location.origin + window.location.pathname;
-      window.history.replaceState({}, document.title, clean);
-    }
-  } catch (e) {}
-})();
-</script>
 </body>
 </html>
