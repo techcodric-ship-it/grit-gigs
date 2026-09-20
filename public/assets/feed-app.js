@@ -468,6 +468,25 @@
     refresh: refreshAuthedUI,
   };
 
+  document.addEventListener('click', function (e) {
+    var sh = e.target.closest('[data-share]');
+    if (sh) {
+      e.preventDefault();
+      var pid = sh.getAttribute('data-share');
+      if (navigator.share) {
+        navigator.share({ title: 'Grit&Gigs', text: 'Check this on Grit&Gigs', url: location.origin + '/explore.html?post=' + encodeURIComponent(pid) }).catch(function () {});
+      } else {
+        location.href = '/messages.html?share=' + encodeURIComponent(pid);
+      }
+      return;
+    }
+    var msgBtn = e.target.closest('[data-msg]');
+    if (msgBtn) {
+      e.preventDefault();
+      location.href = '/messages.html?to=' + encodeURIComponent(msgBtn.getAttribute('data-msg'));
+    }
+  });
+
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') closeModals();
   });

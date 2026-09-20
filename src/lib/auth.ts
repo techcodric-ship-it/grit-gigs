@@ -10,7 +10,7 @@ if (!rawSecret) {
   throw new Error("JWT_SECRET environment variable is required but was not provided. Set it to a long random string (min 32 characters).");
 }
 const JWT_SECRET = rawSecret;
-const JWT_EXPIRES_IN = process.env["JWT_EXPIRES_IN"] ?? "15m";
+const JWT_EXPIRES_IN = process.env["JWT_EXPIRES_IN"] ?? "7d";
 
 export function generateAccessToken(userId: string): string {
   return jwt.sign({ userId, type: "access" }, JWT_SECRET, {

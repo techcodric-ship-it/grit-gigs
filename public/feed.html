@@ -4,20 +4,21 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="robots" content="noindex, follow"/>
-<title>Hustle Feed — Grit&Gigs</title>
-<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=3"/>
+<title>Grit&Gigs — Feed</title>
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=4"/>
 <link rel="stylesheet" href="/assets/feed.css"/>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
 <div class="toast" id="toast"></div>
 
 <header class="topnav">
-  <a class="brand" href="/feed">Grit<span>&amp;Gigs</span></a>
+  <a class="brand" href="/feed"><img src="/logo.svg" alt="" class="brand-mark"/><span>Grit<span>&amp;Gigs</span></span></a>
   <div class="searchbox"><input id="navSearch" placeholder="Search gigs, projects, barter…"/></div>
   <div class="icons">
     <a href="/feed" title="Feed" class="on">🏠</a>
     <a href="/explore.html" title="Explore">⌕</a>
-    <a href="/messages.html" title="Messages" hidden>✉</a>
+    <a href="/messages.html" title="Messages">✉<span class="cnt" id="msgBadge" style="display:none;">0</span></a>
     <a href="/notifications.html" class="badge" title="Inbox">❤<span class="cnt" id="notifBadge" style="display:none;">0</span></a>
     <a href="/orders.html" title="Orders">📦</a>
     <a href="/profile.html" id="navProfile" title="Profile"><img id="navAv" class="avatar" src="https://api.dicebear.com/9.x/initials/svg?seed=grit&backgroundColor=f0f0f0&textColor=262626" alt=""/></a>
@@ -113,6 +114,17 @@
   </div>
 </div>
 
+<!-- quota modal -->
+<div class="modal-backdrop" id="quotaModal">
+  <div class="modal">
+    <h3>Quota &amp; bundles</h3>
+    <div class="sub">Free limits refresh every 30 days. Buy a bundle when you run out.</div>
+    <div id="quotaRows" style="display:flex;flex-direction:column;gap:10px;"></div>
+    <div class="err" id="quotaErr"></div>
+    <div class="actions"><button class="ghost" id="quotaCancel">Close</button></div>
+  </div>
+</div>
+
 <!-- login modal -->
 <div class="modal-backdrop" id="loginModal">
   <div class="modal">
@@ -129,7 +141,7 @@
 <!-- register modal -->
 <div class="modal-backdrop" id="registerModal">
   <div class="modal">
-    <h3>Create your Hustle account</h3>
+    <h3>Create your Grit&amp;Gigs account</h3>
     <div class="sub">Join the grind — it's free.</div>
     <div class="fld-row">
       <div class="fld"><label>First name</label><input type="text" id="regFirst" placeholder="Arjun"/></div>
@@ -213,13 +225,14 @@
 
   // ── stories (quick kind filter chips) ──
   var storyDefs = [
-    { k: '', lbl: 'Your Feed' },
+    { k: '', lbl: 'All' },
     { k: 'GIG', lbl: 'Gigs', emoji: '💼' },
-    { k: 'PROJECT', lbl: 'Projects', emoji: '📋' },
     { k: 'BARTER', lbl: 'Barter', emoji: '⟷' },
-    { k: 'REEL', lbl: 'Reels', emoji: '▶' },
     { k: 'WIN', lbl: 'Wins', emoji: '🏆' },
     { k: 'TIPS', lbl: 'Tips', emoji: '💡' },
+    { k: 'POST', lbl: 'Posts', emoji: '📝' },
+    { k: 'PROJECT', lbl: 'Projects', emoji: '📋' },
+    { k: 'REEL', lbl: 'Reels', emoji: '▶' },
   ];
   var storiesEl = $('stories');
   storyDefs.forEach(function (s) {
@@ -335,6 +348,7 @@
     if (!c.token()) { c.openLogin(); return; }
     resetComposer();
     $('composeModal').classList.add('open');
+    loadQuotaNote();
   }
   $('quickBtn').addEventListener('click', openCompose);
   $('quickPost').addEventListener('click', openCompose);
@@ -363,7 +377,11 @@
     btn.disabled = true; btn.textContent = 'Posting…';
     c.api('/community/posts', { method: 'POST', body: body }).then(function (r) {
       btn.disabled = false; btn.textContent = 'Post it';
-      if (!r.ok) { c.toast(r.d.message || 'Failed', true); return; }
+      if (!r.ok) {
+        if (r.d.code === 'QUOTA_GIG') { c.toast(r.d.message || 'Gig quota over', true); qOpen(); }
+        else { c.toast(r.d.message || 'Failed', true); }
+        return;
+      }
       $('composeModal').classList.remove('open');
       resetComposer();
       var postsEl = $('posts');
@@ -429,7 +447,11 @@
     if (amt > 0) body.amount = amt;
     c.api('/community/posts/' + postId + '/order', { method: 'POST', body: body }).then(function (r) {
       btn.disabled = false;
-      if (!r.ok) { $('orderErr').textContent = r.d.message || 'Failed'; return; }
+      if (!r.ok) {
+        $('orderErr').textContent = r.d.message || 'Failed';
+        if (r.d.code === 'QUOTA_PROPOSAL') qOpen();
+        return;
+      }
       $('orderModal').classList.remove('open');
       $('orderReq').value = ''; $('orderAmt').value = ''; $('orderErr').textContent = '';
       c.toast('Sent to the creator!');
@@ -438,6 +460,67 @@
 
   loadFeed('');
   loadSuggest();
+
+  // ── quota modal (gig posts / proposals bundles) ──
+  function qOpen() {
+    if (!c.token()) { c.openLogin(); return; }
+    c.api('/community/quota').then(function (r) {
+      if (!r.ok) return;
+      var d = r.d.data, gp = d.gigPosts, pp = d.proposals;
+      var rows = [
+        { label: 'Gig posts', line: 'Posting a paid gig', used: gp.used, limit: gp.limit, bonus: gp.bonus, price: 80, plan: 'gigs5' },
+        { label: 'Proposals', line: 'Bids on projects & barter offers', used: pp.used, limit: pp.limit, bonus: pp.bonus, price: 60, plan: 'props5' },
+      ];
+      $('quotaRows').innerHTML = rows.map(function (x) {
+        var left = Math.max(0, x.limit - x.used) + x.bonus;
+        return '<div class="qrow"><div class="ql"><strong>' + x.label + '</strong><div class="sub">' + x.line + ' — <b>' + left + '</b> left this month' + (x.bonus ? ' (incl. ' + x.bonus + ' bought)' : '') + '</div></div><button class="primary" data-plan="' + x.plan + '" data-price="' + x.price + '">+5 · ₹' + x.price + '</button></div>';
+      }).join('');
+      $('quotaRows').querySelectorAll('[data-plan]').forEach(function (b) {
+        b.addEventListener('click', function () { qBuy(b.dataset.plan, Number(b.dataset.price)); });
+      });
+      $('quotaErr').textContent = '';
+      $('quotaModal').classList.add('open');
+    });
+  }
+  function qBuy(plan, price) {
+    $('quotaErr').textContent = '';
+    c.api('/community/quota/order', { method: 'POST', body: { planId: plan } }).then(function (r) {
+      if (!r.ok) { $('quotaErr').textContent = r.d.message || 'Failed'; return; }
+      if (!window.Razorpay) { $('quotaErr').textContent = 'Payment not ready — try again in a bit.'; return; }
+      var key = r.d.data.key, order = r.d.data.order.id;
+      var rzp = new Razorpay({
+        key: key,
+        amount: price * 100,
+        currency: 'INR',
+        name: 'Grit&Gigs',
+        description: '5 more ' + (plan === 'gigs5' ? 'gig posts' : 'proposals'),
+        order_id: order,
+        handler: function (pay) { qVerify(plan, order, pay.razorpay_payment_id); },
+        theme: { color: '#5599ff' },
+      });
+      rzp.on('payment.failed', function () { $('quotaErr').textContent = 'Payment failed. Try again.'; });
+      rzp.open();
+    });
+  }
+  function qVerify(plan, orderId, payId) {
+    c.api('/community/quota/verify', { method: 'POST', body: { bundleId: plan, razorpayOrderId: orderId, razorpayPaymentId: payId } }).then(function (r) {
+      if (r.ok) { c.toast('Bundle added!'); qOpen(); } else { $('quotaErr').textContent = r.d.message || 'Failed to verify payment'; }
+    });
+  }
+  function loadQuotaNote() {
+    if (!c.token()) return;
+    c.api('/community/quota').then(function (r) {
+      if (!r.ok) return;
+      var d = r.d.data, gp = d.gigPosts, pp = d.proposals;
+      var gLeft = Math.max(0, gp.limit - gp.used) + gp.bonus;
+      var pLeft = Math.max(0, pp.limit - pp.used) + pp.bonus;
+      $('quotaNote').innerHTML = 'Gig posts: <b>' + gLeft + ' left</b> · Proposals: <b>' + pLeft + ' left</b> this month · <a href="#" id="quotaLink">Buy more</a>';
+      var link = $('quotaNote').querySelector('#quotaLink');
+      if (link) link.addEventListener('click', function (e) { e.preventDefault(); qOpen(); });
+    });
+  }
+  if ($('quotaCancel')) $('quotaCancel').addEventListener('click', function () { $('quotaModal').classList.remove('open'); });
+  if ($('quotaModal')) $('quotaModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
 })();
 </script>
 </body>

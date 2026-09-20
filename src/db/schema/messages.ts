@@ -60,3 +60,19 @@ export const messagesTable = pgTable("messages", {
 export type Conversation = typeof conversationsTable.$inferSelect;
 export type Message = typeof messagesTable.$inferSelect;
 export type ConversationParticipant = typeof conversationParticipantsTable.$inferSelect;
+
+export const communityGroupsTable = pgTable("community_groups", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  description: text("description"),
+  ownerId: uuid("owner_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  conversationId: uuid("conversation_id")
+    .notNull()
+    .unique()
+    .references(() => conversationsTable.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type CommunityGroup = typeof communityGroupsTable.$inferSelect;

@@ -5,18 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="robots" content="noindex, follow"/>
 <title>Explore — Grit&Gigs</title>
-<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=3"/>
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=4"/>
 <link rel="stylesheet" href="/assets/feed.css"/>
 </head>
 <body>
 <div class="toast" id="toast"></div>
 
 <header class="topnav">
-  <a class="brand" href="/feed">Grit<span>&amp;Gigs</span></a>
+  <a class="brand" href="/feed"><img src="/logo.svg" alt="" class="brand-mark"/><span>Grit<span>&amp;Gigs</span></span></a>
   <div class="searchbox"><input id="navSearch" placeholder="Search gigs, projects, barter…"/></div>
   <div class="icons">
     <a href="/feed" title="Feed">🏠</a>
     <a href="/explore.html" title="Explore" class="on">⌕</a>
+    <a href="/messages.html" title="Messages">✉</a>
     <a href="/notifications.html" class="badge" title="Inbox">❤<span class="cnt" id="notifBadge" style="display:none;">0</span></a>
     <a href="/orders.html" title="Orders">📦</a>
     <a href="/profile.html" id="navProfile" title="Profile"><img id="navAv" class="avatar" src="https://api.dicebear.com/9.x/initials/svg?seed=grit&backgroundColor=f0f0f0&textColor=262626" alt=""/></a>
@@ -53,7 +54,7 @@
 
 <div class="modal-backdrop" id="registerModal">
   <div class="modal">
-    <h3>Create your Hustle account</h3>
+    <h3>Create your Grit&amp;Gigs account</h3>
     <div class="fld-row">
       <div class="fld"><label>First name</label><input type="text" id="regFirst" placeholder="Arjun"/></div>
       <div class="fld"><label>Last name</label><input type="text" id="regLast" placeholder="Kumar"/></div>
@@ -180,6 +181,9 @@
   }
 
   loadGrid();
+
+  var openPostId = new URLSearchParams(location.search).get('post');
+  if (openPostId) c.openPost(decodeURIComponent(openPostId));
 })();
 </script>
 </body>

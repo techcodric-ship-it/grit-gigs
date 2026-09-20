@@ -141,6 +141,20 @@ export const communityOrderDeliveriesTable = pgTable("community_order_deliveries
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const communityQuotasTable = pgTable("community_quotas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .unique()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  gigPostsUsed: integer("gig_posts_used").default(0).notNull(),
+  gigPostsBonus: integer("gig_posts_bonus").default(0).notNull(),
+  proposalsUsed: integer("proposals_used").default(0).notNull(),
+  proposalsBonus: integer("proposals_bonus").default(0).notNull(),
+  resetAt: timestamp("reset_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export type CommunityPost = typeof communityPostsTable.$inferSelect;
 export type CommunityLike = typeof communityLikesTable.$inferSelect;
 export type CommunityComment = typeof communityCommentsTable.$inferSelect;

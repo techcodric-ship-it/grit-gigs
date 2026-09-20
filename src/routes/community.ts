@@ -1,10 +1,11 @@
 ﻿import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and, desc, count, sql, inArray, or, ilike, type SQL } from "drizzle-orm";
-import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable, conversationsTable, messagesTable, communityOrdersTable, communityOrderDeliveriesTable } from "../db";
+import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable, conversationsTable, messagesTable, communityOrdersTable, communityOrderDeliveriesTable, transactionsTable } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { logger } from "../lib/logger";
 import { uploadToSupabase } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
+import { getCommunityQuota, consumeGigPost, consumeProposal, grantQuotaBundle, QUOTA_PLANS, FREE_GIG_POSTS, FREE_PROPOSALS, type QuotaPlanId } from "../lib/community-quota";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -47,6 +48,125 @@ router.post("/community/upload", authenticate, mediaUpload.array("files", 10), a
     }
   }
   res.status(201).json({ success: true, data: { files: results } });
+});
+
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
+const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
+function razorpayConfigured(): boolean {
+  return !!(RAZORPAY_KEY_ID && RAZORPAY_KEY_SECRET);
+}
+
+// ── GET /community/quota — current usage + available bundles ──
+router.get("/community/quota", authenticate, async (req, res): Promise<void> => {
+  const usage = await getCommunityQuota(req.user!.id);
+  res.json({
+    success: true,
+    data: {
+      gigPosts: { used: usage.gigPostsUsed, free: usage.gigPostsFree, bonus: usage.gigPostsBonus, limit: FREE_GIG_POSTS },
+      proposals: { used: usage.proposalsUsed, free: usage.proposalsFree, bonus: usage.proposalsBonus, limit: FREE_PROPOSALS },
+      resetsInMs: usage.resetsInMs,
+      plans: [
+        { id: QUOTA_PLANS.gigs5.id, label: QUOTA_PLANS.gigs5.label, priceInr: QUOTA_PLANS.gigs5.priceInr },
+        { id: QUOTA_PLANS.props5.id, label: QUOTA_PLANS.props5.label, priceInr: QUOTA_PLANS.props5.priceInr },
+      ],
+    },
+  });
+});
+
+// ── POST /community/quota/order — create a Razorpay order for a bundle ──
+router.post("/community/quota/order", authenticate, async (req, res): Promise<void> => {
+  const planId = String(req.body?.planId ?? "");
+  if (!(planId in QUOTA_PLANS)) {
+    res.status(400).json({ success: false, message: "Unknown quota bundle" });
+    return;
+  }
+  if (!razorpayConfigured()) {
+    res.status(503).json({ success: false, message: "Payment gateway not configured" });
+    return;
+  }
+  const plan = QUOTA_PLANS[planId as QuotaPlanId];
+  const receipt = `qt_${Date.now()}_${req.user!.id.substring(0, 4)}`;
+  try {
+    const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
+    const rzResp = await fetch("https://api.razorpay.com/v1/orders", {
+      method: "POST",
+      headers: { "Authorization": `Basic ${auth}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: plan.priceInr * 100, currency: "INR", receipt }),
+    });
+    if (!rzResp.ok) {
+      res.status(502).json({ success: false, message: "Razorpay error" });
+      return;
+    }
+    const order = (await rzResp.json()) as { id: string };
+    await db.insert(transactionsTable).values({
+      userId: req.user!.id,
+      type: "CREDIT_PURCHASE",
+      amount: plan.priceInr,
+      status: "PENDING",
+      paymentMethod: "razorpay",
+      gatewayTxnId: order.id,
+      description: `Pending ${plan.label} (₹${plan.priceInr})`,
+    });
+    res.json({ success: true, data: { order, key: RAZORPAY_KEY_ID, bundleId: plan.id } });
+  } catch {
+    res.status(502).json({ success: false, message: "Failed to create payment order" });
+  }
+});
+
+// ── POST /community/quota/verify — verify Razorpay payment, credit the bundle ──
+router.post("/community/quota/verify", authenticate, async (req, res): Promise<void> => {
+  const { razorpayOrderId, razorpayPaymentId, bundleId } = req.body;
+  if (!razorpayConfigured()) {
+    res.status(503).json({ success: false, message: "Payment gateway not configured" });
+    return;
+  }
+  if (!bundleId || !(bundleId in QUOTA_PLANS)) {
+    res.status(400).json({ success: false, message: "Unknown quota bundle" });
+    return;
+  }
+  if (!razorpayOrderId || !razorpayPaymentId) {
+    res.status(400).json({ success: false, message: "Missing payment details" });
+    return;
+  }
+  try {
+    const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
+    const pmtResp = await fetch(`https://api.razorpay.com/v1/payments/${razorpayPaymentId}`, {
+      headers: { "Authorization": `Basic ${auth}` },
+    });
+    if (!pmtResp.ok) {
+      res.status(502).json({ success: false, message: "Unable to verify payment with Razorpay" });
+      return;
+    }
+    const payment = (await pmtResp.json()) as { order_id?: string; status?: string };
+    if (payment.order_id !== razorpayOrderId || (payment.status !== "captured" && payment.status !== "authorized")) {
+      res.status(400).json({ success: false, message: "Payment verification failed" });
+      return;
+    }
+    const [txn] = await db
+      .select()
+      .from(transactionsTable)
+      .where(eq(transactionsTable.gatewayTxnId, razorpayOrderId))
+      .limit(1);
+    if (txn && txn.userId !== req.user!.id) {
+      res.status(403).json({ success: false, message: "Payment does not belong to you" });
+      return;
+    }
+    if (txn && txn.status !== "PENDING") {
+      res.json({ success: true, data: { already: true } });
+      return;
+    }
+    const plan = QUOTA_PLANS[bundleId as QuotaPlanId];
+    await grantQuotaBundle(req.user!.id, plan.gigBonus, plan.propBonus);
+    if (txn) {
+      await db
+        .update(transactionsTable)
+        .set({ status: "COMPLETED", gatewayTxnId: razorpayPaymentId || "", updatedAt: new Date() })
+        .where(eq(transactionsTable.id, txn.id));
+    }
+    res.json({ success: true, data: { bundleId: plan.id } });
+  } catch {
+    res.status(502).json({ success: false, message: "Failed to verify payment" });
+  }
 });
 
 // â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -324,6 +444,19 @@ router.post("/community/posts", authenticate, async (req: Request, res: Response
       return;
     }
     price = Math.round(p);
+  }
+
+  if (k === "GIG") {
+    const q = await consumeGigPost(req.user!.id);
+    if (!q.allowed) {
+      res.status(402).json({
+        success: false,
+        code: "QUOTA_GIG",
+        message: `You've used all ${FREE_GIG_POSTS} free gig posts this month. 5 more = just ₹80.`,
+        usage: { gigPosts: { used: q.usage.gigPostsUsed, free: q.usage.gigPostsFree, bonus: q.usage.gigPostsBonus, limit: FREE_GIG_POSTS } },
+      });
+      return;
+    }
   }
 
   const cleanMedia: { type: "image" | "video" | "embed"; url: string }[] = Array.isArray(media)
@@ -616,6 +749,21 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
   if (post.userId === meId) {
     res.status(400).json({ success: false, message: "You can't request your own post." });
     return;
+  }
+
+  // Clients ordering gigs is free forever; bids/proposals on projects and
+  // barter offers draw from the monthly proposal quota (freelancer quota).
+  if (post.kind === "PROJECT" || post.kind === "BARTER") {
+    const q = await consumeProposal(meId);
+    if (!q.allowed) {
+      res.status(402).json({
+        success: false,
+        code: "QUOTA_PROPOSAL",
+        message: `You've used all ${FREE_PROPOSALS} free proposals this month. 5 more = just ₹60.`,
+        usage: { proposals: { used: q.usage.proposalsUsed, free: q.usage.proposalsFree, bonus: q.usage.proposalsBonus, limit: FREE_PROPOSALS } },
+      });
+      return;
+    }
   }
 
   const [author] = await db

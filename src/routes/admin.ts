@@ -31,6 +31,7 @@ import fs from "fs";
 import { uploadToSupabase, ensureBucketExists, UPLOADS_BUCKET } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
 import { getActivePlanForUser } from "../lib/subscriptions";
+import { grantQuotaBundle } from "../lib/community-quota";
 import { sendAdminEmail, sendNotificationEmail, layout } from "../lib/email";
 import { adminAuth } from "../middlewares/adminAuth";
 import { waitlistTable } from "./equity";
@@ -1363,6 +1364,17 @@ router.put("/admin/squads/services/:serviceId", async (req: Request, res: Respon
     return;
   }
   res.json({ success: true, message: "Service updated", data: updated });
+});
+
+// POST /admin/community/grant-quota — manually credit community quota bundles.
+router.post("/admin/community/grant-quota", async (req: Request, res: Response): Promise<void> => {
+  const { userId, gigPosts = 0, proposals = 0 } = req.body ?? {};
+  if (!userId) {
+    res.status(400).json({ success: false, message: "userId is required" });
+    return;
+  }
+  await grantQuotaBundle(String(userId), Math.max(0, Number(gigPosts) || 0), Math.max(0, Number(proposals) || 0));
+  res.json({ success: true, message: "Quota credited" });
 });
 
 export default router;

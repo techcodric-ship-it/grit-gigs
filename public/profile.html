@@ -1,31 +1,32 @@
-Ôªø<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="robots" content="noindex, follow"/>
-<title>Profile ‚Äî Grit&Gigs</title>
-<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=3"/>
+<title>Profile ó Grit&Gigs</title>
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=4"/>
 <link rel="stylesheet" href="/assets/feed.css"/>
 </head>
 <body>
 <div class="toast" id="toast"></div>
 
 <header class="topnav">
-  <a class="brand" href="/feed">Grit<span>&amp;Gigs</span></a>
-  <div class="searchbox"><input id="navSearch" placeholder="Search gigs, projects, barter‚Ä¶"/></div>
+  <a class="brand" href="/feed"><img src="/logo.svg" alt="" class="brand-mark"/><span>Grit<span>&amp;Gigs</span></span></a>
+  <div class="searchbox"><input id="navSearch" placeholder="Search gigs, projects, barterÖ"/></div>
   <div class="icons">
-    <a href="/feed" title="Feed">üè†</a>
-    <a href="/explore.html" title="Explore">‚åï</a>
-    <a href="/notifications.html" class="badge" title="Inbox">‚ù§<span class="cnt" id="notifBadge" style="display:none;">0</span></a>
-    <a href="/orders.html" title="Orders">üì¶</a>
+    <a href="/feed" title="Feed">??</a>
+    <a href="/explore.html" title="Explore">?</a>
+    <a href="/messages.html" title="Messages">?</a>
+    <a href="/notifications.html" class="badge" title="Inbox">?<span class="cnt" id="notifBadge" style="display:none;">0</span></a>
+    <a href="/orders.html" title="Orders">??</a>
     <a href="/profile.html" id="navProfile" title="Profile"><img id="navAv" class="avatar" src="https://api.dicebear.com/9.x/initials/svg?seed=grit&backgroundColor=f0f0f0&textColor=262626" alt=""/></a>
   </div>
 </header>
 
 <div class="wrap">
   <main style="width:100%;max-width:935px;">
-    <div class="loading" id="loading">Loading profile‚Ä¶</div>
+    <div class="loading" id="loading">Loading profileÖ</div>
 
     <div id="profileBody" style="display:none;">
       <div class="prof">
@@ -34,6 +35,7 @@
           <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
             <div class="pname" id="pName">Hustler</div>
             <button class="pbtn" id="pBtn" style="display:none;">Follow</button>
+            <button class="pbtn" id="pMsgBtn" style="display:none;">Message</button>
           </div>
           <div class="stats">
             <span><b id="pPosts">0</b> posts</span>
@@ -58,7 +60,7 @@
   <div class="modal">
     <h3>Sign in</h3>
     <div class="fld"><label>Email</label><input type="email" id="loginEmail" placeholder="you@email.com"/></div>
-    <div class="fld"><label>Password</label><input type="password" id="loginPass" placeholder="‚Ä¢‚Ä¢‚Ä¢‚Ä¢‚Ä¢‚Ä¢‚Ä¢‚Ä¢"/></div>
+    <div class="fld"><label>Password</label><input type="password" id="loginPass" placeholder="ïïïïïïïï"/></div>
     <div class="err" id="loginErr"></div>
     <div class="actions"><button class="primary" id="loginSubmit">Sign in</button></div>
     <div class="note">No account? <a href="#" id="gotoRegister">Create one here</a></div>
@@ -67,14 +69,14 @@
 
 <div class="modal-backdrop" id="registerModal">
   <div class="modal">
-    <h3>Create your Hustle account</h3>
+    <h3>Create your Grit&amp;Gigs account</h3>
     <div class="fld-row">
       <div class="fld"><label>First name</label><input type="text" id="regFirst" placeholder="Arjun"/></div>
       <div class="fld"><label>Last name</label><input type="text" id="regLast" placeholder="Kumar"/></div>
     </div>
     <div class="fld"><label>Email</label><input type="email" id="regEmail" placeholder="you@email.com"/></div>
     <div class="fld"><label>Phone (WhatsApp)</label><input type="tel" id="regPhone" placeholder="+91 98765 43210"/></div>
-    <div class="fld"><label>Password (8+ chars)</label><input type="password" id="regPass" placeholder="‚Ä¢‚Ä¢‚Ä¢‚Ä¢‚Ä¢‚Ä¢‚Ä¢‚Ä¢"/></div>
+    <div class="fld"><label>Password (8+ chars)</label><input type="password" id="regPass" placeholder="ïïïïïïïï"/></div>
     <div class="err" id="regErr"></div>
     <div class="actions">
       <button class="ghost" id="regCancel">Cancel</button>
@@ -153,11 +155,11 @@
         img = '<img src="' + c.esc(med.url) + '" loading="lazy"/>';
       }
     } else {
-      img = '<div style="position:absolute;inset:0;display:grid;place-items:center;background:#efefef;">üí¨</div>';
+      img = '<div style="position:absolute;inset:0;display:grid;place-items:center;background:#efefef;">??</div>';
     }
     div.innerHTML = img + '<span class="kindtag">' + kind + '</span>' +
-      (kind === 'REEL' || med.type === 'video' ? '<span class="reel-ic">‚ñ∂</span>' : '') +
-      '<div class="over"><span>‚ô• ' + Number(p.likeCount || 0) + '</span><span>üí¨ ' + Number(p.commentCount || 0) + '</span></div>';
+      (kind === 'REEL' || med.type === 'video' ? '<span class="reel-ic">?</span>' : '') +
+      '<div class="over"><span>? ' + Number(p.likeCount || 0) + '</span><span>?? ' + Number(p.commentCount || 0) + '</span></div>';
     div.addEventListener('click', function () { c.openPost(p.id); });
     return div;
   }
@@ -177,10 +179,11 @@
       $('pPosts').textContent = d.posts;
       $('pFollowers').textContent = d.followers;
       $('pLikes').textContent = d.likes;
-      var bio = [u.tagline, u.bio].filter(Boolean).join(' ‚Äî ');
+      var bio = [u.tagline, u.bio].filter(Boolean).join(' ó ');
       $('pBio').textContent = bio || '';
       $('pSkills').innerHTML = (u.skillsOffered || []).map(function (s) { return '<span>' + c.esc(s) + '</span>'; }).join('');
       var btn = $('pBtn');
+      var msgBtn = $('pMsgBtn');
       if (c.token() && me0 && me0.id !== profId) {
         btn.style.display = '';
         btn.textContent = d.following ? 'Following' : 'Follow';
@@ -193,6 +196,11 @@
             btn.classList.toggle('on', rr.d.data.following);
             $('pFollowers').textContent = Number($('pFollowers').textContent) + (rr.d.data.following ? 1 : -1);
           });
+        };
+        msgBtn.style.display = '';
+        msgBtn.onclick = function () {
+          if (!c.token()) { c.openLogin(); return; }
+          location.href = '/messages.html?to=' + encodeURIComponent(profId);
         };
       } else if (me0 && me0.id === profId) {
         btn.style.display = 'none';

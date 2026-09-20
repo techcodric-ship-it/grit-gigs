@@ -12,6 +12,7 @@ import {
   messagesTable,
   usersTable,
   notificationsTable,
+  communityGroupsTable,
   barterMatchesTable,
   ordersTable,
   projectBidsTable,
@@ -549,6 +550,151 @@ router.put("/messages/conversations/:conversationId/read", authenticate, async (
     .set({ readAt: new Date() })
     .where(and(eq(messagesTable.conversationId, convId), ne(messagesTable.senderId, req.user!.id)));
   res.json({ success: true, message: "Messages marked as read" });
+});
+
+// ── Community group chat ──
+router.post("/messages/groups", authenticate, async (req, res): Promise<void> => {
+  const name = String(req.body?.name || "").trim().slice(0, 60);
+  if (!name) {
+    res.status(400).json({ success: false, message: "Give your group a name" });
+    return;
+  }
+  const description = String(req.body?.description || "").trim().slice(0, 200) || null;
+  try {
+    const me = req.user!.id;
+    const [conv] = await db
+      .insert(conversationsTable)
+      .values({ user1Id: me, user2Id: me, isGroup: true, groupName: name, lastMessageAt: new Date() })
+      .returning();
+    await db.insert(conversationParticipantsTable).values({ conversationId: conv.id, userId: me });
+    const [group] = await db
+      .insert(communityGroupsTable)
+      .values({ name, description, ownerId: me, conversationId: conv.id })
+      .returning();
+    res.status(201).json({ success: true, data: { group, conversationId: conv.id } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to create group" });
+  }
+});
+
+router.get("/messages/groups", authenticate, async (req, res): Promise<void> => {
+  const myConvIds = (
+    await db
+      .select({ conversationId: conversationParticipantsTable.conversationId })
+      .from(conversationParticipantsTable)
+      .where(eq(conversationParticipantsTable.userId, req.user!.id))
+  ).map((r) => r.conversationId);
+  const groups = await db.select().from(communityGroupsTable).orderBy(desc(communityGroupsTable.createdAt));
+  const convIdSet = [...new Set(groups.map((g) => g.conversationId))];
+  const memberCounts = new Map<string, number>();
+  const myGroups = new Set<string>();
+  if (convIdSet.length) {
+    const rows = await db
+      .select({ conversationId: conversationParticipantsTable.conversationId })
+      .from(conversationParticipantsTable)
+      .where(inArray(conversationParticipantsTable.conversationId, convIdSet));
+    for (const r of rows) {
+      memberCounts.set(r.conversationId, (memberCounts.get(r.conversationId) ?? 0) + 1);
+      if (r.conversationId && myConvIds.includes(r.conversationId)) myGroups.add(r.conversationId);
+    }
+  }
+  res.json({
+    success: true,
+    data: {
+      groups: groups.map((g) => ({
+        ...g,
+        memberCount: memberCounts.get(g.conversationId) ?? 0,
+        joined: myGroups.has(g.conversationId),
+      })),
+    },
+  });
+});
+
+router.get("/messages/groups/:groupId", authenticate, async (req, res): Promise<void> => {
+  const [group] = await db
+    .select()
+    .from(communityGroupsTable)
+    .where(eq(communityGroupsTable.id, String(req.params.groupId)))
+    .limit(1);
+  if (!group) {
+    res.status(404).json({ success: false, message: "Group not found" });
+    return;
+  }
+  const members = await db
+    .select({
+      id: usersTable.id,
+      firstName: usersTable.firstName,
+      lastName: usersTable.lastName,
+      profilePhoto: usersTable.profilePhoto,
+    })
+    .from(conversationParticipantsTable)
+    .innerJoin(usersTable, eq(usersTable.id, conversationParticipantsTable.userId))
+    .where(eq(conversationParticipantsTable.conversationId, group.conversationId));
+  res.json({ success: true, data: { group, members } });
+});
+
+router.post("/messages/groups/:groupId/join", authenticate, async (req, res): Promise<void> => {
+  const [group] = await db
+    .select()
+    .from(communityGroupsTable)
+    .where(eq(communityGroupsTable.id, String(req.params.groupId)))
+    .limit(1);
+  if (!group) {
+    res.status(404).json({ success: false, message: "Group not found" });
+    return;
+  }
+  const me = req.user!.id;
+  const [existing] = await db
+    .select({ id: conversationParticipantsTable.id })
+    .from(conversationParticipantsTable)
+    .where(and(eq(conversationParticipantsTable.conversationId, group.conversationId), eq(conversationParticipantsTable.userId, me)))
+    .limit(1);
+  if (!existing) {
+    await db.insert(conversationParticipantsTable).values({ conversationId: group.conversationId, userId: me });
+  }
+  res.json({ success: true, data: { conversationId: group.conversationId } });
+});
+
+router.post("/messages/groups/:groupId/invite", authenticate, async (req, res): Promise<void> => {
+  const inviteeId = String(req.body?.userId || "").trim();
+  if (!inviteeId) {
+    res.status(400).json({ success: false, message: "Paste a member's profile id to invite" });
+    return;
+  }
+  const [group] = await db
+    .select()
+    .from(communityGroupsTable)
+    .where(eq(communityGroupsTable.id, String(req.params.groupId)))
+    .limit(1);
+  if (!group) {
+    res.status(404).json({ success: false, message: "Group not found" });
+    return;
+  }
+  if (group.ownerId !== req.user!.id) {
+    res.status(403).json({ success: false, message: "Only the group owner can send invites" });
+    return;
+  }
+  const [u] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, inviteeId)).limit(1);
+  if (!u) {
+    res.status(404).json({ success: false, message: "User not found" });
+    return;
+  }
+  const [existing] = await db
+    .select({ id: conversationParticipantsTable.id })
+    .from(conversationParticipantsTable)
+    .where(and(eq(conversationParticipantsTable.conversationId, group.conversationId), eq(conversationParticipantsTable.userId, inviteeId)))
+    .limit(1);
+  if (!existing) {
+    await db.insert(conversationParticipantsTable).values({ conversationId: group.conversationId, userId: inviteeId });
+    await db.insert(notificationsTable).values({
+      userId: inviteeId,
+      type: "NEW_MESSAGE",
+      title: "You were added to a group",
+      message: `${req.user!.firstName} added you to ${group.name}`,
+      linkUrl: "/messages",
+    });
+  }
+  res.json({ success: true, message: "Invite sent", data: { conversationId: group.conversationId } });
 });
 
 export default router;
