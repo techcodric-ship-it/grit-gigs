@@ -1,6 +1,6 @@
 ﻿import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and, desc, count, sql, inArray, or, ilike, type SQL } from "drizzle-orm";
-import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable, conversationsTable, messagesTable } from "../db";
+import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable, conversationsTable, messagesTable, communityOrdersTable, communityOrderDeliveriesTable } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { logger } from "../lib/logger";
 import { uploadToSupabase } from "../lib/storage";
@@ -583,15 +583,20 @@ router.post("/community/notifications/read", authenticate, async (req: Request, 
 });
 
 // â”€â”€ POST /community/posts/:id/delete â€” author deletes post â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// ── POST /community/posts/:id/order — send an order / proposal / barter offer as a DM ──
+// ── POST /community/posts/:id/order — create an order/proposal and DM the author ──
 router.post("/community/posts/:id/order", authenticate, async (req: Request, res: Response): Promise<void> => {
   const postId = String(req.params.id);
   const meId = req.user!.id;
   const content = String(req.body?.content || "").trim().slice(0, 3000);
   const amount = Number(req.body?.amount);
+  const shippingNote = req.body?.shippingNote ? String(req.body.shippingNote).trim().slice(0, 500) : null;
 
   if (!content) {
     res.status(400).json({ success: false, message: "Tell them what you need." });
+    return;
+  }
+  if (postId === "undefined" || postId === "null") {
+    res.status(400).json({ success: false, message: "Invalid post" });
     return;
   }
 
@@ -623,7 +628,24 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
     return;
   }
 
+  // For a GIG post the price is fixed on the post (buyer may still send an amount for barter/projects)
+  const finalAmount = post.kind === "GIG" ? post.priceInr ?? (Math.round(amount) || null) : Number.isFinite(amount) && amount > 0 ? Math.round(amount) : null;
+
   try {
+    const [order] = await db
+      .insert(communityOrdersTable)
+      .values({
+        postId: post.id,
+        buyerId: meId,
+        sellerId: post.userId,
+        kind: post.kind as "GIG" | "PROJECT" | "BARTER",
+        status: "PENDING",
+        requirements: content,
+        amount: finalAmount,
+        shippingNote,
+      })
+      .returning();
+
     // reuse an existing generic DM between the two users if one exists
     const [existing] = await db
       .select()
@@ -648,13 +670,12 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
     }
 
     const label = post.kind === "GIG" ? "📦 Gig order request" : post.kind === "PROJECT" ? "📋 Project proposal" : "🔁 Barter proposal";
-    const amountLine = Number.isFinite(amount) && amount > 0 ? ` (₹${Math.round(amount)})` : "";
+    const amountLine = finalAmount ? ` (₹${finalAmount})` : "";
     const snippet = content.length > 240 ? content.slice(0, 240) + "…" : content;
 
-    const [message] = await db
+    await db
       .insert(messagesTable)
-      .values({ conversationId: conv.id, senderId: meId, messageText: `${label}${amountLine}:\n${snippet}`, attachments: [] })
-      .returning();
+      .values({ conversationId: conv.id, senderId: meId, messageText: `${label}${amountLine}:\n${snippet}`, attachments: [] });
 
     await db.update(conversationsTable).set({ lastMessageAt: new Date() }).where(eq(conversationsTable.id, conv.id));
 
@@ -663,14 +684,212 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
       "COMMUNITY_ORDER",
       `New ${post.kind === "GIG" ? "gig order" : post.kind === "PROJECT" ? "project proposal" : "barter offer"}`,
       `${req.user!.firstName} sent you a request: ${snippet}`,
-      `/feed`,
+      `/orders`,
     );
 
-    res.status(201).json({ success: true, data: { conversationId: conv.id, messageId: message.id, createdConversation: !existing } });
+    res.status(201).json({
+      success: true,
+      data: { orderId: order.id, conversationId: conv.id, createdConversation: !existing, status: order.status },
+    });
   } catch (err) {
-    logger.error({ err }, "Failed to send community order request");
+    logger.error({ err }, "Failed to create community order");
     res.status(500).json({ success: false, message: "Something went wrong. Please try again." });
   }
+});
+
+// ── GET /community/orders — orders I'm buyer or seller of ──
+router.get("/community/orders", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const meId = req.user!.id;
+  const scope = String(req.query.scope || "all"); // all | as-buyer | as-seller
+  const status = String(req.query.status || "").toUpperCase();
+  const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 30));
+
+  const conditions: SQL[] = scope === "as-buyer" ? [eq(communityOrdersTable.buyerId, meId)] : scope === "as-seller" ? [eq(communityOrdersTable.sellerId, meId)] : [or(eq(communityOrdersTable.buyerId, meId), eq(communityOrdersTable.sellerId, meId)) as SQL];
+  if (status) conditions.push(eq(communityOrdersTable.status, status as typeof communityOrdersTable.$inferSelect.status));
+
+  const rows = await db
+    .select()
+    .from(communityOrdersTable)
+    .where(and(...conditions))
+    .orderBy(desc(communityOrdersTable.updatedAt))
+    .limit(limit);
+
+  if (!rows.length) {
+    res.status(200).json({ success: true, data: { orders: [] } });
+    return;
+  }
+
+  const postIds = [...new Set(rows.map(r => r.postId))];
+  const userIds = [...new Set(rows.flatMap(r => [r.buyerId, r.sellerId]))];
+
+  const posts: { id: string; kind: typeof communityPostsTable.$inferSelect.kind; content: string; coverUrl: string | null; priceInr: number | null }[] = postIds.length
+    ? await db.select({ id: communityPostsTable.id, kind: communityPostsTable.kind, content: communityPostsTable.content, coverUrl: communityPostsTable.coverUrl, priceInr: communityPostsTable.priceInr }).from(communityPostsTable).where(inArray(communityPostsTable.id, postIds))
+    : [];
+  const users: { id: string; firstName: string; lastName: string; profilePhoto: string | null }[] = userIds.length
+    ? await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto }).from(usersTable).where(inArray(usersTable.id, userIds))
+    : [];
+
+  const postById = new Map(posts.map(p => [p.id, p] as const));
+  const userById = new Map(users.map(u => [u.id, u] as const));
+
+  res.status(200).json({
+    success: true,
+    data: {
+      orders: rows.map(r => ({
+        ...r,
+        post: postById.get(r.postId) ?? null,
+        buyer: userById.get(r.buyerId) ?? null,
+        seller: userById.get(r.sellerId) ?? null,
+      })),
+    },
+  });
+});
+
+// ── GET /community/orders/:id — detail with deliveries ──
+router.get("/community/orders/:id", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const [order] = await db
+    .select()
+    .from(communityOrdersTable)
+    .where(eq(communityOrdersTable.id, String(req.params.id)))
+    .limit(1);
+  if (!order) {
+    res.status(404).json({ success: false, message: "Order not found" });
+    return;
+  }
+  const meId = req.user!.id;
+  if (order.buyerId !== meId && order.sellerId !== meId && req.user!.role !== "ADMIN") {
+    res.status(403).json({ success: false, message: "You're not part of this order" });
+    return;
+  }
+  const [post] = await db
+    .select()
+    .from(communityPostsTable)
+    .where(eq(communityPostsTable.id, order.postId))
+    .limit(1);
+  const [buyer, seller] = await Promise.all([
+    db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto }).from(usersTable).where(eq(usersTable.id, order.buyerId)).limit(1),
+    db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto }).from(usersTable).where(eq(usersTable.id, order.sellerId)).limit(1),
+  ]);
+  const deliveries = await db
+    .select()
+    .from(communityOrderDeliveriesTable)
+    .where(eq(communityOrderDeliveriesTable.orderId, order.id))
+    .orderBy(desc(communityOrderDeliveriesTable.createdAt));
+
+  const deliveryUserIds = [...new Set(deliveries.map(d => d.senderId))];
+  const deliveryUsers = deliveryUserIds.length
+    ? await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto }).from(usersTable).where(inArray(usersTable.id, deliveryUserIds))
+    : [];
+  const userById = new Map(deliveryUsers.map(u => [u.id, u]));
+
+  res.status(200).json({
+    success: true,
+    data: {
+      order,
+      post: post ?? null,
+      buyer: buyer[0] ?? null,
+      seller: seller[0] ?? null,
+      deliveries: deliveries.map(d => ({ ...d, sender: userById.get(d.senderId) ?? null })),
+    },
+  });
+});
+
+// ── PUT /community/orders/:id/accept — seller accepts ──
+router.put("/community/orders/:id/accept", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const [order] = await db.select().from(communityOrdersTable).where(eq(communityOrdersTable.id, String(req.params.id))).limit(1);
+  if (!order) { res.status(404).json({ success: false, message: "Order not found" }); return; }
+  if (order.sellerId !== req.user!.id && req.user!.role !== "ADMIN") { res.status(403).json({ success: false, message: "Only the seller can accept this order" }); return; }
+  if (order.status !== "PENDING") { res.status(400).json({ success: false, message: "Only pending orders can be accepted" }); return; }
+
+  const [updated] = await db
+    .update(communityOrdersTable)
+    .set({ status: "IN_PROGRESS", updatedAt: new Date() })
+    .where(eq(communityOrdersTable.id, order.id))
+    .returning();
+  notify(order.buyerId, "COMMUNITY_ORDER_ACCEPTED", "Order accepted!", `${req.user!.firstName} accepted your order and started working on it.`, `/orders`);
+  res.status(200).json({ success: true, data: updated });
+});
+
+// ── PUT /community/orders/:id/deliver — seller delivers ──
+router.put("/community/orders/:id/deliver", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const [order] = await db.select().from(communityOrdersTable).where(eq(communityOrdersTable.id, String(req.params.id))).limit(1);
+  if (!order) { res.status(404).json({ success: false, message: "Order not found" }); return; }
+  if (order.sellerId !== req.user!.id && req.user!.role !== "ADMIN") { res.status(403).json({ success: false, message: "Only the seller can deliver on this order" }); return; }
+  if (order.status !== "IN_PROGRESS" && order.status !== "REVISION") { res.status(400).json({ success: false, message: "This order can't be delivered right now" }); return; }
+
+  const note = req.body?.note ? String(req.body.note).trim().slice(0, 2000) : null;
+  const files = Array.isArray(req.body?.files) ? (req.body.files as { url?: string }[]).map(f => ({ url: String(f.url || "") })).filter(f => f.url).slice(0, 10) : [];
+
+  const [delivery] = await db
+    .insert(communityOrderDeliveriesTable)
+    .values({ orderId: order.id, senderId: req.user!.id, note, files, isRevision: false })
+    .returning();
+  const [updated] = await db
+    .update(communityOrdersTable)
+    .set({ status: "DELIVERED", deliveredAt: new Date(), updatedAt: new Date() })
+    .where(eq(communityOrdersTable.id, order.id))
+    .returning();
+  notify(order.buyerId, "COMMUNITY_ORDER_DELIVERED", "Work delivered!", `${req.user!.firstName} delivered your order. Please review it.`, `/orders`);
+  res.status(200).json({ success: true, data: { order: updated, delivery } });
+});
+
+// ── PUT /community/orders/:id/complete — buyer confirms completed ──
+router.put("/community/orders/:id/complete", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const [order] = await db.select().from(communityOrdersTable).where(eq(communityOrdersTable.id, String(req.params.id))).limit(1);
+  if (!order) { res.status(404).json({ success: false, message: "Order not found" }); return; }
+  if (order.buyerId !== req.user!.id && req.user!.role !== "ADMIN") { res.status(403).json({ success: false, message: "Only the buyer can complete this order" }); return; }
+  if (order.status !== "DELIVERED") { res.status(400).json({ success: false, message: "Only delivered orders can be completed" }); return; }
+
+  const [updated] = await db
+    .update(communityOrdersTable)
+    .set({ status: "COMPLETED", completedAt: new Date(), updatedAt: new Date() })
+    .where(eq(communityOrdersTable.id, order.id))
+    .returning();
+  await db.update(communityPostsTable).set({ status: "SOLD" }).where(eq(communityPostsTable.id, order.postId));
+  notify(order.sellerId, "COMMUNITY_ORDER_COMPLETED", "Order completed!", `${req.user!.firstName} marked your order as completed. 🎉`, `/orders`);
+  res.status(200).json({ success: true, data: updated });
+});
+
+// ── PUT /community/orders/:id/revise — buyer requests a revision ──
+router.put("/community/orders/:id/revise", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const [order] = await db.select().from(communityOrdersTable).where(eq(communityOrdersTable.id, String(req.params.id))).limit(1);
+  if (!order) { res.status(404).json({ success: false, message: "Order not found" }); return; }
+  if (order.buyerId !== req.user!.id && req.user!.role !== "ADMIN") { res.status(403).json({ success: false, message: "Only the buyer can request a revision" }); return; }
+  if (order.status !== "DELIVERED") { res.status(400).json({ success: false, message: "Only delivered work can get a revision request" }); return; }
+
+  const [post] = await db.select({ revisions: communityPostsTable.revisions }).from(communityPostsTable).where(eq(communityPostsTable.id, order.postId)).limit(1);
+  const limit = post?.revisions ?? 0;
+  if (order.revisionsUsed >= limit && limit > 0) { res.status(400).json({ success: false, message: `This gig includes only ${limit} revision${limit === 1 ? "" : "s"}` }); return; }
+
+  const note = req.body?.note ? String(req.body.note).trim().slice(0, 2000) : null;
+  const [updated] = await db
+    .update(communityOrdersTable)
+    .set({ status: "REVISION", revisionsUsed: sql`revisions_used + 1`, updatedAt: new Date() })
+    .where(eq(communityOrdersTable.id, order.id))
+    .returning();
+  await db
+    .insert(communityOrderDeliveriesTable)
+    .values({ orderId: order.id, senderId: req.user!.id, note: note ? `Revision request: ${note}` : "Revision requested", files: [], isRevision: true });
+  notify(order.sellerId, "COMMUNITY_ORDER_REVISION", "Revision requested", note ? `${req.user!.firstName} requested a revision: ${note.slice(0, 120)}` : `${req.user!.firstName} requested a revision.`, `/orders`);
+  res.status(200).json({ success: true, data: updated });
+});
+
+// ── PUT /community/orders/:id/cancel — either side cancels ──
+router.put("/community/orders/:id/cancel", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const [order] = await db.select().from(communityOrdersTable).where(eq(communityOrdersTable.id, String(req.params.id))).limit(1);
+  if (!order) { res.status(404).json({ success: false, message: "Order not found" }); return; }
+  const meId = req.user!.id;
+  if (order.buyerId !== meId && order.sellerId !== meId && req.user!.role !== "ADMIN") { res.status(403).json({ success: false, message: "You're not part of this order" }); return; }
+  if (order.status === "COMPLETED" || order.status === "CANCELLED") { res.status(400).json({ success: false, message: "This order can't be cancelled anymore" }); return; }
+
+  const [updated] = await db
+    .update(communityOrdersTable)
+    .set({ status: "CANCELLED", cancelledAt: new Date(), updatedAt: new Date() })
+    .where(eq(communityOrdersTable.id, order.id))
+    .returning();
+  const other = order.buyerId === meId ? order.sellerId : order.buyerId;
+  notify(other, "COMMUNITY_ORDER_CANCELLED", "Order cancelled", `${req.user!.firstName} cancelled the order.`, `/orders`);
+  res.status(200).json({ success: true, data: updated });
 });
 
 router.post("/community/posts/:id/delete", authenticate, async (req: Request, res: Response): Promise<void> => {

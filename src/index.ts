@@ -680,6 +680,43 @@ app.set("io", io);
             CONSTRAINT community_follows_unique UNIQUE (follower_id, following_id)
           );
 
+          DO $$ BEGIN CREATE TYPE community_order_status AS ENUM ('PENDING','IN_PROGRESS','DELIVERED','REVISION','COMPLETED','CANCELLED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE TYPE community_order_kind AS ENUM ('GIG','PROJECT','BARTER'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+          CREATE TABLE IF NOT EXISTS community_orders (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            post_id UUID NOT NULL REFERENCES community_posts(id) ON DELETE CASCADE,
+            buyer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            seller_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            kind community_order_kind NOT NULL,
+            status community_order_status NOT NULL DEFAULT 'PENDING',
+            requirements TEXT NOT NULL,
+            amount INTEGER,
+            revisions_used INTEGER NOT NULL DEFAULT 0,
+            shipping_note TEXT,
+            delivered_at TIMESTAMPTZ,
+            completed_at TIMESTAMPTZ,
+            cancelled_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
+
+          CREATE INDEX IF NOT EXISTS idx_community_orders_buyer ON community_orders(buyer_id);
+          CREATE INDEX IF NOT EXISTS idx_community_orders_seller ON community_orders(seller_id);
+          CREATE INDEX IF NOT EXISTS idx_community_orders_post ON community_orders(post_id);
+
+          CREATE TABLE IF NOT EXISTS community_order_deliveries (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            order_id UUID NOT NULL REFERENCES community_orders(id) ON DELETE CASCADE,
+            sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            note TEXT,
+            files JSONB DEFAULT '[]'::jsonb NOT NULL,
+            is_revision BOOLEAN DEFAULT FALSE NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
+
+          CREATE INDEX IF NOT EXISTS idx_community_order_deliveries_order ON community_order_deliveries(order_id);
+
           CREATE INDEX IF NOT EXISTS idx_community_posts_created ON community_posts(created_at DESC);
           CREATE INDEX IF NOT EXISTS idx_community_posts_kind ON community_posts(kind);
           CREATE INDEX IF NOT EXISTS idx_community_comments_post ON community_comments(post_id);
