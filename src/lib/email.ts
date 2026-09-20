@@ -229,6 +229,26 @@ export async function sendAdminEmail(to: string, subject: string, message: strin
   });
 }
 
+export async function sendWaitlistConfirmationEmail(to: string, firstName: string | undefined | null, position: number): Promise<boolean> {
+  const name = firstName || "Hustler";
+  return sendResend({
+    to,
+    subject: "You're on the Grit&Gigs waitlist 🚀",
+    html: `<h1>You're in. Spot #${position}.</h1>
+      <p>Hey ${htmlEscape(name)},</p>
+      <p>Thanks for joining the <strong>Grit&amp;Gigs</strong> waitlist — you're <strong>#${position}</strong> in line.</p>
+      <p>We're rebuilding the platform into a community where you can:</p>
+      <table style="width:100%;margin-bottom:24px;">
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">📸 Share your daily grind in a living feed</td></tr>
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">😂 Trade skills &amp; barter with real people</td></tr>
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">💰 Earn and turn your UPI footprint into verified income proof</td></tr>
+      </table>
+      <p>When the new feed goes live, you'll be among the first to get in and set up your profile before everyone else.</p>
+      <p style="text-align:center;margin-bottom:0;"><a href="${APP_URL}" class="btn">Grit&Gigs — Rebuilding</a></p>
+      <p style="margin-top:24px;">Questions? Reply to this email — a human reads it.</p>`,
+  });
+}
+
 type ListingType = "barter" | "service" | "project";
 
 function getListingEmailContent(listingType: ListingType, posterName: string, title: string, linkUrl: string) {

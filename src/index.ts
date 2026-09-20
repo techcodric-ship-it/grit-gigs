@@ -614,6 +614,14 @@ app.set("io", io);
           CREATE INDEX IF NOT EXISTS idx_tool_leads_next_followup ON tool_leads(next_followup_at);
           CREATE INDEX IF NOT EXISTS idx_tool_leads_email ON tool_leads(email);
 
+          CREATE TABLE IF NOT EXISTS waitlist_leads (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            email TEXT NOT NULL UNIQUE,
+            first_name TEXT,
+            position INTEGER,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
+
           CREATE TABLE IF NOT EXISTS jobs (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             title TEXT NOT NULL,

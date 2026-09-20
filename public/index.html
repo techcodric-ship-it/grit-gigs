@@ -4,11 +4,11 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="robots" content="index, follow, max-image-preview:large"/>
-<title>Grit&Gigs — Under Maintenance · Rebuilding as a Community Platform</title>
-<meta name="description" content="Grit&Gigs is under scheduled maintenance while we rebuild it into a community platform — share your grind, trade skills, and earn. Back soon. Your account and data carry over."/>
+<title>Grit&Gigs — The Community Is Coming · Join the Waitlist</title>
+<meta name="description" content="Grit&Gigs is being rebuilt into India's community for hustlers — share your daily grind, trade skills, barter, and turn your UPI footprint into verified income proof. Join the waitlist."/>
 <link rel="canonical" href="https://www.gritandgigs.in/"/>
-<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=2"/>
-<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=2"/>
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=3"/>
+<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=3"/>
 <link rel="apple-touch-icon" href="/logo-og.png"/>
 <meta property="og:type" content="website"/>
 <meta property="og:image" content="https://www.gritandgigs.in/logo-og.png"/>
@@ -16,13 +16,13 @@
 <meta property="og:image:height" content="630"/>
 <meta name="twitter:image" content="https://www.gritandgigs.in/logo-og.png"/>
 <meta property="og:url" content="https://www.gritandgigs.in/"/>
-<meta property="og:title" content="Grit&Gigs — Under Maintenance · Rebuilding as a Community Platform"/>
-<meta property="og:description" content="We're rebuilding Grit&Gigs into a community platform — share your grind, trade skills, and earn. Back soon. Your account and data carry over."/>
+<meta property="og:title" content="Grit&Gigs — The Community Is Coming"/>
+<meta property="og:description" content="Share your daily grind, trade skills, barter, and earn with verified income proof. India's hustle community is almost here. Join the waitlist."/>
 <meta property="og:site_name" content="Grit&Gigs"/>
 <meta property="og:locale" content="en_IN"/>
 <meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="Grit&Gigs — Under Maintenance"/>
-<meta name="twitter:description" content="We're rebuilding Grit&Gigs into a community platform. Back soon."/>
+<meta name="twitter:title" content="Grit&Gigs — The Community Is Coming"/>
+<meta name="twitter:description" content="India's hustle community is almost here. Join the waitlist."/>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -32,17 +32,13 @@
       "@id": "https://www.gritandgigs.in/#organization",
       "name": "Grit&Gigs",
       "url": "https://www.gritandgigs.in/",
-      "description": "Community platform for students and young freelancers to share their grind, trade skills, and earn.",
+      "description": "Community platform for students and young hustlers to share their grind, trade skills, barter, and earn with verified income proof.",
       "foundingDate": "2025",
       "areaServed": "IN",
       "founder": { "@type": "Person", "name": "Amuthavanan", "jobTitle": "Founder" },
       "logo": "https://www.gritandgigs.in/logo-og.png",
       "image": "https://www.gritandgigs.in/logo-og.png",
-      "sameAs": ["https://www.instagram.com/gritandgigs/"],
-      "potentialAction": {
-        "@type": "Action",
-        "name": "Report status"
-      }
+      "sameAs": ["https://www.instagram.com/gritandgigs/"]
     },
     {
       "@type": "WebSite",
@@ -57,18 +53,19 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Sora:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Sora:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <style>
   :root{
     --ink:#0E0E0C;
-    --ink-2:#14140F;
+    --ink-2:#15150F;
     --rice:#F7F5F0;
     --bone:#F5F4EE;
     --volt:#C8F522;
     --signal:#FF5C1A;
     --dusk:#9C978A;
-    --line:#2E2E28;
+    --line:#2C2C25;
     --tint:rgba(200,245,34,0.07);
+    --sig-tint:rgba(255,92,26,0.08);
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   html{scroll-behavior:smooth;}
@@ -81,17 +78,21 @@
     -webkit-font-smoothing:antialiased;
     overflow-x:hidden;
   }
-  /* halftone grit texture */
   .texture{
     position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
     background-image:radial-gradient(rgba(200,245,34,0.05) 1px, transparent 1.6px);
     background-size:26px 26px;
-    -webkit-mask-image:linear-gradient(180deg,transparent,black 18%,black 82%,transparent);
-            mask-image:linear-gradient(180deg,transparent,black 18%,black 82%,transparent);
+    -webkit-mask-image:linear-gradient(180deg,transparent,black 16%,black 84%,transparent);
+            mask-image:linear-gradient(180deg,transparent,black 16%,black 84%,transparent);
   }
+  .glow{
+    position:fixed;z-index:0;pointer-events:none;border-radius:50%;filter:blur(90px);opacity:.5;
+  }
+  .glow-v{width:520px;height:520px;background:rgba(200,245,34,.12);top:-160px;right:-120px;}
+  .glow-s{width:420px;height:420px;background:rgba(255,92,26,.12);bottom:-120px;left:-120px;}
   .wrap{position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:0 24px;}
 
-  /* ── header ── */
+  /* header */
   header{padding:26px 0;}
   .bar{display:flex;align-items:center;justify-content:space-between;gap:16px;}
   .logo{display:flex;align-items:center;gap:12px;text-decoration:none;}
@@ -99,7 +100,7 @@
     font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;letter-spacing:-.02em;
     width:44px;height:44px;display:flex;align-items:center;justify-content:center;
     background:var(--volt);color:var(--ink);border-radius:10px;
-    box-shadow:0 0 0 1px rgba(200,245,34,.25), 0 4px 24px rgba(200,245,34,.15);
+    box-shadow:0 0 0 1px rgba(200,245,34,.25), 0 4px 24px rgba(200,245,34,.18);
   }
   .logo-name{font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:-.02em;color:var(--bone);}
   .logo-name em{font-style:normal;color:var(--volt);}
@@ -108,79 +109,153 @@
     display:inline-flex;align-items:center;gap:9px;
     padding:8px 14px;border:1px solid var(--line);border-radius:999px;background:var(--ink-2);color:var(--bone);
   }
-  .dot{width:8px;height:8px;border-radius:50%;background:var(--signal);box-shadow:0 0 12px rgba(255,92,26,.8);animation:pulse 1.6s ease-in-out infinite;}
-  @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.45;transform:scale(.82);}}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--volt);box-shadow:0 0 12px rgba(200,245,34,.8);animation:pulse 1.6s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.8);}}
 
-  /* ── hero ── */
-  .hero{padding:84px 0 40px;}
+  /* hero */
+  .hero{padding:90px 0 50px;text-align:center;}
   .eyebrow{
     font-family:'Space Mono',monospace;font-size:.74rem;letter-spacing:.18em;text-transform:uppercase;color:var(--volt);
-    display:flex;align-items:center;gap:12px;margin-bottom:22px;
+    display:inline-flex;align-items:center;gap:12px;margin-bottom:26px;
   }
-  .eyebrow::before{content:'';width:34px;height:2px;background:var(--volt);display:block;}
+  .eyebrow::before,.eyebrow::after{content:'';width:34px;height:2px;background:var(--volt);display:block;}
   h1{
-    font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(2.4rem,6vw,4.2rem);
-    line-height:1.05;letter-spacing:-.03em;color:var(--bone);max-width:17ch;
+    font-family:'Syne',sans-serif;font-weight:800;
+    font-size:clamp(2.6rem,7vw,5rem);
+    line-height:1.02;letter-spacing:-.03em;color:var(--bone);
+    max-width:18ch;margin:0 auto;
   }
   h1 .outline{color:transparent;-webkit-text-stroke:1.6px var(--bone);}
   h1 .volt{color:var(--volt);}
-  .lead{margin-top:26px;max-width:56ch;font-size:1.06rem;color:var(--dusk);}
+  h1 .signal{color:var(--signal);}
+  .lead{margin:28px auto 0;max-width:60ch;font-size:1.08rem;color:var(--dusk);}
   .lead strong{color:var(--bone);font-weight:600;}
 
-  /* ── module cards ── */
-  .modules{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:64px;}
-  .mod{
-    border:1px solid var(--line);border-radius:14px;background:var(--ink-2);
-    padding:22px 20px 20px;position:relative;overflow:hidden;
+  /* waitlist */
+  .waitlist{margin:44px auto 0;max-width:560px;}
+  .wl-form{display:flex;gap:10px;background:var(--ink-2);border:1px solid var(--line);border-radius:14px;padding:8px;}
+  .wl-form input{
+    flex:1;min-width:0;background:transparent;border:none;outline:none;color:var(--bone);
+    font-family:'Sora',sans-serif;font-size:.95rem;padding:10px 12px;
   }
-  .mod::after{
-    content:'';position:absolute;right:-26px;top:-26px;width:90px;height:90px;border-radius:50%;
-    background:var(--tint);pointer-events:none;
+  .wl-form input::placeholder{color:var(--dusk);}
+  .wl-btn{
+    flex:0 0 auto;border:none;cursor:pointer;
+    background:var(--volt);color:var(--ink);
+    font-family:'Syne',sans-serif;font-weight:700;font-size:.86rem;letter-spacing:.02em;
+    padding:12px 22px;border-radius:10px;transition:transform .12s ease, background .12s ease;
   }
-  .mod-num{font-family:'Space Mono',monospace;font-size:.7rem;letter-spacing:.16em;color:var(--dusk);display:block;margin-bottom:12px;}
-  .mod h3{font-family:'Syne',sans-serif;font-weight:700;font-size:1.02rem;letter-spacing:-.01em;color:var(--bone);margin-bottom:8px;}
-  .mod p{font-size:.86rem;color:var(--dusk);}
-  .mod p b{color:var(--bone);font-weight:600;}
+  .wl-btn:hover{background:#d9ff52;transform:translateY(-1px);}
+  .wl-btn:disabled{opacity:.6;cursor:default;transform:none;}
+  .wl-msg{margin-top:12px;font-size:.86rem;min-height:1.4em;}
+  .wl-msg.ok{color:var(--volt);}
+  .wl-msg.err{color:var(--signal);}
+  .wl-ok-card{
+    display:none;margin-top:12px;border:1px solid var(--volt);background:var(--tint);
+    border-radius:12px;padding:14px 18px;text-align:left;
+  }
+  .wl-ok-card b{font-family:'Syne',sans-serif;color:var(--volt);}
+  .wl-hint{margin-top:14px;font-family:'Space Mono',monospace;font-size:.72rem;letter-spacing:.08em;color:var(--dusk);text-transform:uppercase;}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(14,14,12,.35);border-top-color:var(--ink);border-radius:50%;vertical-align:-2px;animation:rot .7s linear infinite;}
+  @keyframes rot{to{transform:rotate(360deg);}}
 
-  /* ── ticket / eta ── */
-  .ticket{
-    margin-top:16px;border:1px solid var(--line);border-radius:14px;background:var(--ink-2);
-    display:flex;flex-wrap:wrap;align-items:stretch;justify-content:space-between;gap:20px;
-    padding:26px 26px;position:relative;
+  /* section header */
+  .sec-head{display:flex;align-items:baseline;gap:16px;margin:70px 0 26px;}
+  .sec-num{font-family:'Space Mono',monospace;font-size:.78rem;color:var(--volt);letter-spacing:.14em;}
+  .sec-head h2{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(1.5rem,3.5vw,2.2rem);letter-spacing:-.02em;color:var(--bone);}
+  .sec-head .rule{flex:1;height:1px;background:var(--line);}
+
+  /* feature grid — phone mock */
+  .feat-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:40px;align-items:center;}
+  .phone-feature{display:flex;flex-direction:column;gap:12px;}
+  .pf-row{display:flex;gap:14px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;background:var(--ink-2);padding:16px 18px;transition:border-color .15s ease, transform .15s ease;}
+  .pf-row:hover{border-color:rgba(200,245,34,.5);transform:translateX(4px);}
+  .pf-glyph{width:40px;height:40px;flex:0 0 40px;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-weight:700;font-size:.9rem;border-radius:10px;background:var(--tint);color:var(--volt);}
+  .pf-glyph.sig{background:var(--sig-tint);color:var(--signal);}
+  .pf-row b{font-family:'Syne',sans-serif;font-weight:700;font-size:.98rem;color:var(--bone);display:block;letter-spacing:-.01em;}
+  .pf-row p{font-size:.83rem;color:var(--dusk);}
+  .pf-row.active{border-color:var(--volt);}
+
+  .mock{
+    position:relative;border:1px solid var(--line);border-radius:28px;background:var(--ink-2);
+    padding:14px;max-width:340px;margin:0 auto;
+    box-shadow:0 30px 80px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.02);
   }
-  .ticket::before,.ticket::after{
-    content:'';position:absolute;top:50%;width:20px;height:20px;border-radius:50%;
-    background:var(--ink);border:1px solid var(--line);transform:translateY(-50%);
+  .mock-screen{border-radius:20px;background:#14140F;overflow:hidden;}
+  .mock-top{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 8px;}
+  .mock-nav{font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.1em;color:var(--dusk);text-transform:uppercase;}
+  .mock-nav .n{color:var(--volt);}
+  .mock-stories{display:flex;gap:10px;padding:8px 14px;overflow:hidden;}
+  .m-story{flex:0 0 46px;text-align:center;}
+  .m-ring{width:42px;height:42px;margin:0 auto 5px;border-radius:50%;padding:2px;background:linear-gradient(135deg,var(--volt),var(--signal));}
+  .m-ring>div{width:100%;height:100%;border-radius:50%;background:#14140F;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:.8rem;color:var(--volt);}
+  .m-story span{font-family:'Space Mono',monospace;font-size:.5rem;color:var(--dusk);}
+  .mock-post{padding:12px 14px;border-top:1px solid var(--line);}
+  .m-ph{width:100%;height:118px;border-radius:12px;background:
+    radial-gradient(circle at 20% 30%, rgba(200,245,34,.25), transparent 60%),
+    radial-gradient(circle at 80% 70%, rgba(255,92,26,.28), transparent 60%),
+    linear-gradient(160deg,#1C1C14,#0E0E0C);display:flex;align-items:flex-end;}
+  .m-ph .chip{font-family:'Space Mono',monospace;font-size:.58rem;color:var(--volt);background:rgba(14,14,12,.75);border:1px solid rgba(200,245,34,.4);padding:4px 8px;border-radius:999px;margin:10px;}
+  .m-actions{display:flex;gap:14px;padding:10px 0 6px;font-family:'Space Mono',monospace;font-size:.7rem;color:var(--bone);}
+  .m-actions span:nth-child(2){color:var(--signal);}
+  .m-bar{height:5px;border-radius:99px;background:#20201A;overflow:hidden;}
+  .m-bar i{display:block;height:100%;width:74%;border-radius:99px;background:linear-gradient(90deg,var(--signal),var(--volt));}
+  .m-caption{padding:8px 0 4px;font-size:.66rem;color:var(--dusk);}
+  .m-caption b{color:var(--bone);font-family:'Space Mono',monospace;}
+  .m-score{display:flex;justify-content:space-between;padding:8px 14px;border-top:1px solid var(--line);font-family:'Space Mono',monospace;font-size:.58rem;color:var(--dusk);}
+  .m-score .sc{color:var(--volt);}
+
+  /* feature cards */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .card{
+    border:1px solid var(--line);border-radius:14px;background:var(--ink-2);
+    padding:22px 20px;position:relative;overflow:hidden;transition:transform .18s ease,border-color .18s ease;
   }
-  .ticket::before{left:-11px;}
-  .ticket::after{right:-11px;}
-  .ticket-l{display:flex;align-items:center;gap:16px;}
-  .pulse-badge{
-    width:44px;height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:center;
-    background:var(--volt);color:var(--ink);border-radius:12px;font-family:'Space Mono',monospace;font-weight:700;
-  }
-  .ticket-l b{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;letter-spacing:-.01em;display:block;}
-  .ticket-l span{font-size:.84rem;color:var(--dusk);}
-  .ticket-r{font-family:'Space Mono',monospace;font-size:.78rem;letter-spacing:.08em;color:var(--volt);text-align:right;line-height:2;}
+  .card:hover{transform:translateY(-4px);border-color:rgba(200,245,34,.45);}
+  .card::after{content:'';position:absolute;right:-26px;top:-26px;width:90px;height:90px;border-radius:50%;background:var(--tint);pointer-events:none;}
+  .c-glyph{font-size:1.15rem;margin-bottom:14px;display:inline-flex;width:42px;height:42px;align-items:center;justify-content:center;background:var(--tint);border-radius:10px;}
+  .c-glyph.sig{background:var(--sig-tint);}
+  .card h3{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;letter-spacing:-.01em;color:var(--bone);margin-bottom:8px;}
+  .card p{font-size:.85rem;color:var(--dusk);}
+
+  /* ticket */
+  .ticket{margin-top:40px;border:1px solid var(--line);border-radius:16px;background:var(--ink-2);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px;padding:28px;position:relative;}
+  .ticket::before,.ticket::after{content:'';position:absolute;top:50%;width:20px;height:20px;border-radius:50%;background:var(--ink);border:1px solid var(--line);transform:translateY(-50%);}
+  .ticket::before{left:-12px;}
+  .ticket::after{right:-12px;}
+  .ticket-l{display:flex;align-items:center;gap:18px;}
+  .pulse-badge{width:48px;height:48px;flex:0 0 48px;display:flex;align-items:center;justify-content:center;background:var(--signal);color:#fff;border-radius:12px;font-family:'Space Mono',monospace;font-weight:700;font-size:.72rem;letter-spacing:.04em;box-shadow:0 0 22px rgba(255,92,26,.35);}
+  .ticket-l b{font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;letter-spacing:-.01em;display:block;}
+  .ticket-l span{font-size:.85rem;color:var(--dusk);}
+  .ticket-r{font-family:'Space Mono',monospace;font-size:.76rem;letter-spacing:.08em;color:var(--dusk);text-align:right;line-height:2.1;}
   .ticket-r a{color:var(--volt);text-decoration:underline;text-underline-offset:4px;}
   .ticket-r a:hover{color:var(--rice);}
 
-  /* ── footer ── */
-  footer{border-top:1px solid var(--line);margin-top:80px;padding:28px 0 34px;}
+  footer{border-top:1px solid var(--line);margin-top:90px;padding:28px 0 34px;}
   .foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;color:var(--dusk);font-size:.82rem;}
   .foot .mono{font-family:'Space Mono',monospace;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--dusk);}
   .foot a{color:var(--dusk);text-decoration:none;margin-left:18px;}
   .foot a:hover{color:var(--volt);}
 
-  @media(max-width:860px){
-    .modules{grid-template-columns:1fr;}
+  @media(max-width:900px){
+    .feat-grid{grid-template-columns:1fr;}
+    .mock{margin-top:36px;}
+    .cards{grid-template-columns:1fr;}
     .hero{padding:60px 0 30px;}
-    footer{margin-top:64px;}
+    footer{margin-top:70px;}
+  }
+  @media(max-width:520px){
+    .wl-form{flex-direction:column;}
+    .wl-btn{width:100%;}
+    .ticket{flex-direction:column;align-items:flex-start;padding:22px;}
+    .ticket-r{text-align:left;padding-left:6px;}
   }
 </style>
 </head>
 <body>
 <div class="texture"></div>
+<div class="glow glow-v"></div>
+<div class="glow glow-s"></div>
 
 <header>
   <div class="wrap bar">
@@ -188,66 +263,215 @@
       <span class="logo-mark">G&amp;G</span>
       <span class="logo-name">Grit<em>&amp;Gigs</em></span>
     </a>
-    <span class="status-chip"><span class="dot"></span>Under maintenance</span>
+    <span class="status-chip"><span class="dot"></span>Rebuild in progress</span>
   </div>
 </header>
 
 <main>
   <section class="wrap hero">
-    <p class="eyebrow">Planned system upgrade</p>
-    <h1>We're building the<br/><span class="outline">community</span> <span class="volt">next.</span></h1>
+    <p class="eyebrow">The community is coming</p>
+    <h1>Your grind.<br/><span class="outline">Your feed.</span> <span class="signal">Your income.</span></h1>
     <p class="lead">
-      Grit&Gigs is temporarily under maintenance while we rebuild it into a
-      <strong>community platform</strong> — share your daily grind, trade skills, and earn,
-      all in one feed. The marketplace will return as part of the new experience.
-      Back shortly.
+      We're rebuilding Grit&Gigs from a marketplace into <strong>India's community for hustlers</strong> —
+      a feed where students and freelancers <strong>share the daily grind, trade skills, barter,
+      and turn their UPI footprint into verified income proof</strong>. Everyone you'll ever need
+      to know is about to be one scroll away.
     </p>
 
-    <div class="modules">
-      <div class="mod">
-        <span class="mod-num">01 — Where we are</span>
-        <h3>Parked &amp; rebuilding</h3>
-        <p>The old marketplace is briefly offline while we ship the new
-        <b>community-first experience</b> on top of it.</p>
+    <div class="waitlist">
+      <form class="wl-form" id="wlForm" novalidate>
+        <input type="email" id="wlEmail" placeholder="Your email — save your spot" autocomplete="email" required/>
+        <button type="submit" class="wl-btn" id="wlBtn">Get early access</button>
+      </form>
+      <div class="wl-msg" id="wlMsg"></div>
+      <div class="wl-ok-card" id="wlOkCard">
+        <b>You're confirmed.</b>
+        <span id="wlOkText" style="font-size:.86rem;color:var(--dusk);">You're on the list. Watch your inbox — we'll call you in first.</span>
       </div>
-      <div class="mod">
-        <span class="mod-num">02 — What's coming</span>
-        <h3>Your grind, your feed</h3>
-        <p>Profiles, posts, gigs &amp; barter — <b>skill exchange stays</b>, now inside a
-        living community where every hustle is visible.</p>
-      </div>
-      <div class="mod">
-        <span class="mod-num">03 — What stays</span>
-        <h3>Your account &amp; data</h3>
-        <p>Accounts, verified income proof, and earnings carry over. <b>Nothing is lost.</b>
-        Log in exactly as before.</p>
-      </div>
+      <p class="wl-hint">Free to join · Your spot is saved · We email, never spam</p>
     </div>
+  </section>
 
-    <div class="ticket">
-      <div class="ticket-l">
-        <span class="pulse-badge">ETA</span>
-        <div>
-          <b>New feed loading</b>
-          <span>Maintenance window — expect the upgraded platform shortly.</span>
+  <section class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">01 — WHAT'S COMING</span>
+      <h2>Built around your hustle.</h2>
+      <span class="rule"></span>
+    </div>
+    <div class="feat-grid">
+      <div class="phone-feature">
+        <div class="pf-row active">
+          <span class="pf-glyph">01</span>
+          <div>
+            <b>The Hustle Feed</b>
+            <p>Posts, stories and live updates from real hustlers — earnings, wins, lessons, and the daily grind, all in one scroll.</p>
+          </div>
+        </div>
+        <div class="pf-row">
+          <span class="pf-glyph sig">02</span>
+          <div>
+            <b>Profiles, HustleScore &amp; badges</b>
+            <p>Your profile is your resume. Earn a visible HustleScore from likes, trades and reviews — trust that follows you.</p>
+          </div>
+        </div>
+        <div class="pf-row">
+          <span class="pf-glyph">03</span>
+          <div>
+            <b>Gigs &amp; barter, in-feed</b>
+            <p>Post gigs, swap skills and close deals straight from the feed. Every trade lands on your score.</p>
+          </div>
+        </div>
+        <div class="pf-row">
+          <span class="pf-glyph sig">04</span>
+          <div>
+            <b>Income Passport</b>
+            <p>Your UPI credits, gig payouts and invoices become a verified income document — accepted by landlords, banks and visa officers.</p>
+          </div>
         </div>
       </div>
-      <div class="ticket-r">
-        Questions? <a href="mailto:support@gritandgigs.in">support@gritandgigs.in</a><br/>
-        Follow the build: <a href="https://www.instagram.com/gritandgigs/" rel="noopener" target="_blank">@gritandgigs</a>
+
+      <div class="mock">
+        <div class="mock-screen">
+          <div class="mock-top">
+            <span class="mock-nav">hustle/<span class="n">feed</span></span>
+            <span class="mock-nav">+ earn · barter</span>
+          </div>
+          <div class="mock-stories">
+            <div class="m-story"><div class="m-ring"><div>SG</div></div><span>sg:earn</span></div>
+            <div class="m-story"><div class="m-ring"><div>AK</div></div><span>ak.dzn</span></div>
+            <div class="m-story"><div class="m-ring"><div>MR</div></div><span>mr.tech</span></div>
+            <div class="m-story"><div class="m-ring"><div>VN</div></div><span>vini.draws</span></div>
+          </div>
+          <div class="mock-post">
+            <div class="m-ph"><span class="chip">₹499 · design gig</span></div>
+            <div class="m-actions"><span>♥ 1.2k</span><span>💬 214</span><span>↗ 89</span></div>
+            <div class="m-bar"><i></i></div>
+            <div class="m-caption"><b>@ak.dzn</b> — Logo for a cafe startup, done in 6 hours. HustleScore +8. 🚀</div>
+          </div>
+          <div class="m-score"><span>HUSTLESCORE</span><span class="sc">72/100 · TOP 6%</span></div>
+        </div>
       </div>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">02 — THE EVERYDAY THINGS</span>
+      <h2>Small tools. Big credits.</h2>
+      <span class="rule"></span>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <span class="c-glyph">💬</span>
+        <h3>DMs &amp; groups</h3>
+        <p>Message any hustler, build squads, and keep gig chats in one place — with scam-link screening before anything feels wrong.</p>
+      </div>
+      <div class="card">
+        <span class="c-glyph sig">🛡️</span>
+        <h3>Scam radar</h3>
+        <p>Every deal is guarded. Suspicious profiles, fake payout links and impersonators get flagged before they can reach you.</p>
+      </div>
+      <div class="card">
+        <span class="c-glyph">📊</span>
+        <h3>Hustle analytics</h3>
+        <p>See which posts earned, which gigs closed, and how your income proof grows month over month — all in your profile.</p>
+      </div>
+      <div class="card">
+        <span class="c-glyph sig">🇮🇳</span>
+        <h3>Made for India</h3>
+        <p>UPI-first, Hindi-English friendly, built for students, freelancers, and the 2.35 crore gig workforce going mainstream.</p>
+      </div>
+      <div class="card">
+        <span class="c-glyph">📱</span>
+        <h3>App &amp; web</h3>
+        <p>One account, every screen — a native phone app for the grind on the go, and the web for deep work.</p>
+      </div>
+      <div class="card">
+        <span class="c-glyph sig">🔒</span>
+        <h3>Built on trust</h3>
+        <p>KYC-backed profiles, verified income proof and an escrow-style flow for gigs — so money and skills move safely.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap ticket">
+    <div class="ticket-l">
+      <span class="pulse-badge">ETA SOON</span>
+      <div>
+        <b>Launch is loading.</b>
+        <span>Your account, verified proof and data all carry over. And now it becomes a community worth being part of.</span>
+      </div>
+    </div>
+    <div class="ticket-r">
+      Questions? <a href="mailto:support@gritandgigs.in">support@gritandgigs.in</a><br/>
+      Watch the build: <a href="https://www.instagram.com/gritandgigs/" rel="noopener" target="_blank">@gritandgigs</a>
     </div>
   </section>
 </main>
 
 <footer>
   <div class="wrap foot">
-    <span class="mono">Grit&Gigs — rebuild in progress</span>
+    <span class="mono">Grit&Gigs — the community is coming</span>
     <span>
       <a href="mailto:support@gritandgigs.in">Support</a>
       <a href="https://www.instagram.com/gritandgigs/" rel="noopener" target="_blank">Instagram</a>
     </span>
   </div>
 </footer>
+
+<script>
+(function () {
+  var form = document.getElementById('wlForm');
+  var input = document.getElementById('wlEmail');
+  var btn = document.getElementById('wlBtn');
+  var msg = document.getElementById('wlMsg');
+  var okCard = document.getElementById('wlOkCard');
+  var okText = document.getElementById('wlOkText');
+  if (!form) return;
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var email = input.value.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      msg.className = 'wl-msg err';
+      msg.textContent = 'Enter a valid email to save your spot.';
+      return;
+    }
+    msg.className = 'wl-msg';
+    msg.innerHTML = '<span class="spin"></span> Saving your spot…';
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    fetch('/api/waitlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email })
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (res.ok && res.d.success) {
+          form.style.display = 'none';
+          msg.className = 'wl-msg';
+          msg.textContent = '';
+          okCard.style.display = 'block';
+          if (res.d.data && res.d.data.position) {
+            okText.textContent = "You're spot #" + res.d.data.position + ". Watch your inbox — we'll call you in first.";
+          }
+        } else {
+          msg.className = 'wl-msg err';
+          msg.textContent = (res.d && res.d.message) || 'Something went wrong. Try again.';
+          btn.disabled = false;
+          btn.textContent = 'Get early access';
+        }
+      })
+      .catch(function () {
+        msg.className = 'wl-msg err';
+        msg.textContent = 'Network error. Please try again.';
+        btn.disabled = false;
+        btn.textContent = 'Get early access';
+      });
+  });
+})();
+</script>
 </body>
 </html>
