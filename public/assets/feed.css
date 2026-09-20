@@ -33,16 +33,20 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
   height: 52px; padding: 0 20px; background: var(--card);
   border-bottom: 1px solid var(--line);
 }
-.topnav .brand { font-size: 19px; font-weight: 700; letter-spacing: -0.3px; color: var(--ink); display: flex; align-items: baseline; gap: 6px; }
-.topnav .brand span { background: var(--ink); color: #fff; font-size: 11px; font-weight: 800; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.3px; }
+.topnav .brand { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+.topnav .brand span { background: none; color: inherit; font-size: inherit; font-weight: inherit; padding: 0; border-radius: 0; letter-spacing: inherit; }
+.topnav .brand span span { color: #6C3FE8; }
 .topnav .brand em { font-style: normal; color: var(--signal); }
 .topnav .searchbox { flex: 1; max-width: 280px; position: relative; margin: 0 auto; }
 .topnav .searchbox input { width: 100%; height: 34px; padding: 0 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; font-size: 14px; outline: none; }
 .topnav .searchbox input:focus { border-color: var(--ink-2); background: #fff; }
 .topnav .icons { display: flex; gap: 6px; align-items: center; }
 .topnav .icons a { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; color: var(--ink); font-size: 21px; }
-.topnav .icons a.on { background: var(--bg); }
+.topnav .icons a.on { background: #F0EAFF; }
 .topnav .icons a:hover { color: var(--ink-2); }
+.topnav .icons svg { width: 23px; height: 23px; fill: none; stroke: #6C3FE8; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: fill .12s ease; }
+.topnav .icons a.on svg { fill: #6C3FE8; stroke: #6C3FE8; }
+.topnav .icons a:hover svg { fill: #EFE6FF; }
 .topnav .avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
 .badge { position: relative; }
 .badge .cnt { position: absolute; top: 2px; right: 2px; background: var(--signal); color: #fff; font-size: 9px; font-weight: 700; min-width: 15px; height: 15px; border-radius: 8px; display: grid; place-items: center; padding: 0 3px; }
@@ -59,6 +63,7 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
 .story { display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; flex: 0 0 auto; width: 62px; }
 .story .ring { width: 56px; height: 56px; border-radius: 50%; padding: 3px; background: conic-gradient(from 180deg, var(--story-a), var(--story-b), var(--story-c), var(--story-a)); }
 .story .ring img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid #fff; }
+.story .ring .glyph { width: 100%; height: 100%; border-radius: 50%; border: 3px solid #fff; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 24px; }
 .story .lbl { font-size: 11px; color: var(--ink-2); text-overflow: ellipsis; overflow: hidden; width: 64px; text-align: center; white-space: nowrap; }
 .story.new .ring { background: var(--line); }
 
@@ -221,7 +226,10 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
 h4.sub-title { font-size: 14px; font-weight: 600; margin: 20px 0 12px; }
 .back-row { display: flex; justify-content: flex-end; padding: 4px 0 12px; }
 .back-row a { font-size: 13px; font-weight: 600; color: var(--blue); }
-.topnav .brand .brand-mark { width: 22px; height: 22px; border-radius: 6px; object-fit: contain; align-self: center; flex: 0 0 auto; background: #fff; border: 1px solid var(--line, #eee); box-shadow: 0 0 0 1px rgba(0,0,0,.03); }
+.topnav .brand .brand-mark { width: 26px; height: 26px; border-radius: 7px; object-fit: contain; align-self: center; flex: 0 0 auto; }
+.big-cta { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 10px; padding: 11px 14px; border: none; border-radius: 12px; background: linear-gradient(135deg, #8D5BFF, #6C3FE8); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 14px rgba(108, 63, 232, .28); transition: transform .12s ease, filter .12s ease; }
+.big-cta:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.big-cta:active { transform: translateY(0); }
 .qrow { display: flex; align-items: center; gap: 12px; background: #fafafa; border: 1px solid var(--line, #eee); border-radius: 12px; padding: 12px 14px; }
 .qrow .ql { flex: 1; min-width: 0; }
 .qrow .ql strong { display: block; font-size: 14px; }

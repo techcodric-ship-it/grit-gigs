@@ -4,9 +4,9 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="robots" content="noindex, follow"/>
-<title>Grit&Gigs ó Feed</title>
+<title>Grit&Gigs ‚Äî Feed</title>
 <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=4"/>
-<link rel="stylesheet" href="/assets/feed.css?v=5"/>
+<link rel="stylesheet" href="/assets/feed.css?v=6"/>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
@@ -14,13 +14,13 @@
 
 <header class="topnav">
   <a class="brand" href="/feed"><img src="/logo.svg" alt="" class="brand-mark"/><span>Grit<span>&amp;Gigs</span></span></a>
-  <div class="searchbox"><input id="navSearch" placeholder="Search gigs, projects, barterÖ"/></div>
+  <div class="searchbox"><input id="navSearch" placeholder="Search gigs, projects, barter‚Ä¶"/></div>
   <div class="icons">
-    <a href="/feed" title="Feed" class="on">??</a>
-    <a href="/explore.html" title="Explore">?</a>
-    <a href="/messages.html" title="Messages">?<span class="cnt" id="msgBadge" style="display:none;">0</span></a>
-    <a href="/notifications.html" class="badge" title="Inbox">?<span class="cnt" id="notifBadge" style="display:none;">0</span></a>
-    <a href="/orders.html" title="Orders">??</a>
+    <a href="/feed" title="Feed" class="on"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.7V21h14V9.7"/></svg></a>
+    <a href="/explore.html" title="Explore"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.3 16.3 4.2 4.2"/></svg></a>
+    <a href="/messages.html" title="Messages"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/></svg><span class="cnt" id="msgBadge" style="display:none;">0</span></a>
+    <a href="/notifications.html" class="badge" title="Inbox"><svg viewBox="0 0 24 24"><path d="M12 20.3 4.9 13a4.7 4.7 0 0 1 6.6-6.6l.5.5.5-.5A4.7 4.7 0 0 1 19 13Z"/></svg><span class="cnt" id="notifBadge" style="display:none;">0</span></a>
+    <a href="/orders.html" title="Orders"><svg viewBox="0 0 24 24"><path d="M21 8.2 12 3 3 8.2v7.6L12 21l9-5.2Z"/><path d="M3.3 8.3 12 13.3l8.7-5"/><path d="M12 13.3V21"/></svg></a>
     <a href="/profile.html" id="navProfile" title="Profile"><img id="navAv" class="avatar" src="https://api.dicebear.com/9.x/initials/svg?seed=grit&backgroundColor=f0f0f0&textColor=262626" alt=""/></a>
   </div>
 </header>
@@ -32,7 +32,7 @@
     <div class="card" style="padding:10px 16px;margin-bottom:18px;">
       <div class="card-comment-form" style="border:none;padding:6px 0;">
         <img class="av" src="https://api.dicebear.com/9.x/initials/svg?seed=grit&backgroundColor=f0f0f0&textColor=262626" alt="" style="width:34px;height:34px;border-radius:50%;object-fit:cover;background:var(--line);"/>
-        <input id="quickPost" placeholder="Share your grind ó a win, gig, or questionÖ" readonly/>
+        <input id="quickPost" placeholder="Share your grind ‚Äî a win, gig, or question‚Ä¶" readonly/>
         <button id="quickBtn" style="flex:0 0 auto;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-weight:600;">Post</button>
       </div>
     </div>
@@ -47,7 +47,7 @@
         <div id="suggestList"></div>
       </div>
       <div class="side-card" id="railUser"></div>
-      <p style="font-size:11px;color:var(--dusk);padding:0 4px;">© 2026 Grit&amp;Gigs</p>
+      <p style="font-size:11px;color:var(--dusk);padding:0 4px;">¬© 2026 Grit&amp;Gigs</p>
     </div>
   </aside>
 </div>
@@ -77,7 +77,7 @@
     </div>
     <div class="fld-row">
       <div class="fld" id="pPriceFld">
-        <label id="priceLabel">Price (?)</label>
+        <label id="priceLabel">Price (‚Çπ)</label>
         <input type="number" id="pPrice" placeholder="499"/>
       </div>
       <div class="fld">
@@ -131,10 +131,10 @@
     <h3>Sign in</h3>
     <div class="sub">Your hustle, one login.</div>
     <div class="fld"><label>Email</label><input type="email" id="loginEmail" placeholder="you@email.com"/></div>
-    <div class="fld"><label>Password</label><input type="password" id="loginPass" placeholder="ïïïïïïïï"/></div>
+    <div class="fld"><label>Password</label><input type="password" id="loginPass" placeholder="Your password"/></div>
     <div class="err" id="loginErr"></div>
     <div class="actions"><button class="primary" id="loginSubmit">Sign in</button></div>
-    <div class="note">No account? <a href="#" id="gotoRegister">Create one here</a> ó 30 seconds.</div>
+    <div class="note">No account? <a href="#" id="gotoRegister">Create one here</a> ‚Äî 30 seconds.</div>
   </div>
 </div>
 
@@ -142,14 +142,14 @@
 <div class="modal-backdrop" id="registerModal">
   <div class="modal">
     <h3>Create your Grit&amp;Gigs account</h3>
-    <div class="sub">Join the grind ó it's free.</div>
+    <div class="sub">Join the grind ‚Äî it's free.</div>
     <div class="fld-row">
       <div class="fld"><label>First name</label><input type="text" id="regFirst" placeholder="Arjun"/></div>
       <div class="fld"><label>Last name</label><input type="text" id="regLast" placeholder="Kumar"/></div>
     </div>
     <div class="fld"><label>Email</label><input type="email" id="regEmail" placeholder="you@email.com"/></div>
     <div class="fld"><label>Phone (WhatsApp)</label><input type="tel" id="regPhone" placeholder="+91 98765 43210"/></div>
-    <div class="fld"><label>Password (8+ chars)</label><input type="password" id="regPass" placeholder="ïïïïïïïï"/></div>
+    <div class="fld"><label>Password (8+ chars)</label><input type="password" id="regPass" placeholder="Password"/></div>
     <div class="err" id="regErr"></div>
     <div class="actions">
       <button class="ghost" id="regCancel">Cancel</button>
@@ -183,9 +183,9 @@
 <div class="modal-backdrop" id="orderModal">
   <div class="modal">
     <h3 id="orderTitle">Order</h3>
-    <div class="sub">Send your requirements ó you'll get updates and revisions here.</div>
-    <div class="fld"><label>Requirements</label><textarea id="orderReq" rows="5" placeholder="Describe what you needÖ"></textarea></div>
-    <div class="fld" id="orderAmtRow"><label>Amount (?)</label><input type="number" id="orderAmt" placeholder="?"/></div>
+    <div class="sub">Send your requirements ‚Äî you'll get updates and revisions here.</div>
+    <div class="fld"><label>Requirements</label><textarea id="orderReq" rows="5" placeholder="Describe what you need‚Ä¶"></textarea></div>
+    <div class="fld" id="orderAmtRow"><label>Amount (‚Çπ)</label><input type="number" id="orderAmt" placeholder="‚Çπ"/></div>
     <div class="err" id="orderErr"></div>
     <div class="actions">
       <button class="ghost" id="orderCancel">Cancel</button>
@@ -225,20 +225,20 @@
 
   // -- stories (quick kind filter chips) --
   var storyDefs = [
-    { k: '', lbl: 'All' },
-    { k: 'GIG', lbl: 'Gigs', emoji: '??' },
-    { k: 'BARTER', lbl: 'Barter', emoji: '?' },
-    { k: 'WIN', lbl: 'Wins', emoji: '??' },
-    { k: 'TIPS', lbl: 'Tips', emoji: '??' },
-    { k: 'POST', lbl: 'Posts', emoji: '??' },
-    { k: 'PROJECT', lbl: 'Projects', emoji: '??' },
-    { k: 'REEL', lbl: 'Reels', emoji: '?' },
+    { k: '', lbl: 'All', emoji: '‚ú¶' },
+    { k: 'GIG', lbl: 'Gigs', emoji: 'üíº' },
+    { k: 'BARTER', lbl: 'Barter', emoji: 'ü§ù' },
+    { k: 'WIN', lbl: 'Wins', emoji: 'üèÜ' },
+    { k: 'TIPS', lbl: 'Tips', emoji: 'üí°' },
+    { k: 'POST', lbl: 'Posts', emoji: 'üí¨' },
+    { k: 'PROJECT', lbl: 'Projects', emoji: 'üóÇ' },
+    { k: 'REEL', lbl: 'Reels', emoji: 'üé¨' },
   ];
   var storiesEl = $('stories');
   storyDefs.forEach(function (s) {
     var st = document.createElement('div');
     st.className = 'story' + (s.k ? ' new' : '');
-    st.innerHTML = '<div class="ring"><img src="' + c.esc('https://api.dicebear.com/9.x/shapes/svg?seed=' + encodeURIComponent(s.lbl)) + '"/></div><div class="lbl">' + s.lbl + '</div>';
+    st.innerHTML = '<div class="ring"><span class="glyph">' + (s.emoji || '') + '</span></div><div class="lbl">' + s.lbl + '</div>';
     st.addEventListener('click', function () {
       if (s.k === '') { loadFeed(''); } else { location.href = '/explore.html?kind=' + s.k; }
     });
@@ -274,7 +274,7 @@
       th.innerHTML = (m.type === 'video'
         ? '<video src="' + c.esc(m.url) + '" muted preload="metadata"></video>'
         : '<img src="' + c.esc(m.url) + '" alt=""/>') +
-        '<button class="x" data-rm="' + i + '">◊</button>';
+        '<button class="x" data-rm="' + i + '">‚úï</button>';
       box.appendChild(th);
     });
     var add = document.createElement('button');
@@ -308,7 +308,7 @@
     if (!files.length) return;
     var btn = $('composeSubmit');
     btn.disabled = true;
-    c.toast('Uploading mediaÖ');
+    c.toast('Uploading media‚Ä¶');
     doUpload(files, function (res, err) {
       btn.disabled = false;
       if (err) { c.toast(err, true); return; }
@@ -320,18 +320,18 @@
 
   function syncKindFields() {
     var k = currentKind;
-    $('priceLabel').textContent = (k === 'PROJECT') ? 'Budget from (?)' : 'Price (?)';
+    $('priceLabel').textContent = (k === 'PROJECT') ? 'Budget from (‚Çπ)' : 'Price (‚Çπ)';
     $('deliveryLabel').textContent = 'Delivery (days)';
     $('pPriceFld').style.display = (k === 'GIG' || k === 'PROJECT') ? '' : 'none';
     $('pRevFld').style.display = (k === 'GIG' || k === 'BARTER' || k === 'PROJECT') ? '' : 'none';
     $('pWantFld').style.display = (k === 'BARTER') ? '' : 'none';
     $('contentLabel').textContent = (k === 'REEL') ? 'Reel caption' : (k === 'GIG' ? 'What you can do' : (k === 'PROJECT' ? 'Project description' : (k === 'BARTER' ? 'What you offer' : 'Caption')));
     $('pContent').placeholder =
-      k === 'GIG' ? 'I can design a logo, build a website, edit a reelÖ' :
-      k === 'PROJECT' ? 'I need a website built, a brand kit, a videoÖ' :
-      k === 'BARTER' ? 'I\u0027ll design your logo if you build my websiteÖ' :
-      k === 'REEL' ? 'Add a short video to show your hustleÖ' :
-      'Earned my first ?5,000 this monthÖ';
+      k === 'GIG' ? 'I can design a logo, build a website, edit a reel‚Ä¶' :
+      k === 'PROJECT' ? 'I need a website built, a brand kit, a video‚Ä¶' :
+      k === 'BARTER' ? 'I\u0027ll design your logo if you build my website‚Ä¶' :
+      k === 'REEL' ? 'Add a short video to show your hustle‚Ä¶' :
+      'Earned my first ‚Çπ5,000 this month‚Ä¶';
     $('compTitle').textContent = k === 'REEL' ? 'Post a reel' : k === 'GIG' ? 'Post a gig' : k === 'PROJECT' ? 'Post a project' : k === 'BARTER' ? 'Post a barter' : 'Share your grind';
   }
 
@@ -374,7 +374,7 @@
       location: $('pLocation').value.trim() || undefined,
     };
     var btn = this;
-    btn.disabled = true; btn.textContent = 'PostingÖ';
+    btn.disabled = true; btn.textContent = 'Posting‚Ä¶';
     c.api('/community/posts', { method: 'POST', body: body }).then(function (r) {
       btn.disabled = false; btn.textContent = 'Post it';
       if (!r.ok) {
@@ -402,7 +402,7 @@
   // -- feed --
   var postsEl = $('posts');
   function loadFeed(kind) {
-    postsEl.innerHTML = '<div class="loading">Loading feedÖ</div>';
+    postsEl.innerHTML = '<div class="loading">Loading feed‚Ä¶</div>';
     var url = '/community/feed?limit=25' + (kind ? '&kind=' + encodeURIComponent(kind) : '');
     c.api(url).then(function (r) {
       if (!r.ok) { postsEl.innerHTML = '<div class="empty"><h3>Could not load the feed</h3><p>' + c.esc(r.d.message || '') + '</p></div>'; return; }
@@ -424,7 +424,7 @@
         var it = document.createElement('div');
         it.className = 'top-item';
         it.style.cursor = 'pointer';
-        it.innerHTML = '<img class="av" src="' + c.esc(c.avatarFor(a)) + '" alt=""/><div style="min-width:0;"><div class="nm">' + c.esc(a.firstName || 'Hustler') + '</div><div class="ct">' + Number(row.post.likeCount || 0).toLocaleString('en-IN') + ' likes ∑ ' + (row.post.kind || 'POST') + '</div></div>';
+        it.innerHTML = '<img class="av" src="' + c.esc(c.avatarFor(a)) + '" alt=""/><div style="min-width:0;"><div class="nm">' + c.esc(a.firstName || 'Hustler') + '</div><div class="ct">' + Number(row.post.likeCount || 0).toLocaleString('en-IN') + ' likes ‚Äî ' + (row.post.kind || 'POST') + '</div></div>';
         it.addEventListener('click', function () { c.openPost(row.post.id); });
         el.appendChild(it);
       });
@@ -473,7 +473,7 @@
       ];
       $('quotaRows').innerHTML = rows.map(function (x) {
         var left = Math.max(0, x.limit - x.used) + x.bonus;
-        return '<div class="qrow"><div class="ql"><strong>' + x.label + '</strong><div class="sub">' + x.line + ' ó <b>' + left + '</b> left this month' + (x.bonus ? ' (incl. ' + x.bonus + ' bought)' : '') + '</div></div><button class="primary" data-plan="' + x.plan + '" data-price="' + x.price + '">+5 ∑ ?' + x.price + '</button></div>';
+        return '<div class="qrow"><div class="ql"><strong>' + x.label + '</strong><div class="sub">' + x.line + ' ‚Äî <b>' + left + '</b> left this month' + (x.bonus ? ' (incl. ' + x.bonus + ' bought)' : '') + '</div></div><button class="primary" data-plan="' + x.plan + '" data-price="' + x.price + '">+5 more ‚Çπ' + x.price + '</button></div>';
       }).join('');
       $('quotaRows').querySelectorAll('[data-plan]').forEach(function (b) {
         b.addEventListener('click', function () { qBuy(b.dataset.plan, Number(b.dataset.price)); });
@@ -486,7 +486,7 @@
     $('quotaErr').textContent = '';
     c.api('/community/quota/order', { method: 'POST', body: { planId: plan } }).then(function (r) {
       if (!r.ok) { $('quotaErr').textContent = r.d.message || 'Failed'; return; }
-      if (!window.Razorpay) { $('quotaErr').textContent = 'Payment not ready ó try again in a bit.'; return; }
+      if (!window.Razorpay) { $('quotaErr').textContent = 'Payment not ready ‚Äî try again in a bit.'; return; }
       var key = r.d.data.key, order = r.d.data.order.id;
       var rzp = new Razorpay({
         key: key,
@@ -514,7 +514,7 @@
       var d = r.d.data, gp = d.gigPosts, pp = d.proposals;
       var gLeft = Math.max(0, gp.limit - gp.used) + gp.bonus;
       var pLeft = Math.max(0, pp.limit - pp.used) + pp.bonus;
-      $('quotaNote').innerHTML = 'Gig posts: <b>' + gLeft + ' left</b> ∑ Proposals: <b>' + pLeft + ' left</b> this month ∑ <a href="#" id="quotaLink">Buy more</a>';
+      $('quotaNote').innerHTML = 'Gig posts: <b>' + gLeft + ' left</b> ‚Äî Proposals: <b>' + pLeft + ' left</b> this month ‚Äî <a href="#" id="quotaLink">Buy more</a>';
       var link = $('quotaNote').querySelector('#quotaLink');
       if (link) link.addEventListener('click', function (e) { e.preventDefault(); qOpen(); });
     });
