@@ -221,7 +221,7 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
 h4.sub-title { font-size: 14px; font-weight: 600; margin: 20px 0 12px; }
 .back-row { display: flex; justify-content: flex-end; padding: 4px 0 12px; }
 .back-row a { font-size: 13px; font-weight: 600; color: var(--blue); }
-.topnav .brand .brand-mark { width: 20px; height: 20px; border-radius: 6px; object-fit: cover; align-self: center; flex: 0 0 auto; }
+.topnav .brand .brand-mark { width: 22px; height: 22px; border-radius: 6px; object-fit: contain; align-self: center; flex: 0 0 auto; background: #fff; border: 1px solid var(--line, #eee); box-shadow: 0 0 0 1px rgba(0,0,0,.03); }
 .qrow { display: flex; align-items: center; gap: 12px; background: #fafafa; border: 1px solid var(--line, #eee); border-radius: 12px; padding: 12px 14px; }
 .qrow .ql { flex: 1; min-width: 0; }
 .qrow .ql strong { display: block; font-size: 14px; }

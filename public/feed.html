@@ -1,12 +1,12 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="robots" content="noindex, follow"/>
-<title>Grit&Gigs — Feed</title>
+<title>Grit&Gigs � Feed</title>
 <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=4"/>
-<link rel="stylesheet" href="/assets/feed.css"/>
+<link rel="stylesheet" href="/assets/feed.css?v=5"/>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
@@ -14,13 +14,13 @@
 
 <header class="topnav">
   <a class="brand" href="/feed"><img src="/logo.svg" alt="" class="brand-mark"/><span>Grit<span>&amp;Gigs</span></span></a>
-  <div class="searchbox"><input id="navSearch" placeholder="Search gigs, projects, barter…"/></div>
+  <div class="searchbox"><input id="navSearch" placeholder="Search gigs, projects, barter�"/></div>
   <div class="icons">
-    <a href="/feed" title="Feed" class="on">🏠</a>
-    <a href="/explore.html" title="Explore">⌕</a>
-    <a href="/messages.html" title="Messages">✉<span class="cnt" id="msgBadge" style="display:none;">0</span></a>
-    <a href="/notifications.html" class="badge" title="Inbox">❤<span class="cnt" id="notifBadge" style="display:none;">0</span></a>
-    <a href="/orders.html" title="Orders">📦</a>
+    <a href="/feed" title="Feed" class="on">??</a>
+    <a href="/explore.html" title="Explore">?</a>
+    <a href="/messages.html" title="Messages">?<span class="cnt" id="msgBadge" style="display:none;">0</span></a>
+    <a href="/notifications.html" class="badge" title="Inbox">?<span class="cnt" id="notifBadge" style="display:none;">0</span></a>
+    <a href="/orders.html" title="Orders">??</a>
     <a href="/profile.html" id="navProfile" title="Profile"><img id="navAv" class="avatar" src="https://api.dicebear.com/9.x/initials/svg?seed=grit&backgroundColor=f0f0f0&textColor=262626" alt=""/></a>
   </div>
 </header>
@@ -32,7 +32,7 @@
     <div class="card" style="padding:10px 16px;margin-bottom:18px;">
       <div class="card-comment-form" style="border:none;padding:6px 0;">
         <img class="av" src="https://api.dicebear.com/9.x/initials/svg?seed=grit&backgroundColor=f0f0f0&textColor=262626" alt="" style="width:34px;height:34px;border-radius:50%;object-fit:cover;background:var(--line);"/>
-        <input id="quickPost" placeholder="Share your grind — a win, gig, or question…" readonly/>
+        <input id="quickPost" placeholder="Share your grind � a win, gig, or question�" readonly/>
         <button id="quickBtn" style="flex:0 0 auto;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-weight:600;">Post</button>
       </div>
     </div>
@@ -47,7 +47,7 @@
         <div id="suggestList"></div>
       </div>
       <div class="side-card" id="railUser"></div>
-      <p style="font-size:11px;color:var(--dusk);padding:0 4px;">© 2026 Grit&amp;Gigs</p>
+      <p style="font-size:11px;color:var(--dusk);padding:0 4px;">� 2026 Grit&amp;Gigs</p>
     </div>
   </aside>
 </div>
@@ -77,7 +77,7 @@
     </div>
     <div class="fld-row">
       <div class="fld" id="pPriceFld">
-        <label id="priceLabel">Price (₹)</label>
+        <label id="priceLabel">Price (?)</label>
         <input type="number" id="pPrice" placeholder="499"/>
       </div>
       <div class="fld">
@@ -131,10 +131,10 @@
     <h3>Sign in</h3>
     <div class="sub">Your hustle, one login.</div>
     <div class="fld"><label>Email</label><input type="email" id="loginEmail" placeholder="you@email.com"/></div>
-    <div class="fld"><label>Password</label><input type="password" id="loginPass" placeholder="••••••••"/></div>
+    <div class="fld"><label>Password</label><input type="password" id="loginPass" placeholder="��������"/></div>
     <div class="err" id="loginErr"></div>
     <div class="actions"><button class="primary" id="loginSubmit">Sign in</button></div>
-    <div class="note">No account? <a href="#" id="gotoRegister">Create one here</a> — 30 seconds.</div>
+    <div class="note">No account? <a href="#" id="gotoRegister">Create one here</a> � 30 seconds.</div>
   </div>
 </div>
 
@@ -142,14 +142,14 @@
 <div class="modal-backdrop" id="registerModal">
   <div class="modal">
     <h3>Create your Grit&amp;Gigs account</h3>
-    <div class="sub">Join the grind — it's free.</div>
+    <div class="sub">Join the grind � it's free.</div>
     <div class="fld-row">
       <div class="fld"><label>First name</label><input type="text" id="regFirst" placeholder="Arjun"/></div>
       <div class="fld"><label>Last name</label><input type="text" id="regLast" placeholder="Kumar"/></div>
     </div>
     <div class="fld"><label>Email</label><input type="email" id="regEmail" placeholder="you@email.com"/></div>
     <div class="fld"><label>Phone (WhatsApp)</label><input type="tel" id="regPhone" placeholder="+91 98765 43210"/></div>
-    <div class="fld"><label>Password (8+ chars)</label><input type="password" id="regPass" placeholder="••••••••"/></div>
+    <div class="fld"><label>Password (8+ chars)</label><input type="password" id="regPass" placeholder="��������"/></div>
     <div class="err" id="regErr"></div>
     <div class="actions">
       <button class="ghost" id="regCancel">Cancel</button>
@@ -183,9 +183,9 @@
 <div class="modal-backdrop" id="orderModal">
   <div class="modal">
     <h3 id="orderTitle">Order</h3>
-    <div class="sub">Send your requirements — you'll get updates and revisions here.</div>
-    <div class="fld"><label>Requirements</label><textarea id="orderReq" rows="5" placeholder="Describe what you need…"></textarea></div>
-    <div class="fld" id="orderAmtRow"><label>Amount (₹)</label><input type="number" id="orderAmt" placeholder="₹"/></div>
+    <div class="sub">Send your requirements � you'll get updates and revisions here.</div>
+    <div class="fld"><label>Requirements</label><textarea id="orderReq" rows="5" placeholder="Describe what you need�"></textarea></div>
+    <div class="fld" id="orderAmtRow"><label>Amount (?)</label><input type="number" id="orderAmt" placeholder="?"/></div>
     <div class="err" id="orderErr"></div>
     <div class="actions">
       <button class="ghost" id="orderCancel">Cancel</button>
@@ -194,7 +194,7 @@
   </div>
 </div>
 
-<script src="/assets/feed-app.js"></script>
+<script src="/assets/feed-app.js?v=5"></script>
 <script>
 (function () {
   var c = window.community;
@@ -223,16 +223,16 @@
   if ($('verifyModal')) $('verifyModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
   if ($('composeModal')) $('composeModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
 
-  // ── stories (quick kind filter chips) ──
+  // -- stories (quick kind filter chips) --
   var storyDefs = [
     { k: '', lbl: 'All' },
-    { k: 'GIG', lbl: 'Gigs', emoji: '💼' },
-    { k: 'BARTER', lbl: 'Barter', emoji: '⟷' },
-    { k: 'WIN', lbl: 'Wins', emoji: '🏆' },
-    { k: 'TIPS', lbl: 'Tips', emoji: '💡' },
-    { k: 'POST', lbl: 'Posts', emoji: '📝' },
-    { k: 'PROJECT', lbl: 'Projects', emoji: '📋' },
-    { k: 'REEL', lbl: 'Reels', emoji: '▶' },
+    { k: 'GIG', lbl: 'Gigs', emoji: '??' },
+    { k: 'BARTER', lbl: 'Barter', emoji: '?' },
+    { k: 'WIN', lbl: 'Wins', emoji: '??' },
+    { k: 'TIPS', lbl: 'Tips', emoji: '??' },
+    { k: 'POST', lbl: 'Posts', emoji: '??' },
+    { k: 'PROJECT', lbl: 'Projects', emoji: '??' },
+    { k: 'REEL', lbl: 'Reels', emoji: '?' },
   ];
   var storiesEl = $('stories');
   storyDefs.forEach(function (s) {
@@ -245,7 +245,7 @@
     storiesEl.appendChild(st);
   });
 
-  // ── compose: media upload state ──
+  // -- compose: media upload state --
   var pickedMedia = [];
   var currentKind = 'POST';
 
@@ -274,7 +274,7 @@
       th.innerHTML = (m.type === 'video'
         ? '<video src="' + c.esc(m.url) + '" muted preload="metadata"></video>'
         : '<img src="' + c.esc(m.url) + '" alt=""/>') +
-        '<button class="x" data-rm="' + i + '">×</button>';
+        '<button class="x" data-rm="' + i + '">�</button>';
       box.appendChild(th);
     });
     var add = document.createElement('button');
@@ -308,7 +308,7 @@
     if (!files.length) return;
     var btn = $('composeSubmit');
     btn.disabled = true;
-    c.toast('Uploading media…');
+    c.toast('Uploading media�');
     doUpload(files, function (res, err) {
       btn.disabled = false;
       if (err) { c.toast(err, true); return; }
@@ -320,18 +320,18 @@
 
   function syncKindFields() {
     var k = currentKind;
-    $('priceLabel').textContent = (k === 'PROJECT') ? 'Budget from (₹)' : 'Price (₹)';
+    $('priceLabel').textContent = (k === 'PROJECT') ? 'Budget from (?)' : 'Price (?)';
     $('deliveryLabel').textContent = 'Delivery (days)';
     $('pPriceFld').style.display = (k === 'GIG' || k === 'PROJECT') ? '' : 'none';
     $('pRevFld').style.display = (k === 'GIG' || k === 'BARTER' || k === 'PROJECT') ? '' : 'none';
     $('pWantFld').style.display = (k === 'BARTER') ? '' : 'none';
     $('contentLabel').textContent = (k === 'REEL') ? 'Reel caption' : (k === 'GIG' ? 'What you can do' : (k === 'PROJECT' ? 'Project description' : (k === 'BARTER' ? 'What you offer' : 'Caption')));
     $('pContent').placeholder =
-      k === 'GIG' ? 'I can design a logo, build a website, edit a reel…' :
-      k === 'PROJECT' ? 'I need a website built, a brand kit, a video…' :
-      k === 'BARTER' ? 'I\u0027ll design your logo if you build my website…' :
-      k === 'REEL' ? 'Add a short video to show your hustle…' :
-      'Earned my first ₹5,000 this month…';
+      k === 'GIG' ? 'I can design a logo, build a website, edit a reel�' :
+      k === 'PROJECT' ? 'I need a website built, a brand kit, a video�' :
+      k === 'BARTER' ? 'I\u0027ll design your logo if you build my website�' :
+      k === 'REEL' ? 'Add a short video to show your hustle�' :
+      'Earned my first ?5,000 this month�';
     $('compTitle').textContent = k === 'REEL' ? 'Post a reel' : k === 'GIG' ? 'Post a gig' : k === 'PROJECT' ? 'Post a project' : k === 'BARTER' ? 'Post a barter' : 'Share your grind';
   }
 
@@ -374,7 +374,7 @@
       location: $('pLocation').value.trim() || undefined,
     };
     var btn = this;
-    btn.disabled = true; btn.textContent = 'Posting…';
+    btn.disabled = true; btn.textContent = 'Posting�';
     c.api('/community/posts', { method: 'POST', body: body }).then(function (r) {
       btn.disabled = false; btn.textContent = 'Post it';
       if (!r.ok) {
@@ -391,7 +391,7 @@
     });
   });
 
-  // ── search in nav ──
+  // -- search in nav --
   var navSearch = $('navSearch');
   navSearch.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && navSearch.value.trim()) {
@@ -399,10 +399,10 @@
     }
   });
 
-  // ── feed ──
+  // -- feed --
   var postsEl = $('posts');
   function loadFeed(kind) {
-    postsEl.innerHTML = '<div class="loading">Loading feed…</div>';
+    postsEl.innerHTML = '<div class="loading">Loading feed�</div>';
     var url = '/community/feed?limit=25' + (kind ? '&kind=' + encodeURIComponent(kind) : '');
     c.api(url).then(function (r) {
       if (!r.ok) { postsEl.innerHTML = '<div class="empty"><h3>Could not load the feed</h3><p>' + c.esc(r.d.message || '') + '</p></div>'; return; }
@@ -424,14 +424,14 @@
         var it = document.createElement('div');
         it.className = 'top-item';
         it.style.cursor = 'pointer';
-        it.innerHTML = '<img class="av" src="' + c.esc(c.avatarFor(a)) + '" alt=""/><div style="min-width:0;"><div class="nm">' + c.esc(a.firstName || 'Hustler') + '</div><div class="ct">' + Number(row.post.likeCount || 0).toLocaleString('en-IN') + ' likes · ' + (row.post.kind || 'POST') + '</div></div>';
+        it.innerHTML = '<img class="av" src="' + c.esc(c.avatarFor(a)) + '" alt=""/><div style="min-width:0;"><div class="nm">' + c.esc(a.firstName || 'Hustler') + '</div><div class="ct">' + Number(row.post.likeCount || 0).toLocaleString('en-IN') + ' likes � ' + (row.post.kind || 'POST') + '</div></div>';
         it.addEventListener('click', function () { c.openPost(row.post.id); });
         el.appendChild(it);
       });
     });
   }
 
-  // ── order modal wiring ──
+  // -- order modal wiring --
   $('orderCancel').addEventListener('click', function () { $('orderModal').classList.remove('open'); });
   $('orderModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
   $('orderSubmit').addEventListener('click', function () {
@@ -461,7 +461,7 @@
   loadFeed('');
   loadSuggest();
 
-  // ── quota modal (gig posts / proposals bundles) ──
+  // -- quota modal (gig posts / proposals bundles) --
   function qOpen() {
     if (!c.token()) { c.openLogin(); return; }
     c.api('/community/quota').then(function (r) {
@@ -473,7 +473,7 @@
       ];
       $('quotaRows').innerHTML = rows.map(function (x) {
         var left = Math.max(0, x.limit - x.used) + x.bonus;
-        return '<div class="qrow"><div class="ql"><strong>' + x.label + '</strong><div class="sub">' + x.line + ' — <b>' + left + '</b> left this month' + (x.bonus ? ' (incl. ' + x.bonus + ' bought)' : '') + '</div></div><button class="primary" data-plan="' + x.plan + '" data-price="' + x.price + '">+5 · ₹' + x.price + '</button></div>';
+        return '<div class="qrow"><div class="ql"><strong>' + x.label + '</strong><div class="sub">' + x.line + ' � <b>' + left + '</b> left this month' + (x.bonus ? ' (incl. ' + x.bonus + ' bought)' : '') + '</div></div><button class="primary" data-plan="' + x.plan + '" data-price="' + x.price + '">+5 � ?' + x.price + '</button></div>';
       }).join('');
       $('quotaRows').querySelectorAll('[data-plan]').forEach(function (b) {
         b.addEventListener('click', function () { qBuy(b.dataset.plan, Number(b.dataset.price)); });
@@ -486,7 +486,7 @@
     $('quotaErr').textContent = '';
     c.api('/community/quota/order', { method: 'POST', body: { planId: plan } }).then(function (r) {
       if (!r.ok) { $('quotaErr').textContent = r.d.message || 'Failed'; return; }
-      if (!window.Razorpay) { $('quotaErr').textContent = 'Payment not ready — try again in a bit.'; return; }
+      if (!window.Razorpay) { $('quotaErr').textContent = 'Payment not ready � try again in a bit.'; return; }
       var key = r.d.data.key, order = r.d.data.order.id;
       var rzp = new Razorpay({
         key: key,
@@ -514,7 +514,7 @@
       var d = r.d.data, gp = d.gigPosts, pp = d.proposals;
       var gLeft = Math.max(0, gp.limit - gp.used) + gp.bonus;
       var pLeft = Math.max(0, pp.limit - pp.used) + pp.bonus;
-      $('quotaNote').innerHTML = 'Gig posts: <b>' + gLeft + ' left</b> · Proposals: <b>' + pLeft + ' left</b> this month · <a href="#" id="quotaLink">Buy more</a>';
+      $('quotaNote').innerHTML = 'Gig posts: <b>' + gLeft + ' left</b> � Proposals: <b>' + pLeft + ' left</b> this month � <a href="#" id="quotaLink">Buy more</a>';
       var link = $('quotaNote').querySelector('#quotaLink');
       if (link) link.addEventListener('click', function (e) { e.preventDefault(); qOpen(); });
     });

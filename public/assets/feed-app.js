@@ -485,6 +485,8 @@
       e.preventDefault();
       location.href = '/messages.html?to=' + encodeURIComponent(msgBtn.getAttribute('data-msg'));
     }
+    var bd = e.target.closest('.modal-backdrop');
+    if (bd && e.target === bd) bd.classList.remove('open');
   });
 
   document.addEventListener('keydown', function (e) {
