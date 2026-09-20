@@ -1,12 +1,12 @@
-import { Router, type IRouter, type Request, type Response } from "express";
-import { eq, and, desc, count, sql, type SQL } from "drizzle-orm";
+﻿import { Router, type IRouter, type Request, type Response } from "express";
+import { eq, and, desc, count, sql, inArray, type SQL } from "drizzle-orm";
 import { db, usersTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
-// ── helpers ────────────────────────────────────────────────────────────────
+// â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function kindWhitelist(kind: string | undefined, fallback: string): string {
   const allowed = ["POST", "GIG", "BARTER", "WIN", "TIPS"];
   if (kind && allowed.includes(kind)) return kind;
@@ -62,7 +62,7 @@ async function loadCommentCounts(postIds: string[]): Promise<Record<string, { co
   const comments = await db
     .select()
     .from(communityCommentsTable)
-    .where(sql`${communityCommentsTable.postId} = ANY(${postIds})`)
+    .where(inArray(communityCommentsTable.postId, postIds))
     .orderBy(desc(communityCommentsTable.createdAt));
   const map: Record<string, { count: number; rows: (typeof communityCommentsTable.$inferSelect)[] }> = {};
   for (const c of comments) {
@@ -79,7 +79,7 @@ async function loadLikedSet(userId: string | undefined, postIds: string[]): Prom
   const likes = await db
     .select({ postId: communityLikesTable.postId })
     .from(communityLikesTable)
-    .where(and(eq(communityLikesTable.userId, userId), sql`${communityLikesTable.postId} = ANY(${postIds})`));
+    .where(and(eq(communityLikesTable.userId, userId), inArray(communityLikesTable.postId, postIds)));
   for (const l of likes) out.add(l.postId);
   return out;
 }
@@ -90,7 +90,7 @@ async function loadFollowingSet(userId: string | undefined, authorIds: string[])
   const follows = await db
     .select({ followingId: communityFollowsTable.followingId })
     .from(communityFollowsTable)
-    .where(and(eq(communityFollowsTable.followerId, userId), sql`${communityFollowsTable.followingId} = ANY(${authorIds})`));
+    .where(and(eq(communityFollowsTable.followerId, userId), inArray(communityFollowsTable.followingId, authorIds)));
   for (const f of follows) out.add(f.followingId);
   return out;
 }
@@ -105,7 +105,7 @@ async function loadCommentAuthors(commentRows: (typeof communityCommentsTable.$i
     authors = await db
       .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto })
       .from(usersTable)
-      .where(sql`${usersTable.id} = ANY(${userIds})`);
+      .where(inArray(usersTable.id, userIds));
   }
   const byId = new Map(authors.map((a) => [a.id, a]));
   for (const c of commentRows) {
@@ -124,7 +124,7 @@ async function renderPosts(rawPosts: typeof communityPostsTable.$inferSelect[], 
     authors = await db
       .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, email: usersTable.email, city: usersTable.city, reputationScore: usersTable.reputationScore })
       .from(usersTable)
-      .where(sql`${usersTable.id} = ANY(${authorIds})`);
+      .where(inArray(usersTable.id, authorIds));
   }
   const authorById = new Map(authors.map((a) => [a.id, a]));
 
@@ -162,7 +162,7 @@ async function renderPosts(rawPosts: typeof communityPostsTable.$inferSelect[], 
   });
 }
 
-// ── GET /community/feed?kind=&filter=&cursor= ─────────────────────────────
+// â”€â”€ GET /community/feed?kind=&filter=&cursor= â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get("/community/feed", optionalAuth, async (req: Request, res: Response): Promise<void> => {
   const meId = req.user?.id;
   const kind = kindWhitelist(String(req.query.kind || ""), "");
@@ -181,7 +181,7 @@ router.get("/community/feed", optionalAuth, async (req: Request, res: Response):
       .where(eq(communityFollowsTable.followerId, meId));
     const ids = follows.map((f) => f.followingId);
     const followWhere: SQL | undefined = ids.length
-      ? sql`${communityPostsTable.userId} = ANY(${ids})`
+      ? inArray(communityPostsTable.userId, ids)
       : sql`FALSE`;
     basePosts = await db
       .select()
@@ -225,7 +225,7 @@ router.get("/community/feed", optionalAuth, async (req: Request, res: Response):
   res.status(200).json({ success: true, data: { posts: rows } });
 });
 
-// ── GET /community/posts/:id ─────────────────────────────────────────────
+// â”€â”€ GET /community/posts/:id â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get("/community/posts/:id", optionalAuth, async (req: Request, res: Response): Promise<void> => {
   const [post] = await db
     .select()
@@ -240,7 +240,7 @@ router.get("/community/posts/:id", optionalAuth, async (req: Request, res: Respo
   res.status(200).json({ success: true, data: row });
 });
 
-// ── POST /community/posts — create a post ────────────────────────────────
+// â”€â”€ POST /community/posts â€” create a post â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post("/community/posts", authenticate, async (req: Request, res: Response): Promise<void> => {
   const { kind, content, tags, media, priceInr, deliveryDays, location, isRemote } = req.body ?? {};
 
@@ -254,7 +254,7 @@ router.post("/community/posts", authenticate, async (req: Request, res: Response
   if (k === "GIG") {
     const p = Number(priceInr);
     if (!Number.isFinite(p) || p <= 0) {
-      res.status(400).json({ success: false, message: "Gig posts need a price in ₹" });
+      res.status(400).json({ success: false, message: "Gig posts need a price in â‚¹" });
       return;
     }
     price = Math.round(p);
@@ -284,7 +284,7 @@ router.post("/community/posts", authenticate, async (req: Request, res: Response
   }
 });
 
-// ── POST /community/posts/:id/like — toggle like ─────────────────────────
+// â”€â”€ POST /community/posts/:id/like â€” toggle like â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post("/community/posts/:id/like", authenticate, async (req: Request, res: Response): Promise<void> => {
   const postId = String(req.params.id);
   const userId = req.user!.id;
@@ -311,7 +311,7 @@ router.post("/community/posts/:id/like", authenticate, async (req: Request, res:
   res.status(200).json({ success: true, data: { liked: !like, likeCount: post?.likeCount ?? 0 } });
 });
 
-// ── POST /community/posts/:id/comment ────────────────────────────────────
+// â”€â”€ POST /community/posts/:id/comment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post("/community/posts/:id/comment", authenticate, async (req: Request, res: Response): Promise<void> => {
   const content = String(req.body?.content || "").trim();
   if (!content) {
@@ -357,7 +357,7 @@ router.post("/community/posts/:id/comment", authenticate, async (req: Request, r
   }
 });
 
-// ── GET /community/users/:id — public profile card for feed ──────────────
+// â”€â”€ GET /community/users/:id â€” public profile card for feed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get("/community/users/:id", optionalAuth, async (req: Request, res: Response): Promise<void> => {
   const [user] = await db
     .select({
@@ -417,7 +417,7 @@ router.get("/community/users/:id", optionalAuth, async (req: Request, res: Respo
   });
 });
 
-// ── POST /community/users/:id/follow — toggle follow ─────────────────────
+// â”€â”€ POST /community/users/:id/follow â€” toggle follow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post("/community/users/:id/follow", authenticate, async (req: Request, res: Response): Promise<void> => {
   const targetId = String(req.params.id);
   const meId = req.user!.id;
@@ -451,7 +451,7 @@ router.post("/community/users/:id/follow", authenticate, async (req: Request, re
   }
 });
 
-// ── POST /community/posts/:id/delete — author deletes post ───────────────
+// â”€â”€ POST /community/posts/:id/delete â€” author deletes post â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post("/community/posts/:id/delete", authenticate, async (req: Request, res: Response): Promise<void> => {
   const [post] = await db
     .select({ id: communityPostsTable.id, userId: communityPostsTable.userId })
