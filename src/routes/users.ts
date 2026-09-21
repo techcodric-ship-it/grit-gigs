@@ -15,6 +15,7 @@ import {
 import { eq, ilike, or, desc, sql, and, gt, inArray } from "drizzle-orm";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { getActivePlanForUser, getOrCreateSubscription, getPlan } from "../lib/subscriptions";
+import bcrypt from "bcryptjs";
 import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
 import { uploadToSupabase } from "../lib/storage";
 import { createUpiPayout, createBankPayout } from "../lib/razorpay";
@@ -118,6 +119,50 @@ router.get("/users/me/wallet", authenticate, async (req: Request, res: Response)
     .orderBy(desc(withdrawalRequestsTable.createdAt))
     .limit(10);
   res.json({ success: true, data: { wallet, recentTransactions, recentWithdrawals } });
+});
+
+router.post("/users/me/change-mobile", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const { newMobile, password } = req.body || {};
+  if (!newMobile || !/^[6-9]\d{9}$/.test(String(newMobile).trim())) {
+    res.status(400).json({ success: false, message: "Enter a valid 10-digit Indian mobile number." });
+    return;
+  }
+  if (!password) {
+    res.status(400).json({ success: false, message: "Password is required to change your mobile number." });
+    return;
+  }
+  const meRow = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.id)).limit(1);
+  if (meRow.length === 0 || !meRow[0].passwordHash) {
+    res.status(401).json({ success: false, message: "Incorrect password." }); return;
+  }
+  const ok = await bcrypt.compare(password, meRow[0].passwordHash);
+  if (!ok) { res.status(401).json({ success: false, message: "Incorrect password." }); return; }
+  const dup = await db.select().from(usersTable).where(eq(usersTable.mobile, newMobile.trim())).limit(1);
+  if (dup.length > 0) { res.status(409).json({ success: false, message: "That mobile number is already registered." }); return; }
+  await db.update(usersTable).set({ mobile: newMobile.trim() }).where(eq(usersTable.id, req.user!.id));
+  res.json({ success: true, message: "Mobile number updated." });
+});
+
+router.post("/users/me/change-email", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const { newEmail, password } = req.body || {};
+  if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(newEmail).trim())) {
+    res.status(400).json({ success: false, message: "Enter a valid email address." });
+    return;
+  }
+  if (!password) {
+    res.status(400).json({ success: false, message: "Password is required to change your email address." });
+    return;
+  }
+  const meRow = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.id)).limit(1);
+  if (meRow.length === 0 || !meRow[0].passwordHash) {
+    res.status(401).json({ success: false, message: "Incorrect password." }); return;
+  }
+  const ok = await bcrypt.compare(password, meRow[0].passwordHash);
+  if (!ok) { res.status(401).json({ success: false, message: "Incorrect password." }); return; }
+  const dup = await db.select().from(usersTable).where(eq(usersTable.email, newEmail.trim())).limit(1);
+  if (dup.length > 0) { res.status(409).json({ success: false, message: "That email is already registered." }); return; }
+  await db.update(usersTable).set({ email: newEmail.trim() }).where(eq(usersTable.id, req.user!.id));
+  res.json({ success: true, message: "Email address updated." });
 });
 
 router.post("/users/me/wallet/withdraw", authenticate, async (req: Request, res: Response): Promise<void> => {
