@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="robots" content="noindex, follow"/>
-<title>Buy more — Grit&Gigs</title>
+<title>Buy more â€” Grit&Gigs</title>
 <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css"/>
 <style>
@@ -44,132 +44,11 @@ h1{font-size:1.5rem;margin:0 0 2px;}
 </style>
 </head>
 <body>
-<header class="topnav">
-  <a class="brand" href="/feed">Grit<b>&amp;Gigs</b></a>
-  <div class="icons">
-    <a href="/wallet.html" title="Wallet">₹</a>
-    <a href="/buy-more.html" class="on" title="Buy more">➕</a>
-    <a href="/orders.html" title="Orders">📦</a>
-    <a href="/settings.html" title="Settings">⚙</a>
-    <a href="/feed" title="Feed">🏠</a>
-  </div>
-</header>
-
-<div class="wrap">
-  <h1>Buy more</h1>
-  <div class="sub">You get a monthly free allowance. Run low? Add a bundle — one clever top-up covers you for the month.</div>
-
-  <div id="quotaWrap"><div class="empty">Loading your quota…</div></div>
-
-  <div class="plans" id="plans">
-    <div class="plan on" data-plan="gigs5" onclick="pick('gigs5')">
-      <span class="tag">Bestseller</span>
-      <div class="emoji">📦</div>
-      <div class="name">3 extra gig posts</div>
-      <div class="desc">Post 3 more gigs this month. Perfect when your 3 free ones ran out mid-month.</div>
-      <div class="price">₹80 <small>one-time / month</small></div>
-    </div>
-    <div class="plan" data-plan="props5" onclick="pick('props5')">
-      <div class="emoji">💡</div>
-      <div class="name">5 extra proposals</div>
-      <div class="desc">Bid on 5 more projects. Free yourself from the 10-proposal monthly cap.</div>
-      <div class="price">₹60 <small>one-time / month</small></div>
-    </div>
-  </div>
-
-  <button class="primary" id="payBtn">Buy selected bundle</button>
-  <div class="err" id="payErr"></div>
-</div>
-
-<script src="/assets/feed-app.js"></script>
+<header class="topnav"> <a class="brand" href="/feed">Grit<b>&amp;Gigs</b></a> <div class="icons"> <a href="/wallet.html" title="Wallet">"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2.5"/><path d="M3 10h18"/><circle cx="16" cy="15" r="1.6"/></svg></a></a> <a href="/orders.html" title="Orders">"><svg viewBox="0 0 24 24"><path d="M4 6h16l-1.5 13.5a2 2 0 0 1-2 1.8H7.5a2 2 0 0 1-2-1.8Z"/><path d="M4 6h16"/><path d="M9 10v4a3 3 0 0 0 6 0v-4"/></svg></a></a> <a href="/settings.html" title="Settings">"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg></a></a> <a href="/feed" title="Feed">"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.7V21h14V9.7"/></svg></a></a> </div>
+</header> <div class="wrap"> <h1>Buy more</h1> <div class="sub">You get a monthly free allowance. Run low? Add a bundle â€” one clever top-up covers you for the month.</div> <div id="quotaWrap"><div class="empty">Loading your quotaâ€¦</div></div> <div class="plans" id="plans"> <div class="plan on" data-plan="gigs5" onclick="pick('gigs5')"> <span class="tag">Bestseller</span> <div class="emoji">ðŸ“¦</div> <div class="name">3 extra gig posts</div> <div class="desc">Post 3 more gigs this month. Perfect when your 3 free ones ran out mid-month.</div> <div class="price">â‚¹80 <small>one-time / month</small></div> </div> <div class="plan" data-plan="props5" onclick="pick('props5')"> <div class="emoji">ðŸ’¡</div> <div class="name">5 extra proposals</div> <div class="desc">Bid on 5 more projects. Free yourself from the 10-proposal monthly cap.</div> <div class="price">â‚¹60 <small>one-time / month</small></div> </div> </div> <button class="primary" id="payBtn">Buy selected bundle</button> <div class="err" id="payErr"></div>
+</div> <script src="/assets/feed-app.js"></script>
 <script>
-(function () {
-  var chosen = "gigs5";
-  function $(id){ return document.getElementById(id); }
-  function esc(s){ return c.esc(s); }
-
-  function api(ep, o) { return c.api(ep, o || {}); }
-
-  function pick(k) {
-    chosen = k;
-    Array.prototype.forEach.call(document.querySelectorAll(".plan"), function (p) {
-      p.classList.toggle("on", p.getAttribute("data-plan") === k);
-    });
-  }
-  window.pick = pick;
-
-  function renderQuota(d) {
-    var el = $("quotaWrap");
-    if (!d) { el.innerHTML = '<div class="empty">Quota unavailable.</div>'; return; }
-    var fg = Number(d.freeGigPostsRemaining != null ? d.freeGigPostsRemaining : d.gigPostsRemaining);
-    var fp = Number(d.freeProposalsRemaining != null ? d.freeProposalsRemaining : d.proposalsRemaining);
-    var fgT = Number(d.freeGigPostsTotal || d.gigPostsTotal || 3);
-    var fpT = Number(d.freeProposalsTotal || d.proposalsTotal || 10);
-    el.innerHTML =
-      '<div class="quota-grid">' +
-        qCard("Gig posts", "free this month", fg, fgT, "📢") +
-        qCard("Proposals", "free this month", fp, fpT, "💡") +
-      '</div>';
-    function qCard(name, lbl, now, total, ic) {
-      var pct = total > 0 ? Math.min(100, Math.round((now / total) * 100)) : 0;
-      return '<div class="quota"><div class="q-top"><div><div class="q-name">' + esc(ic + " " + name) + '</div>' +
-        '<div class="q-free">' + esc(lbl) + '</div></div>' +
-        '<div class="q-num">' + now + '<small> / ' + total + '</small></div></div>' +
-        '<div class="bar"><i style="width:' + pct + '%"></i></div>' +
-        '<div class="meter-lbl"><span>' + pct + '% remaining</span><span>resets monthly</span></div></div>';
-    }
-  }
-
-  function load() {
-    api("/community/quota").then(function (r) {
-      if (!r || !r.success || !r.data) { $("quotaWrap").innerHTML = '<div class="empty">Could not load quota — sign in and try again.</div>'; return; }
-      renderQuota(r.data);
-    });
-  }
-
-  $("payBtn").addEventListener("click", function () {
-    var btn = this; btn.disabled = true; $("payErr").textContent = "";
-    api("/community/quota/order", { method: "POST", body: { plan: chosen } }).then(function (r) {
-      if (!r || !r.success || !r.data || !r.data.order) {
-        $("payErr").textContent = (r && r.message) || "Unable to create order.";
-        btn.disabled = false; return;
-      }
-      var o = r.data.order;
-      if (typeof c.loadRz === "function" && r.data.key && window.Razorpay) {
-        c.loadRz(o.id, r.data.key, function (resp) {
-          api("/community/quota/verify", { method: "POST", body: { razorpayOrderId: resp.razorpay_order_id, razorpayPaymentId: resp.razorpay_payment_id } }).then(function (v) {
-            btn.disabled = false;
-            if (v && v.success) { alert("Bundle added to your account 🎉"); load(); }
-            else $("payErr").textContent = (v && v.message) || "Payment not verified yet.";
-          });
-        });
-        return;
-      }
-      // Fallback: load Razorpay checkout script then open
-      var s = document.createElement("script");
-      s.src = "https://checkout.razorpay.com/v1/checkout.js";
-      s.onload = function () { openRz(o.id, r.data.key, btn); };
-      document.head.appendChild(s);
-      function openRz(orderId, key, btn) {
-        var rz = new Razorpay({
-          key: key, amount: Number(o.amount || 0), currency: "INR",
-          name: "Grit&Gigs", description: "Quota bundle",
-          order_id: orderId, handler: function (resp) {
-            api("/community/quota/verify", { method: "POST", body: { razorpayOrderId: resp.razorpay_order_id, razorpayPaymentId: resp.razorpay_payment_id } }).then(function (v) {
-              btn.disabled = false;
-              if (v && v.success) { alert("Bundle added to your account 🎉"); load(); }
-              else $("payErr").textContent = (v && v.message) || "Payment not verified yet.";
-            });
-          },
-          theme: { color: "#6C3FE8" }, modal: { ondismiss: function(){ btn.disabled = false; } }
-        });
-        rz.open();
-        rz.on("payment.failed", function () { btn.disabled = false; $("payErr").textContent = "Payment failed — you weren't charged."; });
-      }
-    });
-  });
-
-  load();
+(function () { var chosen = "gigs5"; function $(id){ return document.getElementById(id); } function esc(s){ return c.esc(s); } function api(ep, o) { return c.api(ep, o || {}); } function pick(k) { chosen = k; Array.prototype.forEach.call(document.querySelectorAll(".plan"), function (p) { p.classList.toggle("on", p.getAttribute("data-plan") === k); }); } window.pick = pick; function renderQuota(d) { var el = $("quotaWrap"); if (!d) { el.innerHTML = '<div class="empty">Quota unavailable.</div>'; return; } var fg = Number(d.freeGigPostsRemaining != null ? d.freeGigPostsRemaining : d.gigPostsRemaining); var fp = Number(d.freeProposalsRemaining != null ? d.freeProposalsRemaining : d.proposalsRemaining); var fgT = Number(d.freeGigPostsTotal || d.gigPostsTotal || 3); var fpT = Number(d.freeProposalsTotal || d.proposalsTotal || 10); el.innerHTML = '<div class="quota-grid">' + qCard("Gig posts", "free this month", fg, fgT, "ðŸ“¢") + qCard("Proposals", "free this month", fp, fpT, "ðŸ’¡") + '</div>'; function qCard(name, lbl, now, total, ic) { var pct = total > 0 ? Math.min(100, Math.round((now / total) * 100)) : 0; return '<div class="quota"><div class="q-top"><div><div class="q-name">' + esc(ic + " " + name) + '</div>' + '<div class="q-free">' + esc(lbl) + '</div></div>' + '<div class="q-num">' + now + '<small> / ' + total + '</small></div></div>' + '<div class="bar"><i style="width:' + pct + '%"></i></div>' + '<div class="meter-lbl"><span>' + pct + '% remaining</span><span>resets monthly</span></div></div>'; } } function load() { api("/community/quota").then(function (r) { if (!r || !r.success || !r.data) { $("quotaWrap").innerHTML = '<div class="empty">Could not load quota â€” sign in and try again.</div>'; return; } renderQuota(r.data); }); } $("payBtn").addEventListener("click", function () { var btn = this; btn.disabled = true; $("payErr").textContent = ""; api("/community/quota/order", { method: "POST", body: { plan: chosen } }).then(function (r) { if (!r || !r.success || !r.data || !r.data.order) { $("payErr").textContent = (r && r.message) || "Unable to create order."; btn.disabled = false; return; } var o = r.data.order; if (typeof c.loadRz === "function" && r.data.key && window.Razorpay) { c.loadRz(o.id, r.data.key, function (resp) { api("/community/quota/verify", { method: "POST", body: { razorpayOrderId: resp.razorpay_order_id, razorpayPaymentId: resp.razorpay_payment_id } }).then(function (v) { btn.disabled = false; if (v && v.success) { alert("Bundle added to your account ðŸŽ‰"); load(); } else $("payErr").textContent = (v && v.message) || "Payment not verified yet."; }); }); return; } // Fallback: load Razorpay checkout script then open var s = document.createElement("script"); s.src = "https://checkout.razorpay.com/v1/checkout.js"; s.onload = function () { openRz(o.id, r.data.key, btn); }; document.head.appendChild(s); function openRz(orderId, key, btn) { var rz = new Razorpay({ key: key, amount: Number(o.amount || 0), currency: "INR", name: "Grit&Gigs", description: "Quota bundle", order_id: orderId, handler: function (resp) { api("/community/quota/verify", { method: "POST", body: { razorpayOrderId: resp.razorpay_order_id, razorpayPaymentId: resp.razorpay_payment_id } }).then(function (v) { btn.disabled = false; if (v && v.success) { alert("Bundle added to your account ðŸŽ‰"); load(); } else $("payErr").textContent = (v && v.message) || "Payment not verified yet."; }); }, theme: { color: "#6C3FE8" }, modal: { ondismiss: function(){ btn.disabled = false; } } }); rz.open(); rz.on("payment.failed", function () { btn.disabled = false; $("payErr").textContent = "Payment failed â€” you weren't charged."; }); } }); }); load();
 })();
 </script>
 </body>

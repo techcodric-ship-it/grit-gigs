@@ -1,0 +1,1 @@
+{"name":"grit-deploy","private":true,"version":"1.0.0","dependencies":{"ssh2":"^1.17.0"}}
