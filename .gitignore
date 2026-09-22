@@ -8,3 +8,5 @@ package-lock.json
 # user data exports (PII)
 users-export.csv
 *.csv
+
+.grit-token
