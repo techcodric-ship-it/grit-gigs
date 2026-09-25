@@ -76,6 +76,19 @@
     localStorage.removeItem('se_refresh');
   }
 
+  function syncMe() {
+    if (!token || !me || !me.id) return;
+    fetch(API + '/users/' + encodeURIComponent(me.id), {
+      headers: { 'Authorization': 'Bearer ' + token },
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d || !d.success || !d.data || !me) return;
+      var u = Object.assign({}, me, d.data);
+      localStorage.setItem('se_user', JSON.stringify(u));
+      me = u;
+      refreshAuthedUI();
+    }).catch(function () {});
+  }
+
   // ── modals ──
   function openModal(id) { var m = document.getElementById(id); if (m) m.classList.add('open'); }
   function closeModals() { document.querySelectorAll('.modal-backdrop').forEach(function (x) { x.classList.remove('open'); }); }
@@ -86,6 +99,113 @@
     setTimeout(function () { var e = document.getElementById('loginEmail'); if (e) e.focus(); }, 60);
   }
   function openRegister() { closeModals(); var m = document.getElementById('registerModal'); if (m) m.classList.add('open'); }
+
+  // ── Google Sign-In (popup OAuth) ──
+  function googleLogin() {
+    if (!token) toast('Connecting to Google…');
+    var w = null;
+    try {
+      w = window.open('/api/auth/google/login', 'gritgigs_google', 'width=520,height=680');
+    } catch (e) { /* blockers may throw */ }
+    if (!w) {
+      // popup blocked — fall back to full-page flow (google-callback stores the session)
+      toast('Opening Google…');
+      location.href = '/api/auth/google/login';
+      return;
+    }
+    setTimeout(function () { try { w.focus(); } catch (e) {} }, 200);
+  }
+
+  function handleGoogleMessage(e) {
+    if (e.origin !== location.origin) return;
+    var d = e.data;
+    if (!d || typeof d !== 'object' || d.__ggHandled) return;
+    if (!d.success || !d.data || !d.data.accessToken) {
+      toast((d.message || 'Google sign-in failed — try again.'), true);
+      return;
+    }
+    e.data.__ggHandled = true;
+    setSession(d.data.accessToken, d.data.refreshToken, d.data.user);
+    toast('Welcome, ' + (d.data.user && d.data.user.firstName ? d.data.user.firstName : 'hustler') + '!');
+    closeModals();
+    if (d.data.needsPhone) {
+      openPhoneModal();
+    } else {
+      refreshAuthedUI();
+    }
+  }
+
+  // ── phone capture (first Google sign-in) ──
+  function ensurePhoneModal() {
+    var m = document.getElementById('phoneModal');
+    if (m) return m;
+    m = document.createElement('div');
+    m.className = 'modal-backdrop';
+    m.id = 'phoneModal';
+    m.innerHTML =
+      '<div class="modal">' +
+      '<h3>Add your WhatsApp number</h3>' +
+      '<div class="sub">We use it to confirm gigs and payouts. Takes 10 seconds.</div>' +
+      '<div class="fld"><label>Phone (WhatsApp)</label><input type="tel" id="phoneInput" placeholder="+91 98765 43210"/></div>' +
+      '<div class="err" id="phoneErr"></div>' +
+      '<div class="actions">' +
+      '<button class="ghost" id="phoneCancel">Skip for now</button>' +
+      '<button class="primary" id="phoneSubmit">Save &amp; continue</button>' +
+      '</div>' +
+      '</div>';
+    document.body.appendChild(m);
+    m.addEventListener('click', function (e2) { if (e2.target === m) m.classList.remove('open'); });
+    var sub = m.querySelector('#phoneSubmit');
+    if (sub) sub.addEventListener('click', function () {
+      var phone = (document.getElementById('phoneInput').value || '').trim();
+      var errEl = document.getElementById('phoneErr');
+      if (!phone) { errEl.textContent = 'Enter your phone number.'; return; }
+      sub.disabled = true;
+      fetch(API + '/auth/supabase/phone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+        body: JSON.stringify({ phone: phone }),
+      }).then(function (r) { return r.json(); }).then(function (d) {
+        sub.disabled = false;
+        if (!d.success) { errEl.textContent = d.message || 'Could not save phone.'; return; }
+        m.classList.remove('open');
+        toast('Phone saved!');
+        var u = getUser();
+        if (u) { u.phone = phone; localStorage.setItem('se_user', JSON.stringify(u)); me = u; }
+        refreshAuthedUI();
+      }).catch(function () { sub.disabled = false; errEl.textContent = 'Network error. Try again.'; });
+    });
+    var cancel = m.querySelector('#phoneCancel');
+    if (cancel) cancel.addEventListener('click', function () { m.classList.remove('open'); refreshAuthedUI(); });
+    return m;
+  }
+  function openPhoneModal() {
+    var m = ensurePhoneModal();
+    m.classList.add('open');
+  }
+
+  // ── inject "Continue with Google" into login / register modals ──
+  function injectGoogleButtons() {
+    ['loginModal', 'registerModal'].forEach(function (modalId) {
+      var m = document.getElementById(modalId);
+      if (!m) return;
+      var card = m.querySelector('.modal');
+      if (!card) return;
+      if (card.querySelector('.g-btn')) return;
+      var box = document.createElement('div');
+      box.className = 'g-box';
+      box.innerHTML =
+        '<button type="button" class="g-btn" title="Continue with Google">' +
+        '<svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.4 6.1 29.5 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.1 18.9 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.4 6.1 29.5 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C33.5 42.6 43.6 36.9 43.6 20.1z"/></svg>' +
+        'Continue with Google' +
+        '</button>';
+      var anchor = card.querySelector('.sub') || card.querySelector('h3');
+      if (anchor && anchor.nextSibling) card.insertBefore(box, anchor.nextSibling);
+      else card.insertBefore(box, card.firstChild);
+      var btn = box.querySelector('.g-btn');
+      if (btn) btn.addEventListener('click', googleLogin);
+    });
+  }
 
   // ── avatar / handles ──
   function avatarFor(u) {
@@ -171,7 +291,9 @@
 
     var tagsHtml = (p.tags && p.tags.length) ? p.tags.map(function (t) { return '<a href="/explore.html?q=' + encodeURIComponent(t) + '">#' + esc(t) + '</a> '; }).join('') : '';
 
-    var caption = '<div class="card-caption"><div><b>' + esc(author.firstName || 'Hustler') + '</b>' + esc((p.content || '').slice(0, 120)) + (p.content && p.content.length > 120 ? '<span class="more" data-more="' + esc(p.id) + '"> · more</span>' : '') + '</div>' +
+    var capText = p.content || '';
+    var capLong = capText.length > 120;
+    var caption = '<div class="card-caption"><div><b>' + esc(author.firstName || 'Hustler') + '</b><span class="cap-short">' + esc(capText.slice(0, 120)) + '</span>' + (capLong ? '<span class="cap-rest" style="display:none">' + esc(capText.slice(120)) + '</span><span class="more" data-more="' + esc(p.id) + '"> · more</span>' : '') + '</div>' +
       (tagsHtml ? '<div class="tags">' + tagsHtml + '</div>' : '') + '</div>';
 
     var commentsHtml = (row.comments || []).slice(0, 2).map(function (c) {
@@ -275,6 +397,13 @@
     if (bid) bid.addEventListener('click', function () { if (!token) { openLogin(); return; } openOrderModal('PROJECT', p); });
     var offer = el.querySelector('[data-offer]');
     if (offer) offer.addEventListener('click', function () { if (!token) { openLogin(); return; } openOrderModal('BARTER', p); });
+
+    // expand long caption
+    var more = el.querySelector('[data-more]');
+    if (more) more.addEventListener('click', function () {
+      var rest = el.querySelector('.cap-rest');
+      if (rest) { rest.style.display = 'inline'; more.remove(); }
+    });
 
     return el;
   }
@@ -405,10 +534,78 @@
     });
   }
 
+  // ── wallet icon + profile dropdown (authed nav) ──
+  function buildTopnavDropdown() {
+    var ic = document.querySelector('.icons');
+    if (!ic) return;
+    // wallet icon (idempotent)
+    if (!ic.querySelector('a[href="/wallet.html"]')) {
+      var w = document.createElement('a');
+      w.href = '/wallet.html';
+      w.title = 'Wallet';
+      w.innerHTML = '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2.5"/><path d="M3 10h18"/><circle cx="16" cy="15" r="1.6"/></svg>';
+      var anchor = ic.querySelector('#navProfile') || ic.lastElementChild;
+      ic.insertBefore(w, anchor);
+    }
+    var p = document.getElementById('navProfile');
+    if (!p) return;
+    var wrap = p.parentNode && p.parentNode.classList && p.parentNode.classList.contains('ddwrap') ? p.parentNode : null;
+    var menu = document.getElementById('profileDd');
+    if (!wrap) {
+      wrap = document.createElement('span');
+      wrap.className = 'ddwrap';
+      wrap.style.position = 'relative';
+      menu = document.createElement('div');
+      menu.className = 'ddmenu';
+      menu.id = 'profileDd';
+      wrap.appendChild(menu);
+      p.parentNode.insertBefore(wrap, p);
+      wrap.appendChild(p);
+      p.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        wrap.classList.toggle('open');
+      });
+      document.addEventListener('click', function (e) {
+        if (wrap && !wrap.contains(e.target)) wrap.classList.remove('open');
+      });
+    }
+    if (!menu) menu = wrap.querySelector('.ddmenu');
+    if (token && me) {
+      menu.innerHTML =
+        '<div class="dd-head">' +
+        '<img class="av" src="' + avatarFor(me) + '" alt=""/>' +
+        '<div class="nm">' + esc(me.firstName || 'Hustler') + '</div>' +
+        '<div class="ct">' + esc(handleFor(me)) + '</div>' +
+        '</div>' +
+        '<a class="dd-item" data-go="/profile.html?id=' + esc(me.id) + '">Edit profile</a>' +
+        '<a class="dd-item" href="/wallet.html">Wallet</a>' +
+        '<a class="dd-item" href="/orders.html">Orders</a>' +
+        '<a class="dd-item" href="/settings.html">Settings</a>' +
+        '<div class="dd-sep"></div>' +
+        '<button class="dd-item" id="ddLogout" style="color:#E5484D;">Log out</button>';
+      menu.querySelectorAll('a.dd-item[data-go]').forEach(function (x) {
+        x.addEventListener('click', function (e) {
+          e.preventDefault();
+          var go = x.getAttribute('data-go');
+          if (go) location.href = go;
+        });
+      });
+      var lo2 = menu.querySelector('#ddLogout');
+      if (lo2) lo2.addEventListener('click', function () {
+        clearSession(); toast('Logged out'); refreshAuthedUI(); if (location.pathname === '/feed' || location.pathname === '/feed.html') location.reload();
+      });
+    } else {
+      menu.innerHTML = '<button class="dd-item" id="ddSignIn">Sign in</button>';
+      var si2 = menu.querySelector('#ddSignIn');
+      if (si2) si2.addEventListener('click', function () { openLogin(); });
+    }
+  }
+
   // ── rail / user chip ──
   function refreshAuthedUI() {
     token = getToken();
     me = getUser();
+    buildTopnavDropdown();
     var rail = document.getElementById('railUser');
     if (rail) {
       if (token && me) {
@@ -422,6 +619,11 @@
         var si = document.getElementById('railSignIn');
         if (si) si.addEventListener('click', function () { openLogin(); });
       }
+    }
+    var navAv = document.getElementById('navAv');
+    if (navAv) {
+      if (token && me) navAv.src = avatarFor(me);
+      else navAv.src = 'https://api.dicebear.com/9.x/initials/svg?seed=grit&backgroundColor=f0f0f0&textColor=262626';
     }
     if (typeof window.onAuthed === 'function') window.onAuthed(token, me);
   }
@@ -466,6 +668,7 @@
     openPost: openPost,
     openOrderModal: openOrderModal,
     refresh: refreshAuthedUI,
+    googleLogin: googleLogin,
   };
 
   document.addEventListener('click', function (e) {
@@ -496,5 +699,11 @@
   var rail = document.getElementById('railUser');
   if (rail) refreshAuthedUI();
   else if (typeof window.onInit === 'function') window.onInit();
+  refreshAuthedUI();
+  syncMe();
+  buildTopnavDropdown();
   loadUnreadBadge();
+  injectGoogleButtons();
+
+  window.addEventListener('message', handleGoogleMessage);
 })();

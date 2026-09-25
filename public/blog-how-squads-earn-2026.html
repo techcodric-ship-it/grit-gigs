@@ -30,6 +30,55 @@
 </script>
 </head>
 <body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div>
+      <span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span>
+    </a>
+    <div class="nav-links">
+      <a href="/#how-it-works">How it works</a>
+      <a href="/#barter">Skill Exchange</a>
+      <a href="/#freelance">Freelance</a>
+      <a href="/projects">Browse Projects</a>
+      <a href="/#about">About</a>
+    </div>
+    <div class="nav-actions" id="siteNavActions">
+      <button class="btn btn-secondary btn-sm" onclick="location.href='/?login=1'">Sign in</button>
+      <button class="btn btn-primary btn-sm" onclick="location.href='/?signup=1'">Join free</button>
+    </div>
+<script>
+      // Logged-in nav sync (same as index.html) - instant from localStorage, no main.js needed
+      (function () {
+        try {
+          var t = localStorage.getItem('se_token');
+          var u = t && (function () { try { return JSON.parse(localStorage.getItem('se_user') || 'null'); } catch (e) { return null; } })();
+          var el = document.getElementById('siteNavActions');
+          if (u && u.firstName && el) {
+            el.innerHTML = '<a href="/dashboard" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
+              '<button class="btn btn-primary btn-sm" onclick="window.doLogout && window.doLogout()">Sign out</button>';
+          }
+        } catch (e) {}
+      })();
+      if (!window.doLogout) {
+        window.doLogout = function () {
+          var rt = null;
+          try { rt = localStorage.getItem('se_refresh'); } catch (e) {}
+          try { fetch('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken: rt }) }); } catch (e) {}
+          try { localStorage.removeItem('se_token'); localStorage.removeItem('se_refresh'); localStorage.removeItem('se_user'); } catch (e) {}
+          window.location.href = '/';
+        };
+      }
+    </script>
+    <div class="nav-hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+</nav>
+
+<div style="height:64px"></div>
+
 <article style="max-width:720px;margin:40px auto;padding:0 20px;">
 <h1>How Squads Actually Earn on Grit&Gigs</h1>
 <p><em>Published September 6, 2026 • 5 min read</em></p>

@@ -104,11 +104,23 @@
   }
 
   // ── open a conversation ──
+  function isMobile() { return !!window.matchMedia && window.matchMedia('(max-width: 820px)').matches; }
   function showChatUi() {
     $('msgEmpty').style.display = 'none';
     $('thread').style.display = 'block';
     $('composer').style.display = 'flex';
     $('mhead').style.display = 'flex';
+  }
+  function closeConversation() {
+    if (activeConv) leaveConversation(activeConv.id);
+    activeConv = null;
+    activeGroupId = null;
+    document.body.classList.remove('msg-open');
+    $('mhead').style.display = 'none';
+    $('thread').style.display = 'none';
+    $('composer').style.display = 'none';
+    $('msgEmpty').style.display = '';
+    renderConversations();
   }
   function openConv(convId) {
     if (activeConv) leaveConversation(activeConv.id);
@@ -122,6 +134,7 @@
     renderConversations();
     renderHeader(cv);
     showChatUi();
+    if (isMobile()) document.body.classList.add('msg-open');
     $('thread').innerHTML = '<div class="loading">Loading messages…</div>';
     c.api('/messages/conversations/' + convId + '/messages').then(function (r) {
       if (!r.ok) { $('thread').innerHTML = '<div class="empty">Could not load messages</div>'; return; }
@@ -148,10 +161,12 @@
       av = '<img class="av" src="' + c.esc(convAvatar(cv)) + '" alt=""/>';
       sub = (cv.otherUser && cv.otherUser.city) ? c.esc(cv.otherUser.city) : 'Grit&Gigs member';
     }
-    $('mhead').innerHTML = av + '<div class="t"><div class="nm">' + c.esc(name) + '</div><div class="sub">' + c.esc(sub) + '</div></div>' +
+    $('mhead').innerHTML = '<button data-back="1" class="back">‹ Back</button>' + av + '<div class="t"><div class="nm">' + c.esc(name) + '</div><div class="sub">' + c.esc(sub) + '</div></div>' +
       '<div class="acts">' + acts + '</div>';
     var gd = $('mhead').querySelector('[data-gd]');
     if (gd) gd.addEventListener('click', function () { openGroupDetail(activeGroupId); });
+    var bk = $('mhead').querySelector('[data-back]');
+    if (bk) bk.addEventListener('click', function () { closeConversation(); });
   }
 
   function renderMessage(m) {
@@ -419,6 +434,7 @@
     var av = document.getElementById('navAv');
     if (av) av.src = c.avatarFor(me);
   }
+  if (!isMobile()) document.body.classList.remove('msg-open');
   refreshConversations();
   connectSocket();
 

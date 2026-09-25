@@ -1,4 +1,5 @@
 /* Grit&Gigs — Light Instagram-style theme */
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap');
 :root {
   --bg: #fafafa;
   --card: #ffffff;
@@ -33,10 +34,20 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
   height: 52px; padding: 0 20px; background: var(--card);
   border-bottom: 1px solid var(--line);
 }
-.topnav .brand { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; color: var(--ink); display: flex; align-items: center; gap: 8px; }
-.topnav .brand span { background: none; color: inherit; font-size: inherit; font-weight: inherit; padding: 0; border-radius: 0; letter-spacing: inherit; }
-.topnav .brand span span { color: #6C3FE8; }
-.topnav .brand em { font-style: normal; color: var(--signal); }
+.topnav .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.topnav .nav-logo-mark {
+  box-sizing: border-box; width: auto; min-width: 44px; height: 44px; padding: 0 8px; border-radius: 12px;
+  background: #fff; border: 1px solid rgba(0, 0, 0, .12); box-shadow: 0 1px 2px rgba(0, 0, 0, .03);
+  display: flex; align-items: center; justify-content: center; gap: 1px;
+  font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; letter-spacing: -0.04em;
+  transition: all 0.25s ease;
+}
+.topnav .nav-logo-mark .logo-g-black { color: #0A0A0F; }
+.topnav .nav-logo-mark .logo-g-blue { color: #6C3FE8; }
+.topnav .nav-logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; letter-spacing: -0.04em; display: flex; align-items: center; }
+.topnav .nav-logo-text .logo-text-black { color: #0A0A0F; }
+.topnav .nav-logo-text .logo-text-blue { color: #6C3FE8; margin-left: 3px; }
+.topnav .nav-logo:hover .nav-logo-mark { transform: translateY(-1px); border-color: rgba(108, 63, 232, 0.35); box-shadow: 0 6px 20px rgba(108, 63, 232, 0.16); }
 .topnav .searchbox { flex: 1; max-width: 280px; position: relative; margin: 0 auto; }
 .topnav .searchbox input { width: 100%; height: 34px; padding: 0 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; font-size: 14px; outline: none; }
 .topnav .searchbox input:focus { border-color: var(--ink-2); background: #fff; }
@@ -212,6 +223,19 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
 .modal .note { font-size: 13px; color: var(--ink-2); margin-top: 12px; }
 .modal .note a { color: var(--blue); font-weight: 600; }
 
+/* ── Google sign-in button (modals + landing) ── */
+.g-box { margin: 4px 0 12px; }
+.g-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 9px;
+  background: #fff; color: #333; border: 1px solid var(--line); border-radius: 8px;
+  padding: 10px; font-weight: 600; font-size: 14px; cursor: pointer;
+  transition: background .12s ease, box-shadow .12s ease;
+}
+.g-btn:hover { background: #f7f7f7; box-shadow: 0 1px 6px rgba(0,0,0,.08); }
+.g-btn svg { flex: 0 0 auto; }
+.g-or { display: flex; align-items: center; gap: 12px; margin: 6px 0 14px; color: var(--dusk); font-size: 13px; }
+.g-or::before, .g-or::after { content: ""; flex: 1; height: 1px; background: var(--line-2); }
+
 /* ── toast ── */
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 11px 20px; border-radius: 8px; font-size: 14px; opacity: 0; pointer-events: none; transition: .2s; z-index: 200; }
 .toast.show { opacity: 1; }
@@ -226,7 +250,6 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
 h4.sub-title { font-size: 14px; font-weight: 600; margin: 20px 0 12px; }
 .back-row { display: flex; justify-content: flex-end; padding: 4px 0 12px; }
 .back-row a { font-size: 13px; font-weight: 600; color: var(--blue); }
-.topnav .brand .brand-mark { width: 26px; height: 26px; border-radius: 7px; object-fit: contain; align-self: center; flex: 0 0 auto; }
 .big-cta { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 10px; padding: 11px 14px; border: none; border-radius: 12px; background: linear-gradient(135deg, #8D5BFF, #6C3FE8); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 14px rgba(108, 63, 232, .28); transition: transform .12s ease, filter .12s ease; }
 .big-cta:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .big-cta:active { transform: translateY(0); }
@@ -235,3 +258,16 @@ h4.sub-title { font-size: 14px; font-weight: 600; margin: 20px 0 12px; }
 .qrow .ql strong { display: block; font-size: 14px; }
 .qrow .ql .sub { font-size: 12px; color: var(--dusk, #6b7280); margin: 2px 0 0; }
 .qrow .primary { flex: 0 0 auto; width: auto; padding: 9px 14px; border-radius: 9px; border: none; background: var(--blue, #5599ff); color: #fff; font-weight: 700; font-size: 12.5px; cursor: pointer; }
+/* ── profile dropdown (wallet + settings cluster) ── */
+.ddwrap { position: relative; }
+.ddmenu { position: absolute; top: calc(100% + 10px); right: 0; width: 224px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 10px 30px rgba(20,20,30,.13); padding: 6px; z-index: 90; display: none; }
+.ddwrap.open .ddmenu { display: block; }
+.ddmenu .dd-head { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.ddmenu .dd-head img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; }
+.ddmenu .dd-head .nm { font-size: 13px; font-weight: 700; line-height: 1.25; }
+.ddmenu .dd-head .ct { font-size: 11px; color: var(--dusk); }
+.ddmenu a.dd-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.ddmenu a.dd-item:hover { background: var(--bg); }
+.ddmenu a.dd-item svg { width: 17px; height: 17px; fill: none; stroke: #6C3FE8; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.ddmenu button.dd-item { width: 100%; text-align: left; background: none; border: none; font: inherit; }
+.ddmenu .dd-sep { height: 1px; background: var(--line); margin: 5px 8px; }

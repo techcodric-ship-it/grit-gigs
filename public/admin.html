@@ -31,8 +31,8 @@ a{text-decoration:none;color:inherit;}
 #loginScreen::after{content:'';position:absolute;width:300px;height:300px;border-radius:50%;background:rgba(232,160,32,.06);bottom:-80px;left:-80px;}
 .login-card{background:var(--white);border-radius:var(--rxl);padding:40px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);position:relative;z-index:1;margin:16px;}
 .login-logo{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
-.login-logo .lm{width:34px;height:34px;border-radius:8px;background:var(--ink2);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:12px;color:#fff;}
-.login-logo .lt{font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;color:var(--ink);}
+.login-logo .lm{width:auto;min-width:44px;height:44px;padding:0 8px;border-radius:12px;background:#fff;border:1px solid rgba(0,0,0,.12);box-shadow:0 1px 2px rgba(0,0,0,.03);display:flex;align-items:center;justify-content:center;gap:1px;font-family:'Syne',sans-serif;font-weight:800;font-size:18px;letter-spacing:-.04em;}
+.login-logo .lt{font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;letter-spacing:-.04em;color:#0A0A0F;}
 .login-title{font-size:1.4rem;margin-bottom:2px;}
 .login-sub{font-size:.8rem;color:var(--muted);margin-bottom:22px;line-height:1.5;}
 .login-divider{height:1px;background:var(--bd);margin:18px 0;}
@@ -57,7 +57,7 @@ a{text-decoration:none;color:inherit;}
 /* ── SIDEBAR ── */
 .sb{width:var(--fw);flex-shrink:0;background:var(--ink2);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;overflow-y:auto;}
 .sb-logo{padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:9px;}
-.lm2{width:auto;min-width:32px;padding:0 6px;height:32px;border-radius:8px;background:white;border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:12px;color:#fff;}
+.lm2{width:auto;min-width:32px;padding:0 6px;height:32px;border-radius:8px;background:white;border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:12px;color:#0A0A0F;}
 .lt2{font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;color:#fff;}
 .sb-nav{flex:1;padding:10px 8px;overflow-y:auto;}
 .ns{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,0.2);padding:10px 10px 4px;}
@@ -200,7 +200,7 @@ a{text-decoration:none;color:inherit;}
 <div id="loginScreen">
 <div class="login-card">
   <div class="login-logo">
-    <div class="lm"><span style="color:black;">G</span><span style="color:#C4B5FD;">&amp;G</span></div>
+    <div class="lm"><span style="color:#0A0A0F;">G</span><span style="color:#6C3FE8;">&amp;G</span></div>
     <span class="lt">Grit&amp;Gigs Admin</span>
   </div>
   <h1 class="login-title">Admin Sign In</h1>
@@ -230,7 +230,7 @@ a{text-decoration:none;color:inherit;}
 <!-- SIDEBAR -->
 <aside class="sb" id="sb">
   <div class="sb-logo">
-    <div class="lm2"><span style="color:black;">G</span><span style="color:#C4B5FD;">&amp;G</span></div>
+    <div class="lm2"><span style="color:#0A0A0F;">G</span><span style="color:#6C3FE8;">&amp;G</span></div>
     <span class="lt2">Admin Panel</span>
   </div>
   <nav class="sb-nav">
