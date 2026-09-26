@@ -271,3 +271,6 @@ h4.sub-title { font-size: 14px; font-weight: 600; margin: 20px 0 12px; }
 .ddmenu a.dd-item svg { width: 17px; height: 17px; fill: none; stroke: #6C3FE8; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .ddmenu button.dd-item { width: 100%; text-align: left; background: none; border: none; font: inherit; }
 .ddmenu .dd-sep { height: 1px; background: var(--line); margin: 5px 8px; }
+.modal .fld label.choose-media { display: inline-flex; align-items: center; gap: 8px; background: #fff; color: #6C3FE8; border: 1px solid #cfc3f7; border-radius: 10px; padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: .15s; box-shadow: 0 1px 2px rgba(17,17,31,.06); margin-bottom: 0; }
+.modal .fld label.choose-media:hover { background: #f4f1ff; border-color: #6C3FE8; box-shadow: 0 2px 6px rgba(108,63,232,.18); }
+.modal .fld label.choose-media svg { width: 16px; height: 16px; }
