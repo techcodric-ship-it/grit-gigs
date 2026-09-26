@@ -648,7 +648,7 @@
         '<div class="nm">' + esc(me.firstName || 'Hustler') + '</div>' +
         '<div class="ct">' + esc(handleFor(me)) + '</div>' +
         '</div>' +
-        '<a class="dd-item" data-go="/profile.html?id=' + esc(me.id) + '">Edit profile</a>' +
+        '<a class="dd-item" data-go="/profile.html?id=' + esc(me.id) + '">View profile</a>' +
         '<a class="dd-item" href="/wallet.html">Wallet</a>' +
         '<a class="dd-item" href="/orders.html">Orders</a>' +
         '<a class="dd-item" href="/settings.html">Settings</a>' +

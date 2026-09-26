@@ -22,10 +22,11 @@
   .fld label{display:block;font-size:.82rem;font-weight:600;margin-bottom:6px;color:#4b4f69;}
   .fld input,.fld select,.fld textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:.95rem;background:#fff;font-family:inherit;box-sizing:border-box;}
   .fld input:focus,.fld select:focus,.fld textarea:focus{outline:none;border-color:var(--violet);box-shadow:0 0 0 3px rgba(108,63,232,.12);}
-  .btn{display:inline-flex;align-items:center;gap:6px;border:none;border-radius:10px;padding:11px 18px;font-weight:600;font-size:.92rem;cursor:pointer;text-decoration:none;font-family:inherit;transition:.16s;}
+  .btn{display:inline-flex;align-items:center;gap:7px;border:none;border-radius:10px;padding:11px 20px;font-weight:600;font-size:.92rem;cursor:pointer;text-decoration:none;font-family:inherit;transition:.16s;}
   .btn:disabled{opacity:.6;cursor:default;}
-  .primary{background:var(--violet);color:#fff;}
-  .primary:hover{background:#5a34c6;}
+  .primary{background:var(--violet);color:#fff;box-shadow:0 2px 6px rgba(108,63,232,.32);}
+  .primary:hover{background:#5a34c6;box-shadow:0 3px 10px rgba(108,63,232,.4);transform:translateY(-1px);}
+  .primary:active{transform:translateY(0);box-shadow:0 1px 3px rgba(108,63,232,.3);}
   .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
   .err{color:#d8345c;font-size:.85rem;min-height:1.1em;margin-top:4px;}
   .ok{color:#1a9e6c;font-size:.85rem;min-height:1.1em;margin-top:4px;}
@@ -36,14 +37,15 @@
   .av-row{display:flex;align-items:center;gap:16px;margin-bottom:18px;}
   .av{width:68px;height:68px;border-radius:50%;object-fit:cover;background:#f4f1ff;flex-shrink:0;border:1px solid var(--line);}
   .choose{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
-  .choose-btn{display:inline-flex;align-items:center;gap:6px;background:#f4f1ff;color:var(--violet);border:1px dashed #cfc3f7;border-radius:10px;padding:10px 14px;font-size:.85rem;font-weight:600;cursor:pointer;transition:.15s;}
-  .choose-btn:hover{background:#e9e1ff;}
+  .choose-btn{display:inline-flex;align-items:center;gap:8px;background:#fff;color:var(--violet);border:1px solid #cfc3f7;border-radius:10px;padding:10px 16px;font-size:.86rem;font-weight:600;cursor:pointer;transition:.15s;box-shadow:0 1px 2px rgba(17,17,31,.06);}
+  .choose-btn:hover{background:#f4f1ff;border-color:var(--violet);box-shadow:0 2px 6px rgba(108,63,232,.18);}
+  .choose-btn svg{width:16px;height:16px;}
   .fname{color:var(--muted);font-size:.83rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 </style>
 </head>
 <body>
 <header class="topnav">
-  <a <a class="nav-logo" href="/feed" title="Grit&Gigs home"><div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div><span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span></a>
+  <a class="nav-logo" href="/feed" title="Grit&Gigs home"><div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div><span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span></a>
   <div class="searchbox"><input id="navSearch" placeholder="Search gigs, projects, barter..."/></div>
   <div class="icons">
     <a href="/feed" title="Feed"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.7V21h14V9.7"/></svg></a>
@@ -76,13 +78,13 @@
     <div class="fld">
       <label>Avatar / profile photo</label>
       <div class="choose">
-        <label class="choose-btn" for="photoInput">📷 Choose a photo</label>
+        <label class="choose-btn" for="photoInput"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.7a1 1 0 0 0 .83-.45l.94-1.4A1 1 0 0 1 9.8 3.7h4.4a1 1 0 0 1 .83.45l.94 1.4a1 1 0 0 0 .83.45h1.7A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5v-9Z"/><circle cx="12" cy="13" r="3.5"/></svg>Choose a photo</label>
         <input type="file" id="photoInput" accept="image/*" hidden/>
         <div class="fname" id="photoName">No file selected</div>
       </div>
     </div>
     <div class="row">
-      <button class="btn primary" id="saveProfile">Save profile</button>
+      <button class="btn primary" id="saveProfile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg>Save profile</button>
       <div class="ok" id="profOk"></div>
     </div>
   </div>

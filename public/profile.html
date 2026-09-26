@@ -11,8 +11,8 @@
 <style>
 .pcard{background:#fff;border:1px solid #ececf0;border-radius:16px;margin-bottom:14px;overflow:hidden}
 .pbanner{height:120px;background:linear-gradient(115deg,#111 0%,#2b2b33 55%,#eab308 175%)}
-.phead{display:flex;gap:18px;padding:0 22px;margin-top:-46px;align-items:flex-end;flex-wrap:wrap;position:relative}
-.pavatar{width:96px;height:96px;border-radius:50%;border:4px solid #fff;object-fit:cover;background:#f3f3f3}
+.phead{display:flex;gap:18px;padding:14px 22px 0;align-items:flex-end;flex-wrap:wrap;position:relative}
+.pavatar{width:96px;height:96px;border-radius:50%;border:4px solid #fff;object-fit:cover;background:#f3f3f3;margin-top:-56px;align-self:flex-start;box-shadow:0 2px 8px rgba(0,0,0,.12)}
 .pheadmain{flex:1;min-width:220px;padding-bottom:4px}
 .pnamerow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .pname{font-size:24px;font-weight:800;color:#17171a}
@@ -21,7 +21,16 @@
 .rbadge{font-size:11.5px;font-weight:700;padding:3.5px 10px;border-radius:99px;background:#111;color:#eab308}
 .rbadge.mut{background:#f3f4f6;color:#4b5563;border:1px solid #e5e7eb}
 .pmeta{font-size:13px;color:#6b7280;margin-top:6px;display:flex;gap:14px;flex-wrap:wrap}
-.pactions{display:flex;gap:8px;margin-top:12px;align-items:center}
+.pactions{display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap}
+.pbtn{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #d1d5db;color:#111827;font-weight:600;font-size:13px;padding:7px 16px;border-radius:8px;cursor:pointer;font-family:inherit;transition:.15s;line-height:1.3;text-decoration:none}
+.pbtn:hover{background:#f9fafb;border-color:#9ca3af}
+.pbtn.on{background:#2563eb;border-color:#2563eb;color:#fff}
+.pbtn.on:hover{background:#1d4ed8;border-color:#1d4ed8}
+.pbtn.view{background:#111;border-color:#111;color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.18)}
+.pbtn.view:hover{background:#333;border-color:#333}
+.pbtn.ghost{border-color:#d1d5db;color:#111827}
+.pbtn.ghost:hover{background:#f9fafb;border-color:#9ca3af}
+.pbtn svg{width:13px;height:13px;flex-shrink:0}
 .pstats{display:flex;gap:18px;padding:14px 22px 0;flex-wrap:wrap;font-size:13px;color:#6b7280}
 .pstats b{color:#17171a;font-size:15px;margin-right:4px}
 .pbio{padding:12px 22px 18px;font-size:14.5px;color:#374151;white-space:pre-wrap;line-height:1.55}
@@ -42,12 +51,10 @@
 .portlinks a{display:inline-flex;align-items:center;gap:6px;border:1px solid #e5e7eb;background:#fff;border-radius:99px;padding:7px 14px;font-size:13px;font-weight:600;color:#374151;text-decoration:none;max-width:100%}
 .portlinks a span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .portlinks a:hover{border-color:#eab308;background:#fffbeb}
-.pbtn.ghost{background:#fff;color:#374151;border:1px solid #d8d8de}
-.pbtn.ghost:hover{background:#f3f4f6}
 @media (max-width:640px){
 .pbanner{height:88px}
-.phead{margin-top:-40px;padding:0 14px;gap:12px}
-.pavatar{width:76px;height:76px}
+.phead{padding:14px 14px 0;gap:12px}
+.pavatar{width:76px;height:76px;margin-top:-48px}
 .pstats,.pbio{padding-left:14px;padding-right:14px}
 .pctitle{padding-left:14px;padding-right:14px}
 .plabel{padding-left:14px}
@@ -91,7 +98,8 @@
             <div class="pactions">
               <button class="pbtn" id="pBtn" style="display:none;">Follow</button>
               <button class="pbtn" id="pMsgBtn" style="display:none;">Message</button>
-              <a class="pbtn ghost" id="pEditBtn" href="/settings.html" style="display:none;text-decoration:none;">Edit profile</a>
+              <button class="pbtn view" id="pViewBtn" style="display:none;">View profile</button>
+              <a class="pbtn ghost" id="pEditBtn" href="/settings.html" style="display:none;text-decoration:none;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>Edit profile</a>
             </div>
           </div>
         </div>
@@ -318,7 +326,15 @@
       $('pSkillsWant').innerHTML = wanted.map(function (s) { return '<span>' + c.esc(s) + '</span>'; }).join('');
       renderWorks(u.sampleWorks || []);
       renderLinks(u.portfolioLinks || [], u.socialLinks || {});
-      $('pEditBtn').style.display = (me0 && me0.id === u.id) ? '' : 'none';
+      var own = !!(me0 && me0.id === u.id);
+      $('pEditBtn').style.display = own ? '' : 'none';
+      $('pViewBtn').style.display = own ? '' : 'none';
+      if (own) {
+        $('pViewBtn').onclick = function () {
+          var t = document.querySelector('.prof-caption');
+          if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+      }
       var btn = $('pBtn');
       var msgBtn = $('pMsgBtn');
       if (c.token() && me0 && me0.id !== profId) {
