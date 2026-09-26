@@ -662,6 +662,7 @@ router.get("/community/users/:id", optionalAuth, async (req: Request, res: Respo
     .select({
       posts: count(communityPostsTable.id),
       likes: sql<number>`COALESCE(SUM(${communityPostsTable.likeCount}), 0)`,
+      comments: sql<number>`COALESCE(SUM(${communityPostsTable.commentCount}), 0)`,
     })
     .from(communityPostsTable)
     .where(eq(communityPostsTable.userId, user.id));
@@ -687,6 +688,7 @@ router.get("/community/users/:id", optionalAuth, async (req: Request, res: Respo
       user,
       posts: Number(postStats?.posts ?? 0),
       likes: Number(postStats?.likes ?? 0),
+      comments: Number(postStats?.comments ?? 0),
       followers: Number(followerCount?.c ?? 0),
       following,
     },
