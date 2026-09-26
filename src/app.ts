@@ -75,6 +75,19 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get("/dashboard/orders/:id", (req, res) => {
+  res.redirect(302, "/orders.html?id=" + encodeURIComponent(String(req.params.id)));
+});
+app.get("/dashboard/orders", (_req, res) => {
+  res.redirect(302, "/orders.html");
+});
+app.get("/dashboard/:tab", (req, res) => {
+  res.redirect(302, "/dashboard.html?tab=" + encodeURIComponent(String(req.params.tab)));
+});
+app.get("/services/:_id", (_req, res) => {
+  res.redirect(302, "/explore?kind=GIG");
+});
+
 app.use(express.static(publicPath));
 
 // Clean URL fallback — serve .html for extensionless requests
