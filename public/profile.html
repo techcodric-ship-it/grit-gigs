@@ -35,6 +35,7 @@
 .pstats b{color:#17171a;font-size:15px;margin-right:4px}
 .grid .tile .over{background:linear-gradient(to top,rgba(0,0,0,.55),rgba(0,0,0,0) 60%);color:#fff;justify-content:flex-start;align-items:flex-end;gap:14px;padding:0 10px 9px;font-size:12.5px;font-weight:600;}
 .grid .tile:hover .over{background:linear-gradient(to top,rgba(0,0,0,.55),rgba(0,0,0,0) 60%);color:#fff;}
+.prof-caption div{cursor:pointer;}
 .pbio{padding:12px 22px 18px;font-size:14.5px;color:#374151;white-space:pre-wrap;line-height:1.55}
 .pctitle{margin:0;padding:16px 22px 2px;font-size:15px;color:#17171a}
 .plabel{font-size:11px;letter-spacing:.1em;font-weight:800;color:#9ca3af;padding:12px 22px 0;text-transform:uppercase}
@@ -134,7 +135,9 @@
       </div>
 
       <div class="prof-caption">
-        <div class="on">POSTS</div>
+        <div class="on" data-ptab="posts">POSTS</div>
+        <div data-ptab="liked" style="display:none;">LIKED</div>
+        <div data-ptab="commented" style="display:none;">COMMENTED</div>
       </div>
       <div class="grid" id="grid"></div>
     </div>
@@ -250,6 +253,22 @@
     return div;
   }
 
+  function renderPostList(fr, emptyMsg) {
+    var posts = (fr && fr.ok && fr.d && fr.d.data && fr.d.data.posts) || [];
+    grid.innerHTML = '';
+    if (!posts.length) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1;"><h3>' + emptyMsg + '</h3></div>'; return; }
+    posts.forEach(function (row) { grid.appendChild(tile(row)); });
+  }
+
+  function loadPosts(tab) {
+    var url, emptyMsg;
+    if (tab === 'liked') { url = '/community/me/liked-posts?limit=30'; emptyMsg = 'No liked posts yet.'; }
+    else if (tab === 'commented') { url = '/community/me/commented-posts?limit=30'; emptyMsg = 'No commented posts yet.'; }
+    else { url = '/community/feed?authorId=' + encodeURIComponent(profId) + '&limit=30'; emptyMsg = 'No posts yet.'; }
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1;"><h3>Loading\u2026</h3></div>';
+    c.api(url).then(function (fr) { renderPostList(fr, emptyMsg); }, function () { renderPostList(null, emptyMsg); });
+  }
+
   function normUrl(u) {
     u = String(u || '').trim();
     if (!u) return '';
@@ -338,6 +357,14 @@
           var t = document.querySelector('.prof-caption');
           if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
         };
+        document.querySelectorAll('[data-ptab]').forEach(function (el) {
+          if (el.getAttribute('data-ptab') !== 'posts') el.style.display = '';
+          el.addEventListener('click', function () {
+            document.querySelectorAll('[data-ptab]').forEach(function (x) { x.classList.remove('on'); });
+            el.classList.add('on');
+            loadPosts(el.getAttribute('data-ptab'));
+          });
+        });
       }
       var btn = $('pBtn');
       var msgBtn = $('pMsgBtn');
@@ -365,12 +392,7 @@
       } else if (me0 && me0.id === profId) {
         btn.style.display = 'none';
       }
-      c.api('/community/feed?authorId=' + encodeURIComponent(profId) + '&limit=30').then(function (fr) {
-        var posts = (fr.d.data && fr.d.data.posts) || [];
-        if (!posts.length) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1;"><h3>No posts yet.</h3></div>'; return; }
-        grid.innerHTML = '';
-        posts.forEach(function (row) { grid.appendChild(tile(row)); });
-      });
+      loadPosts('posts');
     });
   }
 

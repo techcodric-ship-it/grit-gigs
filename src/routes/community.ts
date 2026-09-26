@@ -695,6 +695,56 @@ router.get("/community/users/:id", optionalAuth, async (req: Request, res: Respo
   });
 });
 
+router.get("/community/me/liked-posts", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const meId = req.user!.id;
+  const limit = Math.min(60, Math.max(1, Number(req.query.limit) || 30));
+  const liked = await db
+    .select({ id: communityPostsTable.id })
+    .from(communityLikesTable)
+    .innerJoin(communityPostsTable, eq(communityLikesTable.postId, communityPostsTable.id))
+    .where(eq(communityLikesTable.userId, meId))
+    .orderBy(desc(communityLikesTable.createdAt))
+    .limit(limit);
+  if (!liked.length) {
+    res.status(200).json({ success: true, data: { posts: [] } });
+    return;
+  }
+  const ids = liked.map((r) => r.id);
+  const rows = await db.select().from(communityPostsTable).where(inArray(communityPostsTable.id, ids));
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const ordered: typeof rows = [];
+  for (const id of ids) {
+    const r = byId.get(id);
+    if (r) ordered.push(r);
+  }
+  res.status(200).json({ success: true, data: { posts: await renderPosts(ordered, meId) } });
+});
+
+router.get("/community/me/commented-posts", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const meId = req.user!.id;
+  const limit = Math.min(60, Math.max(1, Number(req.query.limit) || 30));
+  const commented = await db
+    .select({ postId: communityCommentsTable.postId })
+    .from(communityCommentsTable)
+    .where(eq(communityCommentsTable.userId, meId))
+    .groupBy(communityCommentsTable.postId)
+    .orderBy(sql`MAX(${communityCommentsTable.createdAt}) DESC`)
+    .limit(limit);
+  if (!commented.length) {
+    res.status(200).json({ success: true, data: { posts: [] } });
+    return;
+  }
+  const ids = commented.map((r) => r.postId);
+  const rows = await db.select().from(communityPostsTable).where(inArray(communityPostsTable.id, ids));
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const ordered: typeof rows = [];
+  for (const id of ids) {
+    const r = byId.get(id);
+    if (r) ordered.push(r);
+  }
+  res.status(200).json({ success: true, data: { posts: await renderPosts(ordered, meId) } });
+});
+
 // â”€â”€ POST /community/users/:id/follow â€” toggle follow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post("/community/users/:id/follow", authenticate, async (req: Request, res: Response): Promise<void> => {
   const targetId = String(req.params.id);
