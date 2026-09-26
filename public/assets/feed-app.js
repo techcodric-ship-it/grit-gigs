@@ -39,9 +39,29 @@
     return _refreshing;
   }
 
+  function tokenNeedsRefresh(t) {
+    try {
+      var raw = (t.split('.')[1] || '').replace(/-/g, '+').replace(/_/g, '/');
+      while (raw.length % 4) raw += '=';
+      var p = JSON.parse(atob(raw));
+      if (!p.exp) return false;
+      return p.exp * 1000 - Date.now() < 60000;
+    } catch (e) {
+      return true;
+    }
+  }
+
   function api(path, opts) {
     opts = opts || {};
     var attempts = arguments.length > 2 ? arguments[2] : 0;
+    if (token && attempts === 0 && tokenNeedsRefresh(token)) {
+      return refreshTokens().then(function () {
+        return api(path, opts, 1);
+      }).catch(function () {
+        clearSession();
+        return api(path, opts, 1);
+      });
+    }
     var headers = opts.headers || {};
     if (token) headers['Authorization'] = 'Bearer ' + token;
     if (opts.body) headers['Content-Type'] = 'application/json';
@@ -78,9 +98,8 @@
 
   function syncMe() {
     if (!token || !me || !me.id) return;
-    fetch(API + '/users/' + encodeURIComponent(me.id), {
-      headers: { 'Authorization': 'Bearer ' + token },
-    }).then(function (r) { return r.json(); }).then(function (d) {
+    api('/users/' + encodeURIComponent(me.id)).then(function (res) {
+      var d = res.d;
       if (!d || !d.success || !d.data || !me) return;
       var u = Object.assign({}, me, d.data);
       localStorage.setItem('se_user', JSON.stringify(u));
@@ -636,10 +655,10 @@
   // ── post count refresh ──
   function loadUnreadBadge() {
     if (!getToken()) return;
-    fetch(API + '/community/notifications?limit=1', { headers: { 'Authorization': 'Bearer ' + getToken() } })
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        if (!d.success) return;
+    api('/community/notifications?limit=1')
+      .then(function (res) {
+        var d = res.d;
+        if (!d || !d.success) return;
         var bx = document.getElementById('notifBadge');
         if (bx) {
           var n = Number((d.data && d.data.unread) || 0);
