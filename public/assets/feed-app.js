@@ -292,8 +292,13 @@
     var tagsHtml = (p.tags && p.tags.length) ? p.tags.map(function (t) { return '<a href="/explore.html?q=' + encodeURIComponent(t) + '">#' + esc(t) + '</a> '; }).join('') : '';
 
     var capText = p.content || '';
-    var capLong = capText.length > 120;
-    var caption = '<div class="card-caption"><div><b>' + esc(author.firstName || 'Hustler') + '</b><span class="cap-short">' + esc(capText.slice(0, 120)) + '</span>' + (capLong ? '<span class="cap-rest" style="display:none">' + esc(capText.slice(120)) + '</span><span class="more" data-more="' + esc(p.id) + '"> · more</span>' : '') + '</div>' +
+    var cutAt = capText.length;
+    if (capText.length > 120) {
+      cutAt = 120;
+      if (capText.charCodeAt(cutAt - 1) >= 0xD800 && capText.charCodeAt(cutAt - 1) <= 0xDBFF) cutAt = 119;
+    }
+    var capLong = capText.length > cutAt;
+    var caption = '<div class="card-caption"><div><b>' + esc(author.firstName || 'Hustler') + '</b><span class="cap-short">' + esc(capText.slice(0, cutAt)) + '</span>' + (capLong ? '<span class="cap-rest" style="display:none">' + esc(capText.slice(cutAt)) + '</span><span class="more" data-more="' + esc(p.id) + '"> · more</span>' : '') + '</div>' +
       (tagsHtml ? '<div class="tags">' + tagsHtml + '</div>' : '') + '</div>';
 
     var commentsHtml = (row.comments || []).slice(0, 2).map(function (c) {
@@ -672,6 +677,12 @@
   };
 
   document.addEventListener('click', function (e) {
+    var m = e.target.closest('[data-more]');
+    if (m && m.isConnected) {
+      var box = m.parentElement;
+      var rest = box && box.querySelector('.cap-rest');
+      if (rest) { rest.style.display = 'inline'; m.remove(); return; }
+    }
     var sh = e.target.closest('[data-share]');
     if (sh) {
       e.preventDefault();

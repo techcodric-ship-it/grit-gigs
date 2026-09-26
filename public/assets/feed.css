@@ -107,7 +107,7 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
 .card-likes { padding: 0 16px; font-size: 14px; font-weight: 600; }
 .card-caption { padding: 2px 16px; font-size: 14px; }
 .card-caption b { margin-right: 4px; }
-.card-caption .more { color: var(--dusk); font-size: 13px; }
+.card-caption .more { color: var(--dusk); font-size: 13px; font-weight: 600; cursor: pointer; user-select: none; }
 .card-caption .tags a { color: var(--blue-2); font-weight: 500; }
 .card-comments { padding: 2px 16px 6px; font-size: 14px; }
 .card-comments .cmt { margin: 3px 0; }
