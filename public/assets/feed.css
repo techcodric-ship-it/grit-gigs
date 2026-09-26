@@ -266,7 +266,7 @@ h4.sub-title { font-size: 14px; font-weight: 600; margin: 20px 0 12px; }
 .ddmenu .dd-head img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; }
 .ddmenu .dd-head .nm { font-size: 13px; font-weight: 700; line-height: 1.25; }
 .ddmenu .dd-head .ct { font-size: 11px; color: var(--dusk); }
-.ddmenu a.dd-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.ddmenu a.dd-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: var(--ink); cursor: pointer; }
 .ddmenu a.dd-item:hover { background: var(--bg); }
 .ddmenu a.dd-item svg { width: 17px; height: 17px; fill: none; stroke: #6C3FE8; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .ddmenu button.dd-item { width: 100%; text-align: left; background: none; border: none; font: inherit; }
