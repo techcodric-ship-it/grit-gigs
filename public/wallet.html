@@ -26,7 +26,7 @@
 </header> <div class="wrap"> <div class="card"> <h2>Wallet</h2> <div class="sub">Your money, protected on the platform. Add funds, then spend on orders, gigs and credits.</div> <div class="balance-lbl"> <div> <div class="balance-big" id="balance">₹0</div> <div style="color:var(--text-muted,#999);font-size:0.85rem;margin-top:2px;">Available balance</div> </div> <div style="text-align:right;"> <div style="font-weight:700;color:var(--green,#1a9e6c);" id="earned">₹0</div> <div style="color:var(--text-muted,#999);font-size:0.85rem;">Total earned</div> </div> </div> <div class="row"> <button class="btn primary" id="topUp">+ Add money</button> </div> </div> <div class="card mini"> <h4>Recent transactions</h4> <div id="txns"><div class="empty">Loading…</div></div> </div>
 </div> <!-- top-up modal -->
 <div class="modal-backdrop" id="topUpModal"> <div class="modal"> <h3>Add money to wallet</h3> <div class="sub">Security-checked &amp; encrypted. Instant credit after payment.</div> <div class="fld"><label>Amount (₹)</label><input type="number" id="amt" placeholder="500" min="1"/></div> <div class="fld"> <label>Payment method</label> <select id="method"> <option value="razorpay">UPI / Cards / Netbanking (Razorpay)</option> </select> </div> <div class="err" id="upErr"></div> <div class="row"> <button class="btn ghost" id="upCancel">Cancel</button> <button class="btn primary" id="upSubmit">Pay ₹0</button> </div> </div>
-</div> <script src="/assets/onboarding.js?v=1"></script> <script src="/assets/feed-app.js?v=14"></script>
+</div> <script src="/assets/onboarding.js?v=1"></script> <script src="/assets/feed-app.js?v=15"></script>
 <script>
 (function () {
   var c = window.core || window.community || window.feed;
