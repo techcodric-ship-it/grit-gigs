@@ -8,12 +8,59 @@
 <title>Profile — Grit&Gigs</title>
 <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=6"/>
 <link rel="stylesheet" href="/assets/feed.css?v=14"/>
+<style>
+.pcard{background:#fff;border:1px solid #ececf0;border-radius:16px;margin-bottom:14px;overflow:hidden}
+.pbanner{height:120px;background:linear-gradient(115deg,#111 0%,#2b2b33 55%,#eab308 175%)}
+.phead{display:flex;gap:18px;padding:0 22px;margin-top:-46px;align-items:flex-end;flex-wrap:wrap;position:relative}
+.pavatar{width:96px;height:96px;border-radius:50%;border:4px solid #fff;object-fit:cover;background:#f3f3f3}
+.pheadmain{flex:1;min-width:220px;padding-bottom:4px}
+.pnamerow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pname{font-size:24px;font-weight:800;color:#17171a}
+.vbadge{display:inline-flex;align-items:center;gap:5px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:99px}
+.vbadge svg{width:12px;height:12px}
+.rbadge{font-size:11.5px;font-weight:700;padding:3.5px 10px;border-radius:99px;background:#111;color:#eab308}
+.rbadge.mut{background:#f3f4f6;color:#4b5563;border:1px solid #e5e7eb}
+.pmeta{font-size:13px;color:#6b7280;margin-top:6px;display:flex;gap:14px;flex-wrap:wrap}
+.pactions{display:flex;gap:8px;margin-top:12px;align-items:center}
+.pstats{display:flex;gap:18px;padding:14px 22px 0;flex-wrap:wrap;font-size:13px;color:#6b7280}
+.pstats b{color:#17171a;font-size:15px;margin-right:4px}
+.pbio{padding:12px 22px 18px;font-size:14.5px;color:#374151;white-space:pre-wrap;line-height:1.55}
+.pctitle{margin:0;padding:16px 22px 2px;font-size:15px;color:#17171a}
+.plabel{font-size:11px;letter-spacing:.1em;font-weight:800;color:#9ca3af;padding:12px 22px 0;text-transform:uppercase}
+.plabel.mt{padding-top:16px}
+.pempty{font-size:13px;color:#9ca3af;font-style:italic;padding:6px 22px 16px}
+.pempty.n{padding-bottom:6px}
+.workgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:12px;padding:14px 22px 20px}
+.workcard{border:1px solid #ececf0;border-radius:12px;overflow:hidden;background:#fafafa;display:flex;flex-direction:column}
+.workcard img{width:100%;height:120px;object-fit:cover;background:#eee;display:block}
+.workcard .wb{padding:10px 12px 12px}
+.workcard .wb b{font-size:13.5px;display:block;margin-bottom:4px;color:#17171a}
+.workcard .wb p{margin:0;font-size:12.5px;color:#6b7280;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.workcard .wb a{display:inline-block;margin-top:8px;font-size:12.5px;font-weight:700;color:#1d4ed8;text-decoration:none}
+.workcard .wb a:hover{text-decoration:underline}
+.portlinks{display:flex;flex-wrap:wrap;gap:8px;padding:14px 22px 20px}
+.portlinks a{display:inline-flex;align-items:center;gap:6px;border:1px solid #e5e7eb;background:#fff;border-radius:99px;padding:7px 14px;font-size:13px;font-weight:600;color:#374151;text-decoration:none;max-width:100%}
+.portlinks a span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.portlinks a:hover{border-color:#eab308;background:#fffbeb}
+.pbtn.ghost{background:#fff;color:#374151;border:1px solid #d8d8de}
+.pbtn.ghost:hover{background:#f3f4f6}
+@media (max-width:640px){
+.pbanner{height:88px}
+.phead{margin-top:-40px;padding:0 14px;gap:12px}
+.pavatar{width:76px;height:76px}
+.pstats,.pbio{padding-left:14px;padding-right:14px}
+.pctitle{padding-left:14px;padding-right:14px}
+.plabel{padding-left:14px}
+.pempty{padding-left:14px;padding-right:14px}
+.workgrid,.portlinks{padding-left:14px;padding-right:14px}
+}
+</style>
 </head>
 <body>
 <div class="toast" id="toast"></div>
 
 <header class="topnav">
-  <a <a class="nav-logo" href="/feed" title="Grit&Gigs home"><div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div><span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span></a>
+  <a class="nav-logo" href="/feed" title="Grit&Gigs home"><div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div><span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span></a>
   <div class="searchbox"><input id="navSearch" placeholder="Search gigs, projects, barter…"/></div>
   <div class="icons">
     <a href="/feed" title="Feed"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.7V21h14V9.7"/></svg></a>
@@ -30,22 +77,49 @@
     <div class="loading" id="loading">Loading profile…</div>
 
     <div id="profileBody" style="display:none;">
-      <div class="prof">
-        <img id="pAv" class="big" src="https://api.dicebear.com/9.x/initials/svg?seed=grit&backgroundColor=f0f0f0&textColor=262626" alt=""/>
-        <div>
-          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-            <div class="pname" id="pName">Hustler</div>
-            <button class="pbtn" id="pBtn" style="display:none;">Follow</button>
-            <button class="pbtn" id="pMsgBtn" style="display:none;">Message</button>
+      <div class="pcard">
+        <div class="pbanner"></div>
+        <div class="phead">
+          <img id="pAv" class="pavatar" src="https://api.dicebear.com/9.x/initials/svg?seed=grit&backgroundColor=f0f0f0&textColor=262626" alt=""/>
+          <div class="pheadmain">
+            <div class="pnamerow">
+              <div class="pname" id="pName">Hustler</div>
+              <span class="vbadge" id="pVerified" style="display:none;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg>Verified</span>
+              <span class="rbadge" id="pSeek" style="display:none;"></span>
+            </div>
+            <div class="pmeta" id="pMeta"></div>
+            <div class="pactions">
+              <button class="pbtn" id="pBtn" style="display:none;">Follow</button>
+              <button class="pbtn" id="pMsgBtn" style="display:none;">Message</button>
+              <a class="pbtn ghost" id="pEditBtn" href="/settings.html" style="display:none;text-decoration:none;">Edit profile</a>
+            </div>
           </div>
-          <div class="stats">
-            <span><b id="pPosts">0</b> posts</span>
-            <span><b id="pFollowers">0</b> followers</span>
-            <span><b id="pLikes">0</b> likes</span>
-          </div>
-          <div class="bio" id="pBio"></div>
-          <div class="skills" id="pSkills"></div>
         </div>
+        <div class="pstats">
+          <span><b id="pPosts">0</b>posts</span>
+          <span><b id="pFollowers">0</b>followers</span>
+          <span><b id="pLikes">0</b>likes</span>
+        </div>
+        <div class="pbio" id="pBio"></div>
+      </div>
+
+      <div class="pcard" id="pSkillsCard">
+        <div class="pctitle">Skills</div>
+        <div class="plabel n">Offers</div>
+        <div class="skills" id="pSkills" style="padding:8px 22px 0;"></div>
+        <div class="pempty n" id="pSkillsEmpty" style="display:none;">No skills listed yet.</div>
+        <div class="plabel mt" id="pWantLabel" style="display:none;">Looking for</div>
+        <div class="skills" id="pSkillsWant" style="padding:8px 22px 18px;"></div>
+      </div>
+
+      <div class="pcard" id="pWorkCard" style="display:none;">
+        <div class="pctitle">Sample works</div>
+        <div class="workgrid" id="pWorks"></div>
+      </div>
+
+      <div class="pcard" id="pPortCard" style="display:none;">
+        <div class="pctitle">Portfolio &amp; links</div>
+        <div class="portlinks" id="pLinks"></div>
       </div>
 
       <div class="prof-caption">
@@ -103,7 +177,7 @@
   <div class="modal" style="max-width:900px;"></div>
 </div>
 
-<script src="/assets/feed-app.js?v=14"></script>
+<script src="/assets/onboarding.js?v=1"></script> <script src="/assets/feed-app.js?v=14"></script>
 <script>
 (function () {
   var c = window.community;
@@ -165,6 +239,47 @@
     return div;
   }
 
+  function normUrl(u) {
+    u = String(u || '').trim();
+    if (!u) return '';
+    if (/^[a-z][a-z0-9+.-]*:/i.test(u)) return u;
+    return 'https://' + u;
+  }
+
+  function renderWorks(works) {
+    var card = $('pWorkCard');
+    if (!works.length) { card.style.display = 'none'; return; }
+    card.style.display = '';
+    $('pWorks').innerHTML = works.map(function (w) {
+      var url = normUrl(w.url);
+      return '<div class="workcard">' +
+        (w.image ? '<img src="' + c.esc(w.image) + '" loading="lazy" alt=""/>' : '') +
+        '<div class="wb"><b>' + c.esc(w.title || 'Untitled work') + '</b>' +
+        (w.description ? '<p>' + c.esc(w.description) + '</p>' : '') +
+        (url ? '<a href="' + c.esc(url) + '" target="_blank" rel="noopener noreferrer">View work</a>' : '') +
+        '</div></div>';
+    }).join('');
+  }
+
+  function renderLinks(links, social) {
+    var out = [];
+    (links || []).forEach(function (l) {
+      var url = normUrl(l && l.url);
+      if (!url) return;
+      var label = (l && (l.label || l.title)) || 'Portfolio';
+      out.push('<a href="' + c.esc(url) + '" target="_blank" rel="noopener noreferrer" title="' + c.esc((l && l.desc) || '') + '"><span>' + c.esc(label) + '</span></a>');
+    });
+    Object.keys(social || {}).forEach(function (k) {
+      var url = normUrl(social[k]);
+      if (!url) return;
+      out.push('<a href="' + c.esc(url) + '" target="_blank" rel="noopener noreferrer"><span>' + c.esc(k) + '</span></a>');
+    });
+    var card = $('pPortCard');
+    if (!out.length) { card.style.display = 'none'; return; }
+    card.style.display = '';
+    $('pLinks').innerHTML = out.join('');
+  }
+
   function loadProfile() {
     if (!profId) { $('loading').textContent = 'No profile selected.'; return; }
     $('loading').style.display = 'block';
@@ -182,7 +297,28 @@
       $('pLikes').textContent = d.likes;
       var bio = [u.tagline, u.bio].filter(Boolean).join(' — ');
       $('pBio').textContent = bio || '';
-      $('pSkills').innerHTML = (u.skillsOffered || []).map(function (s) { return '<span>' + c.esc(s) + '</span>'; }).join('');
+      $('pBio').style.display = bio ? '' : 'none';
+      $('pVerified').style.display = u.kycVerified ? '' : 'none';
+      var seekMap = { freelancer: 'Takes work', client: 'Hires talent', both: 'Works & hires' };
+      var seek = $('pSeek');
+      if (u.seekingTo && seekMap[u.seekingTo]) { seek.textContent = seekMap[u.seekingTo]; seek.style.display = ''; } else { seek.style.display = 'none'; }
+      var meta = [];
+      if (u.city) meta.push(c.esc(u.city));
+      if (u.languages && u.languages.length) meta.push(c.esc(u.languages.slice(0, 4).join(', ')));
+      if (u.createdAt) {
+        try { meta.push('Joined ' + new Date(u.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })); } catch (e) {}
+      }
+      $('pMeta').innerHTML = meta.map(function (m) { return '<span>' + m + '</span>'; }).join('');
+      var offered = u.skillsOffered || [];
+      var wanted = u.skillsNeeded || [];
+      $('pSkills').innerHTML = offered.map(function (s) { return '<span>' + c.esc(s) + '</span>'; }).join('');
+      $('pSkills').style.display = offered.length ? '' : 'none';
+      $('pSkillsEmpty').style.display = offered.length ? 'none' : '';
+      $('pWantLabel').style.display = wanted.length ? '' : 'none';
+      $('pSkillsWant').innerHTML = wanted.map(function (s) { return '<span>' + c.esc(s) + '</span>'; }).join('');
+      renderWorks(u.sampleWorks || []);
+      renderLinks(u.portfolioLinks || [], u.socialLinks || {});
+      $('pEditBtn').style.display = (me0 && me0.id === u.id) ? '' : 'none';
       var btn = $('pBtn');
       var msgBtn = $('pMsgBtn');
       if (c.token() && me0 && me0.id !== profId) {

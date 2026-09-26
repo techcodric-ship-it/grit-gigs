@@ -593,6 +593,9 @@
           setSession(d.data.accessToken, d.data.refreshToken, d.data.user);
           toast('Verified — you are in!');
           refreshAuthedUI();
+          if (window.GritOnboarding && d.data.user && d.data.user.onboardingComplete === false) {
+            window.GritOnboarding.open({ user: d.data.user, onDone: function () { refreshAuthedUI(); } });
+          }
         } else {
           var fld = document.getElementById('loginEmail');
           if (fld) fld.value = email;

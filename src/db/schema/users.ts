@@ -36,6 +36,7 @@ export const usersTable = pgTable("users", {
   isAvailable: boolean("is_available").default(true).notNull(),
   hourlyRate: integer("hourly_rate"),
   portfolioLinks: jsonb("portfolio_links").$type<{ label: string; url: string }[]>().default([]).notNull(),
+  sampleWorks: jsonb("sample_works").$type<{ title: string; description: string; url: string; image: string }[]>().default([]).notNull(),
   socialLinks: jsonb("social_links").$type<Record<string, string>>().default({}).notNull(),
   reputationScore: integer("reputation_score").default(0).notNull(),
   emailVerified: boolean("email_verified").default(false).notNull(),

@@ -266,7 +266,7 @@ router.put("/users/me/availability", authenticate, async (req, res): Promise<voi
 
 router.put("/users/me", authenticate, async (req, res): Promise<void> => {
   try {
-    const { firstName, lastName, bio, tagline, city, country, phone, hourlyRate, languages, skillsOffered, skillsNeeded, portfolioLinks, socialLinks } = req.body;
+    const { firstName, lastName, bio, tagline, city, country, phone, hourlyRate, languages, skillsOffered, skillsNeeded, portfolioLinks, socialLinks, sampleWorks, seekingTo } = req.body;
 
     const ADMIN_UUID = 'b5ad53bd-6c50-490b-8c3a-d77200f99383';
     if (req.user?.id !== ADMIN_UUID) {
@@ -309,6 +309,19 @@ router.put("/users/me", authenticate, async (req, res): Promise<void> => {
       updates.portfolioLinks = arr;
     }
     if (socialLinks !== undefined) updates.socialLinks = socialLinks;
+    if (seekingTo !== undefined && ["freelancer", "client", "both"].includes(seekingTo)) updates.seekingTo = seekingTo;
+    if (sampleWorks !== undefined) {
+      const arr = Array.isArray(sampleWorks) ? sampleWorks : [];
+      updates.sampleWorks = arr
+        .filter((w: any) => w && typeof w === "object")
+        .slice(0, 12)
+        .map((w: any) => ({
+          title: String(w.title || "").slice(0, 200),
+          description: String(w.description || "").slice(0, 1000),
+          url: String(w.url || "").slice(0, 500),
+          image: String(w.image || "").slice(0, 500),
+        }));
+    }
     const [updated] = await db
       .update(usersTable)
       .set({ ...updates, updatedAt: new Date() })
@@ -327,7 +340,9 @@ router.put("/users/me", authenticate, async (req, res): Promise<void> => {
         skillsOffered: usersTable.skillsOffered,
         skillsNeeded: usersTable.skillsNeeded,
         portfolioLinks: usersTable.portfolioLinks,
+        sampleWorks: usersTable.sampleWorks,
         socialLinks: usersTable.socialLinks,
+        seekingTo: usersTable.seekingTo,
         profilePhoto: usersTable.profilePhoto,
       });
 
@@ -433,7 +448,9 @@ router.get("/users/:id", optionalAuth, async (req, res): Promise<void> => {
         isAvailable: usersTable.isAvailable,
         hourlyRate: usersTable.hourlyRate,
         portfolioLinks: usersTable.portfolioLinks,
+        sampleWorks: usersTable.sampleWorks,
         socialLinks: usersTable.socialLinks,
+        seekingTo: usersTable.seekingTo,
         reputationScore: usersTable.reputationScore,
         emailVerified: usersTable.emailVerified,
         kycVerified: usersTable.kycVerified,

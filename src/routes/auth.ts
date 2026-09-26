@@ -308,6 +308,7 @@ router.get("/auth/me", authenticate, async (req, res): Promise<void> => {
       isAvailable: usersTable.isAvailable,
       hourlyRate: usersTable.hourlyRate,
       portfolioLinks: usersTable.portfolioLinks,
+      sampleWorks: usersTable.sampleWorks,
       socialLinks: usersTable.socialLinks,
       reputationScore: usersTable.reputationScore,
       emailVerified: usersTable.emailVerified,
@@ -938,7 +939,7 @@ router.post("/auth/skip-onboarding", authenticate, async (req: any, res): Promis
 });
 
 router.post("/auth/onboarding", authenticate, async (req: any, res): Promise<void> => {
-  const { tagline, bio, city, skillsOffered, skillsNeeded, portfolioLinks, socialLinks, seekingTo } = req.body;
+  const { tagline, bio, city, skillsOffered, skillsNeeded, portfolioLinks, socialLinks, seekingTo, sampleWorks } = req.body;
   const userId = req.user?.id || req.userId;
 
   if (!seekingTo || !["freelancer", "client", "both"].includes(seekingTo)) {
@@ -954,6 +955,17 @@ router.post("/auth/onboarding", authenticate, async (req: any, res): Promise<voi
   if (skillsNeeded && Array.isArray(skillsNeeded)) updateData.skillsNeeded = skillsNeeded;
   if (portfolioLinks && Array.isArray(portfolioLinks)) updateData.portfolioLinks = portfolioLinks;
   if (socialLinks && typeof socialLinks === "object") updateData.socialLinks = socialLinks;
+  if (sampleWorks && Array.isArray(sampleWorks)) {
+    updateData.sampleWorks = sampleWorks
+      .filter((w: any) => w && typeof w === "object")
+      .slice(0, 12)
+      .map((w: any) => ({
+        title: String(w.title || "").slice(0, 200),
+        description: String(w.description || "").slice(0, 1000),
+        url: String(w.url || "").slice(0, 500),
+        image: String(w.image || "").slice(0, 500),
+      }));
+  }
 
   const [updated] = await db.update(usersTable).set(updateData).where(eq(usersTable.id, userId)).returning({
     id: usersTable.id,
@@ -972,6 +984,7 @@ router.post("/auth/onboarding", authenticate, async (req: any, res): Promise<voi
     bio: usersTable.bio,
     tagline: usersTable.tagline,
     portfolioLinks: usersTable.portfolioLinks,
+    sampleWorks: usersTable.sampleWorks,
     socialLinks: usersTable.socialLinks,
   });
 

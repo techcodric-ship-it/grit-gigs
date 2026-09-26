@@ -914,7 +914,7 @@ window.addEventListener('message', function googleMessageHandler(e) {
       localStorage.setItem('se_refresh', data.data.refreshToken);
       localStorage.setItem('se_user', JSON.stringify(data.data.user));
       showToast('Welcome, ' + data.data.user.firstName + '!', 'success');
-      setTimeout(function() { goToDashboard(data.data.user, false); }, 600);
+      setTimeout(function() { goToDashboard(data.data.user, true); }, 600);
     }
   } else {
     showToast(data.message || 'Google sign-in failed', 'error');
@@ -936,8 +936,8 @@ var _obStep = 1;
 var _obRole = '';
 
 function goToDashboard(user, isNewSignup) {
-  if (isNewSignup && user && user.onboardingComplete === false) {
-    openModal('welcomeSplashModal');
+  if (isNewSignup && user && user.onboardingComplete === false && window.GritOnboarding) {
+    window.GritOnboarding.open({ user: user, onDone: function () { window.location.href = '/feed'; } });
   } else {
     window.location.href = '/feed';
   }

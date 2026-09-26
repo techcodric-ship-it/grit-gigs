@@ -1025,6 +1025,8 @@ $mig$
       await col(`ALTER TABLE saved_items ADD COLUMN IF NOT EXISTS item_id UUID`);
       // ── Admin: is_active column on users (used for ban/unban) ──
       await col(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE NOT NULL`);
+      // ── Onboarding: sample works portfolio pieces per user ──
+      await col(`ALTER TABLE users ADD COLUMN IF NOT EXISTS sample_works JSONB DEFAULT '[]'::jsonb NOT NULL`);
       // ── Unique DiceBear avatar for every user (based on UUID id) ─────────
       // Replaces old name-based DiceBear avatars and fills missing ones.
       // Custom uploaded photos (non-DiceBear URLs) are left untouched.
