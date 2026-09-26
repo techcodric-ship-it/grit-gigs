@@ -447,8 +447,12 @@
       loadShare();
     });
   } else if (startUserId) {
-    c.api('/messages/conversations/with/' + encodeURIComponent(startUserId), { method: 'POST' }).then(function (r) {
-      if (!r.ok) return;
+    var ctxBody = {};
+    var ctxMatch = q.get('matchId'); if (ctxMatch) ctxBody.matchId = ctxMatch;
+    var ctxOrder = q.get('orderId'); if (ctxOrder) ctxBody.orderId = ctxOrder;
+    var ctxBid = q.get('bidId'); if (ctxBid) ctxBody.projectBidId = ctxBid;
+    c.api('/messages/conversations/with/' + encodeURIComponent(startUserId), { method: 'POST', body: ctxBody }).then(function (r) {
+      if (!r.ok) { c.toast(r.d.message || 'Could not start chat', true); return; }
       refreshConversations();
       setTimeout(function () { openConv(r.d.data.id || r.d.data.conversation.id); }, 100);
     });

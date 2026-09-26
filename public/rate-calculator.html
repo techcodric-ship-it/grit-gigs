@@ -124,7 +124,7 @@
       <a href="/#how-it-works">How it works</a>
       <a href="/#barter">Skill Exchange</a>
       <a href="/#freelance">Freelance</a>
-      <a href="/projects">Browse Projects</a>
+      <a href="/explore?kind=PROJECT">Browse Projects</a>
       <a href="/#about">About</a>
     </div>
     <div class="nav-actions" id="siteNavActions">
@@ -143,7 +143,7 @@
             if (el) {
               var planBadge = '';
               el.innerHTML = planBadge +
-                '<a href="/dashboard" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
+                '<a href="/feed" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
                 '<button class="btn btn-primary btn-sm" onclick="doLogout()">Sign out</button>';
             }
           }

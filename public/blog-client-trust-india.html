@@ -127,7 +127,7 @@
       <a href="/#how-it-works">How it works</a>
       <a href="/#barter">Skill Exchange</a>
       <a href="/#freelance">Freelance</a>
-      <a href="/projects">Browse Projects</a>
+      <a href="/explore?kind=PROJECT">Browse Projects</a>
       <a href="/#about">About</a>
     </div>
     <div class="nav-actions" id="siteNavActions">
@@ -141,7 +141,7 @@
           var u = t && (function () { try { return JSON.parse(localStorage.getItem('se_user') || 'null'); } catch (e) { return null; } })();
           var el = document.getElementById('siteNavActions');
           if (u && u.firstName && el) {
-            el.innerHTML = '<a href="/dashboard" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
+            el.innerHTML = '<a href="/feed" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
               '<button class="btn btn-primary btn-sm" onclick="window.doLogout && window.doLogout()">Sign out</button>';
           }
         } catch (e) {}
@@ -268,7 +268,7 @@
 <div class="refer-box">
   <div class="big">Post your first project for ₹0 commission.</div>
   <div class="sub">Your payment goes to escrow. You approve the work. The freelancer gets paid. Zero platform fees on your first hire.</div>
-  <a class="btn" href="/projects">Post a project free →</a>
+  <a class="btn" href="/feed">Post a project free →</a>
 </div>
 
 <h2>Trust Layer 4: Reviews That Can't Be Bought</h2>
@@ -345,7 +345,7 @@
 
 <p>Zero commission on your first hire. KYC-verified freelancers. Escrow protection. 48-hour dispute resolution. <strong>That's not a promise — it's how the platform is built.</strong></p>
 
-<p><a href="/projects" class="calc-cta">Post your first project free →</a></p>
+<p><a href="/feed" class="calc-cta">Post your first project free →</a></p>
 
 <p style="font-size:0.88rem;margin-top:32px;font-style:italic;color:var(--text-muted);">Written by Amuthavanan, founder of <a href="/">Grit&Gigs</a> — India's first platform combining skill barter, freelancing, and MicroEquity, built to empower every Indian with a skill.</p>
 

@@ -148,12 +148,12 @@ router.post("/orders", authenticate, async (req, res): Promise<void> => {
     type: "NEW_ORDER",
     title: "New order received!",
     message: `${req.user!.firstName} placed an order for "${service.title}"`,
-    linkUrl: `/dashboard/orders/${order.id}`,
+    linkUrl: `/orders.html?id=${order.id}`,
   });
 
   const [seller] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, service.sellerId)).limit(1);
   if (seller?.email) {
-    sendNotificationEmail(seller.email, "New order received!", `${req.user!.firstName} placed an order for "${service.title}"`, `/dashboard/orders/${order.id}`).catch(() => {});
+    sendNotificationEmail(seller.email, "New order received!", `${req.user!.firstName} placed an order for "${service.title}"`, `/orders.html?id=${order.id}`).catch(() => {});
   }
 
   res.status(201).json({ success: true, message: "Order placed successfully!", data: { order } });
@@ -166,10 +166,10 @@ router.put("/orders/:id/accept", authenticate, async (req, res): Promise<void> =
   if (order.status !== "PENDING") { res.status(400).json({ success: false, message: "Order not in pending state" }); return; }
 
   await db.update(ordersTable).set({ status: "ACCEPTED", updatedAt: new Date() }).where(eq(ordersTable.id, order.id));
-  await db.insert(notificationsTable).values({ userId: order.buyerId, type: "ORDER_ACCEPTED", title: "Order accepted!", message: "Your order has been accepted.", linkUrl: `/dashboard/orders/${order.id}` });
+  await db.insert(notificationsTable).values({ userId: order.buyerId, type: "ORDER_ACCEPTED", title: "Order accepted!", message: "Your order has been accepted.", linkUrl: `/orders.html?id=${order.id}` });
   const [buyer] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, order.buyerId)).limit(1);
   if (buyer?.email) {
-    sendNotificationEmail(buyer.email, "Order accepted!", "Your order has been accepted by the seller.", `/dashboard/orders/${order.id}`).catch(() => {});
+    sendNotificationEmail(buyer.email, "Order accepted!", "Your order has been accepted by the seller.", `/orders.html?id=${order.id}`).catch(() => {});
   }
   res.json({ success: true, message: "Order accepted" });
 });
@@ -195,7 +195,7 @@ router.put("/orders/:id/deliver", authenticate, async (req, res): Promise<void> 
 
   const fullDeliveryMessage = deliveryMsg + (deliveryLink ? `\n\n🔗 Deliverable: ${deliveryLink}` : "");
   await db.insert(orderDeliveriesTable).values({ orderId: order.id, message: fullDeliveryMessage, files: files ?? [], revisionNumber });
-  await db.insert(notificationsTable).values({ userId: order.buyerId, type: "ORDER_DELIVERED", title: "Work delivered!", message: "Your order has been delivered. Please review and accept.", linkUrl: `/dashboard/orders/${order.id}` });
+  await db.insert(notificationsTable).values({ userId: order.buyerId, type: "ORDER_DELIVERED", title: "Work delivered!", message: "Your order has been delivered. Please review and accept.", linkUrl: `/orders.html?id=${order.id}` });
 
   const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.orderId, order.id)).limit(1);
   if (conv) {
@@ -228,11 +228,11 @@ router.put("/orders/:id/revision", authenticate, async (req, res): Promise<void>
   }
 
   await db.update(ordersTable).set({ status: "REVISION_REQUESTED", updatedAt: new Date() }).where(eq(ordersTable.id, order.id));
-  await db.insert(notificationsTable).values({ userId: order.sellerId, type: "REVISION_REQUESTED", title: "Revision requested", message: revisionNote ?? "The buyer requested a revision.", linkUrl: `/dashboard/orders/${order.id}` });
+  await db.insert(notificationsTable).values({ userId: order.sellerId, type: "REVISION_REQUESTED", title: "Revision requested", message: revisionNote ?? "The buyer requested a revision.", linkUrl: `/orders.html?id=${order.id}` });
 
   const [seller] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, order.sellerId)).limit(1);
   if (seller?.email) {
-    sendNotificationEmail(seller.email, "Revision requested", revisionNote ? `The buyer requested a revision: ${revisionNote}` : "The buyer requested a revision on the delivered work.", `/dashboard/orders/${order.id}`).catch(() => {});
+    sendNotificationEmail(seller.email, "Revision requested", revisionNote ? `The buyer requested a revision: ${revisionNote}` : "The buyer requested a revision on the delivered work.", `/orders.html?id=${order.id}`).catch(() => {});
   }
 
   // Send revision note as inbox message to seller
@@ -333,14 +333,14 @@ router.put("/orders/:id/complete", authenticate, async (req, res): Promise<void>
     type: 'PAYMENT_SENT',
     title: 'Payment sent',
     message: `₹${order.priceInr} deducted from your wallet for order #${order.id.slice(-8)}`,
-    linkUrl: '/dashboard/orders',
+    linkUrl: '/orders.html',
   });
   await db.insert(notificationsTable).values({
     userId: order.sellerId,
     type: "ORDER_COMPLETED",
     title: "Order completed!",
     message: `You received ₹${netAmount} for order #${order.id.slice(-8)} (${commissionPct}% commission: ₹${commission}). Thank you!`,
-    linkUrl: "/dashboard/orders",
+    linkUrl: "/orders.html",
   });
 
   res.json({ success: true, message: `Order completed! Seller receives ₹${netAmount} (${commissionPct}% commission: ₹${commission}). Please leave a review.` });
@@ -369,7 +369,7 @@ router.put("/orders/:id/cancel", authenticate, async (req, res): Promise<void> =
   await db.insert(notificationsTable).values({
     userId: otherUserId, type: "ORDER_CANCELLED", title: "Order cancelled",
     message: reason ?? "An order has been cancelled.",
-    linkUrl: "/dashboard/orders",
+    linkUrl: "/orders.html",
   });
 
   res.json({ success: true, message: "Order cancelled" });

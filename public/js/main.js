@@ -147,7 +147,7 @@ function updateNav(u) {
   if (user) {
     actions.innerHTML = `
       <span id="mainNavPlanBadge"></span>
-      <a href="dashboard.html" class="btn btn-secondary btn-sm">Hi, ${user.firstName}</a>
+      <a href="/feed" class="btn btn-secondary btn-sm">Hi, ${user.firstName}</a>
       <button class="btn btn-primary btn-sm" onclick="doLogout()">Sign out</button>`;
     // Fetch plan badge asynchronously
     api('/subscriptions/my-plan').then(function(pr) {
@@ -202,7 +202,7 @@ window.doLogout = function() {
             }
           } catch(e) {}
           el.innerHTML = planBadgeHtml +
-            '<a href="dashboard.html" class="btn btn-secondary btn-sm">Hi, ' + user.firstName + '</a>' +
+            '<a href="/feed" class="btn btn-secondary btn-sm">Hi, ' + user.firstName + '</a>' +
             '<button class="btn btn-primary btn-sm" onclick="doLogout()">Sign out</button>';
         }
       } else if (r.status === 401) {
@@ -403,7 +403,7 @@ async function loadLiveBarterCards() {
   });
 
   cards.push(ctaCard);
-  cards.push(`<div style="grid-column:1/-1;text-align:center;margin-top:8px;"><a href="barter.html" class="btn btn-secondary btn-sm">View all exchanges →</a></div>`);
+  cards.push(`<div style="grid-column:1/-1;text-align:center;margin-top:8px;"><a href="/explore?kind=BARTER" class="btn btn-secondary btn-sm">View all exchanges →</a></div>`);
   grid.innerHTML = cards.join('');
 }
 
@@ -422,7 +422,7 @@ async function loadLiveServices() {
   try {
     const data = await api('/services?limit=4');
     if (!data.success || !data.data.services?.length) {
-      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">No services yet. <a href=\"dashboard.html\" style=\"color:var(--violet);font-weight:600;\">Be the first to post one!</a></div>';
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">No services yet. <a href=\"/feed\" style=\"color:var(--violet);font-weight:600;\">Be the first to post one!</a></div>';
       return;
     }
 
@@ -458,7 +458,7 @@ async function loadLiveServices() {
       </div>`;
   }).join('');
   } catch (err) {
-    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">Couldn\'t load services right now. <a href="/freelance" style="color:var(--violet);font-weight:600;">Browse the freelance page →</a></div>';
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">Couldn\'t load services right now. <a href="/explore?kind=GIG" style="color:var(--violet);font-weight:600;">Browse the freelance page →</a></div>';
   }
 }
 
@@ -565,8 +565,8 @@ window.placeOrder = async function() {
 
   if (data.success) {
     closeModal('serviceModal');
-    showToast('Order placed successfully! Check your dashboard.', 'success');
-    setTimeout(() => window.location.href = 'dashboard.html', 1500);
+    showToast('Order placed successfully! Check your orders.', 'success');
+    setTimeout(() => window.location.href = '/feed', 1500);
   } else {
     showToast(data.message || 'Failed to place order', 'error');
   }
@@ -761,7 +761,7 @@ if (path.includes('barter')) {
         } else {
           notif.querySelector('.match-notif-title').textContent = 'Post an exchange to get AI-matched';
           notif.querySelector('.match-notif-sub').textContent = 'Our AI finds people who offer what you need and need what you offer.';
-          if (btn) { btn.textContent = 'Post exchange'; btn.onclick = () => location.href = 'dashboard.html?tab=post-exchange'; }
+          if (btn) { btn.textContent = 'Post exchange'; btn.onclick = () => location.href = '/feed'; }
         }
       }
     }).catch(() => {});
@@ -939,7 +939,7 @@ function goToDashboard(user, isNewSignup) {
   if (isNewSignup && user && user.onboardingComplete === false) {
     openModal('welcomeSplashModal');
   } else {
-    window.location.href = 'dashboard.html';
+    window.location.href = '/feed';
   }
 }
 
@@ -998,7 +998,7 @@ async function skipFullOnboarding() {
     if (data.success && data.data && data.data.user) sU(data.data.user);
   } catch (e) { /* ignore */ }
   closeModal('welcomeSplashModal');
-  window.location.href = 'dashboard.html';
+  window.location.href = '/feed';
 }
 
 async function submitOnboarding() {
@@ -1043,7 +1043,7 @@ async function submitOnboarding() {
     sU(user);
     closeModal('onboardingModal');
     showToast('Profile setup complete!', 'success');
-    setTimeout(function() { window.location.href = 'dashboard.html'; }, 600);
+    setTimeout(function() { window.location.href = '/feed'; }, 600);
   } else {
     if (err) { err.textContent = data.message || 'Something went wrong. Please try again.'; err.style.display = 'block'; }
   }

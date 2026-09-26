@@ -61,7 +61,7 @@
       <a href="/#how-it-works">How it works</a>
       <a href="/#barter">Skill Exchange</a>
       <a href="/#freelance">Freelance</a>
-      <a href="/projects">Browse Projects</a>
+      <a href="/explore?kind=PROJECT">Browse Projects</a>
       <a href="/#about">About</a>
     </div>
     <div class="nav-actions" id="siteNavActions">
@@ -76,7 +76,7 @@
           var u = t && (function () { try { return JSON.parse(localStorage.getItem('se_user') || 'null'); } catch (e) { return null; } })();
           var el = document.getElementById('siteNavActions');
           if (u && u.firstName && el) {
-            el.innerHTML = '<a href="/dashboard" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
+            el.innerHTML = '<a href="/feed" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
               '<button class="btn btn-primary btn-sm" onclick="window.doLogout && window.doLogout()">Sign out</button>';
           }
         } catch (e) {}
@@ -276,7 +276,7 @@
 <div class="highlight-box">
   <p style="font-size:1.05rem;font-weight:700;margin-bottom:8px;">Post Your First Project Free</p>
   <p style="font-size:0.95rem;">No commission on your first hire. KYC-verified freelancers. INR escrow protection. WhatsApp support.</p>
-  <p style="margin:16px 0 0;"><a href="/projects" class="btn-cta">Post a Project →</a></p>
+  <p style="margin:16px 0 0;"><a href="/feed" class="btn-cta">Post a Project →</a></p>
 </div>
 
 <h2>Frequently Asked Questions</h2>
@@ -306,7 +306,7 @@
 
 <p>India has incredible freelance talent. Don't let a few scammers stop you from finding them.</p>
 
-<p style="text-align:center;margin:40px 0;"><a href="/projects" class="btn-cta">Post a Project — Free →</a></p>
+<p style="text-align:center;margin:40px 0;"><a href="/feed" class="btn-cta">Post a Project — Free →</a></p>
 
 <div style="background:#f4f3ef;border-radius:12px;padding:24px;margin:30px 0;">
   <p style="margin:0 0 8px;font-size:0.9rem;color:#555;"><strong>Related reads for Indian business owners:</strong></p>

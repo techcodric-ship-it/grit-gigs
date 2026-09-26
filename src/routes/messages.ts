@@ -15,6 +15,7 @@ import {
   communityGroupsTable,
   barterMatchesTable,
   ordersTable,
+  communityOrdersTable,
   projectBidsTable,
   projectsTable,
   squadsTable,
@@ -23,6 +24,7 @@ import {
 import { eq, or, and, desc, ne, inArray, sql } from "drizzle-orm";
 import { authenticate } from "../middlewares/authenticate";
 import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
+import { hasAcceptedDeal } from "../lib/connections";
 
 const uploadsDir = path.join(PROJECT_ROOT, "uploads", "messages");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
@@ -240,7 +242,32 @@ router.post("/messages/conversations/with/:userId", authenticate, async (req, re
     return;
   }
 
-  const { orderId: reqOrderId, matchId: reqMatchId, projectBidId: reqBidId } = req.body as { orderId?: string; matchId?: string; projectBidId?: string };
+  let { orderId: reqOrderId, matchId: reqMatchId, projectBidId: reqBidId } = req.body as { orderId?: string; matchId?: string; projectBidId?: string };
+
+  if (reqOrderId) {
+    const [ord] = await db
+      .select({ id: ordersTable.id })
+      .from(ordersTable)
+      .where(and(eq(ordersTable.id, reqOrderId), or(eq(ordersTable.buyerId, req.user!.id), eq(ordersTable.sellerId, req.user!.id))))
+      .limit(1);
+    if (!ord) {
+      const [cOrd] = await db
+        .select({ id: communityOrdersTable.id })
+        .from(communityOrdersTable)
+        .where(and(eq(communityOrdersTable.id, reqOrderId), or(eq(communityOrdersTable.buyerId, req.user!.id), eq(communityOrdersTable.sellerId, req.user!.id))))
+        .limit(1);
+      if (!cOrd) { res.status(403).json({ success: false, message: "You are not involved in this order" }); return; }
+      reqOrderId = undefined;
+    }
+  }
+  if (reqMatchId) {
+    const [mt] = await db
+      .select({ id: barterMatchesTable.id })
+      .from(barterMatchesTable)
+      .where(and(eq(barterMatchesTable.id, reqMatchId), or(eq(barterMatchesTable.user1Id, req.user!.id), eq(barterMatchesTable.user2Id, req.user!.id))))
+      .limit(1);
+    if (!mt) { res.status(403).json({ success: false, message: "You are not part of this barter match" }); return; }
+  }
 
   // If a specific work context is provided, look for a conversation with THAT EXACT context first
   if (reqOrderId) {
@@ -295,6 +322,11 @@ router.post("/messages/conversations/with/:userId", authenticate, async (req, re
     if (!((bid.userId === req.user!.id && proj.userId === otherId) || (bid.userId === otherId && proj.userId === req.user!.id))) {
       res.status(403).json({ success: false, message: "You are not involved in this bid" }); return;
     }
+  }
+
+  if (!(await hasAcceptedDeal(req.user!.id, otherId))) {
+    res.status(403).json({ success: false, code: "NOT_CONNECTED", message: "You can start chatting after a project, proposal or barter is accepted." });
+    return;
   }
 
   // Determine context for the new conversation

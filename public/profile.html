@@ -198,11 +198,14 @@
             $('pFollowers').textContent = Number($('pFollowers').textContent) + (rr.d.data.following ? 1 : -1);
           });
         };
-        msgBtn.style.display = '';
-        msgBtn.onclick = function () {
-          if (!c.token()) { c.openLogin(); return; }
-          location.href = '/messages.html?to=' + encodeURIComponent(profId);
-        };
+        c.api('/community/connected/' + encodeURIComponent(profId)).then(function (cc) {
+          if (!(cc.ok && cc.d.data && cc.d.data.connected)) return;
+          msgBtn.style.display = '';
+          msgBtn.onclick = function () {
+            if (!c.token()) { c.openLogin(); return; }
+            location.href = '/messages.html?to=' + encodeURIComponent(profId);
+          };
+        });
       } else if (me0 && me0.id === profId) {
         btn.style.display = 'none';
       }

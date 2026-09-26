@@ -6,6 +6,7 @@ import { logger } from "../lib/logger";
 import { uploadToSupabase } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
 import { getCommunityQuota, consumeGigPost, consumeProposal, grantQuotaBundle, QUOTA_PLANS, FREE_GIG_POSTS, FREE_PROPOSALS, type QuotaPlanId } from "../lib/community-quota";
+import { areConnected } from "../lib/connections";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -794,38 +795,7 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
       })
       .returning();
 
-    // reuse an existing generic DM between the two users if one exists
-    const [existing] = await db
-      .select()
-      .from(conversationsTable)
-      .where(
-        and(
-          or(
-            and(eq(conversationsTable.user1Id, meId), eq(conversationsTable.user2Id, post.userId)),
-            and(eq(conversationsTable.user1Id, post.userId), eq(conversationsTable.user2Id, meId)),
-          ),
-          sql`${conversationsTable.orderId} IS NULL AND ${conversationsTable.matchId} IS NULL AND ${conversationsTable.projectBidId} IS NULL AND ${conversationsTable.isGroup} = FALSE`,
-        ),
-      )
-      .limit(1);
-
-    let conv = existing;
-    if (!conv) {
-      [conv] = await db
-        .insert(conversationsTable)
-        .values({ user1Id: meId, user2Id: post.userId, lastMessageAt: new Date() })
-        .returning();
-    }
-
-    const label = post.kind === "GIG" ? "📦 Gig order request" : post.kind === "PROJECT" ? "📋 Project proposal" : "🔁 Barter proposal";
-    const amountLine = finalAmount ? ` (₹${finalAmount})` : "";
     const snippet = content.length > 240 ? content.slice(0, 240) + "…" : content;
-
-    await db
-      .insert(messagesTable)
-      .values({ conversationId: conv.id, senderId: meId, messageText: `${label}${amountLine}:\n${snippet}`, attachments: [] });
-
-    await db.update(conversationsTable).set({ lastMessageAt: new Date() }).where(eq(conversationsTable.id, conv.id));
 
     notify(
       author.id,
@@ -837,12 +807,22 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
 
     res.status(201).json({
       success: true,
-      data: { orderId: order.id, conversationId: conv.id, createdConversation: !existing, status: order.status },
+      data: { orderId: order.id, conversationId: null, createdConversation: false, status: order.status },
     });
   } catch (err) {
     logger.error({ err }, "Failed to create community order");
     res.status(500).json({ success: false, message: "Something went wrong. Please try again." });
   }
+});
+
+router.get("/community/connected/:userId", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const otherId = String(req.params.userId);
+  if (!otherId || otherId === req.user!.id) {
+    res.status(200).json({ success: true, data: { connected: false } });
+    return;
+  }
+  const connected = await areConnected(req.user!.id, otherId);
+  res.status(200).json({ success: true, data: { connected } });
 });
 
 // ── GET /community/orders — orders I'm buyer or seller of ──
@@ -955,7 +935,39 @@ router.put("/community/orders/:id/accept", authenticate, async (req: Request, re
     .where(eq(communityOrdersTable.id, order.id))
     .returning();
   notify(order.buyerId, "COMMUNITY_ORDER_ACCEPTED", "Order accepted!", `${req.user!.firstName} accepted your order and started working on it.`, `/orders`);
-  res.status(200).json({ success: true, data: updated });
+
+  const [existingConv] = await db
+    .select()
+    .from(conversationsTable)
+    .where(
+      and(
+        or(
+          and(eq(conversationsTable.user1Id, order.buyerId), eq(conversationsTable.user2Id, order.sellerId)),
+          and(eq(conversationsTable.user1Id, order.sellerId), eq(conversationsTable.user2Id, order.buyerId)),
+        ),
+        sql`${conversationsTable.orderId} IS NULL AND ${conversationsTable.matchId} IS NULL AND ${conversationsTable.projectBidId} IS NULL AND ${conversationsTable.isGroup} = FALSE`,
+      ),
+    )
+    .limit(1);
+  let conv = existingConv;
+  if (!conv) {
+    [conv] = await db
+      .insert(conversationsTable)
+      .values({ user1Id: order.buyerId, user2Id: order.sellerId, lastMessageAt: new Date() })
+      .returning();
+  }
+  const chatLabel = order.kind === "GIG" ? "✅ Gig order accepted" : order.kind === "PROJECT" ? "✅ Proposal accepted" : "✅ Barter offer accepted";
+  await db
+    .insert(messagesTable)
+    .values({
+      conversationId: conv.id,
+      senderId: order.sellerId,
+      messageText: `${chatLabel}${order.amount ? ` (₹${order.amount})` : ""}\nChat is open — discuss the work here.`,
+      attachments: [],
+    });
+  await db.update(conversationsTable).set({ lastMessageAt: new Date() }).where(eq(conversationsTable.id, conv.id));
+
+  res.status(200).json({ success: true, data: { ...updated, conversationId: conv.id } });
 });
 
 // ── PUT /community/orders/:id/deliver — seller delivers ──

@@ -135,7 +135,7 @@
       <a href="/#how-it-works">How it works</a>
       <a href="/#barter">Skill Exchange</a>
       <a href="/#freelance">Freelance</a>
-      <a href="/projects">Browse Projects</a>
+      <a href="/explore?kind=PROJECT">Browse Projects</a>
       <a href="/#about">About</a>
     </div>
     <div class="nav-actions" id="siteNavActions">
@@ -149,7 +149,7 @@
           var u = t && (function () { try { return JSON.parse(localStorage.getItem('se_user') || 'null'); } catch (e) { return null; } })();
           var el = document.getElementById('siteNavActions');
           if (u && u.firstName && el) {
-            el.innerHTML = '<a href="/dashboard" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
+            el.innerHTML = '<a href="/feed" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
               '<button class="btn btn-primary btn-sm" onclick="window.doLogout && window.doLogout()">Sign out</button>';
           }
         } catch (e) {}
@@ -291,7 +291,7 @@
 <div class="refer-box">
   <div class="big">Post your first project for ₹0 commission.</div>
   <div class="sub">KYC-verified freelancers. Razorpay escrow. You approve the work, then the freelancer gets paid. Scams literally can't happen.</div>
-  <a class="btn" href="/projects">Post a project free →</a>
+  <a class="btn" href="/feed">Post a project free →</a>
 </div>
 
 <h2>The 6 Rules in One Line</h2>
@@ -303,7 +303,7 @@
 
 <p>Every rupee you've ever lost to a "freelancer" followed one of those rules being broken. Follow all six and fake freelancers can't touch you — <strong>they move on to someone who still trusts a WhatsApp advance.</strong></p>
 
-<p><a href="/projects" class="calc-cta">Post your first project free →</a></p>
+<p><a href="/feed" class="calc-cta">Post your first project free →</a></p>
 
 <p style="font-size:0.88rem;margin-top:32px;font-style:italic;color:var(--text-muted);">Written by Amuthavanan, founder of <a href="/">Grit&Gigs</a> — India's first platform combining skill barter, freelancing, and business investment, built to empower every Indian with a skill. Read more: <a href="/blog-hire-freelancers-safely-india">how to hire freelancers safely in India</a> &middot; <a href="/blog-freelance-escrow">what escrow really is</a> &middot; <a href="/blog-stop-overpaying-agencies-hire-freelancers-india-2026">why agencies charge 3x</a>.</p>
 
