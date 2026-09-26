@@ -447,6 +447,22 @@ router.post("/community/posts", authenticate, async (req: Request, res: Response
     price = Math.round(p);
   }
 
+  const cleanMedia: { type: "image" | "video" | "embed"; url: string }[] = Array.isArray(media)
+    ? (media as { url?: string; type?: string }[])
+        .slice(0, 9)
+        .map((m) => {
+          if (!m || typeof m.url !== "string" || !m.url) return null;
+          return { type: m.type === "video" ? ("video" as const) : ("image" as const), url: String(m.url) };
+        })
+        .filter((x): x is { type: "image" | "video"; url: string } => !!x)
+    : [];
+
+  const cover = coverUrl ? String(coverUrl) : cleanMedia.length ? cleanMedia[0].url : null;
+  if (!cover) {
+    res.status(400).json({ success: false, message: "Every post needs a cover — add a photo or video first." });
+    return;
+  }
+
   if (k === "GIG") {
     const q = await consumeGigPost(req.user!.id);
     if (!q.allowed) {
@@ -460,16 +476,6 @@ router.post("/community/posts", authenticate, async (req: Request, res: Response
     }
   }
 
-  const cleanMedia: { type: "image" | "video" | "embed"; url: string }[] = Array.isArray(media)
-    ? (media as { url?: string; type?: string }[])
-        .slice(0, 9)
-        .map((m) => {
-          if (!m || typeof m.url !== "string" || !m.url) return null;
-          return { type: m.type === "video" ? ("video" as const) : ("image" as const), url: String(m.url) };
-        })
-        .filter((x): x is { type: "image" | "video"; url: string } => !!x)
-    : [];
-
   try {
     const [post] = await db
       .insert(communityPostsTable)
@@ -479,7 +485,7 @@ router.post("/community/posts", authenticate, async (req: Request, res: Response
         content: String(content).trim().slice(0, 5000),
         tags: cleanTags(tags),
         media: cleanMedia,
-        coverUrl: coverUrl ? String(coverUrl) : null,
+        coverUrl: cover,
         priceInr: price,
         priceMaxInr: Number.isFinite(Number(priceMaxInr)) && Number(priceMaxInr) > 0 ? Math.round(Number(priceMaxInr)) : null,
         deliveryDays: Number.isFinite(Number(deliveryDays)) && Number(deliveryDays) > 0 ? Math.round(Number(deliveryDays)) : null,
@@ -537,6 +543,38 @@ router.post("/community/posts/:id/like", authenticate, async (req: Request, res:
   }
 
   res.status(200).json({ success: true, data: { liked: !like, likeCount: updated?.likeCount ?? 0 } });
+});
+
+router.get("/community/posts/:id/likers", optionalAuth, async (req: Request, res: Response): Promise<void> => {
+  const postId = String(req.params.id);
+  const [post] = await db
+    .select({ id: communityPostsTable.id })
+    .from(communityPostsTable)
+    .where(eq(communityPostsTable.id, postId))
+    .limit(1);
+  if (!post) {
+    res.status(404).json({ success: false, message: "Post not found" });
+    return;
+  }
+  const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
+  const [totalRow] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(communityLikesTable)
+    .where(eq(communityLikesTable.postId, postId));
+  const users = await db
+    .select({
+      id: usersTable.id,
+      firstName: usersTable.firstName,
+      lastName: usersTable.lastName,
+      profilePhoto: usersTable.profilePhoto,
+      city: usersTable.city,
+    })
+    .from(communityLikesTable)
+    .innerJoin(usersTable, eq(communityLikesTable.userId, usersTable.id))
+    .where(eq(communityLikesTable.postId, postId))
+    .orderBy(desc(communityLikesTable.createdAt))
+    .limit(limit);
+  res.status(200).json({ success: true, data: { users, total: totalRow?.n ?? 0 } });
 });
 
 // â”€â”€ POST /community/posts/:id/comment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

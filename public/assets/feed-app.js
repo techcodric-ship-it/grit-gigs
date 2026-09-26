@@ -361,6 +361,11 @@
         if (likes) likes.textContent = Number(dd.likeCount).toLocaleString('en-IN') + ' likes';
       });
     });
+    var likesRow = el.querySelector('.card-likes');
+    if (likesRow) {
+      likesRow.style.cursor = 'pointer';
+      likesRow.addEventListener('click', function () { openLikers(p.id); });
+    }
 
     // open detail view
     el.querySelectorAll('[data-open="' + p.id + '"]').forEach(function (btn) {
@@ -454,6 +459,45 @@
         body.innerHTML = '';
         body.appendChild(containerEl);
       }
+    });
+  }
+
+  function openLikers(postId) {
+    var m = document.getElementById('likersModal');
+    if (!m) {
+      m = document.createElement('div');
+      m.id = 'likersModal';
+      m.className = 'modal-backdrop';
+      m.innerHTML = '<div class="modal" style="max-width:420px;"></div>';
+      document.body.appendChild(m);
+      m.addEventListener('click', function (e) { if (e.target === m) m.classList.remove('open'); });
+    }
+    var body = m.querySelector('.modal');
+    body.innerHTML = '<div class="loading">Loading…</div>';
+    m.classList.add('open');
+    api('/community/posts/' + postId + '/likers').then(function (r) {
+      if (!r.ok) { body.innerHTML = '<div class="empty"><h3>Could not load</h3><p>' + esc(r.d.message || '') + '</p></div>'; return; }
+      var d = r.d.data || {};
+      var users = d.users || [];
+      if (!users.length) {
+        body.innerHTML = '<div class="empty"><h3>No likes yet</h3><p>Be the first to like this post.</p></div>';
+        return;
+      }
+      var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">' +
+        '<b style="font-size:16px;">' + Number(d.total || users.length).toLocaleString('en-IN') + ' likes</b>' +
+        '<button id="likersClose" style="border:none;background:none;font-size:18px;cursor:pointer;line-height:1;">✕</button></div>';
+      users.forEach(function (u) {
+        html += '<a data-liker href="/profile.html?id=' + esc(u.id) + '" style="display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:10px;text-decoration:none;color:inherit;">' +
+          '<img src="' + esc(avatarFor(u)) + '" alt="" style="width:38px;height:38px;border-radius:50%;object-fit:cover;flex:none;"/>' +
+          '<span style="min-width:0;"><b>' + esc((u.firstName || 'Hustler') + ' ' + (u.lastName || '')) + '</b>' +
+          '<div style="font-size:12.5px;color:var(--ink-2,#6b7280);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(u.city ? u.city : handleFor(u)) + '</div></span></a>';
+      });
+      body.innerHTML = html;
+      var cl = document.getElementById('likersClose');
+      if (cl) cl.addEventListener('click', function () { m.classList.remove('open'); });
+      body.querySelectorAll('a[data-liker]').forEach(function (a) {
+        a.addEventListener('click', function () { m.classList.remove('open'); });
+      });
     });
   }
 

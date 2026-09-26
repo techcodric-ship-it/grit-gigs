@@ -364,6 +364,9 @@
     if (currentKind === 'REEL' && !pickedMedia.some(function (m) { return m.type === 'video'; })) {
       c.toast('Add a short video for your reel.', true); return;
     }
+    if (!pickedMedia.length) {
+      c.toast('Every post needs a cover — add at least one photo or video.', true); return;
+    }
     var tags = ($('pTags').value || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean);
     var body = {
       kind: currentKind,
