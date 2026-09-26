@@ -60,8 +60,8 @@
   }
 
   function refreshConversations() {
-    if (!c.token()) { renderNotAuthed(); return; }
-    c.api('/messages/conversations').then(function (r) {
+    if (!c.token()) { renderNotAuthed(); return Promise.resolve(); }
+    return c.api('/messages/conversations').then(function (r) {
       if (!r.ok) return;
       convs = (r.d.data && r.d.data.conversations) || [];
       renderConversations();
@@ -391,8 +391,7 @@
     c.api('/messages/conversations/with/' + encodeURIComponent(id), { method: 'POST' }).then(function (r) {
       if (!r.ok) { $('newChatErr').textContent = r.d.message || 'Failed'; return; }
       $('newChatModal').classList.remove('open');
-      refreshConversations();
-      setTimeout(function () { openConv(r.d.data.id || r.d.data.conversation.id); }, 100);
+      refreshConversations().then(function () { openConv(r.d.data.id || r.d.data.conversation.id); });
     });
   });
   $('#newChatCancel').addEventListener('click', function () { $('newChatModal').classList.remove('open'); });
@@ -406,8 +405,7 @@
       $('groupModal').classList.remove('open');
       c.toast('Group created!');
       loadGroups();
-      refreshConversations();
-      setTimeout(function () { openConv(r.d.data.conversationId); }, 120);
+      refreshConversations().then(function () { openConv(r.d.data.conversationId); });
     });
   });
   $('#groupCancel').addEventListener('click', function () { $('groupModal').classList.remove('open'); });
@@ -453,8 +451,7 @@
     var ctxBid = q.get('bidId'); if (ctxBid) ctxBody.projectBidId = ctxBid;
     c.api('/messages/conversations/with/' + encodeURIComponent(startUserId), { method: 'POST', body: ctxBody }).then(function (r) {
       if (!r.ok) { c.toast(r.d.message || 'Could not start chat', true); return; }
-      refreshConversations();
-      setTimeout(function () { openConv(r.d.data.id || r.d.data.conversation.id); }, 100);
+      refreshConversations().then(function () { openConv(r.d.data.id || r.d.data.conversation.id); });
     });
   }
 
