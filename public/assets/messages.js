@@ -483,7 +483,7 @@
     $('newChatErr').textContent = '';
     var id = raw.indexOf('id=') !== -1 ? decodeURIComponent(raw.split('id=').pop().split('&')[0]) : raw;
     resolveGgId(id).then(function (uid) {
-      return c.api('/messages/conversations/with/' + encodeURIComponent(uid), { method: 'POST' });
+      return c.api('/messages/conversations/with/' + encodeURIComponent(uid), { method: 'POST', body: {} });
     }).then(function (r) {
       if (!r.ok) { $('newChatErr').textContent = r.d.message || 'Failed'; return; }
       $('newChatModal').classList.remove('open');

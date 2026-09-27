@@ -242,7 +242,7 @@ router.post("/messages/conversations/with/:userId", authenticate, async (req, re
     return;
   }
 
-  let { orderId: reqOrderId, matchId: reqMatchId, projectBidId: reqBidId } = req.body as { orderId?: string; matchId?: string; projectBidId?: string };
+  let { orderId: reqOrderId, matchId: reqMatchId, projectBidId: reqBidId } = (req.body || {}) as { orderId?: string; matchId?: string; projectBidId?: string };
 
   if (reqOrderId) {
     const [ord] = await db
@@ -471,7 +471,7 @@ router.get("/messages/squad/:squadId/group", authenticate, async (req, res): Pro
 
 router.post("/messages/conversations/:conversationId/messages", authenticate, async (req, res): Promise<void> => {
   const convId = String(req.params.conversationId);
-  const { messageText, attachments } = req.body;
+  const { messageText, attachments } = req.body || {};
   const hasAtts = Array.isArray(attachments) && attachments.length > 0;
 
   if (!messageText?.trim() && !hasAtts) { res.status(400).json({ success: false, message: "Message cannot be empty" }); return; }
