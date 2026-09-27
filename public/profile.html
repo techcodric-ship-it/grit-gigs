@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, follow"/>
 <title>Profile — Grit&Gigs</title>
 <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=6"/>
-<link rel="stylesheet" href="/assets/feed.css?v=17"/>
+<link rel="stylesheet" href="/assets/feed.css?v=18"/>
 <style>
 .pcard{background:#fff;border:1px solid #ececf0;border-radius:16px;margin-bottom:14px;overflow:hidden}
 .pbanner{height:120px;background:linear-gradient(115deg,#111 0%,#2b2b33 55%,#eab308 175%)}
@@ -191,7 +191,7 @@
   <div class="modal" style="max-width:900px;"></div>
 </div>
 
-<script src="/assets/onboarding.js?v=1"></script> <script src="/assets/feed-app.js?v=16"></script>
+<script src="/assets/onboarding.js?v=1"></script> <script src="/assets/feed-app.js?v=17"></script>
 <script>
 (function () {
   var c = window.community;
@@ -249,6 +249,13 @@
     div.innerHTML = img + '<span class="kindtag">' + kind + '</span>' +
       (kind === 'REEL' || med.type === 'video' ? '<span class="reel-ic">▶</span>' : '') +
       '<div class="over"><span>♥ ' + Number(p.likeCount || 0) + '</span><span>💬 ' + Number(p.commentCount || 0) + '</span></div>';
+    var spotRib = '';
+    if (row.spotlight) spotRib = '<span class="spot-ribbon">✦ SPOTLIGHT</span>';
+    else if (row.mySpotlight) {
+      var spH = Math.max(1, Math.ceil((new Date(row.mySpotlight.expiresAt).getTime() - Date.now()) / 3600e3));
+      spotRib = '<span class="spot-ribbon mine">✦ ' + (spH >= 24 ? Math.floor(spH / 24) + 'd' : spH + 'h') + ' left</span>';
+    }
+    if (spotRib) div.insertAdjacentHTML('afterbegin', spotRib);
     div.addEventListener('click', function () { c.openPost(p.id); });
     return div;
   }

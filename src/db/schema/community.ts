@@ -4,6 +4,7 @@ import {
   text,
   boolean,
   integer,
+  real,
   timestamp,
   uuid,
   jsonb,
@@ -153,6 +154,29 @@ export const communityQuotasTable = pgTable("community_quotas", {
   proposalsBonus: integer("proposals_bonus").default(0).notNull(),
   resetAt: timestamp("reset_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const postBoostsTable = pgTable("post_boosts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  postId: uuid("post_id")
+    .notNull()
+    .references(() => communityPostsTable.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  tags: text("tags").array().default([]).notNull(),
+  amount: real("amount").default(50).notNull(),
+  startsAt: timestamp("starts_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  extendCount: integer("extend_count").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const searchLogsTable = pgTable("search_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => usersTable.id, { onDelete: "cascade" }),
+  term: text("term").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export type CommunityPost = typeof communityPostsTable.$inferSelect;

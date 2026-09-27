@@ -1,6 +1,6 @@
 ﻿import { Router, type IRouter, type Request, type Response } from "express";
-import { eq, and, desc, count, sql, inArray, or, ilike, type SQL } from "drizzle-orm";
-import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable, conversationsTable, messagesTable, communityOrdersTable, communityOrderDeliveriesTable, transactionsTable } from "../db";
+import { eq, and, desc, count, sql, inArray, or, ilike, gt, gte, ne, type SQL } from "drizzle-orm";
+import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable, conversationsTable, messagesTable, communityOrdersTable, communityOrderDeliveriesTable, transactionsTable, freelanceWalletsTable, postBoostsTable, searchLogsTable } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { logger } from "../lib/logger";
 import { uploadToSupabase } from "../lib/storage";
@@ -228,6 +228,8 @@ interface PostRowShape {
     createdAt: Date;
     author: { id: string; firstName: string; lastName: string; profilePhoto: string | null };
   }[];
+  spotlight?: { expiresAt: string; tags: string[] };
+  mySpotlight?: { expiresAt: string; tags: string[]; extendCount: number };
 }
 
 async function loadCommentCounts(postIds: string[]): Promise<Record<string, { count: number; rows: (typeof communityCommentsTable.$inferSelect)[] }>> {
@@ -309,7 +311,7 @@ async function renderPosts(rawPosts: typeof communityPostsTable.$inferSelect[], 
   const likedSet = await loadLikedSet(currentUserId, postIds);
   const followingSet = await loadFollowingSet(currentUserId, authorIds);
 
-  return rawPosts.map((post) => {
+  const rows: PostRowShape[] = rawPosts.map((post) => {
     const author = authorById.get(post.userId) ?? {
       id: post.userId,
       firstName: "Hustler",
@@ -333,9 +335,272 @@ async function renderPosts(rawPosts: typeof communityPostsTable.$inferSelect[], 
       comments,
     };
   });
+
+  if (currentUserId) {
+    const myIds = rows.filter((r) => r.post.userId === currentUserId).map((r) => r.post.id);
+    if (myIds.length) {
+      try {
+        const myBoosts = await db
+          .select()
+          .from(postBoostsTable)
+          .where(and(inArray(postBoostsTable.postId, myIds), gt(postBoostsTable.expiresAt, new Date())));
+        const boostByPost = new Map(myBoosts.map((b) => [b.postId, b]));
+        for (const r of rows) {
+          const b = boostByPost.get(r.post.id);
+          if (b) r.mySpotlight = { expiresAt: b.expiresAt.toISOString(), tags: b.tags, extendCount: b.extendCount };
+        }
+      } catch (err) {
+        logger.warn({ err }, "renderPosts: mySpotlight lookup failed");
+      }
+    }
+  }
+  return rows;
+}
+
+const SPOTLIGHT_FEE = 50;
+const SPOTLIGHT_HOURS = 24;
+
+function normalizeSpotTerm(t: string): string {
+  return String(t).toLowerCase().replace(/^#+/, "").trim();
+}
+
+function tagMatchesSignature(tag: string, signature: string[]): boolean {
+  const t = normalizeSpotTerm(tag);
+  if (t.length < 2) return false;
+  return signature.some((s) => {
+    if (s === t) return true;
+    if (t.length < 3) return false;
+    return s.includes(t) || t.includes(s);
+  });
+}
+
+async function viewerSearchSignature(userId: string): Promise<string[]> {
+  const now = Date.now();
+  const mine = await db
+    .select({ term: searchLogsTable.term, createdAt: searchLogsTable.createdAt })
+    .from(searchLogsTable)
+    .where(and(eq(searchLogsTable.userId, userId), gte(searchLogsTable.createdAt, new Date(now - 30 * 864e5))))
+    .orderBy(desc(searchLogsTable.createdAt))
+    .limit(300);
+  const mineTerms: string[] = [];
+  const seenMine = new Set<string>();
+  for (const r of mine) {
+    const t = normalizeSpotTerm(r.term);
+    if (t.length >= 3 && !seenMine.has(t)) {
+      seenMine.add(t);
+      mineTerms.push(t);
+    }
+    if (mineTerms.length >= 100) break;
+  }
+  if (mineTerms.length) return mineTerms;
+  const trend = await db
+    .select({ term: searchLogsTable.term, n: count() })
+    .from(searchLogsTable)
+    .where(gte(searchLogsTable.createdAt, new Date(now - 7 * 864e5)))
+    .groupBy(searchLogsTable.term)
+    .orderBy(desc(count()))
+    .limit(20);
+  return trend.map((r) => normalizeSpotTerm(r.term)).filter((t) => t.length >= 3);
+}
+
+async function loadSpotlightPins(viewerId: string, kindFilter: string): Promise<PostRowShape[]> {
+  try {
+    const conds: SQL[] = [gt(postBoostsTable.expiresAt, new Date()), ne(communityPostsTable.userId, viewerId)];
+    if (kindFilter) conds.push(eq(communityPostsTable.kind, kindFilter as typeof communityPostsTable.$inferSelect.kind));
+    const active = await db
+      .select({ boost: postBoostsTable, post: communityPostsTable })
+      .from(postBoostsTable)
+      .innerJoin(communityPostsTable, eq(postBoostsTable.postId, communityPostsTable.id))
+      .where(and(...conds))
+      .orderBy(desc(postBoostsTable.expiresAt))
+      .limit(25);
+    if (!active.length) return [];
+    const signature = await viewerSearchSignature(viewerId);
+    const matched: { boost: typeof postBoostsTable.$inferSelect; post: typeof communityPostsTable.$inferSelect }[] = [];
+    const seen = new Set<string>();
+    for (const a of active) {
+      if (seen.has(a.post.id)) continue;
+      const tags = a.boost.tags && a.boost.tags.length ? a.boost.tags : a.post.tags || [];
+      if (tags.some((t) => tagMatchesSignature(t, signature))) {
+        seen.add(a.post.id);
+        matched.push(a);
+        if (matched.length >= 3) break;
+      }
+    }
+    if (!matched.length) return [];
+    const rows = await renderPosts(
+      matched.map((m) => m.post),
+      viewerId,
+    );
+    rows.forEach((r, i) => {
+      r.spotlight = { expiresAt: matched[i].boost.expiresAt.toISOString(), tags: matched[i].boost.tags };
+    });
+    return rows;
+  } catch (err) {
+    logger.warn({ err }, "loadSpotlightPins failed");
+    return [];
+  }
 }
 
 // â”€â”€ GET /community/feed?kind=&filter=&cursor= â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+router.post("/community/posts/:id/spotlight", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const meId = req.user!.id;
+  const [post] = await db
+    .select()
+    .from(communityPostsTable)
+    .where(eq(communityPostsTable.id, String(req.params.id)))
+    .limit(1);
+  if (!post) {
+    res.status(404).json({ success: false, message: "Post not found" });
+    return;
+  }
+  if (post.userId !== meId) {
+    res.status(403).json({ success: false, message: "You can only spotlight your own posts" });
+    return;
+  }
+  if (post.kind !== "GIG" && post.kind !== "PROJECT") {
+    res.status(400).json({ success: false, message: "Only gigs and projects can be spotlighted" });
+    return;
+  }
+  const existing = await db
+    .select({ id: postBoostsTable.id })
+    .from(postBoostsTable)
+    .where(and(eq(postBoostsTable.postId, post.id), gt(postBoostsTable.expiresAt, new Date())))
+    .limit(1);
+  if (existing.length) {
+    res.status(409).json({ success: false, message: "Already spotlighted — extend it instead", _active: true });
+    return;
+  }
+  const tags = cleanTags(req.body?.tags).map((t) => t.toLowerCase());
+  if (!tags.length) {
+    res.status(400).json({ success: false, message: "Pick at least one tag so the right people see your spotlight" });
+    return;
+  }
+  try {
+    const boost = await db.transaction(async (tx) => {
+      const [wallet] = await tx.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, meId));
+      if (!wallet || Number(wallet.balance) < SPOTLIGHT_FEE) throw new Error("INSUFFICIENT_SPOTLIGHT");
+      const deductResult = await tx.execute(
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${SPOTLIGHT_FEE}, updated_at = NOW() WHERE ${freelanceWalletsTable.id} = ${wallet.id} AND balance >= ${SPOTLIGHT_FEE}`,
+      );
+      if (deductResult.rowCount === 0) throw new Error("INSUFFICIENT_SPOTLIGHT");
+      await tx.insert(transactionsTable).values({
+        userId: meId,
+        type: "SERVICE_PAYMENT",
+        amount: SPOTLIGHT_FEE,
+        description: `Spotlight boost · ${SPOTLIGHT_HOURS}h (post ${post.id})`,
+        status: "COMPLETED",
+      });
+      const [created] = await tx
+        .insert(postBoostsTable)
+        .values({
+          postId: post.id,
+          userId: meId,
+          tags,
+          amount: SPOTLIGHT_FEE,
+          startsAt: new Date(),
+          expiresAt: new Date(Date.now() + SPOTLIGHT_HOURS * 3600e3),
+        })
+        .returning();
+      return created;
+    });
+    res.status(201).json({
+      success: true,
+      message: `Spotlight live for ${SPOTLIGHT_HOURS} hours!`,
+      data: { boost: { id: boost.id, expiresAt: boost.expiresAt, tags: boost.tags, extendCount: boost.extendCount } },
+    });
+  } catch (e) {
+    if (e instanceof Error && e.message === "INSUFFICIENT_SPOTLIGHT") {
+      res.status(400).json({
+        success: false,
+        message: `Insufficient balance (₹${SPOTLIGHT_FEE} required). Add money to your wallet first.`,
+        _spotlightFailed: true,
+      });
+      return;
+    }
+    throw e;
+  }
+});
+
+router.post("/community/posts/:id/spotlight/extend", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const meId = req.user!.id;
+  const [post] = await db
+    .select()
+    .from(communityPostsTable)
+    .where(eq(communityPostsTable.id, String(req.params.id)))
+    .limit(1);
+  if (!post) {
+    res.status(404).json({ success: false, message: "Post not found" });
+    return;
+  }
+  if (post.userId !== meId) {
+    res.status(403).json({ success: false, message: "You can only extend your own spotlight" });
+    return;
+  }
+  const [boost] = await db
+    .select()
+    .from(postBoostsTable)
+    .where(and(eq(postBoostsTable.postId, post.id), gt(postBoostsTable.expiresAt, new Date())))
+    .limit(1);
+  if (!boost) {
+    res.status(409).json({ success: false, message: "No active spotlight — start a new one", _active: false });
+    return;
+  }
+  try {
+    const updated = await db.transaction(async (tx) => {
+      const [wallet] = await tx.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, meId));
+      if (!wallet || Number(wallet.balance) < SPOTLIGHT_FEE) throw new Error("INSUFFICIENT_SPOTLIGHT");
+      const deductResult = await tx.execute(
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${SPOTLIGHT_FEE}, updated_at = NOW() WHERE ${freelanceWalletsTable.id} = ${wallet.id} AND balance >= ${SPOTLIGHT_FEE}`,
+      );
+      if (deductResult.rowCount === 0) throw new Error("INSUFFICIENT_SPOTLIGHT");
+      await tx.insert(transactionsTable).values({
+        userId: meId,
+        type: "SERVICE_PAYMENT",
+        amount: SPOTLIGHT_FEE,
+        description: `Spotlight extension · ${SPOTLIGHT_HOURS}h (post ${post.id})`,
+        status: "COMPLETED",
+      });
+      const [u] = await tx
+        .update(postBoostsTable)
+        .set({ expiresAt: new Date(boost.expiresAt.getTime() + SPOTLIGHT_HOURS * 3600e3), extendCount: boost.extendCount + 1 })
+        .where(eq(postBoostsTable.id, boost.id))
+        .returning();
+      return u;
+    });
+    res.json({
+      success: true,
+      message: `Spotlight extended by ${SPOTLIGHT_HOURS} hours`,
+      data: { boost: { id: updated.id, expiresAt: updated.expiresAt, tags: updated.tags, extendCount: updated.extendCount } },
+    });
+  } catch (e) {
+    if (e instanceof Error && e.message === "INSUFFICIENT_SPOTLIGHT") {
+      res.status(400).json({
+        success: false,
+        message: `Insufficient balance (₹${SPOTLIGHT_FEE} required). Add money to your wallet first.`,
+        _spotlightFailed: true,
+      });
+      return;
+    }
+    throw e;
+  }
+});
+
+router.get("/community/spotlight/suggestions", optionalAuth, async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const trend = await db
+      .select({ term: searchLogsTable.term, n: count() })
+      .from(searchLogsTable)
+      .where(gte(searchLogsTable.createdAt, new Date(Date.now() - 7 * 864e5)))
+      .groupBy(searchLogsTable.term)
+      .orderBy(desc(count()))
+      .limit(12);
+    res.json({ success: true, data: { trending: trend.map((r) => normalizeSpotTerm(r.term)).filter((t) => t.length >= 2) } });
+  } catch {
+    res.json({ success: true, data: { trending: [] } });
+  }
+});
+
 router.get("/community/feed", optionalAuth, async (req: Request, res: Response): Promise<void> => {
   const meId = req.user?.id;
   const kind = kindWhitelist(String(req.query.kind || ""), "");
@@ -343,6 +608,15 @@ router.get("/community/feed", optionalAuth, async (req: Request, res: Response):
   const limit = Math.min(30, Math.max(1, Number(req.query.limit) || 20));
   const authorId = String(req.query.authorId || "").trim();
   const q = String(req.query.q || "").trim();
+
+  if (q) {
+    db.insert(searchLogsTable)
+      .values({ userId: meId ?? null, term: q.toLowerCase().slice(0, 80) })
+      .then(
+        () => {},
+        () => {},
+      );
+  }
 
   let where: SQL | undefined;
   if (kind) where = eq(communityPostsTable.kind, kind as typeof communityPostsTable.$inferSelect.kind);
@@ -408,7 +682,14 @@ router.get("/community/feed", optionalAuth, async (req: Request, res: Response):
       .limit(limit);
   }
 
-  const rows = await renderPosts(basePosts, meId);
+  let rows = await renderPosts(basePosts, meId);
+  if (meId && !authorId && !q && filter === "for-you") {
+    const pins = await loadSpotlightPins(meId, kind);
+    if (pins.length) {
+      const pinIds = new Set(pins.map((r) => r.post.id));
+      rows = [...pins, ...rows.filter((r) => !pinIds.has(r.post.id))];
+    }
+  }
   res.status(200).json({ success: true, data: { posts: rows } });
 });
 

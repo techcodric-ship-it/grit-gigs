@@ -1117,6 +1117,32 @@ $mig$
         $hl$
       `);
 
+      await col(`
+        CREATE TABLE IF NOT EXISTS post_boosts (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          post_id UUID NOT NULL REFERENCES community_posts(id) ON DELETE CASCADE,
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          tags TEXT[] NOT NULL DEFAULT '{}',
+          amount REAL NOT NULL DEFAULT 50,
+          starts_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+          expires_at TIMESTAMPTZ NOT NULL,
+          extend_count INTEGER NOT NULL DEFAULT 0,
+          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+        )
+      `);
+      await col(`CREATE INDEX IF NOT EXISTS idx_post_boosts_active ON post_boosts(expires_at)`);
+      await col(`CREATE INDEX IF NOT EXISTS idx_post_boosts_post ON post_boosts(post_id)`);
+      await col(`
+        CREATE TABLE IF NOT EXISTS search_logs (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+          term TEXT NOT NULL,
+          created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+        )
+      `);
+      await col(`CREATE INDEX IF NOT EXISTS idx_search_logs_user ON search_logs(user_id)`);
+      await col(`CREATE INDEX IF NOT EXISTS idx_search_logs_created ON search_logs(created_at)`);
+
       logger.info("DB auto-migration: all tables ready");
     } catch (_me: unknown) {
       logger.error({ err: _me instanceof Error ? _me : new Error(String(_me)) }, "DB migration error (continuing)");

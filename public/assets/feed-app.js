@@ -274,6 +274,17 @@
     var el = document.createElement('div');
     el.className = 'card' + (kind === 'REEL' ? ' reel-card' : '');
     el.dataset.id = p.id;
+    if (row.spotlight) el.classList.add('spotlight');
+
+    var spotFlag = row.spotlight ? '<div class="spot-promo"><span>✦ SPOTLIGHT</span><span class="spot-promo-sub">Promoted</span></div>' : '';
+    var spotCtl = '';
+    if (isMine && (kind === 'GIG' || kind === 'PROJECT')) {
+      if (row.mySpotlight) {
+        spotCtl = '<div class="spot-bar"><span>✦ Spotlight active · ' + spotLeftText(row.mySpotlight.expiresAt) + '</span><button data-spot-extend="' + esc(p.id) + '">Extend ₹50</button></div>';
+      } else {
+        spotCtl = '<div class="spot-bar idle"><span>Pin to the top of the feed for 24h — matched to search tags</span><button data-spot="' + esc(p.id) + '">✦ ₹50</button></div>';
+      }
+    }
 
     var followBtn = '';
     if (token && !isMine) {
@@ -326,6 +337,7 @@
     var moreCmts = (row.comments && row.comments.length >= 2) ? '<a data-open="' + esc(p.id) + '" style="cursor:pointer;">View all ' + Number(p.commentCount || 0) + ' comments</a><br/>' : '';
 
     el.innerHTML =
+      spotFlag +
       '<div class="card-head">' +
         '<img class="av" src="' + esc(avatarFor(author)) + '" alt=""/>' +
         '<div class="who"><a href="/profile.html?id=' + esc(author.id) + '"><div class="nm">' + esc(author.firstName || 'Hustler') + (author.kycVerified ? ' <span class="vh">VERIFIED</span>' : '') + '</div>' +
@@ -334,6 +346,7 @@
       '</div>' +
       mediaHtml +
       (cta ? '<div style="padding:0 16px 8px;">' + cta + '</div>' : '') +
+      spotCtl +
       '<div class="card-actions">' +
         '<button class="like' + (row.likedByMe ? ' liked' : '') + '" data-like="' + esc(p.id) + '">♥<span class="c">' + Number(p.likeCount || 0).toLocaleString('en-IN') + '</span></button>' +
         '<button data-open="' + esc(p.id) + '">💬<span class="c">' + Number(p.commentCount || 0).toLocaleString('en-IN') + '</span></button>' +
@@ -427,6 +440,11 @@
     var offer = el.querySelector('[data-offer]');
     if (offer) offer.addEventListener('click', function () { if (!token) { openLogin(); return; } openOrderModal('BARTER', p); });
 
+    var spStart = el.querySelector('[data-spot]');
+    if (spStart) spStart.addEventListener('click', function () { if (!token) { openLogin(); return; } openSpotlightModal(p); });
+    var spExt = el.querySelector('[data-spot-extend]');
+    if (spExt) spExt.addEventListener('click', function () { if (!token) { openLogin(); return; } extendSpotlight(p); });
+
     // expand long caption
     var more = el.querySelector('[data-more]');
     if (more) more.addEventListener('click', function () {
@@ -517,6 +535,130 @@
     var amt = document.getElementById('orderAmt');
     if (amt) amt.placeholder = kind === 'PROJECT' ? 'Your bid (₹)' : kind === 'BARTER' ? 'Value you offer (₹, optional)' : '';
     m.classList.add('open');
+  }
+
+  // ── spotlight (paid 24h pin) ──
+  function spotLeftText(hs) {
+    var ms = new Date(hs).getTime() - Date.now();
+    if (ms <= 0) return 'expired';
+    var h = Math.ceil(ms / 3600e3);
+    if (h >= 24) return Math.floor(h / 24) + 'd ' + (h % 24) + 'h left';
+    return h + 'h left';
+  }
+
+  function refreshSpotBars(postId, expiresAt) {
+    document.querySelectorAll('.card[data-id="' + postId + '"]').forEach(function (card) {
+      card.classList.add('spotlight');
+      if (!card.querySelector('.spot-promo')) {
+        card.insertAdjacentHTML('afterbegin', '<div class="spot-promo"><span>✦ SPOTLIGHT</span><span class="spot-promo-sub">Promoted</span></div>');
+      }
+      var bar = card.querySelector('.spot-bar');
+      if (!bar) return;
+      bar.classList.remove('idle');
+      bar.innerHTML = '<span>✦ Spotlight active · ' + spotLeftText(expiresAt) + '</span><button data-spot-extend="' + esc(postId) + '">Extend ₹50</button>';
+      var btn = bar.querySelector('button');
+      if (btn) btn.addEventListener('click', function () { if (!token) { openLogin(); return; } extendSpotlight({ id: postId }); });
+    });
+  }
+
+  function extendSpotlight(p) {
+    api('/community/posts/' + p.id + '/spotlight/extend', { method: 'POST' }).then(function (r) {
+      if (!r.ok) { toast(r.d.message || 'Could not extend spotlight', true); return; }
+      toast('Spotlight extended by 24 hours');
+      refreshSpotBars(p.id, r.d.data.boost.expiresAt);
+    });
+  }
+
+  function openSpotlightModal(p) {
+    var m = document.getElementById('spotModal');
+    if (!m) {
+      m = document.createElement('div');
+      m.id = 'spotModal';
+      m.className = 'modal-backdrop';
+      m.innerHTML = '<div class="modal" style="max-width:470px;"></div>';
+      document.body.appendChild(m);
+      m.addEventListener('click', function (e) { if (e.target === m) m.classList.remove('open'); });
+    }
+    var body = m.querySelector('.modal');
+    var sel = {};
+    var initial = (p.tags && p.tags.length ? p.tags : []).slice(0, 5);
+    initial.forEach(function (t) { sel[String(t).toLowerCase().replace(/^#/, '')] = true; });
+    var trendList = [];
+    body.innerHTML =
+      '<h3>✦ Spotlight this ' + (p.kind === 'PROJECT' ? 'project' : 'gig') + '</h3>' +
+      '<div class="sub">₹50 for 24 hours. Pinned to the top of the feed for people whose searches match these tags — like Meta ads.</div>' +
+      '<div class="fld"><label>Target tags (up to 5)</label><div class="spot-chips" id="spotChips"></div></div>' +
+      '<div class="fld" id="spotTrendWrap" style="display:none;"><label>Trending searches — what others are typing</label><div class="spot-chips" id="spotTrend"></div></div>' +
+      '<div class="fld"><label>Add your own tag</label><div style="display:flex;gap:8px;"><input id="spotTagIn" placeholder="e.g. logo design" maxlength="30" style="flex:1;"/><button type="button" id="spotTagAdd" style="padding:10px 14px;border-radius:10px;border:1px solid var(--line,#e3e0f2);background:var(--bg-alt,#f4f1ff);color:#6C3FE8;font-weight:600;cursor:pointer;">Add</button></div></div>' +
+      '<div class="err" id="spotErr"></div>' +
+      '<div class="row"><button type="button" id="spotCancel" style="padding:11px 18px;border-radius:10px;border:1px solid var(--line,#e3e0f2);background:#fff;font-weight:600;cursor:pointer;">Cancel</button><button type="button" id="spotGo" style="padding:11px 18px;border-radius:10px;border:none;background:#6C3FE8;color:#fff;font-weight:700;cursor:pointer;">✦ Start for ₹50</button></div>';
+    m.classList.add('open');
+
+    function drawTrend() {
+      var wrap = body.querySelector('#spotTrend');
+      if (!trendList.length || !wrap) return;
+      var tw = body.querySelector('#spotTrendWrap');
+      if (tw) tw.style.display = '';
+      wrap.innerHTML = trendList.map(function (t) { return '<button type="button" class="spot-chip' + (sel[t] ? ' on' : '') + '" data-tr="' + esc(t) + '">#' + esc(t) + '</button>'; }).join('');
+      wrap.querySelectorAll('[data-tr]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var k = b.getAttribute('data-tr');
+          if (sel[k]) delete sel[k];
+          else if (Object.keys(sel).length >= 5) { body.querySelector('#spotErr').textContent = 'Max 5 tags'; return; }
+          else sel[k] = true;
+          drawChips();
+        });
+      });
+    }
+    function drawChips() {
+      var wrap = body.querySelector('#spotChips');
+      var keys = Object.keys(sel);
+      wrap.innerHTML = keys.length
+        ? keys.map(function (t) { return '<button type="button" class="spot-chip on" data-chip="' + esc(t) + '">#' + esc(t) + ' ✕</button>'; }).join('')
+        : '<span style="font-size:12.5px;color:var(--dusk,#8a8fa3);">No tags yet — add one below.</span>';
+      wrap.querySelectorAll('[data-chip]').forEach(function (b) {
+        b.addEventListener('click', function () { delete sel[b.getAttribute('data-chip')]; drawChips(); });
+      });
+      drawTrend();
+    }
+    drawChips();
+    api('/community/spotlight/suggestions').then(function (r) {
+      trendList = ((r.ok && r.d.data && r.d.data.trending) || []).filter(function (t) { return !(t in sel); }).slice(0, 10);
+      drawTrend();
+    });
+    body.querySelector('#spotTagAdd').addEventListener('click', function () {
+      var inp = body.querySelector('#spotTagIn');
+      var err = body.querySelector('#spotErr');
+      var k = inp.value.toLowerCase().replace(/^#+/, '').trim().slice(0, 30);
+      err.textContent = '';
+      if (k.length < 2) { err.textContent = 'Tag needs at least 2 characters'; return; }
+      if (k in sel) { err.textContent = 'Already added'; return; }
+      if (Object.keys(sel).length >= 5) { err.textContent = 'Max 5 tags'; return; }
+      sel[k] = true;
+      inp.value = '';
+      drawChips();
+    });
+    body.querySelector('#spotTagIn').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); body.querySelector('#spotTagAdd').click(); }
+    });
+    body.querySelector('#spotCancel').addEventListener('click', function () { m.classList.remove('open'); });
+    body.querySelector('#spotGo').addEventListener('click', function () {
+      var btn = this;
+      var err = body.querySelector('#spotErr');
+      var tags = Object.keys(sel);
+      err.textContent = '';
+      if (!tags.length) { err.textContent = 'Pick at least one tag'; return; }
+      btn.disabled = true;
+      btn.textContent = 'Starting…';
+      api('/community/posts/' + p.id + '/spotlight', { method: 'POST', body: { tags: tags } }).then(function (r) {
+        btn.disabled = false;
+        btn.textContent = '✦ Start for ₹50';
+        if (!r.ok) { err.textContent = r.d.message || 'Could not start spotlight'; return; }
+        m.classList.remove('open');
+        toast('Spotlight live for 24 hours!');
+        refreshSpotBars(p.id, r.d.data.boost.expiresAt);
+      });
+    });
   }
 
   // ── login / register / verify flows ──

@@ -283,3 +283,17 @@ h4.sub-title { font-size: 14px; font-weight: 600; margin: 20px 0 12px; }
   .topnav .icons a { width: 36px; height: 36px; }
   .topnav .icons svg { width: 20px; height: 20px; }
 }
+
+.card.spotlight { box-shadow: 0 0 0 1.5px #6C3FE8, 0 6px 18px rgba(108, 63, 232, .10); }
+.spot-promo { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 16px 0; font-size: 11px; font-weight: 800; letter-spacing: .07em; color: #6C3FE8; text-transform: uppercase; }
+.spot-promo-sub { font-weight: 600; letter-spacing: 0; text-transform: none; color: #9a9db0; font-size: 11.5px; }
+.spot-bar { display: flex; align-items: center; gap: 10px; margin: 0 16px 10px; padding: 9px 12px; border-radius: 10px; background: #f4f1ff; color: #4a2fb0; font-size: 12.5px; font-weight: 600; }
+.spot-bar.idle span { color: #7a68c8; font-weight: 500; }
+.spot-bar button { margin-left: auto; flex: none; border: none; background: #6C3FE8; color: #fff; border-radius: 8px; padding: 7px 12px; font-size: 12px; font-weight: 700; cursor: pointer; transition: .15s; }
+.spot-bar button:hover { background: #5a34c6; }
+.spot-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.spot-chip { border: 1px solid #d9d3f2; background: #fff; color: #4a2fb0; border-radius: 999px; padding: 6px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: .15s; }
+.spot-chip:hover { border-color: #6C3FE8; }
+.spot-chip.on { background: #6C3FE8; border-color: #6C3FE8; color: #fff; }
+.tile { position: relative; }
+.tile .spot-ribbon { position: absolute; top: 7px; left: 7px; z-index: 3; background: #6C3FE8; color: #fff; font-size: 9.5px; font-weight: 800; letter-spacing: .06em; padding: 4px 8px; border-radius: 999px; box-shadow: 0 2px 6px rgba(0, 0, 0, .25); }
