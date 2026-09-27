@@ -517,7 +517,7 @@
       if (!r.ok) { $('gdErr').textContent = r.d.message || 'Failed'; return; }
       $('gdInviteId').value = '';
       c.toast('Invite sent!');
-      openGroupDetail(activeGroupId);
+      if ($('groupDetailModal').classList.contains('open')) openGroupDetail(activeGroupId);
     }).catch(function (e) { $('gdErr').textContent = (e && e.message) || 'Could not find that user'; });
   });
   $('#gdClose').addEventListener('click', function () { $('groupDetailModal').classList.remove('open'); });
