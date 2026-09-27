@@ -22,6 +22,7 @@ import {
   referralsTable,
   jobsTable, jobApplicationsTable,
   squadsTable, squadMembersTable, squadInvitesTable, squadServicesTable,
+  communityPostsTable, postBoostsTable,
 } from "../db";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -30,7 +31,7 @@ import path from "path";
 import fs from "fs";
 import { uploadToSupabase, ensureBucketExists, UPLOADS_BUCKET } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
-import { getActivePlanForUser } from "../lib/subscriptions";
+import { calcWithdrawFee } from "../lib/withdrawals";
 import { grantQuotaBundle } from "../lib/community-quota";
 import { sendAdminEmail, sendNotificationEmail, layout } from "../lib/email";
 import { adminAuth } from "../middlewares/adminAuth";
@@ -453,7 +454,7 @@ router.put("/admin/projects/:id", async (req: Request, res: Response) => {
 
 // ── Dashboard stats ──
 router.get("/admin/stats", async (req: Request, res: Response) => {
-  const [[{ users }], [{ services }], [{ projects }], [{ barters }], [{ orders }], [{ disputes }], [{ kycPending }]] = await Promise.all([
+  const [[{ users }], [{ services }], [{ projects }], [{ barters }], [{ orders }], [{ disputes }], [{ kycPending }], [{ gmv }], [{ topups }], [{ commissionsPaid }], [{ walletBalance }], [{ totalWithdrawn }], [{ pendingWithdrawals }], [{ activeSubs }], [{ communityPosts }], [{ spotlightEarnings }]] = await Promise.all([
     db.select({ users: sql<number>`count(*)` }).from(usersTable),
     db.select({ services: sql<number>`count(*)` }).from(servicesTable),
     db.select({ projects: sql<number>`count(*)` }).from(projectsTable),
@@ -461,8 +462,24 @@ router.get("/admin/stats", async (req: Request, res: Response) => {
     db.select({ orders: sql<number>`count(*)` }).from(ordersTable),
     db.select({ disputes: sql<number>`count(*)` }).from(disputesTable),
     db.select({ kycPending: sql<number>`count(*)` }).from(kycDocumentsTable).where(eq(kycDocumentsTable.status, "PENDING")),
+    db.select({ gmv: sql<number>`COALESCE(SUM(${ordersTable.priceInr}), 0)` }).from(ordersTable),
+    db.select({ topups: sql<number>`COALESCE(SUM(${transactionsTable.amount}), 0)` }).from(transactionsTable).where(and(eq(transactionsTable.type, "CREDIT_PURCHASE"), eq(transactionsTable.status, "COMPLETED"))),
+    db.select({ commissionsPaid: sql<number>`COALESCE(SUM(${transactionsTable.amount}), 0)` }).from(transactionsTable).where(and(eq(transactionsTable.type, "COMMISSION"), eq(transactionsTable.status, "COMPLETED"))),
+    db.select({ walletBalance: sql<number>`COALESCE(SUM(${freelanceWalletsTable.balance}), 0)` }).from(freelanceWalletsTable),
+    db.select({ totalWithdrawn: sql<number>`COALESCE(SUM(${freelanceWalletsTable.totalWithdrawn}), 0)` }).from(freelanceWalletsTable),
+    db.select({ pendingWithdrawals: sql<number>`count(*)` }).from(withdrawalRequestsTable).where(eq(withdrawalRequestsTable.status, "PENDING")),
+    db.select({ activeSubs: sql<number>`count(*)` }).from(userSubscriptionsTable).where(and(sql`${userSubscriptionsTable.planId} <> 'starter'`, sql`${userSubscriptionsTable.expiresAt} > NOW()`)),
+    db.select({ communityPosts: sql<number>`count(*)` }).from(communityPostsTable),
+    db.select({ spotlightEarnings: sql<number>`COALESCE(SUM(${transactionsTable.amount}), 0)` }).from(transactionsTable).where(and(eq(transactionsTable.type, "SERVICE_PAYMENT"), eq(transactionsTable.status, "COMPLETED"), sql`${transactionsTable.description} LIKE 'Spotlight%'`)),
   ]);
-  res.json({ success: true, data: { users, services, projects, barters, orders, disputes, kycPending } });
+  res.json({
+    success: true,
+    data: {
+      users, services, projects, barters, orders, disputes, kycPending,
+      gmv, topups, commissionsPaid, walletBalance, totalWithdrawn,
+      pendingWithdrawals, activeSubs, communityPosts, spotlightEarnings,
+    },
+  });
 });
 
 // ── List all reports (with reporter & basic target info) ──
@@ -808,16 +825,11 @@ router.get("/admin/withdrawals/pending", async (_req: Request, res: Response) =>
       .where(eq(withdrawalRequestsTable.status, "PENDING"))
       .orderBy(desc(withdrawalRequestsTable.createdAt));
 
-    // Enrich each row with commission info based on user's plan
-    const enriched = await Promise.all(rows.map(async (r) => {
-      let commissionPct = 10;
-      try {
-        const plan = await getActivePlanForUser(r.userId);
-        commissionPct = plan.serviceFeePercent;
-      } catch {}
-      const commission = Math.round(r.amount * commissionPct / 100);
-      return { ...r, commissionPct, commission, netAmount: r.amount - commission };
-    }));
+    // Flat platform commission on every withdrawal (default 5%)
+    const enriched = rows.map((r) => {
+      const { feePct, commission, netAmount } = calcWithdrawFee(Number(r.amount));
+      return { ...r, commissionPct: feePct, commission, netAmount };
+    });
 
     res.json({ success: true, data: enriched });
   } catch (err) {
@@ -847,10 +859,7 @@ router.post("/admin/withdrawals/confirm/:id", async (req: Request, res: Response
     if (!wd) { res.status(404).json({ success: false, message: "Withdrawal not found" }); return; }
     if (wd.status !== "PENDING") { res.status(400).json({ success: false, message: "Already processed" }); return; }
 
-    const plan = await getActivePlanForUser(wd.userId);
-    const commissionPct = plan.serviceFeePercent;
-    const commission = Math.round(wd.amount * commissionPct / 100);
-    const netAmount = wd.amount - commission;
+    const { feePct: commissionPct, commission, netAmount } = calcWithdrawFee(Number(wd.amount));
 
     const [adminUser] = await db
       .select({ id: usersTable.id })
@@ -912,7 +921,7 @@ router.post("/admin/withdrawals/confirm/:id", async (req: Request, res: Response
       type: "WITHDRAWAL_COMPLETED",
       title: "Withdrawal completed",
       message: `Your withdrawal of ₹${netAmount} has been processed and sent.`,
-      linkUrl: "/dashboard.html",
+      linkUrl: "/wallet",
     });
 
     res.json({ success: true, message: `Withdrawal confirmed — ₹${netAmount} sent to user (₹${commission} commission credited to your wallet)` });
@@ -920,6 +929,87 @@ router.post("/admin/withdrawals/confirm/:id", async (req: Request, res: Response
     console.error("confirm withdrawal error:", err);
     res.status(500).json({ success: false, message: "Failed to confirm withdrawal" });
   }
+});
+
+// ── Admin: withdrawal history (all statuses) ──
+router.get("/admin/withdrawals/history", async (_req: Request, res: Response) => {
+  try {
+    const rows = await db
+      .select({
+        id: withdrawalRequestsTable.id,
+        userId: withdrawalRequestsTable.userId,
+        amount: withdrawalRequestsTable.amount,
+        upiId: withdrawalRequestsTable.upiId,
+        bankName: withdrawalRequestsTable.bankName,
+        status: withdrawalRequestsTable.status,
+        processedAt: withdrawalRequestsTable.processedAt,
+        createdAt: withdrawalRequestsTable.createdAt,
+        userFirstName: usersTable.firstName,
+        userLastName: usersTable.lastName,
+        userEmail: usersTable.email,
+      })
+      .from(withdrawalRequestsTable)
+      .leftJoin(usersTable, eq(withdrawalRequestsTable.userId, usersTable.id))
+      .orderBy(desc(withdrawalRequestsTable.createdAt))
+      .limit(50);
+    const data = rows.map((r) => {
+      const { feePct, commission, netAmount } = calcWithdrawFee(Number(r.amount));
+      return { ...r, commissionPct: feePct, commission, netAmount };
+    });
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to fetch withdrawal history" });
+  }
+});
+
+// ── Admin: all platform orders ──
+router.get("/admin/orders", async (req: Request, res: Response) => {
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
+  const offset = (page - 1) * limit;
+  const statusFilter = req.query.status as string | undefined;
+  const validStatuses = ["PENDING", "ACCEPTED", "IN_PROGRESS", "DELIVERED", "REVISION_REQUESTED", "COMPLETED", "CANCELLED", "DISPUTED"];
+  const cond = statusFilter && validStatuses.includes(statusFilter) ? eq(ordersTable.status, statusFilter as never) : undefined;
+  const [rows, [{ count }]] = await Promise.all([
+    db
+      .select({
+        id: ordersTable.id,
+        priceInr: ordersTable.priceInr,
+        status: ordersTable.status,
+        createdAt: ordersTable.createdAt,
+        completedAt: ordersTable.completedAt,
+        buyerId: ordersTable.buyerId,
+        sellerId: ordersTable.sellerId,
+        serviceId: ordersTable.serviceId,
+      })
+      .from(ordersTable)
+      .where(cond)
+      .orderBy(desc(ordersTable.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db.select({ count: sql<number>`count(*)` }).from(ordersTable).where(cond),
+  ]);
+  const userIds = [...new Set(rows.flatMap((r) => [r.buyerId, r.sellerId]))];
+  const serviceIds = [...new Set(rows.map((r) => r.serviceId))];
+  const [userRows, serviceRows] = await Promise.all([
+    userIds.length
+      ? db.select({ id: usersTable.id, name: sql<string>`TRIM(${usersTable.firstName} || ' ' || ${usersTable.lastName})` }).from(usersTable).where(inArray(usersTable.id, userIds))
+      : Promise.resolve([]),
+    serviceIds.length
+      ? db.select({ id: servicesTable.id, title: servicesTable.title }).from(servicesTable).where(inArray(servicesTable.id, serviceIds))
+      : Promise.resolve([]),
+  ]);
+  const nameById: Record<string, string> = {};
+  for (const u of userRows) nameById[u.id] = u.name;
+  const titleById: Record<string, string> = {};
+  for (const s of serviceRows) titleById[s.id] = s.title;
+  const data = rows.map((r) => ({
+    ...r,
+    buyerName: nameById[r.buyerId] || "—",
+    sellerName: nameById[r.sellerId] || "—",
+    serviceTitle: titleById[r.serviceId] || "—",
+  }));
+  res.json({ success: true, data, total: Number(count) });
 });
 
 // POST /admin/send-email — manually send an email to a user

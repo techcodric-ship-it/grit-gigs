@@ -21,6 +21,7 @@ import { uploadToSupabase } from "../lib/storage";
 import { createUpiPayout, createBankPayout } from "../lib/razorpay";
 import { PROJECT_ROOT } from "../lib/root";
 import { logger } from "../lib/logger";
+import { calcWithdrawFee, WITHDRAW_FEE_PCT } from "../lib/withdrawals";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -118,7 +119,21 @@ router.get("/users/me/wallet", authenticate, async (req: Request, res: Response)
     .where(eq(withdrawalRequestsTable.userId, req.user!.id))
     .orderBy(desc(withdrawalRequestsTable.createdAt))
     .limit(10);
-  res.json({ success: true, data: { wallet, recentTransactions, recentWithdrawals } });
+  const [kycRow] = await db
+    .select({ kycVerified: usersTable.kycVerified })
+    .from(usersTable)
+    .where(eq(usersTable.id, req.user!.id))
+    .limit(1);
+  res.json({
+    success: true,
+    data: {
+      wallet,
+      recentTransactions,
+      recentWithdrawals,
+      withdrawFeePct: WITHDRAW_FEE_PCT,
+      kycVerified: !!kycRow?.kycVerified,
+    },
+  });
 });
 
 router.post("/users/me/change-mobile", authenticate, async (req: Request, res: Response): Promise<void> => {
@@ -191,9 +206,7 @@ router.post("/users/me/wallet/withdraw", authenticate, async (req: Request, res:
     return;
   }
 
-  const plan = await getActivePlanForUser(req.user!.id);
-  const withdrawalFee = Math.round(amount * plan.serviceFeePercent / 100);
-  const netAmount = amount - withdrawalFee;
+  const { feePct, commission, netAmount } = calcWithdrawFee(Number(amount));
 
   try {
     await db.transaction(async (tx) => {
@@ -208,17 +221,30 @@ router.post("/users/me/wallet/withdraw", authenticate, async (req: Request, res:
         amount,
         upiId,
       });
+
+      await tx.insert(transactionsTable).values({
+        userId: req.user!.id,
+        type: "WITHDRAWAL",
+        amount,
+        description: `Withdrawal request to ${upiId} · fee ${feePct}% (₹${commission})`,
+        status: "COMPLETED",
+        paymentMethod: "UPI",
+      });
     });
 
     await db.insert(notificationsTable).values({
       userId: req.user!.id,
       type: "WITHDRAWAL_REQUESTED",
       title: "Withdrawal request submitted",
-      message: `Your withdrawal request for ₹${amount} has been submitted. Admin will process it shortly.`,
-      linkUrl: "/dashboard.html",
+      message: `Your withdrawal request for ₹${amount} has been submitted. You will receive ₹${netAmount} after the ${feePct}% platform fee.`,
+      linkUrl: "/wallet",
     });
 
-    res.json({ success: true, message: `Withdrawal request for ₹${amount} submitted. Admin will process it shortly.` });
+    res.json({
+      success: true,
+      message: `Withdrawal request for ₹${amount} submitted. You will receive ₹${netAmount} after the ${feePct}% platform fee.`,
+      data: { amount, feePct, commission, netAmount, status: "PENDING" },
+    });
   } catch (e) {
     if (e instanceof Error && e.message === "Insufficient balance") {
       res.status(400).json({ success: false, message: "Insufficient balance" });

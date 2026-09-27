@@ -18,6 +18,7 @@ export const transactionTypeEnum = pgEnum("transaction_type", [
   "COMMISSION",
   "REFUND",
   "REFERRAL_REWARD",
+  "WITHDRAWAL",
 ]);
 
 export const txnStatusEnum = pgEnum("txn_status", [

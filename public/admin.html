@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=6"/>
-    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=6"/>
+    <link rel="icon" href="/favicon.ico?v=7"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=7"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=1"/>
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=7"/>
 <meta charset="UTF-8"/>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
@@ -21,6 +21,7 @@
   --sh:0 1px 4px rgba(10,10,15,0.06);--shm:0 4px 16px rgba(10,10,15,0.09);
   --shl:0 12px 40px rgba(10,10,15,0.12);
   --r:8px;--rm:12px;--rl:18px;--rxl:24px;--fw:248px;
+  --accent:#6C3FE8;--border:var(--bd);--text:var(--ink);
   font-family:'DM Sans',sans-serif;
 }
 html,body{height:100%;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;}
@@ -243,6 +244,10 @@ a{text-decoration:none;color:inherit;}
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
       Users
     </button>
+    <button class="ni" data-p="orders">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8.2 12 3 3 8.2v7.6L12 21l9-5.2Z"/><path d="M3.3 8.3 12 13.3l8.7-5"/><path d="M12 13.3V21"/></svg>
+      Orders
+    </button>
     <button class="ni" data-p="reports">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       Reports
@@ -321,13 +326,22 @@ a{text-decoration:none;color:inherit;}
     <button class="btn bp btn-sm" onclick="loadStats()">⟳ Refresh</button>
   </div>
   <div class="sg" id="statsGrid">
-    <div class="sc"><div class="sl">Total Users</div><div class="sv">—</div></div>
-    <div class="sc"><div class="sl">Services</div><div class="sv">—</div></div>
-    <div class="sc"><div class="sl">Projects</div><div class="sv">—</div></div>
-    <div class="sc"><div class="sl">Barter Requests</div><div class="sv">—</div></div>
-    <div class="sc"><div class="sl">Orders</div><div class="sv">—</div></div>
-    <div class="sc"><div class="sl">Disputes</div><div class="sv">—</div></div>
-    <div class="sc"><div class="sl">KYC Pending</div><div class="sv">—</div></div>
+    <div class="sc"><div class="sl">Total Users</div><div class="sv" data-k="users">—</div></div>
+    <div class="sc"><div class="sl">Services</div><div class="sv" data-k="services">—</div></div>
+    <div class="sc"><div class="sl">Projects</div><div class="sv" data-k="projects">—</div></div>
+    <div class="sc"><div class="sl">Barter Requests</div><div class="sv" data-k="barters">—</div></div>
+    <div class="sc"><div class="sl">Orders</div><div class="sv" data-k="orders">—</div></div>
+    <div class="sc"><div class="sl">Order GMV</div><div class="sv" data-k="gmv" data-inr="1">—</div></div>
+    <div class="sc"><div class="sl">Wallet Top-ups</div><div class="sv" data-k="topups" data-inr="1">—</div></div>
+    <div class="sc"><div class="sl">Commissions Earned</div><div class="sv" data-k="commissionsPaid" data-inr="1">—</div></div>
+    <div class="sc"><div class="sl">Spotlight Earnings</div><div class="sv" data-k="spotlightEarnings" data-inr="1">—</div></div>
+    <div class="sc"><div class="sl">User Wallet Balance</div><div class="sv" data-k="walletBalance" data-inr="1">—</div></div>
+    <div class="sc"><div class="sl">Total Withdrawn</div><div class="sv" data-k="totalWithdrawn" data-inr="1">—</div></div>
+    <div class="sc"><div class="sl">Pending Withdrawals</div><div class="sv" data-k="pendingWithdrawals">—</div></div>
+    <div class="sc"><div class="sl">Active Subscriptions</div><div class="sv" data-k="activeSubs">—</div></div>
+    <div class="sc"><div class="sl">Community Posts</div><div class="sv" data-k="communityPosts">—</div></div>
+    <div class="sc"><div class="sl">Disputes</div><div class="sv" data-k="disputes">—</div></div>
+    <div class="sc"><div class="sl">KYC Pending</div><div class="sv" data-k="kycPending">—</div></div>
   </div>
 </div>
 
@@ -348,6 +362,32 @@ a{text-decoration:none;color:inherit;}
     <button class="btn bs btn-sm" id="userPrevPage" onclick="loadUsers(currentUserPage-1)" disabled>← Prev</button>
     <span style="font-size:.78rem;color:var(--muted)" id="userPageInfo">Page 1</span>
     <button class="btn bs btn-sm" id="userNextPage" onclick="loadUsers(currentUserPage+1)">Next →</button>
+  </div>
+</div>
+
+<!-- ═══ ORDERS ═══ -->
+<div class="ps" id="ps-orders">
+  <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+    <div>
+      <h1 style="font-size:1.2rem;">All Orders</h1>
+      <p style="font-size:.82rem;color:var(--muted);margin-top:3px;">Every order placed on the platform — buyer, seller, value and status.</p>
+    </div>
+    <button class="btn bp btn-sm" onclick="loadAdminOrders(1)">⟳ Refresh</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;" id="orderStatusBtns">
+    <button class="btn bs btn-sm" onclick="setOrderStatus('',this)">All</button>
+    <button class="btn bs btn-sm" onclick="setOrderStatus('PENDING',this)">Pending</button>
+    <button class="btn bs btn-sm" onclick="setOrderStatus('IN_PROGRESS',this)">In Progress</button>
+    <button class="btn bs btn-sm" onclick="setOrderStatus('DELIVERED',this)">Delivered</button>
+    <button class="btn bs btn-sm" onclick="setOrderStatus('COMPLETED',this)">Completed</button>
+    <button class="btn bs btn-sm" onclick="setOrderStatus('CANCELLED',this)">Cancelled</button>
+    <button class="btn bs btn-sm" onclick="setOrderStatus('DISPUTED',this)">Disputed</button>
+  </div>
+  <div id="ordersList"><p style="font-size:.82rem;color:var(--muted);">Loading...</p></div>
+  <div class="pagination">
+    <button class="btn bs btn-sm" id="ordPrevPage" disabled onclick="loadAdminOrders(orderPage-1)">← Prev</button>
+    <span style="font-size:.78rem;color:var(--muted)" id="ordPageInfo">Page 1</span>
+    <button class="btn bs btn-sm" id="ordNextPage" onclick="loadAdminOrders(orderPage+1)">Next →</button>
   </div>
 </div>
 
@@ -509,6 +549,11 @@ a{text-decoration:none;color:inherit;}
     <button class="btn bs btn-sm" onclick="loadPendingWithdrawals()">⟳ Refresh</button>
   </div>
   <div id="withdrawalsContent"><p style="font-size:.82rem;color:var(--muted);">Loading...</p></div>
+  <div style="margin-top:26px;margin-bottom:10px;">
+    <h2 style="font-size:1.05rem;">Withdrawal History</h2>
+    <p style="font-size:.8rem;color:var(--muted);margin-top:3px;">All withdrawal requests — pending, processed and failed (last 50), with 5% commission breakdown.</p>
+  </div>
+  <div id="withdrawalsHistory"><p style="font-size:.82rem;color:var(--muted);">Loading...</p></div>
 </div>
 
 <!-- ══════════ REFERRALS ══════════ -->
@@ -706,7 +751,7 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 
 function badge(s) {
-  const m = { ACTIVE:'bdg-ok',PAUSED:'bdg-g',DELETED:'bdg-err',PENDING:'bdg-g',COMPLETED:'bdg-ok',CANCELLED:'bdg-err',OPEN:'bdg-v',IN_PROGRESS:'bdg-g','APPROVED':'bdg-ok','REJECTED':'bdg-err',PENDING_REVIEW:'bdg-g',RESOLVED:'bdg-ok',DISMISSED:'bdg-ink',LEADER:'bdg-v',MEMBER:'bdg-g',ACCEPTED:'bdg-ok',DECLINED:'bdg-err',ARCHIVED:'bdg-err' };
+  const m = { ACTIVE:'bdg-ok',PAUSED:'bdg-g',DELETED:'bdg-err',PENDING:'bdg-g',COMPLETED:'bdg-ok',CANCELLED:'bdg-err',OPEN:'bdg-v',IN_PROGRESS:'bdg-g','APPROVED':'bdg-ok','REJECTED':'bdg-err',PENDING_REVIEW:'bdg-g',RESOLVED:'bdg-ok',DISMISSED:'bdg-ink',LEADER:'bdg-v',MEMBER:'bdg-g',ACCEPTED:'bdg-ok',DECLINED:'bdg-err',ARCHIVED:'bdg-err',PROCESSING:'bdg-v',DELIVERED:'bdg-ok',REVISION_REQUESTED:'bdg-g',DISPUTED:'bdg-err',FAILED:'bdg-err',WITHDRAWN:'bdg-ink' };
   return `<span class="bdg ${m[s] || 'bdg-ink'}">${esc(s)}</span>`;
 }
 function seekingBadge(s) {
@@ -878,6 +923,7 @@ document.querySelectorAll('.ni[data-p]').forEach(el => {
 function loadPage(n) {
   if (n==='overview') loadStats();
   else if (n==='users') loadUsers(1);
+  else if (n==='orders') loadAdminOrders(1);
   else if (n==='reports') loadReports(1);
   else if (n==='jobs') loadAdminJobs();
   else if (n==='squads') loadAdminSquads();
@@ -1254,10 +1300,13 @@ async function initAdmin() {
 async function loadStats() {
   try {
     const r = await api('/admin/stats');
-    const d = r.data;
-    const labels = ['users','services','projects','barters','orders','disputes','kycPending'];
-    const cards = document.querySelectorAll('#statsGrid .sc .sv');
-    labels.forEach((k,i) => { if (cards[i]) cards[i].textContent = d[k]??'—'; });
+    const d = r.data || {};
+    document.querySelectorAll('#statsGrid .sv').forEach(el => {
+      const v = d[el.dataset.k];
+      if (v == null) { el.textContent = '—'; return; }
+      const n = Number(v) || 0;
+      el.textContent = el.dataset.inr ? '₹' + n.toLocaleString('en-IN') : n.toLocaleString('en-IN');
+    });
   } catch(e) { console.error(e); }
 }
 
@@ -1301,6 +1350,49 @@ function renderUsers(list) {
     <td style="font-size:.7rem">${u.createdAt?new Date(u.createdAt).toLocaleDateString():'—'}</td>
     <td style="display:flex;gap:4px;"><button class="btn bp btn-xs" onclick="openUserDetail('${u.id}')">Full Control</button><button class="btn btn-xs" data-name="${esc(u.firstName+' '+u.lastName)}" style="border-color:var(--accent);color:var(--accent);" onclick="openMessageComposer('${u.id}',this.dataset.name)">Message</button></td>
   </tr>`).join('')}</tbody></table></div>`;
+}
+
+// ══════════════════════════════════════════
+//  ALL ORDERS (platform-wide)
+// ══════════════════════════════════════════
+let orderPage = 1;
+let orderStatus = '';
+function setOrderStatus(s, btn) {
+  orderStatus = s;
+  document.querySelectorAll('#orderStatusBtns .btn').forEach(b => b.classList.remove('bp'));
+  if (btn) btn.classList.add('bp');
+  loadAdminOrders(1);
+}
+async function loadAdminOrders(page) {
+  page = Math.max(1, Number(page) || 1);
+  orderPage = page;
+  const el = document.getElementById('ordersList');
+  if (!el) return;
+  el.innerHTML = `<p style="font-size:.82rem;color:var(--muted);">Loading...</p>`;
+  try {
+    const q = new URLSearchParams({ page: String(page), limit: '20' });
+    if (orderStatus) q.set('status', orderStatus);
+    const r = await api('/admin/orders?' + q.toString());
+    const rows = Array.isArray(r.data) ? r.data : [];
+    const total = Number(r.total || 0);
+    document.getElementById('ordPrevPage').disabled = page <= 1;
+    document.getElementById('ordNextPage').disabled = (page * 20) >= total;
+    document.getElementById('ordPageInfo').textContent = `Page ${page} of ${Math.max(1, Math.ceil(total/20))} (${total} orders)`;
+    if (!rows.length) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><div class="empty-title">No orders found</div></div>`;
+      return;
+    }
+    el.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Service</th><th>Buyer</th><th>Seller</th><th>Amount</th><th>Status</th><th>Placed</th></tr></thead><tbody>${rows.map(o => `<tr>
+      <td class="tdt" style="max-width:260px;">${esc(o.serviceTitle)}</td>
+      <td>${esc(o.buyerName)}<div style="font-size:.65rem;color:var(--muted);">${esc(ggId(o.buyerId))}</div></td>
+      <td>${esc(o.sellerName)}<div style="font-size:.65rem;color:var(--muted);">${esc(ggId(o.sellerId))}</div></td>
+      <td><strong>₹${Number(o.priceInr||0).toLocaleString('en-IN')}</strong></td>
+      <td>${badge(o.status)}</td>
+      <td style="font-size:.7rem;color:var(--muted);">${o.createdAt?new Date(o.createdAt).toLocaleDateString():'—'}</td>
+    </tr>`).join('')}</tbody></table></div>`;
+  } catch(e) {
+    el.innerHTML = `<div class="empty"><div class="empty-sub">Failed to load orders</div></div>`;
+  }
 }
 
 function debounceSearch() { clearTimeout(userSearchTimeout); userSearchTimeout = setTimeout(()=>loadUsers(1), 300); }
@@ -1517,7 +1609,7 @@ async function renderOrdersTab(el, uid) {
   renderMiniTable(el, rows, [
     {label:'ID', val:r => esc(ggId(r.id))},
     {label:'Status', val:r => badge(r.status)},
-    {label:'Amount', val:r => r.amount?`₹${r.amount}`:'—'},
+    {label:'Amount', val:r => r.priceInr!=null?`₹${Number(r.priceInr).toLocaleString('en-IN')}`:'—'},
     {label:'Role', val:r => r.buyerId===uid?'Buyer':'Seller'},
     {label:'Created', val:r => r.createdAt?new Date(r.createdAt).toLocaleDateString():'—'},
   ]);
@@ -1946,6 +2038,7 @@ async function sendAdminMessage() {
 
 // ─── WITHDRAWALS ───
 async function loadPendingWithdrawals() {
+  loadWithdrawalHistory();
   try {
     const r = await api('/admin/withdrawals/pending');
     const wds = Array.isArray(r.data) ? r.data : [];
@@ -1964,7 +2057,7 @@ async function loadPendingWithdrawals() {
         <td class="tdt">${esc(w.userFirstName+' '+w.userLastName)}<div style="font-size:.65rem;color:var(--muted);">${esc(w.userEmail)}</div></td>
         <td><strong>₹${Number(w.amount).toLocaleString('en-IN')}</strong></td>
         <td style="background:var(--okl);border-radius:4px;font-weight:700;color:var(--ok);">₹${Number(w.netAmount||w.amount).toLocaleString('en-IN')}</td>
-        <td>₹${Number(w.commission||0).toLocaleString('en-IN')} <span style="font-size:.65rem;color:var(--muted);">(${w.commissionPct||10}%)</span></td>
+        <td>₹${Number(w.commission||0).toLocaleString('en-IN')} <span style="font-size:.65rem;color:var(--muted);">(${w.commissionPct||5}%)</span></td>
         <td>${dest}</td>
         <td style="max-width:180px;font-size:.78rem;">${esc(details)}${extra}</td>
         <td style="font-size:.7rem;color:var(--muted);">${new Date(w.createdAt).toLocaleDateString()}</td>
@@ -1974,6 +2067,36 @@ async function loadPendingWithdrawals() {
     <div style="margin-top:8px;font-size:.72rem;color:var(--muted);text-align:right;">Pending: ${wds.length} | Total to send: ₹${wds.reduce((s,w)=>s+Number(w.netAmount||w.amount),0).toLocaleString('en-IN')} | Your commission: ₹${wds.reduce((s,w)=>s+Number(w.commission||0),0).toLocaleString('en-IN')}</div>`;
   } catch(e) {
     document.getElementById('withdrawalsContent').innerHTML = `<div class="empty"><div class="empty-sub">Failed to load withdrawals</div></div>`;
+  }
+}
+
+async function loadWithdrawalHistory() {
+  const el = document.getElementById('withdrawalsHistory');
+  if (!el) return;
+  try {
+    const r = await api('/admin/withdrawals/history');
+    const rows = Array.isArray(r.data) ? r.data : [];
+    if (!rows.length) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">No withdrawals yet</div></div>`;
+      return;
+    }
+    el.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr>
+      <th>User</th><th>Amount</th><th>You Send</th><th>Commission (5%)</th><th>Destination</th><th>Status</th><th>Requested</th><th>Processed</th>
+    </tr></thead><tbody>${rows.map(w => {
+      const dest = w.upiId ? `<span style="color:var(--violet);">UPI · ${esc(w.upiId)}</span>` : `${esc(w.bankName||'Bank')} ****${esc(String(w.accountNumber||'').slice(-4))}`;
+      return `<tr>
+        <td class="tdt">${esc((w.userFirstName||'')+' '+(w.userLastName||''))}<div style="font-size:.65rem;color:var(--muted);">${esc(w.userEmail||'')}</div></td>
+        <td><strong>₹${Number(w.amount).toLocaleString('en-IN')}</strong></td>
+        <td style="font-weight:700;">₹${Number(w.netAmount||w.amount).toLocaleString('en-IN')}</td>
+        <td style="color:var(--violet);font-weight:700;">₹${Number(w.commission||0).toLocaleString('en-IN')} <span style="font-size:.65rem;color:var(--muted);">(${w.commissionPct||5}%)</span></td>
+        <td style="font-size:.75rem;">${dest}</td>
+        <td>${badge(w.status)}</td>
+        <td style="font-size:.7rem;color:var(--muted);">${w.createdAt?new Date(w.createdAt).toLocaleString('en-IN'):'—'}</td>
+        <td style="font-size:.7rem;color:var(--muted);">${w.processedAt?new Date(w.processedAt).toLocaleString('en-IN'):'—'}</td>
+      </tr>`;
+    }).join('')}</tbody></table></div>`;
+  } catch(e) {
+    el.innerHTML = `<div class="empty"><div class="empty-sub">Failed to load withdrawal history</div></div>`;
   }
 }
 

@@ -6,9 +6,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="robots" content="noindex, follow"/>
 <title>Wallet — Grit&Gigs</title>
-<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=3"/>
+<link rel="icon" href="/favicon.ico?v=7"/>
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=7"/>
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=1"/>
 <link rel="stylesheet" href="/assets/feed.css?v=18"/>
 <style> body{background:var(--bg,#fbfaff);color:var(--text,#1a1a2e);font-family:var(--font,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif);} .wrap{display:block;max-width:760px;margin:0 auto;padding:76px 20px 60px;} .card{background:#fff;border:1px solid var(--line,#eee);border-radius:16px;padding:20px;margin-bottom:18px;} h2{font-size:1.35rem;margin:0 0 4px;} .sub{color:var(--text-muted,#777);font-size:0.92rem;margin-bottom:16px;} .balance-big{font-size:2.1rem;font-weight:800;color:var(--ink,#1a1a2e);} .balance-lbl{color:var(--text-muted,#999);font-size:0.85rem;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-end;} .row{display:flex;gap:12px;flex-wrap:wrap;} .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:10px;padding:11px 18px;font-weight:600;font-size:0.92rem;cursor:pointer;text-decoration:none;transition:.15s;} .primary{background:var(--violet,#6C3FE8);color:#fff;} .primary:hover{background:#5a34c6;} .ghost{background:var(--bg-alt,#f4f1ff);color:var(--violet,#6C3FE8);} .ghost:hover{background:#e9e2ff;} .mini{width:100%;border-radius:10px;background:#fdfdfe;} .mini .sep{height:1px;background:var(--line,#eee);margin:14px 0;} .mini h4{font-size:0.95rem;margin:0 0 8px;} .txn{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line,#f3f3f6);} .txn:last-child{border-bottom:none;} .txn .ic{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;background:var(--bg-alt,#f4f1ff);} .txn .b{flex:1;min-width:0;} .txn .t{font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;} .txn .d{font-size:0.78rem;color:var(--text-muted,#999);} .txn .a{font-weight:700;font-size:0.95rem;} .credit{color:var(--green,#1a9e6c);} .debit{color:var(--signal,#8a2be2);} .fld{margin-bottom:14px;} .fld label{display:block;font-size:0.82rem;font-weight:600;color:var(--text,#1a1a2e);margin-bottom:6px;} .fld input,.fld select{width:100%;box-sizing:border-box;border:1px solid var(--line,#ddd);border-radius:10px;padding:11px 12px;font-size:0.95rem;background:#fff;} .err{color:var(--signal,#e03d52);font-size:0.85rem;min-height:1em;margin-top:4px;} .empty{text-align:center;color:var(--text-muted,#999);padding:18px 0;font-size:0.9rem;} .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(20,15,40,.5);z-index:100;align-items:center;justify-content:center;padding:20px;} .modal-backdrop.open{display:flex;} .modal{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:420px;} .modal h3{margin:0 0 4px;} .modal .fa{width:18px;color:var(--signal,#8a2be2);}
+.wd-pill{font-size:0.66rem;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap;}
+.wd-pill.p{background:#fff3d6;color:#8a5a00;}
+.wd-pill.pr{background:#e9edff;color:#3d4db5;}
+.wd-pill.c{background:#e2f7ee;color:#1a9e6c;}
+.wd-pill.f{background:#ffe9e9;color:#c62828;}
+.wd-info{font-size:0.82rem;color:var(--text-muted,#777);margin-bottom:12px;line-height:1.7;}
 </style>
 </head>
 <body>
@@ -23,10 +31,14 @@
     <a href="/orders.html" title="Orders"><svg viewBox="0 0 24 24"><path d="M21 8.2 12 3 3 8.2v7.6L12 21l9-5.2Z"/><path d="M3.3 8.3 12 13.3l8.7-5"/><path d="M12 13.3V21"/></svg></a>
     <a href="/profile.html" id="navProfile" title="Profile"><img id="navAv" class="avatar" src="https://api.dicebear.com/9.x/initials/svg?seed=grit&backgroundColor=f0f0f0&textColor=262626" alt=""/></a>
   </div>
-</header> <div class="wrap"> <div class="card"> <h2>Wallet</h2> <div class="sub">Your money, protected on the platform. Add funds, then spend on orders, gigs and credits.</div> <div class="balance-lbl"> <div> <div class="balance-big" id="balance">₹0</div> <div style="color:var(--text-muted,#999);font-size:0.85rem;margin-top:2px;">Available balance</div> </div> <div style="text-align:right;"> <div style="font-weight:700;color:var(--green,#1a9e6c);" id="earned">₹0</div> <div style="color:var(--text-muted,#999);font-size:0.85rem;">Total earned</div> </div> </div> <div class="row"> <button class="btn primary" id="topUp">+ Add money</button> </div> </div> <div class="card mini"> <h4>Recent transactions</h4> <div id="txns"><div class="empty">Loading…</div></div> </div>
+</header> <div class="wrap"> <div class="card"> <h2>Wallet</h2> <div class="sub">Your money, protected on the platform. Add funds, then spend on orders, gigs and credits.</div> <div class="balance-lbl"> <div> <div class="balance-big" id="balance">₹0</div> <div style="color:var(--text-muted,#999);font-size:0.85rem;margin-top:2px;">Available balance</div> </div> <div style="text-align:right;"> <div style="font-weight:700;color:var(--green,#1a9e6c);" id="earned">₹0</div> <div style="color:var(--text-muted,#999);font-size:0.85rem;">Total earned</div> </div> </div> <div class="row"> <button class="btn primary" id="topUp">+ Add money</button> <button class="btn ghost" id="wdBtn">Withdraw</button> </div> </div> <div class="card mini"> <h4>Recent transactions</h4> <div id="txns"><div class="empty">Loading…</div></div> </div>
+<div class="card mini" id="wdHistCard" style="display:none;"><h4>Withdrawal history</h4><div id="wdHist"></div></div>
 </div> <!-- top-up modal -->
 <div class="modal-backdrop" id="topUpModal"> <div class="modal"> <h3>Add money to wallet</h3> <div class="sub">Security-checked &amp; encrypted. Instant credit after payment.</div> <div class="fld"><label>Amount (₹)</label><input type="number" id="amt" placeholder="500" min="1"/></div> <div class="fld"> <label>Payment method</label> <select id="method"> <option value="razorpay">UPI / Cards / Netbanking (Razorpay)</option> </select> </div> <div class="err" id="upErr"></div> <div class="row"> <button class="btn ghost" id="upCancel">Cancel</button> <button class="btn primary" id="upSubmit">Pay ₹0</button> </div> </div>
-</div> <script src="/assets/onboarding.js?v=1"></script> <script src="/assets/feed-app.js?v=17"></script>
+</div>
+<div class="modal-backdrop" id="wdModal"> <div class="modal"> <h3>Withdraw to UPI</h3> <div class="sub">Payouts are processed manually within 24–48 hours.</div> <div class="fld"><label>Amount (₹)</label><input type="number" id="wdAmt" placeholder="500" min="100"/></div> <div class="fld"><label>UPI ID</label><input type="text" id="wdUpi" placeholder="yourname@paytm"/></div> <div class="wd-info" id="wdInfo"></div> <div class="err" id="wdErr"></div> <div class="row"> <button class="btn ghost" id="wdCancel">Cancel</button> <button class="btn primary" id="wdSubmit">Request withdrawal</button> </div> </div>
+</div>
+ <script src="/assets/onboarding.js?v=1"></script> <script src="/assets/feed-app.js?v=17"></script>
 <script>
 (function () {
   var c = window.core || window.community || window.feed;
@@ -71,6 +83,22 @@
   var txnIcon = { CREDIT_PURCHASE: '\ud83d\udcb3', CREDITS_REWARD: '\ud83c\udf81', SERVICE_PAYMENT: '\ud83d\udce6', SERVICE_EARNING: '\ud83d\udcb8', WITHDRAWAL: '\ud83f\udfe6', REFUND: '\u21a9', COMMISSION: '\ud83c\udfdb', REFERRAL_REWARD: '\ud83d\udc65', PROJECT_REWARD: '\ud83d\udccb' };
   var isOut = function (t) { return t === 'WITHDRAWAL' || t === 'SERVICE_PAYMENT' || t === 'COMMISSION' || t === 'PROJECT_REWARD'; };
 
+  var wd = { withdrawable: 0, feePct: 5, kyc: false };
+  var wdPill = { PENDING: 'p', PROCESSING: 'pr', COMPLETED: 'c', FAILED: 'f' };
+
+  function renderWdHist(list) {
+    var el = $('wdHist'); var card = $('wdHistCard');
+    if (!el || !card) return;
+    if (!list || !list.length) { card.style.display = 'none'; return; }
+    card.style.display = '';
+    el.innerHTML = list.map(function (x) {
+      var st = x.status || 'PENDING';
+      var dest = x.upiId || (x.bankName ? x.bankName + ' ****' + String(x.accountNumber || '').slice(-4) : '—');
+      var when = new Date(x.createdAt || Date.now()).toLocaleString('en-IN') + (x.processedAt ? ' · processed' : '');
+      return '<div class="txn"><div class="ic">⬇️</div><div class="b"><div class="t">' + esc(dest) + '</div><div class="d">' + esc(when) + '</div></div><div class="a debit">-₹' + Number(x.amount || 0).toLocaleString('en-IN') + '</div><span class="wd-pill ' + (wdPill[st] || 'p') + '">' + st + '</span></div>';
+    }).join('');
+  }
+
   function renderTxns(list) {
     var el = $('txns');
     if (!list || !list.length) { el.innerHTML = '<div class="empty">No transactions yet - add money to get rolling.</div>'; return; }
@@ -95,15 +123,67 @@
       var d = r.data || {};
       var w = d.wallet || {};
       var bal = Number(w.balance || 0);
-      $('balance').textContent = '\u20b9' + bal.toLocaleString('en-IN');
-      if (w.totalEarned != null) $('earned').textContent = '\u20b9' + Number(w.totalEarned).toLocaleString('en-IN');
+      $('balance').textContent = '\\u20b9' + bal.toLocaleString('en-IN');
+      if (w.totalEarned != null) $('earned').textContent = '\\u20b9' + Number(w.totalEarned).toLocaleString('en-IN');
       renderTxns(d.recentTransactions || d.transactions || []);
+      wd.withdrawable = Math.max(0, bal - Number(w.bonusBalance || 0));
+      wd.feePct = Number(d.withdrawFeePct || 5);
+      wd.kyc = !!d.kycVerified;
+      renderWdHist(d.recentWithdrawals || []);
     });
   }
 
   $('topUp').addEventListener('click', function () { $('topUpModal').classList.add('open'); });
   $('upCancel').addEventListener('click', function () { $('topUpModal').classList.remove('open'); });
   $('topUpModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+
+  function updWdInfo() {
+    var a = Number($('wdAmt').value) || 0;
+    var fee = Math.round(a * wd.feePct / 100);
+    var html = 'Withdrawable: ₹' + wd.withdrawable.toLocaleString('en-IN') + '<br/>';
+    if (!wd.kyc) {
+      html += '<span style="color:#c62828;font-weight:600;">Complete KYC verification from your profile before withdrawing.</span>';
+      $('wdSubmit').disabled = true;
+    } else {
+      $('wdSubmit').disabled = false;
+      html += a > 0
+        ? 'Platform fee (' + wd.feePct + '%): ₹' + fee.toLocaleString('en-IN') + ' · <b style="color:#1a9e6c;">You receive ₹' + (a - fee).toLocaleString('en-IN') + '</b>'
+        : 'A ' + wd.feePct + '% platform fee applies to every withdrawal.';
+    }
+    $('wdInfo').innerHTML = html;
+  }
+
+  $('wdBtn').addEventListener('click', function () { $('wdErr').textContent = ''; $('wdModal').classList.add('open'); updWdInfo(); });
+  $('wdCancel').addEventListener('click', function () { $('wdModal').classList.remove('open'); });
+  $('wdAmt').addEventListener('input', updWdInfo);
+  $('wdUpi').addEventListener('input', updWdInfo);
+
+  $('wdSubmit').addEventListener('click', function () {
+    var btn = this;
+    var a = Number($('wdAmt').value);
+    var upi = ($('wdUpi').value || '').trim();
+    $('wdErr').textContent = '';
+    if (!wd.kyc) { $('wdErr').textContent = 'Complete KYC verification before withdrawing.'; return; }
+    if (!a || a < 100) { $('wdErr').textContent = 'Minimum withdrawal is ₹100.'; return; }
+    if (a > wd.withdrawable) { $('wdErr').textContent = 'Amount exceeds your withdrawable balance.'; return; }
+    if (!upi || upi.indexOf('@') < 1 || upi.length < 5) { $('wdErr').textContent = 'Enter a valid UPI ID (e.g. yourname@upi).'; return; }
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+    api('/users/me/wallet/withdraw', { method: 'POST', body: { amount: a, upiId: upi } }).then(function (r) {
+      btn.disabled = false;
+      btn.textContent = 'Request withdrawal';
+      if (!r.success) { $('wdErr').textContent = msg(r); return; }
+      $('wdModal').classList.remove('open');
+      $('wdAmt').value = '';
+      $('wdUpi').value = '';
+      if (c && c.toast) c.toast(r.message || 'Withdrawal requested', false);
+      load();
+    }).catch(function () {
+      btn.disabled = false;
+      btn.textContent = 'Request withdrawal';
+      $('wdErr').textContent = 'Cannot reach server.';
+    });
+  });
   $('amt').addEventListener('input', function () {
     var a = Number(this.value);
     $('upSubmit').textContent = 'Pay \u20b9' + (isFinite(a) && a > 0 ? a.toLocaleString('en-IN') : 0);
