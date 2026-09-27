@@ -274,3 +274,12 @@ h4.sub-title { font-size: 14px; font-weight: 600; margin: 20px 0 12px; }
 .modal .fld label.choose-media { display: inline-flex; align-items: center; gap: 8px; background: #fff; color: #6C3FE8; border: 1px solid #cfc3f7; border-radius: 10px; padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: .15s; box-shadow: 0 1px 2px rgba(17,17,31,.06); margin-bottom: 0; }
 .modal .fld label.choose-media:hover { background: #f4f1ff; border-color: #6C3FE8; box-shadow: 0 2px 6px rgba(108,63,232,.18); }
 .modal .fld label.choose-media svg { width: 16px; height: 16px; }
+
+@media (max-width: 600px) {
+  .topnav { padding: 0 12px; }
+  .topnav .nav-logo-text { display: none; }
+  .topnav .searchbox { display: none; }
+  .topnav .icons { gap: 2px; }
+  .topnav .icons a { width: 36px; height: 36px; }
+  .topnav .icons svg { width: 20px; height: 20px; }
+}

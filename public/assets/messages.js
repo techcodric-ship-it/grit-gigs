@@ -12,6 +12,11 @@
   var meId = null;
   var me = c.me();
   if (me && me.id) meId = me.id;
+  var onlineIds = {};
+  var typingFrom = null;
+  var typingTimer = null;
+  var lastTypingEmit = 0;
+  var headerSubBase = '';
 
   var q = new URLSearchParams(location.search);
   var sharePostId = q.get('share');
@@ -33,6 +38,21 @@
           if (!activeConv || n.conversationId !== activeConv.id) refreshConversations();
         }
       });
+      socket.on('typing', function (d) {
+        if (!d || !activeConv || d.conversationId !== activeConv.id || d.userId === meId) return;
+        showTyping(d.firstName || 'Member');
+      });
+      socket.on('user:online', function (d) {
+        if (!d || !d.userId) return;
+        onlineIds[d.userId] = 1;
+        refreshPresenceUi();
+      });
+      socket.on('user:offline', function (d) {
+        if (!d || !d.userId) return;
+        delete onlineIds[d.userId];
+        refreshPresenceUi();
+      });
+      socket.on('connect', loadOnline);
       socket.on('connect_error', function () { socket = null; });
     }
   }
@@ -75,6 +95,43 @@
     if (b) { b.style.display = n > 0 ? '' : 'none'; b.textContent = n > 9 ? '9+' : n; }
   }
 
+  function loadOnline() {
+    if (!c.token()) return Promise.resolve();
+    return c.api('/messages/online-users').then(function (r) {
+      if (!r.ok) return;
+      var ids = (r.d.data && r.d.data.onlineUserIds) || [];
+      onlineIds = {};
+      ids.forEach(function (id) { onlineIds[id] = 1; });
+      refreshPresenceUi();
+    }).catch(function () {});
+  }
+  function isOnlineConv(cv) {
+    return !!(cv && !cv.isGroup && cv.otherUser && onlineIds[cv.otherUser.id]);
+  }
+  function refreshPresenceUi() {
+    if (convs.length) renderConversations();
+    updateHeaderSub();
+  }
+  function showTyping(name) {
+    typingFrom = name;
+    updateHeaderSub();
+    if (typingTimer) clearTimeout(typingTimer);
+    typingTimer = setTimeout(function () { typingFrom = null; updateHeaderSub(); }, 3000);
+  }
+  function updateHeaderSub() {
+    var sub = document.querySelector('#mhead .sub');
+    if (!sub || !activeConv) return;
+    if (typingFrom) {
+      sub.textContent = typingFrom + ' is typing';
+      sub.classList.add('typing');
+    } else {
+      sub.classList.remove('typing');
+      sub.textContent = headerSubBase;
+    }
+    var dot = document.querySelector('#mhead .ondot');
+    if (dot) dot.classList.toggle('live', isOnlineConv(activeConv));
+  }
+
   function renderConversations() {
     var el = $('convList');
     el.innerHTML = '';
@@ -89,9 +146,10 @@
       var last = (cv.lastMessage && cv.lastMessage.messageText) ? strip(cv.lastMessage.messageText).slice(0, 60) : (cv.lastMessage && cv.lastMessage.attachments && cv.lastMessage.attachments.length ? '[Attachment]' : 'Say hello');
       var lastAt = cv.lastMessage ? c.timeAgo(cv.lastMessage.createdAt) : '';
       var name = convName(cv);
+      var onlineNow = isOnlineConv(cv);
       var av = cv.isGroup
         ? '<div class="av" style="display:flex;align-items:center;justify-content:center;background:#f0e9ff;color:#6C3FE8;font-weight:800;">👥</div>'
-        : '<img class="av" src="' + c.esc(convAvatar(cv)) + '" alt=""/>';
+        : '<img class="av" src="' + c.esc(convAvatar(cv)) + '" alt=""/>' + (onlineNow ? '<i class="ondot live"></i>' : '');
       var item = document.createElement('div');
       item.className = 'conv' + (activeConv && activeConv.id === cv.id ? ' on' : '');
       item.innerHTML = av +
@@ -158,9 +216,10 @@
       sub = mem;
       acts = '<button data-gd="1">Info</button>';
     } else {
-      av = '<img class="av" src="' + c.esc(convAvatar(cv)) + '" alt=""/>';
-      sub = (cv.otherUser && cv.otherUser.city) ? c.esc(cv.otherUser.city) : 'Grit&Gigs member';
+      av = '<span class="avw"><img class="av" src="' + c.esc(convAvatar(cv)) + '" alt=""/><i class="ondot' + (isOnlineConv(cv) ? ' live' : '') + '"></i></span>';
+      sub = (cv.otherUser && cv.otherUser.city) ? cv.otherUser.city : 'Grit&Gigs member';
     }
+    headerSubBase = sub;
     $('mhead').innerHTML = '<button data-back="1" class="back">‹ Back</button>' + av + '<div class="t"><div class="nm">' + c.esc(name) + '</div><div class="sub">' + c.esc(sub) + '</div></div>' +
       '<div class="acts">' + acts + '</div>';
     var gd = $('mhead').querySelector('[data-gd]');
@@ -366,6 +425,13 @@
   $('#msgBox').addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   });
+  $('#msgBox').addEventListener('input', function () {
+    if (!activeConv || !socket) return;
+    var now = Date.now();
+    if (now - lastTypingEmit < 1400) return;
+    lastTypingEmit = now;
+    socket.emit('typing', { conversationId: activeConv.id });
+  });
   $('#attFile').addEventListener('change', function () { handleAttach(this.files); this.value = ''; });
   $('#convSearch').addEventListener('input', renderConversations);
 
@@ -435,6 +501,7 @@
   if (!isMobile()) document.body.classList.remove('msg-open');
   refreshConversations();
   connectSocket();
+  loadOnline();
 
   // If a share requested, fetch the post then open targets (also captures author id).
   if (sharePostId) {

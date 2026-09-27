@@ -70,6 +70,16 @@ export function setupSocket(httpServer: HttpServer): SocketServer {
       socket.leave(`conv:${conversationId}`);
     });
 
+    socket.on("typing", ({ conversationId, isTyping }: { conversationId: string; isTyping?: boolean }) => {
+      if (!conversationId) return;
+      socket.to(`conv:${conversationId}`).emit("typing", {
+        conversationId,
+        userId,
+        firstName: sockWithUser.user.firstName,
+        isTyping: isTyping !== false,
+      });
+    });
+
     socket.on("message:send", async ({ conversationId, messageText }: { conversationId: string; messageText: string }) => {
       if (!messageText?.trim()) return;
       try {
