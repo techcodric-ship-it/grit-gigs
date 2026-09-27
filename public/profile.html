@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, follow"/>
 <title>Profile — Grit&Gigs</title>
 <link rel="icon" href="/favicon.ico?v=7"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=7"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=1"/>
-<link rel="stylesheet" href="/assets/feed.css?v=18"/>
+<link rel="stylesheet" href="/assets/feed.css?v=19"/>
 <style>
 .pcard{background:#fff;border:1px solid #ececf0;border-radius:16px;margin-bottom:14px;overflow:hidden}
 .pbanner{height:120px;background:linear-gradient(115deg,#111 0%,#2b2b33 55%,#eab308 175%)}
@@ -221,7 +221,7 @@
   <div class="modal" style="max-width:900px;"></div>
 </div>
 
-<script src="/assets/onboarding.js?v=1"></script> <script src="/assets/feed-app.js?v=17"></script>
+<script src="/assets/onboarding.js?v=1"></script> <script src="/assets/feed-app.js?v=18"></script>
 <script>
 (function () {
   var c = window.community;
@@ -278,6 +278,7 @@
     }
     div.innerHTML = img + '<span class="kindtag">' + kind + '</span>' +
       (kind === 'REEL' || med.type === 'video' ? '<span class="reel-ic">▶</span>' : '') +
+      '<button class="tile-share" data-share="' + c.esc(p.id) + '" title="Share">↗</button>' +
       '<div class="over"><span>♥ ' + Number(p.likeCount || 0) + '</span><span>💬 ' + Number(p.commentCount || 0) + '</span></div>';
     var spotRib = '';
     if (row.spotlight) spotRib = '<span class="spot-ribbon">✦ SPOTLIGHT</span>';
@@ -287,6 +288,8 @@
     }
     if (spotRib) div.insertAdjacentHTML('afterbegin', spotRib);
     div.addEventListener('click', function () { c.openPost(p.id); });
+    var tb = div.querySelector('.tile-share');
+    if (tb) tb.addEventListener('click', function (e) { e.stopPropagation(); c.share(p.id); });
     return div;
   }
 

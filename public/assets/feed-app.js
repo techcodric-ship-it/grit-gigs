@@ -480,6 +480,69 @@
     });
   }
 
+  function shareUrlFor(pid) {
+    return location.origin + '/explore.html?post=' + encodeURIComponent(pid);
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).catch(function () { return copyTextFallback(text); });
+    }
+    return Promise.resolve(copyTextFallback(text));
+  }
+
+  function copyTextFallback(text) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    } catch (e) {}
+  }
+
+  function openShare(postId) {
+    var url = shareUrlFor(postId);
+    var m = document.getElementById('shareSheet');
+    if (!m) {
+      m = document.createElement('div');
+      m.id = 'shareSheet';
+      m.className = 'modal-backdrop';
+      m.innerHTML = '<div class="modal share-sheet" style="max-width:420px;"></div>';
+      document.body.appendChild(m);
+      m.addEventListener('click', function (e) { if (e.target === m) m.classList.remove('open'); });
+    }
+    var body = m.querySelector('.modal');
+    var hasNative = !!navigator.share;
+    var html = '<div class="share-head">' +
+      '<b>Share post</b>' +
+      '<button id="shareClose" aria-label="Close">✕</button></div>' +
+      '<div class="share-url">' + esc(url) + '</div>' +
+      '<div class="share-opts">' +
+      '<button class="share-opt" id="shareCopy">Copy link</button>' +
+      '<button class="share-opt" id="shareChat">Share in chat</button>' +
+      (hasNative ? '<button class="share-opt" id="shareNative">More options…</button>' : '') +
+      '</div>';
+    body.innerHTML = html;
+    m.classList.add('open');
+    document.getElementById('shareClose').addEventListener('click', function () { m.classList.remove('open'); });
+    document.getElementById('shareCopy').addEventListener('click', function () {
+      copyText(url).then(function () { m.classList.remove('open'); toast('Link copied'); });
+    });
+    document.getElementById('shareChat').addEventListener('click', function () {
+      m.classList.remove('open');
+      location.href = '/messages.html?share=' + encodeURIComponent(postId);
+    });
+    var nat = document.getElementById('shareNative');
+    if (nat) nat.addEventListener('click', function () {
+      navigator.share({ title: 'Grit&Gigs', text: 'Check this on Grit&Gigs', url: url }).catch(function () {});
+    });
+  }
+
   function openLikers(postId) {
     var m = document.getElementById('likersModal');
     if (!m) {
@@ -879,6 +942,7 @@
     openLogin: openLogin,
     openRegister: openRegister,
     openPost: openPost,
+    share: openShare,
     openOrderModal: openOrderModal,
     refresh: refreshAuthedUI,
     googleLogin: googleLogin,
@@ -895,11 +959,7 @@
     if (sh) {
       e.preventDefault();
       var pid = sh.getAttribute('data-share');
-      if (navigator.share) {
-        navigator.share({ title: 'Grit&Gigs', text: 'Check this on Grit&Gigs', url: location.origin + '/explore.html?post=' + encodeURIComponent(pid) }).catch(function () {});
-      } else {
-        location.href = '/messages.html?share=' + encodeURIComponent(pid);
-      }
+      if (pid) openShare(pid);
       return;
     }
     var msgBtn = e.target.closest('[data-msg]');
