@@ -1,4 +1,4 @@
-﻿import { Router, type IRouter, type Request, type Response } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and, desc, count, sql, inArray, or, ilike, gt, gte, ne, type SQL } from "drizzle-orm";
 import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable, conversationsTable, messagesTable, communityOrdersTable, communityOrderDeliveriesTable, transactionsTable, freelanceWalletsTable, postBoostsTable, searchLogsTable } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
@@ -442,7 +442,6 @@ async function loadSpotlightPins(viewerId: string, kindFilter: string): Promise<
   }
 }
 
-// â”€â”€ GET /community/feed?kind=&filter=&cursor= â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post("/community/posts/:id/spotlight", authenticate, async (req: Request, res: Response): Promise<void> => {
   const meId = req.user!.id;
   const [post] = await db
@@ -601,6 +600,7 @@ router.get("/community/spotlight/suggestions", optionalAuth, async (_req: Reques
   }
 });
 
+// ── GET /community/feed?kind=&filter=&cursor=&q= ──
 router.get("/community/feed", optionalAuth, async (req: Request, res: Response): Promise<void> => {
   const meId = req.user?.id;
   const kind = kindWhitelist(String(req.query.kind || ""), "");
