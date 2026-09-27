@@ -333,10 +333,27 @@
     $('groupErr').textContent = '';
     $('groupModal').classList.add('open');
   }
+  function findGroupId(id) {
+    var found = null;
+    groups.forEach(function (g) { if (!found && (g.id === id || g.conversationId === id)) found = g.id; });
+    if (found) return Promise.resolve(found);
+    return c.api('/messages/groups').then(function (r) {
+      var gs = (r.d && r.d.data && r.d.data.groups) || [];
+      if (r.ok) groups = gs;
+      var hit = null;
+      gs.forEach(function (g) { if (!hit && (g.id === id || g.conversationId === id)) hit = g.id; });
+      return hit;
+    });
+  }
   function openGroupDetail(groupId) {
     if (!groupId) return;
-    c.api('/messages/groups/' + groupId).then(function (r) {
-      if (!r.ok) return;
+    findGroupId(groupId).then(function (gid) {
+      if (!gid) { c.toast('Could not load group details', true); return; }
+      activeGroupId = gid;
+      return c.api('/messages/groups/' + gid);
+    }).then(function (r) {
+      if (!r) return;
+      if (!r.ok) { c.toast('Could not load group details', true); return; }
       var d = r.d.data;
       $('gdName').textContent = d.group.name;
       $('gdDesc').textContent = d.group.description || '';
@@ -347,7 +364,7 @@
       $('gdInviteWrap').style.display = isOwner ? 'flex' : 'none';
       $('gdErr').textContent = '';
       $('groupDetailModal').classList.add('open');
-    });
+    }).catch(function () { c.toast('Could not load group details', true); });
   }
 
   // ── share flow ──
