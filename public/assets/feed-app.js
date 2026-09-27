@@ -332,7 +332,10 @@
       (tagsHtml ? '<div class="tags">' + tagsHtml + '</div>' : '') + '</div>';
 
     var commentsHtml = (row.comments || []).slice(0, 2).map(function (c) {
-      return '<div class="cmt"><b>' + esc(c.author.firstName || 'hustler') + '</b> ' + esc(c.content) + '</div>';
+      var ca = c.author || {};
+      var cname = '<b>' + esc(ca.firstName || 'hustler') + '</b>';
+      if (ca.id) cname = '<a class="cmt-name" href="/profile.html?id=' + esc(ca.id) + '">' + cname + '</a>';
+      return '<div class="cmt">' + cname + ' ' + esc(c.content) + '</div>';
     }).join('');
     var moreCmts = (row.comments && row.comments.length >= 2) ? '<a data-open="' + esc(p.id) + '" style="cursor:pointer;">View all ' + Number(p.commentCount || 0) + ' comments</a><br/>' : '';
 
@@ -458,7 +461,10 @@
   function domComment(c, author) {
     var div = document.createElement('div');
     div.className = 'cmt';
-    div.innerHTML = '<b>' + esc((author && author.firstName) || 'hustler') + '</b> ' + esc(c.content);
+    var a = author || {};
+    var name = '<b>' + esc(a.firstName || 'hustler') + '</b>';
+    if (a.id) name = '<a class="cmt-name" href="/profile.html?id=' + esc(a.id) + '">' + name + '</a>';
+    div.innerHTML = name + ' ' + esc(c.content);
     return div;
   }
 
@@ -505,8 +511,7 @@
     } catch (e) {}
   }
 
-  function openShare(postId) {
-    var url = shareUrlFor(postId);
+  function openShareUrl(url, title, chatParam) {
     var m = document.getElementById('shareSheet');
     if (!m) {
       m = document.createElement('div');
@@ -519,7 +524,7 @@
     var body = m.querySelector('.modal');
     var hasNative = !!navigator.share;
     var html = '<div class="share-head">' +
-      '<b>Share post</b>' +
+      '<b>' + esc(title) + '</b>' +
       '<button id="shareClose" aria-label="Close">✕</button></div>' +
       '<div class="share-url">' + esc(url) + '</div>' +
       '<div class="share-opts">' +
@@ -535,12 +540,24 @@
     });
     document.getElementById('shareChat').addEventListener('click', function () {
       m.classList.remove('open');
-      location.href = '/messages.html?share=' + encodeURIComponent(postId);
+      location.href = '/messages.html?' + chatParam;
     });
     var nat = document.getElementById('shareNative');
     if (nat) nat.addEventListener('click', function () {
       navigator.share({ title: 'Grit&Gigs', text: 'Check this on Grit&Gigs', url: url }).catch(function () {});
     });
+  }
+
+  function openShare(postId) {
+    openShareUrl(shareUrlFor(postId), 'Share post', 'share=' + encodeURIComponent(postId));
+  }
+
+  function openShareProfile(userId) {
+    openShareUrl(
+      location.origin + '/profile.html?id=' + encodeURIComponent(userId),
+      'Share profile',
+      'shareprofile=' + encodeURIComponent(userId)
+    );
   }
 
   function openLikers(postId) {
@@ -943,6 +960,7 @@
     openRegister: openRegister,
     openPost: openPost,
     share: openShare,
+    shareProfile: openShareProfile,
     openOrderModal: openOrderModal,
     refresh: refreshAuthedUI,
     googleLogin: googleLogin,
@@ -960,6 +978,13 @@
       e.preventDefault();
       var pid = sh.getAttribute('data-share');
       if (pid) openShare(pid);
+      return;
+    }
+    var shp = e.target.closest('[data-share-profile]');
+    if (shp) {
+      e.preventDefault();
+      var spid = shp.getAttribute('data-share-profile');
+      if (spid) openShareProfile(spid);
       return;
     }
     var msgBtn = e.target.closest('[data-msg]');

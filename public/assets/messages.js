@@ -20,6 +20,7 @@
 
   var q = new URLSearchParams(location.search);
   var sharePostId = q.get('share');
+  var shareProfileId = q.get('shareprofile');
   var startUserId = q.get('to');
 
   // ── socket ──
@@ -369,6 +370,21 @@
 
   // ── share flow ──
   function loadShare() {
+    if (shareProfileId) {
+      if (!c.token()) { c.openLogin(); return; }
+      c.api('/community/users/' + encodeURIComponent(shareProfileId)).then(function (r) {
+        if (!r.ok) return;
+        var u = (r.d.data && r.d.data.user) || {};
+        var nm = String(u.firstName || 'Member') + (u.lastName ? ' ' + u.lastName : '');
+        $('sharePreview').innerHTML = '👤 <b>' + c.esc(nm) + '</b> · ' + c.esc(u.tagline || 'profile on Grit&Gigs');
+        window._share = { kind: 'profile', id: shareProfileId, title: nm };
+        window._shareAuthorId = shareProfileId;
+        window._shareAuthorLabel = '💬 Message this member';
+        renderShareTargets();
+        $('shareModal').classList.add('open');
+      });
+      return;
+    }
     if (!sharePostId) return;
     if (!c.token()) { c.openLogin(); return; }
     c.api('/community/posts/' + sharePostId).then(function (r) {
@@ -377,12 +393,16 @@
       var preview = '<span class="kind-stamp">' + (p.kind || 'POST') + '</span> "' + c.esc(String(p.content || '').slice(0, 60)) + '" — by ' + c.esc(author.firstName || 'member');
       $('sharePreview').innerHTML = preview;
       window._share = { postId: sharePostId, kind: p.kind || 'POST', title: author.firstName || 'a member' };
+      window._shareAuthorLabel = null;
       renderShareTargets();
       $('shareModal').classList.add('open');
     });
   }
   function shareLinkText() {
     var s = window._share || {};
+    if (s.kind === 'profile') {
+      return (s.title || 'Someone') + ' on Grit&Gigs:\n' + location.origin + '/profile.html?id=' + encodeURIComponent(s.id) + '\n';
+    }
     return 'Shared a ' + (s.kind || 'post') + ' with you on Grit&Gigs:\n' + location.origin + '/explore.html?post=' + encodeURIComponent(s.postId) + '\n';
   }
   function renderShareTargets() {
@@ -397,7 +417,7 @@
     });
     var authorRow = document.createElement('div');
     authorRow.className = 'conv';
-    authorRow.innerHTML = '<div class="cv"><div class="cname">💬 Message the author</div></div>';
+    authorRow.innerHTML = '<div class="cv"><div class="cname">' + c.esc(window._shareAuthorLabel || '💬 Message the author') + '</div></div>';
     authorRow.addEventListener('click', function () {
       var authorId = window._shareAuthorId;
       if (!authorId) { $('shareErr').textContent = 'Author id unavailable'; return; }
@@ -544,6 +564,8 @@
       window._shareAuthorId = author.id;
       loadShare();
     });
+  } else if (shareProfileId) {
+    loadShare();
   } else if (startUserId) {
     var ctxBody = {};
     var ctxMatch = q.get('matchId'); if (ctxMatch) ctxBody.matchId = ctxMatch;

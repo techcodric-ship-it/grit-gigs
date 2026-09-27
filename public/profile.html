@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, follow"/>
 <title>Profile — Grit&Gigs</title>
 <link rel="icon" href="/favicon.ico?v=7"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=7"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=1"/>
-<link rel="stylesheet" href="/assets/feed.css?v=19"/>
+<link rel="stylesheet" href="/assets/feed.css?v=20"/>
 <style>
 .pcard{background:#fff;border:1px solid #ececf0;border-radius:16px;margin-bottom:14px;overflow:hidden}
 .pbanner{height:120px;background:linear-gradient(115deg,#111 0%,#2b2b33 55%,#eab308 175%)}
@@ -37,6 +37,20 @@
 .pbtn svg{width:13px;height:13px;flex-shrink:0}
 .pstats{display:flex;gap:18px;padding:14px 22px 0;flex-wrap:wrap;font-size:13px;color:#6b7280}
 .pstats b{color:#17171a;font-size:15px;margin-right:4px}
+.pstats .plink{cursor:pointer;text-decoration:none;color:inherit}
+.pstats .plink:hover b{color:#6C3FE8;text-decoration:underline}
+.fl-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f1f1f5}
+.fl-row:last-child{border-bottom:none}
+.fl-row img{width:40px;height:40px;border-radius:50%;object-fit:cover;background:#f0f0f0;display:block}
+.fl-av,.fl-nm{text-decoration:none;color:inherit}
+.fl-nm{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.fl-nm b{font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fl-nm span{font-size:11.5px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fl-btns{display:flex;gap:6px;flex-shrink:0}
+.fl-btns .pbtn{padding:5px 12px;font-size:12px}
+.pbtn.danger{border-color:#f0c2cb;color:#c22b3c}
+.pbtn.danger:hover{background:#fef3f4}
+#flList{max-height:56vh;overflow-y:auto;margin:0 -6px;padding:0 6px}
 .grid .tile .over{background:linear-gradient(to top,rgba(0,0,0,.55),rgba(0,0,0,0) 60%);color:#fff;justify-content:flex-start;align-items:flex-end;gap:14px;padding:0 10px 9px;font-size:12.5px;font-weight:600;}
 .grid .tile:hover .over{background:linear-gradient(to top,rgba(0,0,0,.55),rgba(0,0,0,0) 60%);color:#fff;}
 .prof-caption div{cursor:pointer;}
@@ -126,6 +140,7 @@
             <div class="pactions">
               <button class="pbtn" id="pBtn" style="display:none;">Follow</button>
               <button class="pbtn" id="pMsgBtn" style="display:none;">Message</button>
+              <button class="pbtn" id="pShareBtn" style="display:none;">Share</button>
               <button class="pbtn view" id="pViewBtn" style="display:none;">View profile</button>
               <a class="pbtn ghost" id="pEditBtn" href="/settings.html" style="display:none;text-decoration:none;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>Edit profile</a>
             </div>
@@ -133,7 +148,8 @@
         </div>
         <div class="pstats">
           <span><b id="pPosts">0</b>posts</span>
-          <span><b id="pFollowers">0</b>followers</span>
+          <span class="plink" id="pFollowersWrap"><b id="pFollowers">0</b>followers</span>
+          <span class="plink" id="pFollowingWrap"><b id="pFollowing">0</b>following</span>
           <span><b id="pLikes">0</b>likes</span>
           <span><b id="pComments">0</b>comments</span>
         </div>
@@ -221,7 +237,15 @@
   <div class="modal" style="max-width:900px;"></div>
 </div>
 
-<script src="/assets/onboarding.js?v=1"></script> <script src="/assets/feed-app.js?v=18"></script>
+<div class="modal-backdrop" id="followModal" style="overflow-y:auto;">
+  <div class="modal" style="max-width:520px;">
+    <h3 id="flTitle">Followers</h3>
+    <div id="flList"></div>
+    <div class="actions"><button class="ghost" id="flClose">Close</button></div>
+  </div>
+</div>
+
+<script src="/assets/onboarding.js?v=1"></script> <script src="/assets/feed-app.js?v=19"></script>
 <script>
 (function () {
   var c = window.community;
@@ -249,6 +273,83 @@
   if ($('loginModal')) $('loginModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
   if ($('registerModal')) $('registerModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
   if ($('postModal')) $('postModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+  if ($('followModal')) $('followModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+  if ($('flClose')) $('flClose').addEventListener('click', function () { $('followModal').classList.remove('open'); });
+
+  var flMode = 'followers';
+  function flEmptyText() {
+    return '<div class="empty"><h3>No ' + (flMode === 'followers' ? 'followers' : 'following') + ' yet.</h3></div>';
+  }
+  function flEmptyCheck() {
+    var list = $('flList');
+    if (!list.querySelector('.fl-row') && !list.querySelector('.empty')) list.innerHTML = flEmptyText();
+  }
+  function openFollowList(mode) {
+    if (!profId) return;
+    flMode = mode;
+    $('flTitle').textContent = mode === 'followers' ? 'Followers' : 'Following';
+    $('flList').innerHTML = '<div class="loading">Loading…</div>';
+    $('followModal').classList.add('open');
+    loadFollowList();
+  }
+  function loadFollowList() {
+    var list = $('flList');
+    c.api('/community/users/' + encodeURIComponent(profId) + '/' + flMode + '?limit=100').then(function (r) {
+      if (!r.ok) { list.innerHTML = '<div class="empty"><h3>Could not load</h3><p>' + c.esc(r.d.message || '') + '</p></div>'; return; }
+      var users = (r.d.data && r.d.data.users) || [];
+      if (!users.length) { list.innerHTML = flEmptyText(); return; }
+      var own = !!(me0 && me0.id === profId);
+      list.innerHTML = users.map(function (u) {
+        var isSelf = !!(me0 && me0.id === u.id);
+        var btns = '';
+        if (!isSelf && c.token()) btns += '<button class="pbtn' + (u.isFollowing ? ' on' : '') + '" data-flfollow="' + c.esc(u.id) + '">' + (u.isFollowing ? 'Following' : 'Follow') + '</button>';
+        if (own && flMode === 'followers' && !isSelf) btns += '<button class="pbtn danger" data-flremove="' + c.esc(u.id) + '">Remove</button>';
+        var nm = c.esc(String(u.firstName || 'Hustler') + (u.lastName ? ' ' + u.lastName : ''));
+        var sub = c.esc([u.city, u.tagline].filter(Boolean).join(' · '));
+        return '<div class="fl-row">' +
+          '<a class="fl-av" href="/profile.html?id=' + c.esc(u.id) + '"><img src="' + c.esc(c.avatarFor(u)) + '" alt=""/></a>' +
+          '<a class="fl-nm" href="/profile.html?id=' + c.esc(u.id) + '"><b>' + nm + '</b>' + (sub ? '<span>' + sub + '</span>' : '') + '</a>' +
+          '<div class="fl-btns">' + btns + '</div></div>';
+      }).join('');
+      bindFollowRows();
+    }, function () { list.innerHTML = '<div class="empty"><h3>Network error</h3></div>'; });
+  }
+  function bindFollowRows() {
+    var own = !!(me0 && me0.id === profId);
+    $('flList').querySelectorAll('[data-flfollow]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var id = b.getAttribute('data-flfollow');
+        c.api('/community/users/' + encodeURIComponent(id) + '/follow', { method: 'POST' }).then(function (rr) {
+          if (!rr.ok) { c.toast(rr.d.message || 'Failed', true); return; }
+          var on = !!rr.d.data.following;
+          b.classList.toggle('on', on);
+          b.textContent = on ? 'Following' : 'Follow';
+          c.toast(on ? 'Following' : 'Unfollowed');
+          if (own) {
+            var pf = $('pFollowing');
+            pf.textContent = Math.max(0, Number(pf.textContent) + (on ? 1 : -1));
+            if (!on && flMode === 'following') { var row = b.closest('.fl-row'); if (row) row.remove(); }
+          }
+          flEmptyCheck();
+        });
+      });
+    });
+    $('flList').querySelectorAll('[data-flremove]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var id = b.getAttribute('data-flremove');
+        c.api('/community/users/' + encodeURIComponent(id) + '/follower', { method: 'DELETE' }).then(function (rr) {
+          if (!rr.ok) { c.toast(rr.d.message || 'Failed', true); return; }
+          c.toast('Removed from your followers');
+          $('pFollowers').textContent = rr.d.data.followers;
+          var row = b.closest('.fl-row');
+          if (row) row.remove();
+          flEmptyCheck();
+        });
+      });
+    });
+  }
+  if ($('pFollowersWrap')) $('pFollowersWrap').addEventListener('click', function () { openFollowList('followers'); });
+  if ($('pFollowingWrap')) $('pFollowingWrap').addEventListener('click', function () { openFollowList('following'); });
 
   var navSearch = $('navSearch');
   navSearch.addEventListener('keydown', function (e) {
@@ -450,6 +551,7 @@
       $('pName').textContent = (u.firstName || 'Hustler') + (u.lastName ? ' ' + u.lastName : '');
       $('pPosts').textContent = d.posts;
       $('pFollowers').textContent = d.followers;
+      $('pFollowing').textContent = d.followingCount;
       $('pLikes').textContent = d.likes;
       $('pComments').textContent = d.comments;
       var bio = [u.tagline, u.bio].filter(Boolean).join(' — ');
@@ -485,6 +587,9 @@
       var own = !!(me0 && me0.id === u.id);
       $('pEditBtn').style.display = own ? '' : 'none';
       $('pViewBtn').style.display = own ? '' : 'none';
+      var shareBtn = $('pShareBtn');
+      shareBtn.style.display = '';
+      shareBtn.onclick = function () { c.shareProfile(u.id); };
       loadKyc(u, own);
       if (own) {
         $('pViewBtn').onclick = function () {

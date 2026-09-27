@@ -953,6 +953,11 @@ router.get("/community/users/:id", optionalAuth, async (req: Request, res: Respo
     .from(communityFollowsTable)
     .where(eq(communityFollowsTable.followingId, user.id));
 
+  const [followingCount] = await db
+    .select({ c: count() })
+    .from(communityFollowsTable)
+    .where(eq(communityFollowsTable.followerId, user.id));
+
   let following: boolean | null = null;
   if (req.user?.id && req.user.id !== user.id) {
     const [f] = await db
@@ -971,6 +976,7 @@ router.get("/community/users/:id", optionalAuth, async (req: Request, res: Respo
       likes: Number(postStats?.likes ?? 0),
       comments: Number(postStats?.comments ?? 0),
       followers: Number(followerCount?.c ?? 0),
+      followingCount: Number(followingCount?.c ?? 0),
       following,
     },
   });
@@ -1059,6 +1065,108 @@ router.post("/community/users/:id/follow", authenticate, async (req: Request, re
     notify(targetId, "COMMUNITY_FOLLOW", "New follower", `${req.user!.firstName} started following you on the Hustle Feed.`, null);
     res.status(200).json({ success: true, data: { following: true } });
   }
+});
+
+// ——— follow list helper ———
+async function loadFollowRows(
+  anchorId: string,
+  mode: "followers" | "following",
+  viewerId: string | undefined,
+  limit: number,
+  offset: number,
+): Promise<{ users: Array<Record<string, unknown>>; total: number }> {
+  const anchorCol = mode === "followers" ? communityFollowsTable.followingId : communityFollowsTable.followerId;
+  const userCol = mode === "followers" ? communityFollowsTable.followerId : communityFollowsTable.followingId;
+  const rows = await db
+    .select({
+      id: usersTable.id,
+      firstName: usersTable.firstName,
+      lastName: usersTable.lastName,
+      profilePhoto: usersTable.profilePhoto,
+      city: usersTable.city,
+      tagline: usersTable.tagline,
+      kycVerified: usersTable.kycVerified,
+      followedAt: communityFollowsTable.createdAt,
+    })
+    .from(communityFollowsTable)
+    .innerJoin(usersTable, eq(usersTable.id, userCol))
+    .where(eq(anchorCol, anchorId))
+    .orderBy(desc(communityFollowsTable.createdAt))
+    .limit(limit)
+    .offset(offset);
+  const [totalRow] = await db
+    .select({ c: count() })
+    .from(communityFollowsTable)
+    .where(eq(anchorCol, anchorId));
+
+  const isFollowing = new Set<string>();
+  const followsMe = new Set<string>();
+  const ids = rows.map((r) => r.id);
+  if (viewerId && ids.length) {
+    const mine = await db
+      .select({ followingId: communityFollowsTable.followingId })
+      .from(communityFollowsTable)
+      .where(and(eq(communityFollowsTable.followerId, viewerId), inArray(communityFollowsTable.followingId, ids)));
+    for (const m of mine) isFollowing.add(m.followingId);
+    const theirs = await db
+      .select({ followerId: communityFollowsTable.followerId })
+      .from(communityFollowsTable)
+      .where(and(eq(communityFollowsTable.followingId, viewerId), inArray(communityFollowsTable.followerId, ids)));
+    for (const m of theirs) followsMe.add(m.followerId);
+  }
+
+  return {
+    users: rows.map((r) => ({
+      id: r.id,
+      firstName: r.firstName,
+      lastName: r.lastName,
+      profilePhoto: r.profilePhoto,
+      city: r.city,
+      tagline: r.tagline,
+      kycVerified: r.kycVerified,
+      followedAt: r.followedAt,
+      isFollowing: isFollowing.has(r.id),
+      followsMe: followsMe.has(r.id),
+    })),
+    total: Number(totalRow?.c ?? 0),
+  };
+}
+
+// ── GET /community/users/:id/followers — people who follow this user ──
+router.get("/community/users/:id/followers", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+  const offset = Math.max(0, Number(req.query.offset) || 0);
+  const data = await loadFollowRows(String(req.params.id), "followers", req.user!.id, limit, offset);
+  res.status(200).json({ success: true, data });
+});
+
+// ── GET /community/users/:id/following — people this user follows ──
+router.get("/community/users/:id/following", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+  const offset = Math.max(0, Number(req.query.offset) || 0);
+  const data = await loadFollowRows(String(req.params.id), "following", req.user!.id, limit, offset);
+  res.status(200).json({ success: true, data });
+});
+
+// ── DELETE /community/users/:id/follower — remove someone from my followers ──
+router.delete("/community/users/:id/follower", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const followerId = String(req.params.id);
+  const meId = req.user!.id;
+  const [row] = await db
+    .select({ id: communityFollowsTable.id })
+    .from(communityFollowsTable)
+    .where(and(eq(communityFollowsTable.followerId, followerId), eq(communityFollowsTable.followingId, meId)))
+    .limit(1);
+  if (!row) {
+    res.status(404).json({ success: false, message: "This user does not follow you" });
+    return;
+  }
+  await db.delete(communityFollowsTable).where(eq(communityFollowsTable.id, row.id));
+  const [c] = await db
+    .select({ c: count() })
+    .from(communityFollowsTable)
+    .where(eq(communityFollowsTable.followingId, meId));
+  res.status(200).json({ success: true, data: { followers: Number(c?.c ?? 0) } });
 });
 
 // â”€â”€ GET /community/notifications â€” my feed notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

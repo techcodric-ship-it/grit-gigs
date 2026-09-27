@@ -111,6 +111,8 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
 .card-caption .tags a { color: var(--blue-2); font-weight: 500; }
 .card-comments { padding: 2px 16px 6px; font-size: 14px; }
 .card-comments .cmt { margin: 3px 0; }
+.card-comments .cmt .cmt-name { color: inherit; text-decoration: none; }
+.card-comments .cmt .cmt-name:hover { text-decoration: underline; }
 .card-date { padding: 0 16px 8px; font-size: 10px; color: var(--dusk); text-transform: uppercase; letter-spacing: .3px; }
 .card-comment-form { display: flex; align-items: center; border-top: 1px solid var(--line-2); padding: 8px 16px; gap: 8px; }
 .card-comment-form input { flex: 1; border: none; outline: none; font-size: 14px; background: none; }
@@ -153,10 +155,9 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
 .grid .tile .reel-ic { position: absolute; top: 8px; right: 8px; color: #fff; font-size: 20px; text-shadow: 0 1px 4px rgba(0,0,0,.5); }
 .grid .tile .kindtag { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,.6); color: #fff; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; }
 @media (max-width: 640px) { .grid { grid-template-columns: repeat(3, 1fr); gap: 2px; } }
-.grid .tile .tile-share { position: absolute; bottom: 8px; right: 8px; width: 32px; height: 32px; border-radius: 50%; border: none; background: rgba(0,0,0,.6); color: #fff; font-size: 15px; line-height: 1; display: none; align-items: center; justify-content: center; cursor: pointer; z-index: 2; }
-.grid .tile:hover .tile-share { display: flex; }
-.grid .tile .tile-share:hover { background: var(--volt); }
-@media (hover: none) { .grid .tile .tile-share { display: flex; } }
+.grid .tile .tile-share { position: absolute; bottom: 8px; right: 8px; width: 32px; height: 32px; border-radius: 50%; border: none; background: rgba(0,0,0,.6); color: #fff; font-size: 15px; line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 2; opacity: .92; }
+.grid .tile:hover .tile-share { opacity: 1; }
+.grid .tile .tile-share:hover { background: var(--volt); opacity: 1; }
 
 /* ── side panel ── */
 .sidebar { position: sticky; top: 76px; }
