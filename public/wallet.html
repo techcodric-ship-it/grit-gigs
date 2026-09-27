@@ -123,8 +123,8 @@
       var d = r.data || {};
       var w = d.wallet || {};
       var bal = Number(w.balance || 0);
-      $('balance').textContent = '\\u20b9' + bal.toLocaleString('en-IN');
-      if (w.totalEarned != null) $('earned').textContent = '\\u20b9' + Number(w.totalEarned).toLocaleString('en-IN');
+      $('balance').textContent = '₹' + bal.toLocaleString('en-IN');
+      if (w.totalEarned != null) $('earned').textContent = '₹' + Number(w.totalEarned).toLocaleString('en-IN');
       renderTxns(d.recentTransactions || d.transactions || []);
       wd.withdrawable = Math.max(0, bal - Number(w.bonusBalance || 0));
       wd.feePct = Number(d.withdrawFeePct || 5);

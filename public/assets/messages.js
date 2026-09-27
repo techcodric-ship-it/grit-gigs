@@ -302,12 +302,10 @@
   }
   function renderGroups() {
     var el = $('groupPane');
-    el.innerHTML = '<button class="primary" id="grpNew" style="margin-bottom:4px;">+ Create group</button>';
+    el.innerHTML = '<button class="primary" id="grpNew" style="margin-bottom:4px;">+ Create group</button>' +
+      (groups.length ? '' : '<div style="padding:20px;text-align:center;color:var(--dusk,#6b7280);font-size:13px;">No groups yet. Create one or join an open group.</div>');
     $('grpNew').addEventListener('click', function () { openGroupModal(); });
-    if (!groups.length) {
-      el.innerHTML += '<div style="padding:20px;text-align:center;color:var(--dusk,#6b7280);font-size:13px;">No groups yet. Create one or join an open group.</div>';
-      return;
-    }
+    if (!groups.length) return;
     groups.forEach(function (g) {
       var card = document.createElement('div');
       card.className = 'grp';
@@ -445,6 +443,18 @@
     loadGroups();
   });
 
+  function resolveGgId(v) {
+    var s = (v || '').trim();
+    var hex = s.toUpperCase().indexOf('G&G-') === 0 ? s.slice(4) : s;
+    if (!/^[0-9A-Fa-f]{8}$/.test(hex)) return Promise.resolve(s);
+    return c.api('/users/by-ggid/' + encodeURIComponent(hex)).then(function (r) {
+      var users = (r.d && r.d.data && r.d.data.users) || [];
+      if (!r.ok || !users.length) throw new Error((r.d && r.d.message) || 'No user found with that G&G ID');
+      if (users.length > 1) throw new Error('Multiple matches — use the full G&G ID');
+      return users[0].id;
+    });
+  }
+
   $('#newChat').addEventListener('click', function () {
     if (!c.token()) { c.openLogin(); return; }
     $('newChatId').value = ''; $('newChatErr').textContent = '';
@@ -452,13 +462,16 @@
   });
   $('#newChatOk').addEventListener('click', function () {
     var raw = ($('newChatId').value || '').trim();
-    if (!raw) { $('newChatErr').textContent = 'Paste a profile id'; return; }
+    if (!raw) { $('newChatErr').textContent = 'Paste a profile link, profile id or G&G ID'; return; }
+    $('newChatErr').textContent = '';
     var id = raw.indexOf('id=') !== -1 ? decodeURIComponent(raw.split('id=').pop().split('&')[0]) : raw;
-    c.api('/messages/conversations/with/' + encodeURIComponent(id), { method: 'POST' }).then(function (r) {
+    resolveGgId(id).then(function (uid) {
+      return c.api('/messages/conversations/with/' + encodeURIComponent(uid), { method: 'POST' });
+    }).then(function (r) {
       if (!r.ok) { $('newChatErr').textContent = r.d.message || 'Failed'; return; }
       $('newChatModal').classList.remove('open');
       refreshConversations().then(function () { openConv(r.d.data.id || r.d.data.conversation.id); });
-    });
+    }).catch(function (e) { $('newChatErr').textContent = (e && e.message) || 'Could not find that user'; });
   });
   $('#newChatCancel').addEventListener('click', function () { $('newChatModal').classList.remove('open'); });
   $('#newChatModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
@@ -480,12 +493,15 @@
   $('#gdInviteOk').addEventListener('click', function () {
     var id = ($('gdInviteId').value || '').trim();
     if (!id || !activeGroupId) return;
-    c.api('/messages/groups/' + activeGroupId + '/invite', { method: 'POST', body: { userId: id } }).then(function (r) {
+    $('gdErr').textContent = '';
+    resolveGgId(id).then(function (uid) {
+      return c.api('/messages/groups/' + activeGroupId + '/invite', { method: 'POST', body: { userId: uid } });
+    }).then(function (r) {
       if (!r.ok) { $('gdErr').textContent = r.d.message || 'Failed'; return; }
       $('gdInviteId').value = '';
       c.toast('Invite sent!');
       openGroupDetail(activeGroupId);
-    });
+    }).catch(function (e) { $('gdErr').textContent = (e && e.message) || 'Could not find that user'; });
   });
   $('#gdClose').addEventListener('click', function () { $('groupDetailModal').classList.remove('open'); });
   $('#groupDetailModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });

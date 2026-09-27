@@ -8,6 +8,14 @@
 <title>Inbox — Grit&Gigs</title>
 <link rel="icon" href="/favicon.ico?v=7"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=7"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=1"/>
 <link rel="stylesheet" href="/assets/feed.css?v=18"/>
+<style>
+.readall{display:inline-flex;align-items:center;gap:6px;border:1px solid #e4e2ee;background:#fff;color:#4b5563;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:999px;cursor:pointer;transition:background .15s ease,color .15s ease,border-color .15s ease,box-shadow .15s ease,transform .15s ease;}
+.readall:hover{background:#6C3FE8;border-color:#6C3FE8;color:#fff;box-shadow:0 4px 12px rgba(108,63,232,.28);transform:translateY(-1px);}
+.readall:active{transform:translateY(0);box-shadow:none;}
+.readall:focus-visible{outline:2px solid #6C3FE8;outline-offset:2px;}
+.readall.busy{opacity:.7;pointer-events:none;}
+.readall svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto;}
+</style>
 </head>
 <body>
 <div class="toast" id="toast"></div>
@@ -29,7 +37,7 @@
   <main style="width:100%;max-width:600px;">
     <div class="side-card" style="display:flex;align-items:center;justify-content:space-between;">
       <h4 style="margin:0;">Activity</h4>
-      <button class="pbtn" id="readAll" style="display:none;">Mark all read</button>
+      <button class="readall" id="readAll" type="button" style="display:none;" title="Mark all notifications as read"><svg viewBox="0 0 24 24"><path d="M2 13l4 4L14 8"/><path d="M11 15l2 2L22 7"/></svg><span>Mark all read</span></button>
     </div>
     <div id="ntfList"></div>
   </main>
@@ -140,9 +148,26 @@
   }
 
   $('readAll').addEventListener('click', function () {
-    c.api('/community/notifications/read', { method: 'POST' }).then(function () {
+    var btn = $('readAll');
+    if (btn.classList.contains('busy')) return;
+    var lbl = btn.querySelector('span');
+    btn.classList.add('busy');
+    btn.disabled = true;
+    lbl.textContent = 'Marking…';
+    c.api('/community/notifications/read', { method: 'POST' }).then(function (r) {
+      btn.classList.remove('busy');
+      btn.disabled = false;
+      lbl.textContent = 'Mark all read';
+      if (!r.ok) { c.toast(r.d.message || 'Could not mark as read', true); return; }
       list.querySelectorAll('.ntf').forEach(function (x) { x.classList.remove('unread'); });
-      $('readAll').style.display = 'none';
+      btn.style.display = 'none';
+      var bx = $('notifBadge'); if (bx) bx.style.display = 'none';
+      c.toast('All caught up');
+    }).catch(function () {
+      btn.classList.remove('busy');
+      btn.disabled = false;
+      lbl.textContent = 'Mark all read';
+      c.toast('Network error', true);
     });
   });
 

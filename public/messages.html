@@ -156,8 +156,8 @@
 <div class="modal-backdrop" id="newChatModal">
   <div class="modal">
     <h3>New chat</h3>
-    <div class="sub">Paste a member's profile id (from their profile link: gritandgigs.in/profile.html?id=…)</div>
-    <div class="fld"><label>Profile id</label><input type="text" id="newChatId" placeholder="Paste profile id…"/></div>
+    <div class="sub">Paste a member's profile link, profile id or their G&amp;G ID (e.g. G&amp;G-1A2B3C4D)</div>
+    <div class="fld"><label>Profile link, profile id or G&amp;G ID</label><input type="text" id="newChatId" placeholder="Paste a profile link, id or G&amp;G ID…"/></div>
     <div class="err" id="newChatErr"></div>
     <div class="actions">
       <button class="ghost" id="newChatCancel">Cancel</button>
@@ -187,9 +187,9 @@
     <div class="sub" id="gdDesc"></div>
     <div class="members" id="gdMembers"></div>
     <div class="fld" id="gdInviteWrap" style="display:none;margin-top:12px;">
-      <label>Invite member (paste profile id)</label>
+      <label>Invite member (profile id or G&amp;G ID)</label>
       <div style="display:flex;gap:8px;">
-        <input type="text" id="gdInviteId" placeholder="Paste profile id to invite…" style="flex:1;"/>
+        <input type="text" id="gdInviteId" placeholder="Paste profile id or G&amp;G ID…" style="flex:1;"/>
         <button class="primary" id="gdInviteOk">Invite</button>
       </div>
     </div>
@@ -215,6 +215,6 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="/assets/onboarding.js?v=1"></script> <script src="/assets/feed-app.js?v=17"></script>
-<script src="/assets/messages.js?v=9"></script>
+<script src="/assets/messages.js?v=10"></script>
 </body>
 </html>
