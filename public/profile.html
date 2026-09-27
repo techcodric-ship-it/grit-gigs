@@ -292,15 +292,17 @@
     $('followModal').classList.add('open');
     loadFollowList();
   }
+  function liveMe() { return c.me() || me0; }
   function loadFollowList() {
     var list = $('flList');
     c.api('/community/users/' + encodeURIComponent(profId) + '/' + flMode + '?limit=100').then(function (r) {
       if (!r.ok) { list.innerHTML = '<div class="empty"><h3>Could not load</h3><p>' + c.esc(r.d.message || '') + '</p></div>'; return; }
       var users = (r.d.data && r.d.data.users) || [];
       if (!users.length) { list.innerHTML = flEmptyText(); return; }
-      var own = !!(me0 && me0.id === profId);
+      var lm = liveMe();
+      var own = !!(lm && lm.id === profId);
       list.innerHTML = users.map(function (u) {
-        var isSelf = !!(me0 && me0.id === u.id);
+        var isSelf = !!(lm && lm.id === u.id);
         var btns = '';
         if (!isSelf && c.token()) btns += '<button class="pbtn' + (u.isFollowing ? ' on' : '') + '" data-flfollow="' + c.esc(u.id) + '">' + (u.isFollowing ? 'Following' : 'Follow') + '</button>';
         if (own && flMode === 'followers' && !isSelf) btns += '<button class="pbtn danger" data-flremove="' + c.esc(u.id) + '">Remove</button>';
@@ -315,7 +317,8 @@
     }, function () { list.innerHTML = '<div class="empty"><h3>Network error</h3></div>'; });
   }
   function bindFollowRows() {
-    var own = !!(me0 && me0.id === profId);
+    var lm = liveMe();
+    var own = !!(lm && lm.id === profId);
     $('flList').querySelectorAll('[data-flfollow]').forEach(function (b) {
       b.addEventListener('click', function () {
         var id = b.getAttribute('data-flfollow');
@@ -584,7 +587,8 @@
       $('pSkillsWant').innerHTML = wanted.map(function (s) { return '<span>' + c.esc(s) + '</span>'; }).join('');
       renderWorks(u.sampleWorks || []);
       renderLinks(u.portfolioLinks || [], u.socialLinks || {});
-      var own = !!(me0 && me0.id === u.id);
+      var curMe = c.me() || me0;
+      var own = !!(curMe && curMe.id === u.id);
       $('pEditBtn').style.display = own ? '' : 'none';
       $('pViewBtn').style.display = own ? '' : 'none';
       var shareBtn = $('pShareBtn');
@@ -607,7 +611,7 @@
       }
       var btn = $('pBtn');
       var msgBtn = $('pMsgBtn');
-      if (c.token() && me0 && me0.id !== profId) {
+      if (c.token() && curMe && curMe.id !== profId) {
         btn.style.display = '';
         btn.textContent = d.following ? 'Following' : 'Follow';
         btn.classList.toggle('on', !!d.following);
@@ -628,7 +632,7 @@
             location.href = '/messages.html?to=' + encodeURIComponent(profId);
           };
         });
-      } else if (me0 && me0.id === profId) {
+      } else if (curMe && curMe.id === profId) {
         btn.style.display = 'none';
       }
       loadPosts('posts');
