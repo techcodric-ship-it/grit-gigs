@@ -46,7 +46,35 @@ router.post("/projects/:id/review", authenticate, async (req: Request, res: Resp
         }
         revieweeId = bidRes.rows[0].user_id;
       } else {
-        // Freelancer is reviewing the client
+        // Freelancer/team is reviewing the client — verify participation
+        if (!project.accepted_bid_id) {
+          res.status(403).json({ success: false, message: "No accepted proposal on this project" });
+          return;
+        }
+        const bidRes2 = await client.query(
+          `SELECT user_id FROM project_bids WHERE id = $1`,
+          [project.accepted_bid_id]
+        );
+        if (bidRes2.rows.length === 0) {
+          res.status(403).json({ success: false, message: "Accepted proposal not found" });
+          return;
+        }
+        const freelancerId = bidRes2.rows[0].user_id;
+        const isFreelancer = freelancerId === userId;
+        let isTeamMember = false;
+        if (!isFreelancer) {
+          try {
+            const memberRes = await client.query(
+              `SELECT 1 FROM squad_members sm INNER JOIN squads s ON s.id = sm.squad_id WHERE sm.user_id = $1 AND s.is_active = TRUE AND sm.squad_id = (SELECT s2.id FROM squad_members sm2 INNER JOIN squads s2 ON s2.id = sm2.squad_id WHERE sm2.user_id = $2 AND s2.is_active = TRUE LIMIT 1) LIMIT 1`,
+              [userId, freelancerId]
+            );
+            isTeamMember = (memberRes?.rows?.length ?? 0) > 0;
+          } catch { /* ignore */ }
+        }
+        if (!isFreelancer && !isTeamMember) {
+          res.status(403).json({ success: false, message: "Only the assigned freelancer can review this client" });
+          return;
+        }
         revieweeId = project.user_id;
       }
 

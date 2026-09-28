@@ -51,13 +51,14 @@ router.get("/orders", authenticate, async (req, res): Promise<void> => {
       const [seller] = await db    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, reputationScore: usersTable.reputationScore, emailVerified: usersTable.emailVerified, createdAt: usersTable.createdAt, kycVerified: usersTable.kycVerified, isActive: usersTable.isActive }).from(usersTable).where(eq(usersTable.id, o.sellerId));
       const deliveries = await db.select().from(orderDeliveriesTable).where(eq(orderDeliveriesTable.orderId, o.id)).orderBy(desc(orderDeliveriesTable.createdAt)).limit(1);
       const [review] = await db.select().from(reviewsTable).where(eq(reviewsTable.orderId, o.id));
+      const [clientReview] = await db.select().from(clientReviewsTable).where(eq(clientReviewsTable.orderId, o.id));
       // Flatten latest delivery message/link for frontend convenience
       const latestDelivery = deliveries[0] ?? null;
       const rawMsg = latestDelivery?.message ?? '';
       const linkMatch = rawMsg.match(/🔗 Deliverable: (https?:\/\/\S+)/);
       const deliveryLink = linkMatch ? linkMatch[1] : null;
       const deliveryMessage = linkMatch ? rawMsg.replace(/\n\n🔗 Deliverable: https?:\/\/\S+/, '').trim() : rawMsg;
-      return { ...o, service, package: pkg, buyer, seller, deliveries, review: review ?? null, deliveryMessage: deliveryMessage || null, deliveryLink };
+      return { ...o, service, package: pkg, buyer, seller, deliveries, review: review ?? null, clientReview: clientReview ?? null, deliveryMessage: deliveryMessage || null, deliveryLink };
     }),
   );
 
@@ -78,10 +79,11 @@ router.get("/orders/:id", authenticate, async (req, res): Promise<void> => {
   const [seller] = await db    .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, city: usersTable.city, kycVerified: usersTable.kycVerified, isActive: usersTable.isActive }).from(usersTable).where(eq(usersTable.id, order.sellerId));
   const deliveries = await db.select().from(orderDeliveriesTable).where(eq(orderDeliveriesTable.orderId, order.id)).orderBy(desc(orderDeliveriesTable.createdAt));
   const [review] = await db.select().from(reviewsTable).where(eq(reviewsTable.orderId, order.id));
+  const [clientReview] = await db.select().from(clientReviewsTable).where(eq(clientReviewsTable.orderId, order.id));
 
   await attachPlanBadges([buyer, seller].filter(Boolean));
 
-  res.json({ success: true, data: { order: { ...order, service, package: pkg, buyer, seller, deliveries, review: review ?? null } } });
+  res.json({ success: true, data: { order: { ...order, service, package: pkg, buyer, seller, deliveries, review: review ?? null, clientReview: clientReview ?? null } } });
 });
 
 router.post("/orders", authenticate, async (req, res): Promise<void> => {

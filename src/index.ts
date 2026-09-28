@@ -718,6 +718,20 @@ app.set("io", io);
 
           CREATE INDEX IF NOT EXISTS idx_community_order_deliveries_order ON community_order_deliveries(order_id);
 
+          CREATE TABLE IF NOT EXISTS community_order_reviews (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            order_id UUID NOT NULL REFERENCES community_orders(id) ON DELETE CASCADE,
+            reviewer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            reviewee_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            rating INTEGER NOT NULL,
+            review TEXT,
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            CONSTRAINT community_order_reviews_order_reviewer_unique UNIQUE (order_id, reviewer_id)
+          );
+
+          CREATE INDEX IF NOT EXISTS idx_community_order_reviews_reviewee ON community_order_reviews(reviewee_id);
+          CREATE INDEX IF NOT EXISTS idx_community_order_reviews_order ON community_order_reviews(order_id);
+
           CREATE INDEX IF NOT EXISTS idx_community_posts_created ON community_posts(created_at DESC);
           CREATE INDEX IF NOT EXISTS idx_community_posts_kind ON community_posts(kind);
           CREATE INDEX IF NOT EXISTS idx_community_comments_post ON community_comments(post_id);

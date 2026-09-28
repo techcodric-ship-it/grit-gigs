@@ -325,13 +325,13 @@
     el.dataset.id = p.id;
     if (row.spotlight) el.classList.add('spotlight');
 
-    var spotFlag = row.spotlight ? '<div class="spot-promo"><span>✦ SPOTLIGHT</span><span class="spot-promo-sub">Promoted</span></div>' : '';
+    var spotFlag = row.spotlight ? '<div class="spot-promo"><span>✦ BOOSTED</span><span class="spot-promo-sub">Promoted</span></div>' : '';
     var spotCtl = '';
     if (isMine && (kind === 'GIG' || kind === 'PROJECT')) {
       if (row.mySpotlight) {
-        spotCtl = '<div class="spot-bar"><span>✦ Spotlight active · ' + spotLeftText(row.mySpotlight.expiresAt) + '</span><button data-spot-extend="' + esc(p.id) + '">Extend ₹50</button></div>';
+        spotCtl = '<div class="spot-bar"><span>✦ Boost active · ' + spotLeftText(row.mySpotlight.expiresAt) + '</span><button data-spot-extend="' + esc(p.id) + '">Extend ₹50</button></div>';
       } else {
-        spotCtl = '<div class="spot-bar idle"><span>Pin to the top of the feed for 24h — matched to search tags</span><button data-spot="' + esc(p.id) + '">✦ ₹50</button></div>';
+        spotCtl = '<div class="spot-bar idle"><span>Boost your gig — rank it higher in marketplace results for 24 hours</span><button data-spot="' + esc(p.id) + '">Boost ₹50</button></div>';
       }
     }
 
@@ -455,7 +455,7 @@
         cmtIn.value = '';
         var box = el.querySelector('.card-comments');
         box.appendChild(domComment(r.d.data, r.d.data.author));
-        el.querySelector('[data-cms] .c').textContent = Number(r.d.data.commentCount).toLocaleString('en-IN');
+        el.querySelectorAll('[data-open="' + p.id + '"] .c').forEach(function (n) { n.textContent = Number(r.d.data.commentCount).toLocaleString('en-IN'); });
       });
     }
     if (cmtIn) cmtIn.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendComment(); });
@@ -692,8 +692,8 @@
 
   function extendSpotlight(p) {
     api('/community/posts/' + p.id + '/spotlight/extend', { method: 'POST' }).then(function (r) {
-      if (!r.ok) { toast(r.d.message || 'Could not extend spotlight', true); return; }
-      toast('Spotlight extended by 24 hours');
+      if (!r.ok) { toast(r.d.message || 'Could not extend boost', true); return; }
+      toast('Boost extended by 24 hours');
       refreshSpotBars(p.id, r.d.data.boost.expiresAt);
     });
   }
@@ -714,13 +714,13 @@
     initial.forEach(function (t) { sel[String(t).toLowerCase().replace(/^#/, '')] = true; });
     var trendList = [];
     body.innerHTML =
-      '<h3>✦ Spotlight this ' + (p.kind === 'PROJECT' ? 'project' : 'gig') + '</h3>' +
-      '<div class="sub">₹50 for 24 hours. Pinned to the top of the feed for people whose searches match these tags — like Meta ads.</div>' +
-      '<div class="fld"><label>Target tags (up to 5)</label><div class="spot-chips" id="spotChips"></div></div>' +
-      '<div class="fld" id="spotTrendWrap" style="display:none;"><label>Trending searches — what others are typing</label><div class="spot-chips" id="spotTrend"></div></div>' +
+      '<h3>✦ Boost this ' + (p.kind === 'PROJECT' ? 'project' : 'gig') + '</h3>' +
+      '<div class="sub">₹50 for 24 hours. Your gig is featured at the top of marketplace results, shown to people who are actively looking for your skills.</div>' +
+      '<div class="fld"><label>Target keywords (up to 5)</label><div class="spot-chips" id="spotChips"></div></div>' +
+      '<div class="fld" id="spotTrendWrap" style="display:none;"><label>Popular searches right now</label><div class="spot-chips" id="spotTrend"></div></div>' +
       '<div class="fld"><label>Add your own tag</label><div style="display:flex;gap:8px;"><input id="spotTagIn" placeholder="e.g. logo design" maxlength="30" style="flex:1;"/><button type="button" id="spotTagAdd" style="padding:10px 14px;border-radius:10px;border:1px solid var(--line,#e3e0f2);background:var(--bg-alt,#f4f1ff);color:#6C3FE8;font-weight:600;cursor:pointer;">Add</button></div></div>' +
       '<div class="err" id="spotErr"></div>' +
-      '<div class="row"><button type="button" id="spotCancel" style="padding:11px 18px;border-radius:10px;border:1px solid var(--line,#e3e0f2);background:#fff;font-weight:600;cursor:pointer;">Cancel</button><button type="button" id="spotGo" style="padding:11px 18px;border-radius:10px;border:none;background:#6C3FE8;color:#fff;font-weight:700;cursor:pointer;">✦ Start for ₹50</button></div>';
+      '<div class="row"><button type="button" id="spotCancel" style="padding:11px 18px;border-radius:10px;border:1px solid var(--line,#e3e0f2);background:#fff;font-weight:600;cursor:pointer;">Cancel</button><button type="button" id="spotGo" style="padding:11px 18px;border-radius:10px;border:none;background:#6C3FE8;color:#fff;font-weight:700;cursor:pointer;">✦ Boost for ₹50</button></div>';
     m.classList.add('open');
 
     function drawTrend() {
@@ -733,7 +733,7 @@
         b.addEventListener('click', function () {
           var k = b.getAttribute('data-tr');
           if (sel[k]) delete sel[k];
-          else if (Object.keys(sel).length >= 5) { body.querySelector('#spotErr').textContent = 'Max 5 tags'; return; }
+          else if (Object.keys(sel).length >= 5) { body.querySelector('#spotErr').textContent = 'Max 5 keywords'; return; }
           else sel[k] = true;
           drawChips();
         });
@@ -744,7 +744,7 @@
       var keys = Object.keys(sel);
       wrap.innerHTML = keys.length
         ? keys.map(function (t) { return '<button type="button" class="spot-chip on" data-chip="' + esc(t) + '">#' + esc(t) + ' ✕</button>'; }).join('')
-        : '<span style="font-size:12.5px;color:var(--dusk,#8a8fa3);">No tags yet — add one below.</span>';
+        : '<span style="font-size:12.5px;color:var(--dusk,#8a8fa3);">No keywords yet — add one below.</span>';
       wrap.querySelectorAll('[data-chip]').forEach(function (b) {
         b.addEventListener('click', function () { delete sel[b.getAttribute('data-chip')]; drawChips(); });
       });
@@ -760,9 +760,9 @@
       var err = body.querySelector('#spotErr');
       var k = inp.value.toLowerCase().replace(/^#+/, '').trim().slice(0, 30);
       err.textContent = '';
-      if (k.length < 2) { err.textContent = 'Tag needs at least 2 characters'; return; }
+      if (k.length < 2) { err.textContent = 'Keyword needs at least 2 characters'; return; }
       if (k in sel) { err.textContent = 'Already added'; return; }
-      if (Object.keys(sel).length >= 5) { err.textContent = 'Max 5 tags'; return; }
+      if (Object.keys(sel).length >= 5) { err.textContent = 'Max 5 keywords'; return; }
       sel[k] = true;
       inp.value = '';
       drawChips();
@@ -776,15 +776,15 @@
       var err = body.querySelector('#spotErr');
       var tags = Object.keys(sel);
       err.textContent = '';
-      if (!tags.length) { err.textContent = 'Pick at least one tag'; return; }
+      if (!tags.length) { err.textContent = 'Pick at least one keyword'; return; }
       btn.disabled = true;
-      btn.textContent = 'Starting…';
+      btn.textContent = 'Boosting…';
       api('/community/posts/' + p.id + '/spotlight', { method: 'POST', body: { tags: tags } }).then(function (r) {
         btn.disabled = false;
-        btn.textContent = '✦ Start for ₹50';
-        if (!r.ok) { err.textContent = r.d.message || 'Could not start spotlight'; return; }
+        btn.textContent = '✦ Boost for ₹50';
+        if (!r.ok) { err.textContent = r.d.message || 'Could not start boost'; return; }
         m.classList.remove('open');
-        toast('Spotlight live for 24 hours!');
+        toast('Your boost is live for 24 hours!');
         refreshSpotBars(p.id, r.d.data.boost.expiresAt);
       });
     });
@@ -1073,4 +1073,55 @@
   }
 
   if (token && me) syncMe().then(function () { setupProfile(); });
+
+  // ── realtime: likes / comments / posts / profile stats ──
+  var statsHooks = window.communityStatsHooks = window.communityStatsHooks || [];
+  var feedDelegates = window.communityFeedDelegates = window.communityFeedDelegates || {};
+  function liveApplyPost(postId, nn) {
+    document.querySelectorAll('.card[data-id="' + postId + '"]').forEach(function (card) {
+      if (typeof nn.likeCount === 'number') {
+        var lb = card.querySelector('[data-like] .c');
+        if (lb) lb.textContent = Number(nn.likeCount).toLocaleString('en-IN');
+        var lk = card.querySelector('.card-likes');
+        if (lk) lk.textContent = Number(nn.likeCount).toLocaleString('en-IN') + ' likes';
+      }
+      if (typeof nn.commentCount === 'number') {
+        card.querySelectorAll('[data-open="' + postId + '"] .c').forEach(function (n) { n.textContent = Number(nn.commentCount).toLocaleString('en-IN'); });
+      }
+    });
+    if (feedDelegates.onChanged) { try { feedDelegates.onChanged(postId, nn); } catch (e) {} }
+  }
+  var socket = null, socketRetry = null;
+  function connectSocket() {
+    if (!token) return;
+    if (socket || typeof io !== 'function') return;
+    socket = io({ auth: { token: getToken() } });
+    socket.on('community:stats', function (d) {
+      if (!d || !d.userId) return;
+      if (feedDelegates.onStats) { try { feedDelegates.onStats(d.userId); } catch (e) {} }
+      statsHooks.forEach(function (h) { try { h(d.userId); } catch (e) {} });
+    });
+    socket.on('community:changed', function (d) {
+      if (!d || !d.postId) return;
+      liveApplyPost(d.postId, d);
+    });
+    socket.on('community:post', function (d) {
+      if (feedDelegates.onPost && d && d.authorId) { try { feedDelegates.onPost(d.authorId, d); } catch (e) {} }
+    });
+    socket.on('profile:updated', function (d) {
+      if (!d || !d.userId) return;
+      if (feedDelegates.onStats) { try { feedDelegates.onStats(d.userId); } catch (e) {} }
+      statsHooks.forEach(function (h) { try { h(d.userId); } catch (e) {} });
+    });
+    socket.on('connect_error', function () {
+      if (socketRetry) clearTimeout(socketRetry);
+      socketRetry = setTimeout(connectSocket, 60000);
+    });
+    socket.on('disconnect', function () {
+      if (socketRetry) clearTimeout(socketRetry);
+      socketRetry = setTimeout(connectSocket, 15000);
+    });
+  }
+  connectSocket();
+  window.addEventListener('focus', function () { connectSocket(); });
 })();

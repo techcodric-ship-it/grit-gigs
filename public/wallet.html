@@ -38,7 +38,9 @@
 </div>
 <div class="modal-backdrop" id="wdModal"> <div class="modal"> <h3>Withdraw to UPI</h3> <div class="sub">Payouts are processed manually within 24–48 hours.</div> <div class="fld"><label>Amount (₹)</label><input type="number" id="wdAmt" placeholder="500" min="100"/></div> <div class="fld"><label>UPI ID</label><input type="text" id="wdUpi" placeholder="yourname@paytm"/></div> <div class="wd-info" id="wdInfo"></div> <div class="err" id="wdErr"></div> <div class="row"> <button class="btn ghost" id="wdCancel">Cancel</button> <button class="btn primary" id="wdSubmit">Request withdrawal</button> </div> </div>
 </div>
- <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=20"></script>
+ <script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=21"></script>
+<div class="modal-backdrop" id="wdDoneModal"> <div class="modal"> <h3>Withdrawal requested</h3> <div class="sub">Your request is in. Payouts are processed manually within 24–48 hours.</div> <div class="wd-info" id="wdDoneInfo"></div> <div class="row"> <button class="btn primary" id="wdDoneClose">Done</button> </div> </div> </div>
+<div class="toast" id="toast"></div>
 <script>
 (function () {
   var c = window.core || window.community || window.feed;
@@ -155,6 +157,8 @@
 
   $('wdBtn').addEventListener('click', function () { $('wdErr').textContent = ''; $('wdModal').classList.add('open'); updWdInfo(); });
   $('wdCancel').addEventListener('click', function () { $('wdModal').classList.remove('open'); });
+  $('wdDoneClose').addEventListener('click', function () { $('wdDoneModal').classList.remove('open'); });
+  $('wdDoneModal').addEventListener('click', function (e) { if (e.target === $('wdDoneModal')) $('wdDoneModal').classList.remove('open'); });
   $('wdAmt').addEventListener('input', updWdInfo);
   $('wdUpi').addEventListener('input', updWdInfo);
 
@@ -176,6 +180,9 @@
       $('wdModal').classList.remove('open');
       $('wdAmt').value = '';
       $('wdUpi').value = '';
+      var netInr = (r.data && r.data.netAmount) ? r.data.netAmount : a;
+      $('wdDoneInfo').innerHTML = '<div><span>Requested:</span><b>₹' + Number(a).toLocaleString('en-IN') + '</b></div><div><span>To UPI:</span><b>' + esc(upi) + '</b></div>' + (Number(netInr) !== a ? '<div><span>You receive:</span><b>₹' + Number(netInr).toLocaleString('en-IN') + '</b> (after fees)</div>' : '') + '<div><span>Status:</span><b>Pending</b></div>';
+      $('wdDoneModal').classList.add('open');
       if (c && c.toast) c.toast(r.message || 'Withdrawal requested', false);
       load();
     }).catch(function () {

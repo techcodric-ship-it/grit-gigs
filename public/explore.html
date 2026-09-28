@@ -88,7 +88,7 @@
   <div class="modal" style="max-width:900px;"></div>
 </div>
 
-<script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=20"></script>
+<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=21"></script>
 <script>
 (function () {
   var c = window.community;
@@ -179,7 +179,7 @@
       '<button class="tile-share" data-share="' + c.esc(p.id) + '" title="Share">↗</button>' +
       '<div class="over"><span>♥ ' + Number(p.likeCount || 0) + '</span><span>💬 ' + Number(p.commentCount || 0) + '</span></div>';
     var spotRib = '';
-    if (row.spotlight) spotRib = '<span class="spot-ribbon">✦ SPOTLIGHT</span>';
+    if (row.spotlight) spotRib = '<span class="spot-ribbon">✦ BOOSTED</span>';
     else if (row.mySpotlight) {
       var spH = Math.max(1, Math.ceil((new Date(row.mySpotlight.expiresAt).getTime() - Date.now()) / 3600e3));
       spotRib = '<span class="spot-ribbon mine">✦ ' + (spH >= 24 ? Math.floor(spH / 24) + 'd' : spH + 'h') + ' left</span>';

@@ -142,6 +142,28 @@ export const communityOrderDeliveriesTable = pgTable("community_order_deliveries
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const communityOrderReviewsTable = pgTable(
+  "community_order_reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => communityOrdersTable.id, { onDelete: "cascade" }),
+    reviewerId: uuid("reviewer_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    revieweeId: uuid("reviewee_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    rating: integer("rating").notNull(),
+    review: text("review"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    orderReviewerUnique: { name: "community_order_reviews_order_reviewer_unique", columns: [t.orderId, t.reviewerId], type: "unique" as const },
+  }),
+);
+
 export const communityQuotasTable = pgTable("community_quotas", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id")
@@ -185,3 +207,4 @@ export type CommunityComment = typeof communityCommentsTable.$inferSelect;
 export type CommunityFollow = typeof communityFollowsTable.$inferSelect;
 export type CommunityOrder = typeof communityOrdersTable.$inferSelect;
 export type CommunityOrderDelivery = typeof communityOrderDeliveriesTable.$inferSelect;
+export type CommunityOrderReview = typeof communityOrderReviewsTable.$inferSelect;

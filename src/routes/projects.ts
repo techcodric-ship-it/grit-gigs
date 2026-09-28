@@ -270,6 +270,16 @@ router.get('/projects/mine', authenticate, async (req: Request, res: Response) =
   // Attach squad tags to bids
   for (const p of result) { await attachSquadTags(p.bids || []); }
 
+  // Attach myReview flag (whether I've reviewed this project)
+  try {
+    const mine = result.map(p => p.id);
+    if (mine.length) {
+      const revRes = await db.execute(sql`SELECT project_id FROM project_reviews WHERE reviewer_id = ${userId}::uuid`);
+      const reviewedIds = new Set((revRes as any).rows.map((r: any) => r.project_id));
+      for (const p of result) { (p as any).myReview = reviewedIds.has(p.id); }
+    }
+  } catch { /* project_reviews table may not exist on older deployments */ }
+
   return res.json({ success: true, data: { projects: result } });
 });
 
@@ -312,6 +322,16 @@ router.get('/projects/my-bids', authenticate, async (req: Request, res: Response
   await attachReviewStats(allClients);
   await attachPlanBadges(allClients);
   await attachSquadTags(result);
+
+  // Attach myReview flag for projects I've bid on
+  try {
+    const projIds = result.map(r => r.project?.id).filter(Boolean) as string[];
+    if (projIds.length) {
+      const revRes = await db.execute(sql`SELECT project_id FROM project_reviews WHERE reviewer_id = ${userId}::uuid`);
+      const reviewedIds = new Set((revRes as any).rows.map((r: any) => r.project_id));
+      for (const r of result) { if (r.project) { (r.project as any).myReview = reviewedIds.has(r.project.id); } }
+    }
+  } catch { /* project_reviews table may not exist on older deployments */ }
 
   return res.json({ success: true, data: { bids: result } });
 });

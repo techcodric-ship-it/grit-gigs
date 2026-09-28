@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and, desc, count, sql, inArray, or, ilike, gt, gte, ne, type SQL } from "drizzle-orm";
-import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable, conversationsTable, messagesTable, communityOrdersTable, communityOrderDeliveriesTable, transactionsTable, freelanceWalletsTable, postBoostsTable, searchLogsTable } from "../db";
+import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable, conversationsTable, messagesTable, communityOrdersTable, communityOrderDeliveriesTable, communityOrderReviewsTable, transactionsTable, freelanceWalletsTable, postBoostsTable, searchLogsTable } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { logger } from "../lib/logger";
 import { uploadToSupabase } from "../lib/storage";
@@ -12,6 +12,33 @@ import path from "path";
 import fs from "fs";
 
 const router: IRouter = Router();
+
+// ——— realtime helpers (socket.io) ———
+const socketApp = (req: Request): any => {
+  try {
+    return (req.app as any)?.get("io") ?? null;
+  } catch {
+    return null;
+  }
+};
+function emitToRoom(req: Request, room: string, event: string, payload: Record<string, unknown>): void {
+  const io = socketApp(req);
+  if (!io) return;
+  try {
+    io.to(room).emit(event, payload);
+  } catch {
+    /* noop */
+  }
+}
+function emitGlobal(req: Request, event: string, payload: Record<string, unknown>): void {
+  const io = socketApp(req);
+  if (!io) return;
+  try {
+    io.emit(event, payload);
+  } catch {
+    /* noop */
+  }
+}
 
 // ——— media uploads (images + short video reels) ———
 const communityUploadsDir = path.join(PROJECT_ROOT, "uploads", "community");
@@ -454,11 +481,11 @@ router.post("/community/posts/:id/spotlight", authenticate, async (req: Request,
     return;
   }
   if (post.userId !== meId) {
-    res.status(403).json({ success: false, message: "You can only spotlight your own posts" });
+    res.status(403).json({ success: false, message: "You can only boost your own posts" });
     return;
   }
   if (post.kind !== "GIG" && post.kind !== "PROJECT") {
-    res.status(400).json({ success: false, message: "Only gigs and projects can be spotlighted" });
+    res.status(400).json({ success: false, message: "Only gigs and projects can be boosted" });
     return;
   }
   const existing = await db
@@ -467,12 +494,12 @@ router.post("/community/posts/:id/spotlight", authenticate, async (req: Request,
     .where(and(eq(postBoostsTable.postId, post.id), gt(postBoostsTable.expiresAt, new Date())))
     .limit(1);
   if (existing.length) {
-    res.status(409).json({ success: false, message: "Already spotlighted — extend it instead", _active: true });
+    res.status(409).json({ success: false, message: "This post is already boosted — extend it instead", _active: true });
     return;
   }
   const tags = cleanTags(req.body?.tags).map((t) => t.toLowerCase());
   if (!tags.length) {
-    res.status(400).json({ success: false, message: "Pick at least one tag so the right people see your spotlight" });
+    res.status(400).json({ success: false, message: "Choose at least one keyword so the right people find you" });
     return;
   }
   try {
@@ -487,7 +514,7 @@ router.post("/community/posts/:id/spotlight", authenticate, async (req: Request,
         userId: meId,
         type: "SERVICE_PAYMENT",
         amount: SPOTLIGHT_FEE,
-        description: `Spotlight boost · ${SPOTLIGHT_HOURS}h (post ${post.id})`,
+        description: `Featured boost · ${SPOTLIGHT_HOURS}h (post ${post.id})`,
         status: "COMPLETED",
       });
       const [created] = await tx
@@ -505,7 +532,7 @@ router.post("/community/posts/:id/spotlight", authenticate, async (req: Request,
     });
     res.status(201).json({
       success: true,
-      message: `Spotlight live for ${SPOTLIGHT_HOURS} hours!`,
+      message: `Your boost is live for ${SPOTLIGHT_HOURS} hours!`,
       data: { boost: { id: boost.id, expiresAt: boost.expiresAt, tags: boost.tags, extendCount: boost.extendCount } },
     });
   } catch (e) {
@@ -533,7 +560,7 @@ router.post("/community/posts/:id/spotlight/extend", authenticate, async (req: R
     return;
   }
   if (post.userId !== meId) {
-    res.status(403).json({ success: false, message: "You can only extend your own spotlight" });
+    res.status(403).json({ success: false, message: "You can only extend your own boost" });
     return;
   }
   const [boost] = await db
@@ -542,7 +569,7 @@ router.post("/community/posts/:id/spotlight/extend", authenticate, async (req: R
     .where(and(eq(postBoostsTable.postId, post.id), gt(postBoostsTable.expiresAt, new Date())))
     .limit(1);
   if (!boost) {
-    res.status(409).json({ success: false, message: "No active spotlight — start a new one", _active: false });
+    res.status(409).json({ success: false, message: "No active boost — start a new one", _active: false });
     return;
   }
   try {
@@ -557,7 +584,7 @@ router.post("/community/posts/:id/spotlight/extend", authenticate, async (req: R
         userId: meId,
         type: "SERVICE_PAYMENT",
         amount: SPOTLIGHT_FEE,
-        description: `Spotlight extension · ${SPOTLIGHT_HOURS}h (post ${post.id})`,
+        description: `Boost extension · ${SPOTLIGHT_HOURS}h (post ${post.id})`,
         status: "COMPLETED",
       });
       const [u] = await tx
@@ -569,7 +596,7 @@ router.post("/community/posts/:id/spotlight/extend", authenticate, async (req: R
     });
     res.json({
       success: true,
-      message: `Spotlight extended by ${SPOTLIGHT_HOURS} hours`,
+      message: `Boost extended by ${SPOTLIGHT_HOURS} hours`,
       data: { boost: { id: updated.id, expiresAt: updated.expiresAt, tags: updated.tags, extendCount: updated.extendCount } },
     });
   } catch (e) {
@@ -779,6 +806,8 @@ router.post("/community/posts", authenticate, async (req: Request, res: Response
       .returning();
 
     const [row] = await renderPosts([post], req.user!.id);
+    emitToRoom(req, `user:${req.user!.id}`, "community:stats", { userId: req.user!.id });
+    emitGlobal(req, "community:post", { postId: post.id, authorId: req.user!.id, kind: post.kind });
     res.status(201).json({ success: true, data: row });
   } catch (err) {
     logger.error({ err }, "Failed to create community post");
@@ -821,6 +850,11 @@ router.post("/community/posts/:id/like", authenticate, async (req: Request, res:
 
   if (!like && post.userId !== userId) {
     notify(post.userId, "COMMUNITY_LIKE", "Someone liked your post", `${req.user!.firstName} liked your post on the Hustle Feed.`, `/feed`);
+  }
+
+  emitGlobal(req, "community:changed", { postId, likeCount: updated?.likeCount ?? 0 });
+  if (post.userId !== userId) {
+    emitToRoom(req, `user:${post.userId}`, "community:stats", { userId: post.userId });
   }
 
   res.status(200).json({ success: true, data: { liked: !like, likeCount: updated?.likeCount ?? 0 } });
@@ -892,13 +926,17 @@ router.post("/community/posts/:id/comment", authenticate, async (req: Request, r
       notify(post.userId, "COMMUNITY_COMMENT", "New comment on your post", `${req.user!.firstName} commented on your post: ${content.slice(0, 80)}`, `/feed`);
     }
 
+    const newCommentCount = (post.commentCount ?? 0) + 1;
+    emitGlobal(req, "community:changed", { postId: post.id, commentCount: newCommentCount });
+    emitToRoom(req, `user:${post.userId}`, "community:stats", { userId: post.userId });
+
     res.status(201).json({
       success: true,
       data: {
         id: comment.id,
         content: comment.content,
         createdAt: comment.createdAt,
-        commentCount: (post.commentCount ?? 0) + 1,
+        commentCount: newCommentCount,
         author: author ?? { id: req.user!.id, firstName: req.user!.firstName, lastName: "", profilePhoto: null },
       },
     });
@@ -1061,10 +1099,14 @@ router.post("/community/users/:id/follow", authenticate, async (req: Request, re
 
   if (existing) {
     await db.delete(communityFollowsTable).where(eq(communityFollowsTable.id, existing.id));
+    emitToRoom(req, `user:${meId}`, "community:stats", { userId: meId });
+    emitToRoom(req, `user:${targetId}`, "community:stats", { userId: targetId });
     res.status(200).json({ success: true, data: { following: false } });
   } else {
     await db.insert(communityFollowsTable).values({ followerId: meId, followingId: targetId });
     notify(targetId, "COMMUNITY_FOLLOW", "New follower", `${req.user!.firstName} started following you on the Hustle Feed.`, null);
+    emitToRoom(req, `user:${meId}`, "community:stats", { userId: meId });
+    emitToRoom(req, `user:${targetId}`, "community:stats", { userId: targetId });
     res.status(200).json({ success: true, data: { following: true } });
   }
 });
@@ -1347,11 +1389,20 @@ router.get("/community/orders", authenticate, async (req: Request, res: Response
   const postById = new Map(posts.map(p => [p.id, p] as const));
   const userById = new Map(users.map(u => [u.id, u] as const));
 
+  const reviewedRows = rows.length
+    ? await db
+        .select({ orderId: communityOrderReviewsTable.orderId })
+        .from(communityOrderReviewsTable)
+        .where(and(inArray(communityOrderReviewsTable.orderId, rows.map(r => r.id)), eq(communityOrderReviewsTable.reviewerId, meId)))
+    : [];
+  const reviewedOrderIds = new Set(reviewedRows.map(r => r.orderId));
+
   res.status(200).json({
     success: true,
     data: {
       orders: rows.map(r => ({
         ...r,
+        hasReviewed: reviewedOrderIds.has(r.id),
         post: postById.get(r.postId) ?? null,
         buyer: userById.get(r.buyerId) ?? null,
         seller: userById.get(r.sellerId) ?? null,
@@ -1397,6 +1448,12 @@ router.get("/community/orders/:id", authenticate, async (req: Request, res: Resp
     : [];
   const userById = new Map(deliveryUsers.map(u => [u.id, u]));
 
+  const [myReview] = await db
+    .select({ id: communityOrderReviewsTable.id })
+    .from(communityOrderReviewsTable)
+    .where(and(eq(communityOrderReviewsTable.orderId, order.id), eq(communityOrderReviewsTable.reviewerId, meId)))
+    .limit(1);
+
   res.status(200).json({
     success: true,
     data: {
@@ -1404,6 +1461,7 @@ router.get("/community/orders/:id", authenticate, async (req: Request, res: Resp
       post: post ?? null,
       buyer: buyer[0] ?? null,
       seller: seller[0] ?? null,
+      hasReviewed: !!myReview,
       deliveries: deliveries.map(d => ({ ...d, sender: userById.get(d.senderId) ?? null })),
     },
   });
@@ -1478,6 +1536,47 @@ router.put("/community/orders/:id/deliver", authenticate, async (req: Request, r
     .returning();
   notify(order.buyerId, "COMMUNITY_ORDER_DELIVERED", "Work delivered!", `${req.user!.firstName} delivered your order. Please review it.`, `/orders`);
   res.status(200).json({ success: true, data: { order: updated, delivery } });
+});
+
+// ── POST /community/orders/:id/review — rate the other party after completion ──
+router.post("/community/orders/:id/review", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const meId = req.user!.id;
+  const rating = Math.floor(Number(req.body?.rating) || 0);
+  const review = String(req.body?.review || "").trim().slice(0, 1000);
+  if (rating < 1 || rating > 5) {
+    res.status(400).json({ success: false, message: "Rating must be between 1 and 5" });
+    return;
+  }
+  const [order] = await db.select().from(communityOrdersTable).where(eq(communityOrdersTable.id, String(req.params.id))).limit(1);
+  if (!order) {
+    res.status(404).json({ success: false, message: "Order not found" });
+    return;
+  }
+  if (order.buyerId !== meId && order.sellerId !== meId) {
+    res.status(403).json({ success: false, message: "You're not part of this order" });
+    return;
+  }
+  if (order.status !== "COMPLETED") {
+    res.status(400).json({ success: false, message: "Reviews are available after the work is marked complete" });
+    return;
+  }
+  const revieweeId = order.buyerId === meId ? order.sellerId : order.buyerId;
+  const [existing] = await db
+    .select({ id: communityOrderReviewsTable.id })
+    .from(communityOrderReviewsTable)
+    .where(and(eq(communityOrderReviewsTable.orderId, order.id), eq(communityOrderReviewsTable.reviewerId, meId)))
+    .limit(1);
+  if (existing) {
+    res.status(400).json({ success: false, message: "You've already reviewed this order" });
+    return;
+  }
+  const [created] = await db
+    .insert(communityOrderReviewsTable)
+    .values({ orderId: order.id, reviewerId: meId, revieweeId, rating, review: review || null })
+    .returning();
+  notify(revieweeId, "REVIEW_RECEIVED", "New review", `${req.user!.firstName} rated their gig order with you ${rating}/5.`, `/orders`);
+  emitToRoom(req, `user:${revieweeId}`, "profile:updated", { userId: revieweeId });
+  res.status(201).json({ success: true, data: { review: created } });
 });
 
 // ── PUT /community/orders/:id/complete — buyer confirms completed ──

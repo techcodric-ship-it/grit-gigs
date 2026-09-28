@@ -185,6 +185,11 @@
         <div class="kycwrap" id="kycBody"></div>
       </div>
 
+      <div class="pcard" id="pReviewsCard" style="display:none;">
+        <div class="pctitle">Ratings &amp; reviews</div>
+        <div id="pReviews"></div>
+      </div>
+
       <div class="prof-caption">
         <div class="on" data-ptab="posts">POSTS</div>
         <div data-ptab="liked" style="display:none;">LIKED</div>
@@ -250,7 +255,7 @@
   </div>
 </div>
 
-<script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=20"></script>
+<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=21"></script>
 <script>
 (function () {
   var c = window.community;
@@ -371,6 +376,7 @@
     var kind = c.kindCode(p.kind);
     var div = document.createElement('div');
     div.className = 'tile';
+    div.dataset.postId = p.id;
     var img;
     if (med && med.url) {
       var isReel = kind === 'REEL' || med.type === 'video';
@@ -390,7 +396,7 @@
       '<button class="tile-share" data-share="' + c.esc(p.id) + '" title="Share">↗</button>' +
       '<div class="over"><span>♥ ' + Number(p.likeCount || 0) + '</span><span>💬 ' + Number(p.commentCount || 0) + '</span></div>';
     var spotRib = '';
-    if (row.spotlight) spotRib = '<span class="spot-ribbon">✦ SPOTLIGHT</span>';
+    if (row.spotlight) spotRib = '<span class="spot-ribbon">✦ BOOSTED</span>';
     else if (row.mySpotlight) {
       var spH = Math.max(1, Math.ceil((new Date(row.mySpotlight.expiresAt).getTime() - Date.now()) / 3600e3));
       spotRib = '<span class="spot-ribbon mine">✦ ' + (spH >= 24 ? Math.floor(spH / 24) + 'd' : spH + 'h') + ' left</span>';
@@ -557,6 +563,53 @@
     }, function () { renderKyc('NONE', null); });
   }
 
+  function applyStats(d) {
+    if (!d) return;
+    $('pPosts').textContent = d.posts;
+    $('pFollowers').textContent = d.followers;
+    $('pFollowing').textContent = d.followingCount;
+    $('pLikes').textContent = d.likes;
+    $('pComments').textContent = d.comments;
+  }
+  function refreshProfileRealtime() {
+    if (!profId) return;
+    c.api('/community/users/' + encodeURIComponent(profId)).then(function (r) { if (r.ok) applyStats(r.d.data); });
+    loadReviews();
+  }
+
+  var typeLabel = { service: 'Gig order', client: 'Client rating', project: 'Project', barter: 'Exchange', community: 'Gig order' };
+  function loadReviews() {
+    if (!profId) return;
+    var card = $('pReviewsCard');
+    if (!card) return;
+    c.api('/users/' + encodeURIComponent(profId)).then(function (r) {
+      var box = $('pReviews');
+      if (!r.ok || !box) { if (box) box.innerHTML = ''; return; }
+      var dd = r.d.data || {};
+      var revs = dd.reviews || [];
+      var avg = dd.avgRating;
+      var cnt = dd.reviewCount;
+      if (!revs.length) {
+        card.style.display = 'none';
+        box.innerHTML = '';
+        return;
+      }
+      card.style.display = '';
+      var head = '<div class="pempty" style="padding:8px 22px 10px;display:flex;justify-content:space-between;align-items:center;"><b style="font-size:15px;color:#6C3FE8;">' + (avg != null ? Number(avg).toFixed(1) : '—') + '★</b><span style="font-size:12.5px;color:var(--dusk,#8a8fa3);">' + cnt + ' review' + (cnt === 1 ? '' : 's') + '</span></div>';
+      box.innerHTML = head + revs.slice(0, 10).map(function (x) {
+        var fu = x.fromUser || {};
+        var stars = '';
+        for (var s = 0; s < 5; s++) stars += s < Number(x.rating) ? '★' : '☆';
+        var nm = String(fu.firstName || 'Hustler') + (fu.lastName ? ' ' + fu.lastName : '');
+        var sub = c.timeAgo(x.createdAt);
+        return '<div class="fl-row" style="padding:10px 22px;">' +
+          '<a class="fl-av" href="/profile.html?id=' + c.esc(x.reviewerId) + '"><img src="' + c.esc(c.avatarFor(fu)) + '" alt=""/></a>' +
+          '<a class="fl-nm" href="/profile.html?id=' + c.esc(x.reviewerId) + '"><b>' + c.esc(nm) + '</b><span style="color:#e6b800;">' + stars + ' · ' + c.esc(typeLabel[x.type] || 'Review') + ' · ' + c.esc(sub) + '</span>' + (x.reviewText ? '<span>' + c.esc(x.reviewText) + '</span>' : '') + '</a>' +
+          '</div>';
+      }).join('');
+    });
+  }
+
   function loadProfile() {
     if (!profId) { $('loading').textContent = 'No profile selected.'; return; }
     $('loading').style.display = 'block';
@@ -569,11 +622,7 @@
       $('profileBody').style.display = 'block';
       $('pAv').src = c.avatarFor(u);
       $('pName').textContent = (u.firstName || 'Hustler') + (u.lastName ? ' ' + u.lastName : '');
-      $('pPosts').textContent = d.posts;
-      $('pFollowers').textContent = d.followers;
-      $('pFollowing').textContent = d.followingCount;
-      $('pLikes').textContent = d.likes;
-      $('pComments').textContent = d.comments;
+      applyStats(d);
       var bio = [u.tagline, u.bio].filter(Boolean).join(' — ');
       $('pBio').textContent = bio || '';
       $('pBio').style.display = bio ? '' : 'none';
@@ -654,12 +703,29 @@
         btn.style.display = 'none';
       }
       loadPosts('posts');
+      loadReviews();
     });
   }
 
   loadProfile();
   var t = c.token();
   if (t) { c.openPost && null; }
+
+  window.communityFeedDelegates = window.communityFeedDelegates || {};
+  window.communityFeedDelegates.onChanged = function (postId, nn) {
+    var tg = document.querySelector('.tile[data-post-id="' + postId + '"] .over');
+    if (!tg) return;
+    var spans = tg.querySelectorAll('span');
+    if (typeof nn.likeCount === 'number' && spans[0]) spans[0].textContent = '♥ ' + Number(nn.likeCount).toLocaleString('en-IN');
+    if (typeof nn.commentCount === 'number' && spans[1]) spans[1].textContent = '💬 ' + Number(nn.commentCount).toLocaleString('en-IN');
+  };
+  window.communityFeedDelegates.onPost = function (authorId) {
+    if (authorId === profId) { refreshProfileRealtime(); loadPosts('posts'); }
+  };
+  window.communityStatsHooks = window.communityStatsHooks || [];
+  window.communityStatsHooks.push(function (uid) {
+    if (uid === profId || uid === ((c.me() || {}).id || me0 && me0.id)) refreshProfileRealtime();
+  });
 })();
 </script>
 </body>
