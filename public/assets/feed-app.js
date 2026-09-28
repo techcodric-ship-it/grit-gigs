@@ -97,20 +97,21 @@
   }
 
   function syncMe() {
-    if (!token || !me || !me.id) return;
-    api('/users/' + encodeURIComponent(me.id)).then(function (res) {
+    if (!token || !me || !me.id) return Promise.resolve(null);
+    return api('/users/' + encodeURIComponent(me.id)).then(function (res) {
       var d = res.d;
-      if (!d || !d.success || !d.data || !me) return;
+      if (!d || !d.success || !d.data || !me) return null;
       var u = Object.assign({}, me, d.data);
       localStorage.setItem('se_user', JSON.stringify(u));
       me = u;
       refreshAuthedUI();
-    }).catch(function () {});
+      return u;
+    }).catch(function () { return null; });
   }
 
   // ── modals ──
   function openModal(id) { var m = document.getElementById(id); if (m) m.classList.add('open'); }
-  function closeModals() { document.querySelectorAll('.modal-backdrop').forEach(function (x) { x.classList.remove('open'); }); }
+  function closeModals() { document.querySelectorAll('.modal-backdrop').forEach(function (x) { if (x.id === 'phoneModal') return; x.classList.remove('open'); }); }
   function openLogin() {
     closeModals();
     var m = document.getElementById('loginModal');
@@ -147,14 +148,48 @@
     setSession(d.data.accessToken, d.data.refreshToken, d.data.user);
     toast('Welcome, ' + (d.data.user && d.data.user.firstName ? d.data.user.firstName : 'hustler') + '!');
     closeModals();
-    if (d.data.needsPhone) {
-      openPhoneModal();
+    refreshAuthedUI();
+    if (d.data.needsPhone || !(d.data.user && d.data.user.phone)) {
+      openPhoneModal({ onDone: maybeOnboard });
     } else {
-      refreshAuthedUI();
+      maybeOnboard();
     }
   }
 
-  // ── phone capture (first Google sign-in) ──
+  // ── profile setup: phone (compulsory) then onboarding ──
+  var OB_SEEN_KEY = 'gg_ob_shown';
+
+  function obOpen() {
+    return !!(window.GritOnboarding && document.getElementById('gritOb') && document.getElementById('gritOb').classList.contains('open'));
+  }
+
+  function openOnboarding() {
+    if (obOpen()) return;
+    var u = getUser() || me;
+    if (!window.GritOnboarding || !u) return;
+    try { sessionStorage.setItem(OB_SEEN_KEY, u.id || '1'); } catch (e) {}
+    window.GritOnboarding.open({ user: u, onDone: function () { refreshAuthedUI(); } });
+  }
+
+  function maybeOnboard() {
+    var u = getUser() || me;
+    if (!token || !u || !u.id || !window.GritOnboarding) return;
+    if (u.onboardingComplete !== false) return;
+    if (obOpen()) return;
+    var seen = null;
+    try { seen = sessionStorage.getItem(OB_SEEN_KEY); } catch (e) {}
+    if (seen === (u.id || '1')) return;
+    openOnboarding();
+  }
+
+  function setupProfile() {
+    var u = getUser() || me;
+    if (!token || !u || !u.id) return;
+    if (!u.phone) { openPhoneModal({ onDone: maybeOnboard }); return; }
+    maybeOnboard();
+  }
+
+  // ── phone capture (compulsory) ──
   function ensurePhoneModal() {
     var m = document.getElementById('phoneModal');
     if (m) return m;
@@ -163,23 +198,26 @@
     m.id = 'phoneModal';
     m.innerHTML =
       '<div class="modal">' +
-      '<h3>Add your WhatsApp number</h3>' +
-      '<div class="sub">We use it to confirm gigs and payouts. Takes 10 seconds.</div>' +
-      '<div class="fld"><label>Phone (WhatsApp)</label><input type="tel" id="phoneInput" placeholder="+91 98765 43210"/></div>' +
+      '<h3>Add your phone number</h3>' +
+      '<div class="sub">Required to join Grit&amp;Gigs. We use it to confirm gigs and payouts. Takes 10 seconds.</div>' +
+      '<div class="fld"><label>Phone (WhatsApp)</label><input type="tel" id="phoneInput" inputmode="tel" autocomplete="tel" placeholder="+91 98765 43210"/></div>' +
       '<div class="err" id="phoneErr"></div>' +
       '<div class="actions">' +
-      '<button class="ghost" id="phoneCancel">Skip for now</button>' +
+      '<button class="ghost" id="phoneCancel">Sign out</button>' +
       '<button class="primary" id="phoneSubmit">Save &amp; continue</button>' +
       '</div>' +
       '</div>';
     document.body.appendChild(m);
-    m.addEventListener('click', function (e2) { if (e2.target === m) m.classList.remove('open'); });
     var sub = m.querySelector('#phoneSubmit');
     if (sub) sub.addEventListener('click', function () {
-      var phone = (document.getElementById('phoneInput').value || '').trim();
+      var input = document.getElementById('phoneInput');
+      var phone = (input.value || '').trim();
       var errEl = document.getElementById('phoneErr');
+      var digits = phone.replace(/\D/g, '');
       if (!phone) { errEl.textContent = 'Enter your phone number.'; return; }
+      if (digits.length < 8 || digits.length > 15) { errEl.textContent = 'Enter a valid phone number (8-15 digits).'; return; }
       sub.disabled = true;
+      errEl.textContent = 'Saving…';
       fetch(API + '/auth/supabase/phone', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
@@ -188,19 +226,30 @@
         sub.disabled = false;
         if (!d.success) { errEl.textContent = d.message || 'Could not save phone.'; return; }
         m.classList.remove('open');
+        errEl.textContent = '';
         toast('Phone saved!');
         var u = getUser();
         if (u) { u.phone = phone; localStorage.setItem('se_user', JSON.stringify(u)); me = u; }
         refreshAuthedUI();
+        var fn = m._onDone;
+        if (typeof fn === 'function') { m._onDone = null; fn(); }
       }).catch(function () { sub.disabled = false; errEl.textContent = 'Network error. Try again.'; });
     });
+    var input0 = m.querySelector('#phoneInput');
+    if (input0) input0.addEventListener('keydown', function (e) { if (e.key === 'Enter') sub.click(); });
     var cancel = m.querySelector('#phoneCancel');
-    if (cancel) cancel.addEventListener('click', function () { m.classList.remove('open'); refreshAuthedUI(); });
+    if (cancel) cancel.addEventListener('click', function () {
+      m.classList.remove('open');
+      clearSession();
+      location.href = '/';
+    });
     return m;
   }
-  function openPhoneModal() {
+  function openPhoneModal(opts) {
     var m = ensurePhoneModal();
+    m._onDone = opts && typeof opts.onDone === 'function' ? opts.onDone : null;
     m.classList.add('open');
+    setTimeout(function () { var i = document.getElementById('phoneInput'); if (i) i.focus(); }, 60);
   }
 
   // ── inject "Continue with Google" into login / register modals ──
@@ -762,6 +811,7 @@
         toast('Welcome back, ' + (u.firstName || 'hustler') + '!');
         closeModals();
         refreshAuthedUI();
+        setupProfile();
       }).catch(function () { loginSubmit.disabled = false; errEl.textContent = 'Network error. Try again.'; });
     });
   }
@@ -775,7 +825,8 @@
       var phone = document.getElementById('regPhone').value.trim();
       var pass = document.getElementById('regPass').value;
       var errEl = document.getElementById('regErr');
-      if (!fName || !lName || !email || !phone || pass.length < 8) { errEl.textContent = 'All fields required — password 8+ characters.'; return; }
+      if (!fName || !lName || !email || !phone || pass.length < 8) { errEl.textContent = !phone ? 'Phone number is required to create your account.' : 'All fields required — password 8+ characters.'; return; }
+      if (phone.replace(/\D/g, '').length < 8) { errEl.textContent = 'Enter a valid phone number (8-15 digits).'; return; }
       errEl.textContent = 'Creating your account…';
       regSubmit.disabled = true;
       fetch(API + '/auth/register', {
@@ -815,9 +866,7 @@
           setSession(d.data.accessToken, d.data.refreshToken, d.data.user);
           toast('Verified — you are in!');
           refreshAuthedUI();
-          if (window.GritOnboarding && d.data.user && d.data.user.onboardingComplete === false) {
-            window.GritOnboarding.open({ user: d.data.user, onDone: function () { refreshAuthedUI(); } });
-          }
+          setupProfile();
         } else {
           var fld = document.getElementById('loginEmail');
           if (fld) fld.value = email;
@@ -964,6 +1013,8 @@
     openOrderModal: openOrderModal,
     refresh: refreshAuthedUI,
     googleLogin: googleLogin,
+    setupProfile: setupProfile,
+    openOnboarding: openOnboarding,
   };
 
   document.addEventListener('click', function (e) {
@@ -993,11 +1044,14 @@
       location.href = '/messages.html?to=' + encodeURIComponent(msgBtn.getAttribute('data-msg'));
     }
     var bd = e.target.closest('.modal-backdrop');
-    if (bd && e.target === bd) bd.classList.remove('open');
+    if (bd && bd.id !== 'phoneModal' && e.target === bd) bd.classList.remove('open');
   });
 
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') closeModals();
+    if (e.key !== 'Escape') return;
+    var pm = document.getElementById('phoneModal');
+    if (pm && pm.classList.contains('open')) return;
+    closeModals();
   });
 
   var rail = document.getElementById('railUser');
@@ -1010,4 +1064,13 @@
   injectGoogleButtons();
 
   window.addEventListener('message', handleGoogleMessage);
+
+  var regPhone = document.getElementById('regPhone');
+  if (regPhone) {
+    regPhone.setAttribute('required', 'required');
+    regPhone.setAttribute('autocomplete', 'tel');
+    if (!regPhone.placeholder) regPhone.placeholder = 'Phone (WhatsApp)';
+  }
+
+  if (token && me) syncMe().then(function () { setupProfile(); });
 })();

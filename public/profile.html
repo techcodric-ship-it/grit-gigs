@@ -175,6 +175,11 @@
         <div class="portlinks" id="pLinks"></div>
       </div>
 
+      <div class="pcard" id="pResumeCard" style="display:none;">
+        <div class="pctitle">Resume</div>
+        <div class="portlinks" id="pResume"></div>
+      </div>
+
       <div class="pcard" id="pKycCard" style="display:none;">
         <div class="pctitle">Identity verification (KYC)</div>
         <div class="kycwrap" id="kycBody"></div>
@@ -454,6 +459,18 @@
     $('pLinks').innerHTML = out.join('');
   }
 
+  function renderResume(u) {
+    var card = $('pResumeCard');
+    var url = normUrl(u.resumeUrl);
+    if (!url) { card.style.display = 'none'; return; }
+    card.style.display = '';
+    var label = u.resumeName || 'Resume';
+    var isFile = /\.(pdf|docx?|odt|rtf|txt|jpe?g|png)(\?|$)/i.test(url);
+    $('pResume').innerHTML =
+      '<a href="' + c.esc(url) + '" target="_blank" rel="noopener noreferrer" download><span>' +
+      c.esc(label) + (isFile ? '' : ' (link)') + '</span></a>';
+  }
+
   function kycFormHtml(rejectNote) {
     return (rejectNote ? '<div class="kycsub bad">' + c.esc(rejectNote) + '</div>' : '') +
       '<div class="kycdesc">Upload a government ID to get a <b>Verified</b> badge on your profile.</div>' +
@@ -585,8 +602,9 @@
       $('pSkillsEmpty').style.display = offered.length ? 'none' : '';
       $('pWantLabel').style.display = wanted.length ? '' : 'none';
       $('pSkillsWant').innerHTML = wanted.map(function (s) { return '<span>' + c.esc(s) + '</span>'; }).join('');
-      renderWorks(u.sampleWorks || []);
-      renderLinks(u.portfolioLinks || [], u.socialLinks || {});
+    renderWorks(u.sampleWorks || []);
+    renderLinks(u.portfolioLinks || [], u.socialLinks || {});
+    renderResume(u);
       var curMe = c.me() || me0;
       var own = !!(curMe && curMe.id === u.id);
       $('pEditBtn').style.display = own ? '' : 'none';

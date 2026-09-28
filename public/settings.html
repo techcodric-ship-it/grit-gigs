@@ -90,6 +90,18 @@
   </div>
 
   <div class="card">
+    <h3>Profile setup</h3>
+    <div class="hint">Re-open the guided setup for your role, skills, portfolio, resume and sample works.</div>
+    <div class="rowline">
+      <span class="lbl">Status:</span>
+      <span class="val" id="setupStatus">—</span>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="runSetup">Run profile setup</button>
+    </div>
+  </div>
+
+  <div class="card">
     <h3>Mobile number</h3>
     <div class="hint">Used to verify withdrawals. Change it any time.</div>
     <div class="rowline">
@@ -163,6 +175,11 @@
     $('bio').value = u.bio || '';
     $('curMobile').textContent = u.phone || u.mobile || 'Not set';
     $('curEmail').textContent = u.email || 'Not set';
+    var setup = $('setupStatus');
+    if (setup) {
+      var role = u.seekingTo === 'freelancer' ? 'Freelancer' : u.seekingTo === 'client' ? 'Client' : u.seekingTo === 'both' ? 'Freelancer + Client' : 'Not set';
+      setup.textContent = (u.onboardingComplete === false ? 'Incomplete' : 'Complete') + ' · ' + role + (u.resumeUrl ? ' · Resume added' : ' · No resume');
+    }
     var av = c.avatarFor(u);
     var seed = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || u.email || 'grit';
     var big = $('av');
@@ -192,6 +209,16 @@
   var me0 = c.me();
   if (me0 && me0.id) { setProfileLink(me0); var initial = c.avatarFor(me0); var b0 = $('av'); if (b0) { b0.src = initial; } var n0 = $('navAv'); if (n0) { n0.src = initial; } }
   if (!(c.token && c.token())) { window.location.href = '/feed'; return; }
+
+  var runSetupBtn = $('runSetup');
+  if (runSetupBtn) {
+    runSetupBtn.addEventListener('click', function () {
+      var u = c.me();
+      if (window.GritOnboarding) {
+        window.GritOnboarding.open({ user: u || {}, onDone: function () { load(); } });
+      }
+    });
+  }
 
   $('photoInput').addEventListener('change', function () {
     var input = this;

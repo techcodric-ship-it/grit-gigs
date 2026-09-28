@@ -247,6 +247,17 @@ document.getElementById('signupForm')?.addEventListener('submit', async e => {
     phone:     inputs[4]?.value?.trim() || '',
   };
 
+  if (!payload.phone) {
+    btn.textContent = orig; btn.disabled = false;
+    showToast('Phone number is required to create your account.', 'error');
+    return;
+  }
+  if (payload.phone.replace(/\D/g, '').length < 8) {
+    btn.textContent = orig; btn.disabled = false;
+    showToast('Enter a valid phone number (8-15 digits).', 'error');
+    return;
+  }
+
   const data = await api('/auth/register', { method: 'POST', body: JSON.stringify(payload) });
   btn.textContent = orig; btn.disabled = false;
 

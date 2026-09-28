@@ -134,19 +134,21 @@ function escHtml(s: unknown): string {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-// ── Search users by GG ID, name, email ──
+// ── Search users by GG ID, name, email, phone ──
 router.get("/admin/users/search", async (req: Request, res: Response) => {
   const q = (req.query.q as string || '').trim().toLowerCase();
   if (!q) {
     return res.json({ success: true, data: [] });
   }
   const cleanId = q.replace(/^g&g-/i, '').toLowerCase();
+  const cleanPhone = q.replace(/\D/g, '');
   const users = await db.select().from(usersTable).where(
     or(
       like(sql`LOWER(${usersTable.firstName})`, `%${q}%`),
       like(sql`LOWER(${usersTable.lastName})`, `%${q}%`),
       like(sql`LOWER(${usersTable.email})`, `%${q}%`),
       like(sql`LOWER(CAST(${usersTable.id} AS TEXT))`, `%${cleanId}%`),
+      cleanPhone.length >= 3 ? like(sql`LOWER(${usersTable.phone})`, `%${cleanPhone}%`) : undefined,
     )
   ).limit(20);
   const data = users.map(u => ({ ...u, ggId: _ggId(u.id) }));

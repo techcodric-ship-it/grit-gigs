@@ -1028,6 +1028,12 @@ $mig$
       await col(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE NOT NULL`);
       // ── Onboarding: sample works portfolio pieces per user ──
       await col(`ALTER TABLE users ADD COLUMN IF NOT EXISTS sample_works JSONB DEFAULT '[]'::jsonb NOT NULL`);
+      // ── Onboarding: intent (freelancer / client / both) + completion flag ──
+      await col(`ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_complete BOOLEAN DEFAULT FALSE NOT NULL`);
+      await col(`ALTER TABLE users ADD COLUMN IF NOT EXISTS seeking_to VARCHAR(50)`);
+      // ── Onboarding: resume / CV upload (file kept in Supabase or /uploads) ──
+      await col(`ALTER TABLE users ADD COLUMN IF NOT EXISTS resume_url TEXT`);
+      await col(`ALTER TABLE users ADD COLUMN IF NOT EXISTS resume_name VARCHAR(255)`);
       // ── Unique DiceBear avatar for every user (based on UUID id) ─────────
       // Replaces old name-based DiceBear avatars and fills missing ones.
       // Custom uploaded photos (non-DiceBear URLs) are left untouched.

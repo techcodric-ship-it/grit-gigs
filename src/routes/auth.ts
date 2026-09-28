@@ -24,6 +24,11 @@ function normalizePhone(phone: string): string {
   return digits.length === 12 ? digits.slice(2) : digits.length === 11 ? digits.slice(1) : digits;
 }
 
+function isValidPhone(phone: string): boolean {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 8 && digits.length <= 15;
+}
+
 const registerLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: { success: false, message: "Too many registration attempts. Try again in 15 minutes." } });
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { success: false, message: "Too many login attempts. Try again in 15 minutes." } });
 const otpLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: { success: false, message: "Too many OTP requests. Try again in 15 minutes." } });
@@ -33,6 +38,14 @@ router.post("/auth/register", registerLimiter, async (req, res): Promise<void> =
 
   if (!firstName || !lastName || !email || !password || !phone) {
     res.status(400).json({ success: false, message: "Required fields missing" });
+    return;
+  }
+  if (!String(phone).trim()) {
+    res.status(400).json({ success: false, message: "Phone number is required" });
+    return;
+  }
+  if (!isValidPhone(String(phone))) {
+    res.status(400).json({ success: false, message: "Enter a valid phone number (8-15 digits)" });
     return;
   }
   const fullName = ((firstName || '') + ' ' + (lastName || '')).trim().toLowerCase();
@@ -249,6 +262,9 @@ router.post("/auth/login", loginLimiter, async (req, res): Promise<void> => {
         reputationScore: user.reputationScore,
         emailVerified: user.emailVerified,
         onboardingComplete: user.onboardingComplete,
+        seekingTo: user.seekingTo,
+        resumeUrl: user.resumeUrl,
+        resumeName: user.resumeName,
         ggId: 'G&G-' + user.id.replace(/-/g, '').slice(0, 8).toUpperCase(),
       },
     },
@@ -316,6 +332,8 @@ router.get("/auth/me", authenticate, async (req, res): Promise<void> => {
       kycVerified: usersTable.kycVerified,
       role: usersTable.role,
       seekingTo: usersTable.seekingTo,
+      resumeUrl: usersTable.resumeUrl,
+      resumeName: usersTable.resumeName,
       onboardingComplete: usersTable.onboardingComplete,
       createdAt: usersTable.createdAt,
     })
@@ -524,12 +542,16 @@ router.post("/auth/supabase", async (req, res): Promise<void> => {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
+        phone: user.phone,
         profilePhoto: user.profilePhoto,
         city: user.city,
         role: user.role,
         reputationScore: user.reputationScore,
         emailVerified: user.emailVerified,
         onboardingComplete: user.onboardingComplete,
+        seekingTo: user.seekingTo,
+        resumeUrl: user.resumeUrl,
+        resumeName: user.resumeName,
         ggId: 'G&G-' + user.id.replace(/-/g, '').slice(0, 8).toUpperCase(),
       },
     },
@@ -541,6 +563,10 @@ router.post("/auth/supabase/phone", async (req, res): Promise<void> => {
   const { phone } = req.body;
   if (!phone?.trim()) {
     res.status(400).json({ success: false, message: "Phone number required" });
+    return;
+  }
+  if (!isValidPhone(phone)) {
+    res.status(400).json({ success: false, message: "Enter a valid phone number (8-15 digits)" });
     return;
   }
   const authHeader = req.headers.authorization;
@@ -638,9 +664,13 @@ async function findOrCreateGoogleUser(email: string, fullName: string, photo: st
       city: user.city,
       role: user.role,
       reputationScore: user.reputationScore,
-      emailVerified: user.emailVerified,
-      onboardingComplete: user.onboardingComplete,
-      ggId: 'G&G-' + user.id.replace(/-/g, '').slice(0, 8).toUpperCase(),
+        emailVerified: user.emailVerified,
+        phoneVerified: user.phoneVerified,
+        onboardingComplete: user.onboardingComplete,
+        seekingTo: user.seekingTo,
+        resumeUrl: user.resumeUrl,
+        resumeName: user.resumeName,
+        ggId: 'G&G-' + user.id.replace(/-/g, '').slice(0, 8).toUpperCase(),
     },
   };
 }
@@ -986,6 +1016,8 @@ router.post("/auth/onboarding", authenticate, async (req: any, res): Promise<voi
     portfolioLinks: usersTable.portfolioLinks,
     sampleWorks: usersTable.sampleWorks,
     socialLinks: usersTable.socialLinks,
+    resumeUrl: usersTable.resumeUrl,
+    resumeName: usersTable.resumeName,
   });
 
   res.json({ success: true, message: "Profile setup complete!", data: { user: updated } });

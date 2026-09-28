@@ -37,6 +37,27 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
+const RESUME_DIR = path.join(PROJECT_ROOT, "uploads", "resumes");
+fs.mkdirSync(RESUME_DIR, { recursive: true });
+const resumeStorage = multer.diskStorage({
+  destination: RESUME_DIR,
+  filename: (_req, file, cb) =>
+    cb(null, `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_")}`),
+});
+const resumeUpload = multer({
+  storage: resumeStorage,
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(String(file.originalname || "")).toLowerCase();
+    const ok = [".pdf", ".doc", ".docx", ".odt", ".rtf", ".txt", ".jpg", ".jpeg", ".png"].includes(ext);
+    if (!ok) {
+      cb(new Error("Only PDF, Word, text or image resumes are allowed"));
+      return;
+    }
+    cb(null, true);
+  },
+});
+
 router.get("/users/search", optionalAuth, async (req, res): Promise<void> => {
   const { q, skill, city, page = "1", limit = "20" } = req.query as Record<string, string>;
   const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -283,6 +304,68 @@ router.post(
   },
 );
 
+router.post(
+  "/users/me/resume",
+  authenticate,
+  resumeUpload.single("resume"),
+  async (req, res): Promise<void> => {
+    try {
+      if (!req.file) {
+        res.status(400).json({ success: false, message: "No resume file uploaded" });
+        return;
+      }
+      const supabaseUrl = await uploadToSupabase(
+        fs.readFileSync(req.file.path),
+        req.file.originalname,
+        "resumes",
+      );
+      const resumeUrl = supabaseUrl || `/uploads/resumes/${req.file.filename}`;
+      const resumeName = String(req.file.originalname).slice(0, 255);
+      await db
+        .update(usersTable)
+        .set({ resumeUrl, resumeName, updatedAt: new Date() })
+        .where(eq(usersTable.id, req.user!.id));
+      try { req.app?.get("io")?.emit("profile:updated", { userId: req.user!.id }); } catch {}
+      res.json({ success: true, data: { resumeUrl, resumeName } });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error({ err, url: req.url, method: req.method }, "Resume upload error: " + msg);
+      res.status(500).json({ success: false, message: msg });
+    }
+  },
+);
+
+router.put("/users/me/resume", authenticate, async (req, res): Promise<void> => {
+  try {
+    const raw = req.body?.resumeUrl;
+    if (raw === null || raw === "" || req.body?.remove === true || req.body?.remove === "true") {
+      await db
+        .update(usersTable)
+        .set({ resumeUrl: null, resumeName: null, updatedAt: new Date() })
+        .where(eq(usersTable.id, req.user!.id));
+      try { req.app?.get("io")?.emit("profile:updated", { userId: req.user!.id }); } catch {}
+      res.json({ success: true, data: { resumeUrl: null, resumeName: null } });
+      return;
+    }
+    const url = String(raw).trim();
+    if (!/^https?:\/\//i.test(url)) {
+      res.status(400).json({ success: false, message: "Resume link must start with http:// or https://" });
+      return;
+    }
+    const resumeName = req.body?.resumeName ? String(req.body.resumeName).slice(0, 255) : null;
+    await db
+      .update(usersTable)
+      .set({ resumeUrl: url.slice(0, 1000), resumeName, updatedAt: new Date() })
+      .where(eq(usersTable.id, req.user!.id));
+    try { req.app?.get("io")?.emit("profile:updated", { userId: req.user!.id }); } catch {}
+    res.json({ success: true, data: { resumeUrl: url, resumeName } });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error({ err, url: req.url, method: req.method }, "Resume link save error: " + msg);
+    res.status(500).json({ success: false, message: msg });
+  }
+});
+
 router.put("/users/me/availability", authenticate, async (req, res): Promise<void> => {
   const { isAvailable } = req.body;
   await db.update(usersTable).set({ isAvailable: !!isAvailable }).where(eq(usersTable.id, req.user!.id));
@@ -335,6 +418,35 @@ router.put("/users/me", authenticate, async (req, res): Promise<void> => {
       updates.portfolioLinks = arr;
     }
     if (socialLinks !== undefined) updates.socialLinks = socialLinks;
+    if (phone !== undefined && String(phone).trim()) {
+      const [me] = await db
+        .select({ phone: usersTable.phone })
+        .from(usersTable)
+        .where(eq(usersTable.id, req.user!.id))
+        .limit(1);
+      if (me?.phone) {
+        res.status(409).json({
+          success: false,
+          message: "Phone number is already set. Change it from Settings → Phone number.",
+        });
+        return;
+      }
+      const clean = String(phone).replace(/\D/g, "");
+      if (clean.length < 8 || clean.length > 15) {
+        res.status(400).json({ success: false, message: "Enter a valid phone number (8-15 digits)." });
+        return;
+      }
+      const clash = await db
+        .select({ id: usersTable.id })
+        .from(usersTable)
+        .where(eq(usersTable.phone, String(phone).trim()))
+        .limit(1);
+      if (clash.length) {
+        res.status(409).json({ success: false, message: "This phone number is already registered with another account." });
+        return;
+      }
+      updates.phone = String(phone).trim();
+    }
     if (seekingTo !== undefined && ["freelancer", "client", "both"].includes(seekingTo)) updates.seekingTo = seekingTo;
     if (sampleWorks !== undefined) {
       const arr = Array.isArray(sampleWorks) ? sampleWorks : [];
@@ -370,6 +482,9 @@ router.put("/users/me", authenticate, async (req, res): Promise<void> => {
         socialLinks: usersTable.socialLinks,
         seekingTo: usersTable.seekingTo,
         profilePhoto: usersTable.profilePhoto,
+        resumeUrl: usersTable.resumeUrl,
+        resumeName: usersTable.resumeName,
+        onboardingComplete: usersTable.onboardingComplete,
       });
 
     try { req.app?.get("io")?.emit("profile:updated", { userId: req.user!.id }); } catch {}
@@ -477,6 +592,9 @@ router.get("/users/:id", optionalAuth, async (req, res): Promise<void> => {
         sampleWorks: usersTable.sampleWorks,
         socialLinks: usersTable.socialLinks,
         seekingTo: usersTable.seekingTo,
+        resumeUrl: usersTable.resumeUrl,
+        resumeName: usersTable.resumeName,
+        onboardingComplete: usersTable.onboardingComplete,
         reputationScore: usersTable.reputationScore,
         emailVerified: usersTable.emailVerified,
         kycVerified: usersTable.kycVerified,
