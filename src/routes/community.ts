@@ -926,6 +926,8 @@ router.get("/community/users/:id", optionalAuth, async (req: Request, res: Respo
       sampleWorks: usersTable.sampleWorks,
       socialLinks: usersTable.socialLinks,
       seekingTo: usersTable.seekingTo,
+      resumeUrl: usersTable.resumeUrl,
+      resumeName: usersTable.resumeName,
       languages: usersTable.languages,
       reputationScore: usersTable.reputationScore,
       kycVerified: usersTable.kycVerified,
