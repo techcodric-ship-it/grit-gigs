@@ -7,6 +7,7 @@ import { uploadToSupabase } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
 import { getCommunityQuota, consumeGigPost, consumeProposal, grantQuotaBundle, QUOTA_PLANS, FREE_GIG_POSTS, FREE_PROPOSALS, type QuotaPlanId } from "../lib/community-quota";
 import { areConnected } from "../lib/connections";
+import { getActivePlanForUser } from "../lib/subscriptions";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -1626,14 +1627,114 @@ router.put("/community/orders/:id/complete", authenticate, async (req: Request, 
   if (order.buyerId !== req.user!.id && req.user!.role !== "ADMIN") { res.status(403).json({ success: false, message: "Only the buyer can complete this order" }); return; }
   if (order.status !== "DELIVERED") { res.status(400).json({ success: false, message: "Only delivered orders can be completed" }); return; }
 
-  const [updated] = await db
-    .update(communityOrdersTable)
-    .set({ status: "COMPLETED", completedAt: new Date(), updatedAt: new Date() })
-    .where(eq(communityOrdersTable.id, order.id))
-    .returning();
+  // Barter orders are a skill exchange, and a null/zero amount means there is
+  // nothing to transfer. Everything else (GIG / PROJECT) is a paid order and
+  // must move money, exactly like the service-order and project flows do.
+  const gross = order.kind === "BARTER" ? 0 : Math.round(Number(order.amount ?? 0));
+  const payout = Number.isFinite(gross) && gross > 0 ? gross : 0;
+
+  let commissionPct = 0;
+  let commission = 0;
+  let netAmount = 0;
+  if (payout > 0) {
+    const plan = await getActivePlanForUser(order.sellerId);
+    commissionPct = plan.serviceFeePercent;
+    commission = Math.round(payout * commissionPct / 100);
+    netAmount = payout - commission;
+  }
+
+  // Claim the DELIVERED→COMPLETED transition and move the money in ONE
+  // transaction so a crash or retry can never double-pay or strand the order.
+  let updated: typeof order | undefined;
+  try {
+    await db.transaction(async (tx) => {
+      const claimResult = await tx.execute(
+        sql`UPDATE ${sql.identifier("community_orders")} SET status = 'COMPLETED', completed_at = NOW(), updated_at = NOW() WHERE id = ${order.id} AND status = 'DELIVERED'`
+      );
+      if (claimResult.rowCount === 0) {
+        throw new Error("ALREADY_COMPLETED");
+      }
+      const [claimed] = await tx
+        .select()
+        .from(communityOrdersTable)
+        .where(eq(communityOrdersTable.id, order.id))
+        .limit(1);
+      updated = claimed;
+
+      if (payout > 0) {
+        const deductResult = await tx.execute(
+          sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${payout}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${order.buyerId} AND balance >= ${payout}`
+        );
+        if (deductResult.rowCount === 0) {
+          throw new Error("Insufficient funds");
+        }
+
+        if (netAmount > 0) {
+          const creditResult = await tx.execute(
+            sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${netAmount}, total_earned = COALESCE(total_earned, 0) + ${netAmount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${order.sellerId}`
+          );
+          if (creditResult.rowCount === 0) {
+            await tx.insert(freelanceWalletsTable).values({
+              userId: order.sellerId,
+              balance: netAmount,
+              totalEarned: netAmount,
+              updatedAt: new Date(),
+            });
+          }
+        }
+
+        await tx.insert(transactionsTable).values({
+          userId: order.buyerId,
+          type: "SERVICE_PAYMENT",
+          amount: payout,
+          description: `Payment for order #${order.id.slice(-8)}`,
+          status: "COMPLETED",
+        });
+        await tx.insert(transactionsTable).values({
+          userId: order.sellerId,
+          type: "SERVICE_EARNING",
+          amount: netAmount,
+          description: `Payment received for order #${order.id.slice(-8)}`,
+          status: "COMPLETED",
+        });
+        if (commission > 0) {
+          await tx.insert(transactionsTable).values({
+            userId: order.sellerId,
+            type: "COMMISSION",
+            amount: commission,
+            description: `Platform commission (${commissionPct}%) on order #${order.id.slice(-8)}`,
+            status: "COMPLETED",
+          });
+        }
+      }
+    });
+  } catch (e) {
+    if (e instanceof Error && e.message === "ALREADY_COMPLETED") {
+      res.status(409).json({ success: false, message: "Order already completed" });
+    } else if (e instanceof Error && e.message === "Insufficient funds") {
+      res.status(400).json({ success: false, message: "You don't have enough funds in your wallet. Please add funds and try again." });
+    } else {
+      logger.error({ err: e, orderId: order.id }, "Failed to complete community order");
+      res.status(500).json({ success: false, message: "Payment processing failed. Please try again." });
+    }
+    return;
+  }
+
   await db.update(communityPostsTable).set({ status: "SOLD" }).where(eq(communityPostsTable.id, order.postId));
-  notify(order.sellerId, "COMMUNITY_ORDER_COMPLETED", "Order completed!", `${req.user!.firstName} marked your order as completed. 🎉`, `/orders`);
-  res.status(200).json({ success: true, data: updated });
+  notify(
+    order.sellerId,
+    "COMMUNITY_ORDER_COMPLETED",
+    "Order completed!",
+    payout > 0
+      ? `${req.user!.firstName} approved your work. You received ₹${netAmount}${commissionPct > 0 ? ` (${commissionPct}% commission: ₹${commission})` : ""}.`
+      : `${req.user!.firstName} marked your order as completed.`,
+    `/orders`
+  );
+  res.status(200).json({
+    success: true,
+    data: updated,
+    payout: payout > 0 ? { amount: payout, commission, commissionPct, netAmount } : null,
+  });
 });
 
 // ── PUT /community/orders/:id/revise — buyer requests a revision ──
