@@ -121,30 +121,38 @@
   function openRegister() { closeModals(); var m = document.getElementById('registerModal'); if (m) m.classList.add('open'); }
 
   // ── Google Sign-In (popup OAuth) ──
+  var googleWin = null, googlePending = false;
   function googleLogin() {
     if (!token) toast('Connecting to Google…');
     var w = null;
+    googlePending = true;
     try {
       w = window.open('/api/auth/google/login', 'gritgigs_google', 'width=520,height=680');
     } catch (e) { /* blockers may throw */ }
     if (!w) {
       // popup blocked — fall back to full-page flow (google-callback stores the session)
+      googlePending = false;
       toast('Opening Google…');
       location.href = '/api/auth/google/login';
       return;
     }
+    googleWin = w;
     setTimeout(function () { try { w.focus(); } catch (e) {} }, 200);
   }
 
   function handleGoogleMessage(e) {
     if (e.origin !== location.origin) return;
+    if (!googlePending) return;
+    if (googleWin && e.source !== googleWin) return;
     var d = e.data;
     if (!d || typeof d !== 'object' || d.__ggHandled) return;
+    d.__ggHandled = true;
+    googlePending = false;
+    googleWin = null;
     if (!d.success || !d.data || !d.data.accessToken) {
       toast((d.message || 'Google sign-in failed — try again.'), true);
       return;
     }
-    e.data.__ggHandled = true;
     setSession(d.data.accessToken, d.data.refreshToken, d.data.user);
     toast('Welcome, ' + (d.data.user && d.data.user.firstName ? d.data.user.firstName : 'hustler') + '!');
     closeModals();
@@ -331,7 +339,7 @@
       if (row.mySpotlight) {
         spotCtl = '<div class="spot-bar"><span>✦ Boost active · ' + spotLeftText(row.mySpotlight.expiresAt) + '</span><button data-spot-extend="' + esc(p.id) + '">Extend ₹50</button></div>';
       } else {
-        spotCtl = '<div class="spot-bar idle"><span>Boost your gig — rank it higher in marketplace results for 24 hours</span><button data-spot="' + esc(p.id) + '">Boost ₹50</button></div>';
+        spotCtl = '<div class="spot-bar idle"><span>Boost your ' + (kind === 'PROJECT' ? 'project' : 'gig') + ' — rank it higher in marketplace results for 24 hours</span><button data-spot="' + esc(p.id) + '">Boost ₹50</button></div>';
       }
     }
 
@@ -715,7 +723,7 @@
     var trendList = [];
     body.innerHTML =
       '<h3>✦ Boost this ' + (p.kind === 'PROJECT' ? 'project' : 'gig') + '</h3>' +
-      '<div class="sub">₹50 for 24 hours. Your gig is featured at the top of marketplace results, shown to people who are actively looking for your skills.</div>' +
+      '<div class="sub">₹50 for 24 hours. Your ' + (p.kind === 'PROJECT' ? 'project' : 'gig') + ' is featured at the top of marketplace results, shown to people who are actively looking for your skills.</div>' +
       '<div class="fld"><label>Target keywords (up to 5)</label><div class="spot-chips" id="spotChips"></div></div>' +
       '<div class="fld" id="spotTrendWrap" style="display:none;"><label>Popular searches right now</label><div class="spot-chips" id="spotTrend"></div></div>' +
       '<div class="fld"><label>Add your own tag</label><div style="display:flex;gap:8px;"><input id="spotTagIn" placeholder="e.g. logo design" maxlength="30" style="flex:1;"/><button type="button" id="spotTagAdd" style="padding:10px 14px;border-radius:10px;border:1px solid var(--line,#e3e0f2);background:var(--bg-alt,#f4f1ff);color:#6C3FE8;font-weight:600;cursor:pointer;">Add</button></div></div>' +
