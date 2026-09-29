@@ -45,14 +45,23 @@
   .mhead .acts button{background:none;border:none;border-radius:20px;padding:6px 12px;font-size:12.5px;font-weight:600;color:#6C3FE8;cursor:pointer;}
   .mhead .acts button:hover{background:#f4f2fb;}
   .thread{flex:1;overflow-y:auto;padding:20px 22px 10px;display:flex;flex-direction:column;gap:4px;}
-  .msg{max-width:70%;display:flex;flex-direction:column;gap:3px;}
+  .msg{max-width:70%;max-width:min(72%,520px);display:flex;flex-direction:column;gap:3px;align-items:flex-start;}
   .msg.mine{align-self:flex-end;align-items:flex-end;}
-  .msg .bubble{background:#f1f3f5;color:#1a1a2e;border-radius:20px;border-top-left-radius:6px;padding:9px 14px;font-size:13.5px;line-height:1.45;word-break:break-word;white-space:pre-wrap;}
+  .msg .bubble{background:#f1f3f5;color:#1a1a2e;border-radius:20px;border-top-left-radius:6px;padding:9px 14px;font-size:13.5px;line-height:1.45;word-break:break-word;overflow-wrap:anywhere;white-space:pre-wrap;max-width:100%;min-width:0;}
   .msg.mine .bubble{background:#6C3FE8;color:#fff;border-radius:20px;border-top-right-radius:6px;}
   .msg .mt{font-size:10.5px;color:#b5b8c8;padding:0 6px;}
-  .msg .att img{max-width:260px;border-radius:16px;display:block;margin-top:4px;}
-  .msg .att a{color:#6C3FE8;font-size:12px;word-break:break-all;}
-  .composer{flex:0 0 auto;border-top:1px solid #ededf2;padding:12px 20px;display:flex;gap:8px;align-items:flex-end;background:#fff;}
+  .msg .att{max-width:100%;}
+  .msg .att img{max-width:min(260px,100%);height:auto;border-radius:16px;display:block;margin-top:4px;}
+  .msg .att a{color:#6C3FE8;font-size:12px;word-break:break-all;overflow-wrap:anywhere;}
+  .msg.mine .att a{color:#fff;text-decoration:underline;}
+  .pend-atts{display:none;gap:6px;flex-wrap:wrap;padding:8px 14px 0;flex:0 0 100%;margin-bottom:2px;}
+  .pend-chip{display:inline-flex;align-items:center;gap:6px;max-width:220px;padding:4px 6px 4px 4px;background:#fff;border:1px solid #e6e3f5;border-radius:10px;font-size:12px;color:#1a1a2e;}
+  .pend-chip img{width:22px;height:22px;object-fit:cover;border-radius:6px;flex:0 0 auto;}
+  .pend-ico{flex:0 0 auto;font-size:13px;}
+  .pend-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pend-chip .pend-x{border:none;background:none;cursor:pointer;color:#9aa0b4;font-size:16px;line-height:1;padding:0 2px;border-radius:6px;}
+  .pend-chip .pend-x:hover{color:#e5484d;background:#fdeced;}
+  .composer{flex:0 0 auto;border-top:1px solid #ededf2;padding:12px 20px;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;background:#fff;}
   .composer label.att{width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:#6C3FE8;border-radius:50%;flex:0 0 auto;}
   .composer label.att:hover{background:#f4f2fb;}
   .composer textarea{flex:1;border:1px solid transparent;background:#f2f2f7;border-radius:22px;padding:10px 18px;font-size:14px;resize:none;min-height:38px;max-height:120px;outline:none;font-family:inherit;box-sizing:border-box;}
@@ -143,8 +152,9 @@
       </div>
       <div class="thread" id="thread" style="display:none;"></div>
       <div class="composer" id="composer" style="display:none;">
+        <div class="pend-atts" id="pendAtts" style="display:none;"></div>
         <label class="att" for="attFile" title="Attach a file">+</label>
-        <input type="file" id="attFile" style="display:none;" accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"/>
+        <input type="file" id="attFile" style="display:none;" multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z,.mp4,.mov,.mp3,.wav,.fig,.psd,.ai,.svg"/>
         <textarea id="msgBox" rows="1" placeholder="Message…"></textarea>
         <button class="send" id="sendBtn" title="Send"><svg viewBox="0 0 24 24" style="width:19px;height:19px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg></button>
       </div>
@@ -215,6 +225,6 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=22"></script>
-<script src="/assets/messages.js?v=11"></script>
+  <script src="/assets/messages.js?v=12"></script>
 </body>
 </html>

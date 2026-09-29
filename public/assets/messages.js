@@ -17,6 +17,11 @@
   var typingTimer = null;
   var lastTypingEmit = 0;
   var headerSubBase = '';
+  var sending = false;
+  // Ids already painted in the open thread. The server echoes our own message
+  // back over the socket, so this stops the optimistic bubble and the socket
+  // copy from both landing.
+  var seenMsgIds = {};
 
   var q = new URLSearchParams(location.search);
   var sharePostId = q.get('share');
@@ -29,8 +34,7 @@
       socket = io('/', { auth: { token: c.token() } });
       socket.on('message:new', function (m) {
         if (activeConv && m.conversationId === activeConv.id) {
-          renderMessage(m);
-          markRead(activeConv.id);
+          if (renderMessage(m) && m.senderId !== meId) markRead(activeConv.id);
         }
         refreshConversations();
       });
@@ -195,7 +199,12 @@
     showChatUi();
     if (isMobile()) document.body.classList.add('msg-open');
     $('thread').innerHTML = '<div class="loading">Loading messages…</div>';
+    seenMsgIds = {};
+    window._pendingAtts = [];
+    renderPendingAtts();
+    $('msgBox').value = '';
     c.api('/messages/conversations/' + convId + '/messages').then(function (r) {
+      if (!activeConv || activeConv.id !== convId) return;
       if (!r.ok) { $('thread').innerHTML = '<div class="empty">Could not load messages</div>'; return; }
       $('thread').innerHTML = '';
       var msgs = (r.d.data && r.d.data.messages) || [];
@@ -230,6 +239,10 @@
   }
 
   function renderMessage(m) {
+    if (m && m.id) {
+      if (seenMsgIds[m.id]) return null;
+      seenMsgIds[m.id] = 1;
+    }
     var mine = m.senderId === meId;
     var sender = m.sender || {};
     var bubble = c.esc(m.messageText || '');
@@ -248,6 +261,7 @@
     el.className = 'msg' + (mine ? ' mine' : '');
     el.innerHTML = (mine ? '' : av) + '<div class="bubble">' + bubble + atts + '</div>' + '<div class="mt">' + c.timeAgo(m.createdAt || new Date().toISOString()) + '</div>';
     $('thread').appendChild(el);
+    return el;
   }
   function scrollBottom() { var t = $('thread'); t.scrollTop = t.scrollHeight; }
 
@@ -257,18 +271,39 @@
     var text = $('msgBox').value.trim();
     var atts = window._pendingAtts || [];
     if (!text && !atts.length) return;
+    // The Enter key bypasses the disabled button, so guard on a flag too.
+    if (sending) return;
+    sending = true;
     var btn = $('sendBtn');
     btn.disabled = true;
     c.api('/messages/conversations/' + activeConv.id + '/messages', { method: 'POST', body: { messageText: text, attachments: atts } }).then(function (r) {
+      sending = false;
       btn.disabled = false;
       if (!r.ok) { c.toast(r.d.message || 'Failed to send', true); return; }
       $('msgBox').value = '';
       window._pendingAtts = [];
-      var attNames = atts.map(function (a) { return a.name; }).join(', ');
-      if (!text) text = 'Sent file' + (attNames ? ': ' + attNames : '');
-      renderMessage({ senderId: meId, sender: me, messageText: text, attachments: atts, createdAt: new Date().toISOString() });
+      renderPendingAtts();
+      // Paint the server's copy so the socket echo for the same id is skipped.
+      var saved = (r.d.data && r.d.data.message) || null;
+      if (saved && saved.id) {
+        if (!saved.sender) saved.sender = me;
+        if (typeof saved.messageText !== 'string' || !saved.messageText) {
+          var names = atts.map(function (a) { return a.name; }).join(', ');
+          saved.messageText = 'Sent file' + (names ? ': ' + names : '');
+        }
+        if (saved.attachments && saved.attachments.length) saved.attachments = atts;
+        renderMessage(saved);
+      } else {
+        var attNames = atts.map(function (a) { return a.name; }).join(', ');
+        if (!text) text = 'Sent file' + (attNames ? ': ' + attNames : '');
+        renderMessage({ senderId: meId, sender: me, messageText: text, attachments: atts, createdAt: new Date().toISOString() });
+      }
       scrollBottom();
       refreshConversations();
+    }).catch(function () {
+      sending = false;
+      btn.disabled = false;
+      c.toast('Network error — message not sent', true);
     });
   }
 
@@ -286,10 +321,33 @@
         if (atts.length) {
           var prepped = atts.map(function (f) { return { name: f.name || 'File', url: f.url, type: f.mimeType || '' }; });
           window._pendingAtts = (window._pendingAtts || []).concat(prepped);
+          renderPendingAtts();
           c.toast('Attached ' + prepped.length + ' file(s) — press Send');
         }
       })
       .catch(function () { c.toast('Network error', true); });
+  }
+
+  function renderPendingAtts() {
+    var box = $('pendAtts');
+    if (!box) return;
+    var atts = window._pendingAtts || [];
+    box.innerHTML = '';
+    if (!atts.length) { box.style.display = 'none'; return; }
+    box.style.display = 'flex';
+    atts.forEach(function (a, i) {
+      var chip = document.createElement('span');
+      chip.className = 'pend-chip';
+      var isImg = /^image\//.test(a.type || '') || /\.(png|jpe?g|webp|gif)(\?|$)/i.test(a.url || '');
+      chip.innerHTML = (isImg ? '<img src="' + c.esc(a.url) + '" alt=""/>' : '<span class="pend-ico">\u{1F4CE}</span>') +
+        '<span class="pend-name">' + c.esc(a.name || 'File') + '</span>' +
+        '<button type="button" class="pend-x" title="Remove" aria-label="Remove ' + c.esc(a.name || 'file') + '">\u00D7</button>';
+      chip.querySelector('.pend-x').addEventListener('click', function () {
+        window._pendingAtts.splice(i, 1);
+        renderPendingAtts();
+      });
+      box.appendChild(chip);
+    });
   }
 
   // ── groups ──

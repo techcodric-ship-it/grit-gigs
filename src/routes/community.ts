@@ -65,15 +65,41 @@ router.post("/community/upload", authenticate, mediaUpload.array("files", 10), a
     res.status(400).json({ success: false, message: "No files uploaded" });
     return;
   }
-  const results: { url: string; type: "image" | "video" }[] = [];
+  const results: { url: string; name: string; type: "image" | "video" }[] = [];
   for (const f of files) {
     const isVideo = /^video\//.test(f.mimetype);
     const url = await uploadToSupabase(fs.readFileSync(f.path), f.originalname, "community");
     if (url) {
-      results.push({ url, type: isVideo ? "video" : "image" });
+      results.push({ url, name: f.originalname, type: isVideo ? "video" : "image" });
     } else {
-      results.push({ url: `/uploads/community/${f.filename}`, type: isVideo ? "video" : "image" });
+      results.push({ url: `/uploads/community/${f.filename}`, name: f.originalname, type: isVideo ? "video" : "image" });
     }
+  }
+  res.status(201).json({ success: true, data: { files: results } });
+});
+
+// Deliverables are broader than feed media: sellers hand over source files,
+// documents and archives, so they get their own endpoint and keep the post
+// media route restricted to images/video.
+const DELIVERABLE_MIME = /^(image\/(jpeg|png|webp|gif|svg\+xml|avif|heic|heif)|video\/(mp4|webm|quicktime|mov|x-m4v|avi)|application\/(pdf|msword|vnd\.openxmlformats-officedocument\.(wordprocessingml|presentationml|spreadsheetml)|zip|x-zip-compressed|x-rar-compressed|vnd\.rar|json|octet-stream)|text\/(plain|csv|markdown)|image\/svg)/i;
+const deliverableUpload = multer({
+  storage: mediaStorage,
+  limits: { fileSize: 60 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    cb(null, DELIVERABLE_MIME.test(file.mimetype) || !file.mimetype);
+  },
+});
+
+router.post("/community/upload-deliverable", authenticate, deliverableUpload.array("files", 10), async (req, res): Promise<void> => {
+  const files = (req.files as Express.Multer.File[]) ?? [];
+  if (!files.length) {
+    res.status(400).json({ success: false, message: "No files uploaded" });
+    return;
+  }
+  const results: { url: string; name: string; type: string }[] = [];
+  for (const f of files) {
+    const url = await uploadToSupabase(fs.readFileSync(f.path), f.originalname, "community");
+    results.push({ url: url || `/uploads/community/${f.filename}`, name: f.originalname, type: f.mimetype || "application/octet-stream" });
   }
   res.status(201).json({ success: true, data: { files: results } });
 });
@@ -1523,11 +1549,25 @@ router.put("/community/orders/:id/deliver", authenticate, async (req: Request, r
   if (order.status !== "IN_PROGRESS" && order.status !== "REVISION") { res.status(400).json({ success: false, message: "This order can't be delivered right now" }); return; }
 
   const note = req.body?.note ? String(req.body.note).trim().slice(0, 2000) : null;
-  const files = Array.isArray(req.body?.files) ? (req.body.files as { url?: string }[]).map(f => ({ url: String(f.url || "") })).filter(f => f.url).slice(0, 10) : [];
+  const rawLink = req.body?.link ? String(req.body.link).trim().slice(0, 2000) : "";
+  let link: string | null = null;
+  if (rawLink) {
+    try {
+      const u = new URL(/^https?:\/\//i.test(rawLink) ? rawLink : `https://${rawLink}`);
+      if (u.protocol === "http:" || u.protocol === "https:") link = u.toString();
+    } catch { link = null; }
+    if (!link) { res.status(400).json({ success: false, message: "Invalid link" }); return; }
+  }
+  const files = Array.isArray(req.body?.files)
+    ? (req.body.files as { url?: string; name?: string; type?: string }[])
+        .map(f => ({ url: String(f.url || ""), name: f.name ? String(f.name).slice(0, 200) : undefined, type: f.type ? String(f.type).slice(0, 100) : undefined }))
+        .filter(f => f.url)
+        .slice(0, 10)
+    : [];
 
   const [delivery] = await db
     .insert(communityOrderDeliveriesTable)
-    .values({ orderId: order.id, senderId: req.user!.id, note, files, isRevision: false })
+    .values({ orderId: order.id, senderId: req.user!.id, note, link, files, isRevision: false })
     .returning();
   const [updated] = await db
     .update(communityOrdersTable)

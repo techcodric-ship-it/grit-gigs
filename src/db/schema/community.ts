@@ -137,6 +137,7 @@ export const communityOrderDeliveriesTable = pgTable("community_order_deliveries
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   note: text("note"),
+  link: text("link"),
   files: jsonb("files").$type<{ name?: string; url: string; type?: string }[]>().default([]).notNull(),
   isRevision: boolean("is_revision").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
