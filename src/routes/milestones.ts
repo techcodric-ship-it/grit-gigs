@@ -6,7 +6,7 @@ import {
   freelanceWalletsTable,
 } from "../db";
 import { authenticate } from "../middlewares/authenticate";
-import { getActivePlanForUser } from "../lib/subscriptions";
+import { PLATFORM_COMMISSION_PCT } from "../lib/subscriptions";
 import { maybeGrantReferralOnFirstPayment } from "../lib/referrals";
 
 const router: IRouter = Router();
@@ -103,8 +103,7 @@ router.post("/milestones/:id/approve", authenticate, async (req: Request, res: R
   const [bid] = await db.select().from(projectBidsTable).where(eq(projectBidsTable.id, ms.bidId)).limit(1);
   if (!bid) { res.status(500).json({ success: false, message: "Could not find associated bid" }); return; }
 
-  // Calculate commission based on freelancer's plan (0% for referred clients' first hire)
-  const plan = await getActivePlanForUser(bid.userId);
+  // Flat platform commission (0% for a referred client's first hire)
   const milestoneAmount = Number(ms.amount) || 0;
 
   let commissionPct = 0;
@@ -133,7 +132,7 @@ router.post("/milestones/:id/approve", authenticate, async (req: Request, res: R
       // user's first real payment (fraud-checked, atomic with this payment).
       const referralGranted = await maybeGrantReferralOnFirstPayment(tx, project.userId, project.id, ms.id);
 
-      commissionPct = project.zeroCommission || referralGranted ? 0 : plan.serviceFeePercent;
+      commissionPct = project.zeroCommission || referralGranted ? 0 : PLATFORM_COMMISSION_PCT;
       commission = Math.round(milestoneAmount * commissionPct / 100);
       netAmount = milestoneAmount - commission;
 

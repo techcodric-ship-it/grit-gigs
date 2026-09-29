@@ -2,7 +2,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, count, and, sql } from "drizzle-orm";
 import { db, notificationsTable, transactionsTable, userSubscriptionsTable, projectBidsTable } from "../db";
 import { authenticate } from "../middlewares/authenticate";
-import { PLANS, getPlan, getOrCreateSubscription, type PlanConfig } from "../lib/subscriptions";
+import { PLANS, getPlan, getOrCreateSubscription, PLATFORM_COMMISSION_PCT, type PlanConfig } from "../lib/subscriptions";
 
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
@@ -36,7 +36,7 @@ function planToClientJson(plan: PlanConfig) {
     plan.walletLimit === -1
       ? "Unlimited wallet balance"
       : `₹${plan.walletLimit.toLocaleString("en-IN")} wallet limit`,
-    `${plan.serviceFeePercent}% platform fee on completed work`,
+    `${PLATFORM_COMMISSION_PCT}% platform fee on completed work`,
     plan.portfolioSlots === -1
       ? "Unlimited portfolio items"
       : `${plan.portfolioSlots} portfolio items`,
@@ -49,8 +49,8 @@ function planToClientJson(plan: PlanConfig) {
     name: plan.name,
     price: plan.priceInr,
     billingCycle: plan.id === "starter" ? "free" : "monthly",
-    commission: plan.serviceFeePercent,
-    serviceFeePercent: plan.serviceFeePercent,
+    commission: PLATFORM_COMMISSION_PCT,
+    serviceFeePercent: PLATFORM_COMMISSION_PCT,
     weeklyBidCredits: plan.weeklyBidCredits,
     maxActiveGigs: plan.maxActiveGigs,
     maxActiveProjects: plan.maxActiveProjects,
@@ -263,7 +263,7 @@ router.post("/subscriptions/verify-payment", authenticate, async (req: Request, 
     userId,
     type: "SUBSCRIPTION",
     title: `${plan.name} plan activated!`,
-    message: `You now get ${plan.weeklyBidCredits === -1 ? "unlimited" : plan.weeklyBidCredits} project bids per week, ${plan.serviceFeePercent}% platform fee, and ${plan.maxActiveGigs === -1 ? "unlimited" : plan.maxActiveGigs} new gig listings/month.`,
+    message: `You now get ${plan.weeklyBidCredits === -1 ? "unlimited" : plan.weeklyBidCredits} project bids per week, ${PLATFORM_COMMISSION_PCT}% platform fee, and ${plan.maxActiveGigs === -1 ? "unlimited" : plan.maxActiveGigs} new gig listings/month.`,
     linkUrl: "/dashboard.html",
   });
 

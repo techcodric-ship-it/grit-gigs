@@ -7,7 +7,7 @@ import { uploadToSupabase } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
 import { getCommunityQuota, consumeGigPost, consumeProposal, grantQuotaBundle, QUOTA_PLANS, FREE_GIG_POSTS, FREE_PROPOSALS, type QuotaPlanId } from "../lib/community-quota";
 import { areConnected } from "../lib/connections";
-import { getActivePlanForUser } from "../lib/subscriptions";
+import { PLATFORM_COMMISSION_PCT } from "../lib/subscriptions";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -1637,8 +1637,7 @@ router.put("/community/orders/:id/complete", authenticate, async (req: Request, 
   let commission = 0;
   let netAmount = 0;
   if (payout > 0) {
-    const plan = await getActivePlanForUser(order.sellerId);
-    commissionPct = plan.serviceFeePercent;
+    commissionPct = PLATFORM_COMMISSION_PCT;
     commission = Math.round(payout * commissionPct / 100);
     netAmount = payout - commission;
   }

@@ -16,7 +16,7 @@ import {
 } from "../db";
 import { eq, or, and, desc, count, sql } from "drizzle-orm";
 import { authenticate } from "../middlewares/authenticate";
-import { getActivePlanForUser } from "../lib/subscriptions";
+import { PLATFORM_COMMISSION_PCT } from "../lib/subscriptions";
 import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
 import { sendNotificationEmail } from "../lib/email";
 
@@ -259,9 +259,8 @@ router.put("/orders/:id/complete", authenticate, async (req, res): Promise<void>
   if (order.buyerId !== req.user!.id) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
   if (order.status !== "DELIVERED") { res.status(400).json({ success: false, message: "Order has not been delivered" }); return; }
 
-  // Calculate commission based on seller's plan
-  const plan = await getActivePlanForUser(order.sellerId);
-  const commissionPct = plan.serviceFeePercent;
+  // Flat platform commission on completed work
+  const commissionPct = PLATFORM_COMMISSION_PCT;
   const commission = Math.round(order.priceInr * commissionPct / 100);
   const netAmount = order.priceInr - commission;
 

@@ -9,7 +9,7 @@ import { eq, desc, and, not, or, count, sql, inArray, isNull, ne } from 'drizzle
 import { reviewsTable } from '../db/schema/orders';
 import { clientReviewsTable } from '../db/schema/client-reviews';
 import { authenticate, optionalAuth } from '../middlewares/authenticate';
-import { getActivePlanForUser, getOrCreateSubscription, getPlan, consumeProjectCreation } from '../lib/subscriptions';
+import { getActivePlanForUser, getOrCreateSubscription, getPlan, consumeProjectCreation, PLATFORM_COMMISSION_PCT } from '../lib/subscriptions';
 import { attachPlanBadge, attachPlanBadges } from '../lib/planBadge';
 import { uploadToSupabase } from '../lib/storage';
 import { PROJECT_ROOT } from '../lib/root';
@@ -1081,8 +1081,7 @@ router.post('/projects/:id/release-payment', authenticate, async (req: Request, 
   });
   const creditRecipients: { userId: string; grossAmount: number; commission: number; commissionPct: number; netAmount: number }[] = [];
   for (const gs of grossShares) {
-    const mPlan = await getActivePlanForUser(gs.userId);
-    const mPct = project.zeroCommission ? 0 : mPlan.serviceFeePercent;
+    const mPct = project.zeroCommission ? 0 : PLATFORM_COMMISSION_PCT;
     const mCommission = Math.round(gs.amount * mPct / 100);
     creditRecipients.push({
       userId: gs.userId,

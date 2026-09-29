@@ -4,13 +4,18 @@ import type { UserSubscription } from "../db/schema/plans";
 
 export type PlanId = "starter" | "pro" | "squad";
 
+/**
+ * Flat platform commission charged on every completed payout, for every user
+ * on every plan. Commission is not tied to the subscription plan — always use
+ * this constant in money paths.
+ */
+export const PLATFORM_COMMISSION_PCT = 5;
+
 export interface PlanConfig {
   id: PlanId;
   name: string;
   /** Cost in ₹ to subscribe for 30 days. 0 = free tier. */
   priceInr: number;
-  /** Platform commission charged on completed project payouts / gig orders for sellers on this plan. */
-  serviceFeePercent: number;
   /** Project proposal / bid credits granted per week. -1 = unlimited. */
   weeklyBidCredits: number;
   /** Number of ACTIVE gig listings a single member can hold at once. -1 = unlimited. */
@@ -38,7 +43,6 @@ export const PLANS: PlanConfig[] = [
     id: "starter",
     name: "Starter",
     priceInr: 0,
-    serviceFeePercent: 10,
     weeklyBidCredits: 2,
     maxActiveGigs: 3,
     maxActiveBarterRequests: -1,
@@ -55,7 +59,6 @@ export const PLANS: PlanConfig[] = [
     id: "pro",
     name: "Pro",
     priceInr: 499,
-    serviceFeePercent: 5,
     weeklyBidCredits: -1,
     maxActiveGigs: -1,
     maxActiveBarterRequests: -1,
@@ -66,13 +69,12 @@ export const PLANS: PlanConfig[] = [
     walletLimit: -1,
     squadMembers: 1,
     badge: "PRO",
-    description: "Unlimited gigs and bids, lower fees, a verified badge on your profile.",
+    description: "Unlimited gigs and bids, a verified badge on your profile.",
   },
   {
     id: "squad",
     name: "Squad",
     priceInr: 1499,
-    serviceFeePercent: 1,
     weeklyBidCredits: -1,
     maxActiveGigs: -1,
     maxActiveBarterRequests: -1,
@@ -83,7 +85,7 @@ export const PLANS: PlanConfig[] = [
     walletLimit: -1,
     squadMembers: 6,
     badge: "SQUAD",
-    description: "Everything in Pro, up to 6 squad members, 1% commission.",
+    description: "Everything in Pro, up to 6 squad members, and 8 featured proposals a month.",
   },
 ];
 

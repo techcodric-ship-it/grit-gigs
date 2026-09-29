@@ -21,7 +21,7 @@ import {
 } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { sendNotificationEmail } from "../lib/email";
-import { getActivePlanForUser, getOrCreateSubscription, consumeGigCreation } from "../lib/subscriptions";
+import { getActivePlanForUser, getOrCreateSubscription, consumeGigCreation, PLATFORM_COMMISSION_PCT } from "../lib/subscriptions";
 import { attachPlanBadges } from "../lib/planBadge";
 import { uploadToSupabase } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
@@ -1486,8 +1486,7 @@ router.put("/squad-orders/:id/complete", authenticate, async (req: Request, res:
   });
   const creditRecipients: { userId: string; grossAmount: number; commission: number; commissionPct: number; netAmount: number }[] = [];
   for (const gs of grossShares) {
-    const mPlan = await getActivePlanForUser(gs.userId);
-    const mPct = mPlan.serviceFeePercent;
+    const mPct = PLATFORM_COMMISSION_PCT;
     const mCommission = Math.round(gs.amount * mPct / 100);
     creditRecipients.push({
       userId: gs.userId,
