@@ -10,6 +10,7 @@ import { reviewsTable } from '../db/schema/orders';
 import { clientReviewsTable } from '../db/schema/client-reviews';
 import { authenticate, optionalAuth } from '../middlewares/authenticate';
 import { getActivePlanForUser, getOrCreateSubscription, getPlan, consumeProjectCreation, PLATFORM_COMMISSION_PCT } from '../lib/subscriptions';
+import { isEscrowHeld, escrowRefundAmount } from '../lib/wallet-guards';
 import { attachPlanBadge, attachPlanBadges } from '../lib/planBadge';
 import { uploadToSupabase } from '../lib/storage';
 import { PROJECT_ROOT } from '../lib/root';
@@ -597,23 +598,48 @@ router.put('/projects/bids/:bidId/accept', authenticate, async (req: Request, re
     return res.status(400).json({ success: false, message: `You need ₹${Number(bid.amount).toLocaleString('en-IN')} in your wallet to accept this bid. Please add funds first.` });
   }
 
-  // Accept this bid, reject others, close project — atomically
-  await db.transaction(async (tx) => {
-    await tx
-      .update(projectBidsTable)
-      .set({ status: 'ACCEPTED' })
-      .where(eq(projectBidsTable.id, bid.id));
+  // Accept this bid, reject others, close project — atomically.
+  // The agreed amount is ESCROWED here: the client's wallet is debited now so
+  // the money is genuinely committed and cannot also be spent on another bid.
+  // release-payment skips the deduction for escrowed projects.
+  try {
+    await db.transaction(async (tx) => {
+      const holdResult = await tx.execute(
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${bid.amount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${userId} AND balance >= ${bid.amount}`
+      );
+      if (holdResult.rowCount === 0) {
+        throw new Error('INSUFFICIENT_FUNDS');
+      }
 
-    await tx
-      .update(projectBidsTable)
-      .set({ status: 'REJECTED' })
-      .where(and(eq(projectBidsTable.projectId, project.id), not(eq(projectBidsTable.id, bid.id))));
+      await tx
+        .update(projectBidsTable)
+        .set({ status: 'ACCEPTED' })
+        .where(eq(projectBidsTable.id, bid.id));
 
-    await tx
-      .update(projectsTable)
-      .set({ status: 'IN_PROGRESS', acceptedBidId: bid.id })
-      .where(eq(projectsTable.id, project.id));
-  });
+      await tx
+        .update(projectBidsTable)
+        .set({ status: 'REJECTED' })
+        .where(and(eq(projectBidsTable.projectId, project.id), not(eq(projectBidsTable.id, bid.id))));
+
+      await tx
+        .update(projectsTable)
+        .set({ status: 'IN_PROGRESS', acceptedBidId: bid.id, escrowAmount: bid.amount, escrowHeldAt: new Date() })
+        .where(eq(projectsTable.id, project.id));
+
+      await tx.insert(transactionsTable).values({
+        userId,
+        type: 'SERVICE_PAYMENT',
+        amount: bid.amount,
+        description: `Held in escrow for project "${project.title}"`,
+        status: 'COMPLETED',
+      });
+    });
+  } catch (e) {
+    if (e instanceof Error && e.message === 'INSUFFICIENT_FUNDS') {
+      return res.status(400).json({ success: false, message: `You need ₹${Number(bid.amount).toLocaleString('en-IN')} in your wallet to accept this bid. Please add funds first.` });
+    }
+    return res.status(500).json({ success: false, message: 'Could not accept this bid. Please try again.' });
+  }
 
   // When the accepted proposal comes from a Grit Circle member, create a
   // STANDALONE project team chat (client + the full squad). This must NOT reuse
@@ -800,12 +826,51 @@ router.delete('/projects/:id', authenticate, async (req: Request, res: Response)
 
   if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
 
-  await db
-    .update(projectsTable)
-    .set({ status: 'CANCELLED' })
-    .where(eq(projectsTable.id, req.params.id as string));
+  // If this project was accepted with escrow, the client is no longer hiring
+  // anyone — return the held amount to their wallet before closing it.
+  const refundAmount = escrowRefundAmount(project);
+  try {
+    await db.transaction(async (tx) => {
+      if (refundAmount > 0) {
+        const refundResult = await tx.execute(
+          sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${refundAmount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${userId}`
+        );
+        if (refundResult.rowCount === 0) {
+          await tx.insert(freelanceWalletsTable).values({
+            userId,
+            balance: refundAmount,
+            updatedAt: new Date(),
+          });
+        }
+        await tx.insert(transactionsTable).values({
+          userId,
+          type: 'REFUND',
+          amount: refundAmount,
+          description: `Returned to your wallet — project "${project.title}" was cancelled`,
+          status: 'COMPLETED',
+        });
+      }
+      await tx
+        .update(projectsTable)
+        .set({ status: 'CANCELLED', escrowAmount: 0, escrowHeldAt: null })
+        .where(eq(projectsTable.id, req.params.id as string));
+    });
+  } catch (e) {
+    console.error('project cancel refund failed', e);
+    return res.status(500).json({ success: false, message: 'Could not cancel this project. Please try again.' });
+  }
 
-  return res.json({ success: true, message: 'Project cancelled' });
+  if (refundAmount > 0) {
+    await db.insert(notificationsTable).values({
+      userId,
+      type: 'PAYMENT_REFUNDED',
+      title: 'Payment returned',
+      message: `₹${refundAmount} held for "${project.title}" was returned to your wallet because the project was cancelled.`,
+      linkUrl: '/wallet.html',
+    }).catch(() => {});
+  }
+
+  return res.json({ success: true, message: refundAmount > 0 ? `Project cancelled. ₹${refundAmount} was returned to your wallet.` : 'Project cancelled' });
 });
 
 
@@ -1043,6 +1108,8 @@ router.post('/projects/:id/release-payment', authenticate, async (req: Request, 
   const _ab = project.acceptedBidId ? (await db.select().from(projectBidsTable).where(eq(projectBidsTable.id, project.acceptedBidId)).limit(1))[0] : null;
   if (!_ab) return res.status(400).json({ success: false, message: 'No accepted bid found' });
   const _pay = _ab.amount;
+  // True when the amount was already taken from the client at bid-accept time.
+  const escrowed = isEscrowHeld(project);
 
   // If the accepted bidder belongs to a Grit Circle, split the payout equally
   // among the members snapshotted at bid-accept time — never the live roster —
@@ -1103,11 +1170,17 @@ router.post('/projects/:id/release-payment', authenticate, async (req: Request, 
       if (claimResult.rowCount === 0) {
         throw new Error('ALREADY_COMPLETED');
       }
-      const deductResult = await tx.execute(
-        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${_pay}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${project.userId} AND balance >= ${_pay}`
-      );
-      if (deductResult.rowCount === 0) {
-        throw new Error("Insufficient funds");
+      // Escrow-aware deduction: when the bid was accepted with escrow the money
+      // was already taken from the client's wallet, so only credit the sellers.
+      // Projects accepted before escrow existed hold nothing, so deduct now —
+      // exactly as before, still guarded by `balance >= amount`.
+      if (!escrowed) {
+        const deductResult = await tx.execute(
+          sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${_pay}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${project.userId} AND balance >= ${_pay}`
+        );
+        if (deductResult.rowCount === 0) {
+          throw new Error("Insufficient funds");
+        }
       }
 
       for (const rc of creditRecipients) {

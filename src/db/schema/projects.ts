@@ -48,6 +48,12 @@ export const projectsTable = pgTable("projects", {
   acceptedBidId: uuid("accepted_bid_id"),
   zeroCommission: boolean("zero_commission").default(false).notNull(),
   squadSplitMembers: uuid("squad_split_members").array().default([]).notNull(),
+  // Escrow: the client's wallet is debited when a bid is accepted, so the
+  // agreed amount is genuinely committed and cannot be spent on another bid.
+  // release-payment skips the deduction when escrowHeldAt is set, and a
+  // cancelled project refunds escrowAmount back to the client.
+  escrowAmount: integer("escrow_amount").default(0).notNull(),
+  escrowHeldAt: timestamp("escrow_held_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

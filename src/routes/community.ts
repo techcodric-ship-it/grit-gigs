@@ -1,11 +1,12 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { eq, and, desc, count, sql, inArray, or, ilike, gt, gte, ne, type SQL } from "drizzle-orm";
-import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable, conversationsTable, messagesTable, communityOrdersTable, communityOrderDeliveriesTable, communityOrderReviewsTable, transactionsTable, freelanceWalletsTable, postBoostsTable, searchLogsTable } from "../db";
+import { eq, and, desc, count, sql, inArray, or, ilike, gt, gte, ne, not, type SQL } from "drizzle-orm";
+import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable, conversationsTable, messagesTable, communityOrdersTable, communityOrderDeliveriesTable, communityOrderReviewsTable, transactionsTable, freelanceWalletsTable, postBoostsTable, searchLogsTable, projectsTable, projectBidsTable, barterMatchesTable, barterRequestsTable } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { logger } from "../lib/logger";
 import { uploadToSupabase } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
 import { getCommunityQuota, consumeGigPost, consumeProposal, grantQuotaBundle, QUOTA_PLANS, FREE_GIG_POSTS, FREE_PROPOSALS, type QuotaPlanId } from "../lib/community-quota";
+import { resolveGigAmount, canAfford } from "../lib/wallet-guards";
 import { areConnected } from "../lib/connections";
 import { PLATFORM_COMMISSION_PCT } from "../lib/subscriptions";
 import multer from "multer";
@@ -747,6 +748,142 @@ router.get("/community/feed", optionalAuth, async (req: Request, res: Response):
   res.status(200).json({ success: true, data: { posts: rows } });
 });
 
+// ── GET /community/activity ────────────────────────────────────────────────
+// Real barter + project WORK, as opposed to posts asking for it. Explore used to
+// list only posts, so a completed barter or a finished project was invisible.
+// Barter and project activity is returned in its own buckets — never folded
+// into the Gigs bucket, because a barter is not a gig and a project is not a gig.
+//   ?kind=BARTER|PROJECT|ALL   &limit=..   &authorId=..
+// Completed, in-progress and open work is included; only states that represent
+// nothing happening (cancelled / rejected / declined) are left out.
+router.get("/community/activity", optionalAuth, async (req: Request, res: Response): Promise<void> => {
+  const wantKind = String(req.query.kind || "ALL").toUpperCase();
+  const limit = Math.min(48, Math.max(1, Number(req.query.limit) || 24));
+  const authorId = req.query.authorId ? String(req.query.authorId) : null;
+  const activity: any[] = [];
+
+  const people = async (ids: string[]) => {
+    const out: Record<string, any> = {};
+    const uniq = [...new Set(ids.filter(Boolean))];
+    if (!uniq.length) return out;
+    const rows = await db
+      .select({
+        id: usersTable.id,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+        profilePhoto: usersTable.profilePhoto,
+      })
+      .from(usersTable)
+      .where(inArray(usersTable.id, uniq));
+    for (const u of rows) out[u.id] = { id: u.id, firstName: u.firstName, lastName: u.lastName ?? "", profilePhoto: u.profilePhoto ?? null };
+    return out;
+  };
+
+  if (wantKind === "BARTER" || wantKind === "ALL") {
+    const rows = await db
+      .select({
+        id: barterMatchesTable.id,
+        status: barterMatchesTable.status,
+        user1Id: barterMatchesTable.user1Id,
+        user2Id: barterMatchesTable.user2Id,
+        createdAt: barterMatchesTable.createdAt,
+        updatedAt: barterMatchesTable.updatedAt,
+        req1: barterRequestsTable,
+      })
+      .from(barterMatchesTable)
+      .innerJoin(barterRequestsTable, eq(barterMatchesTable.request1Id, barterRequestsTable.id))
+      .where(
+        and(
+          not(inArray(barterMatchesTable.status, ["REJECTED", "CANCELLED"])),
+          ...(authorId
+            ? [or(eq(barterMatchesTable.user1Id, authorId), eq(barterMatchesTable.user2Id, authorId))]
+            : []),
+        ) as SQL
+      )
+      .orderBy(desc(barterMatchesTable.updatedAt))
+      .limit(limit);
+
+    const peopleMap = await people(rows.flatMap((r) => [r.user1Id, r.user2Id]));
+    for (const r of rows) {
+      activity.push({
+        type: "BARTER",
+        id: r.id,
+        status: r.status,
+        title: r.req1?.skillOffered || "Barter exchange",
+        subtitle: r.req1?.skillNeeded ? `Looking for: ${r.req1.skillNeeded}` : null,
+        description: r.req1?.description ?? null,
+        imageUrl: r.req1?.imageUrl ?? null,
+        partner: peopleMap[r.user1Id === authorId ? r.user2Id : r.user1Id] ?? null,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+        linkUrl: "/orders?tab=exchanges",
+      });
+    }
+  }
+
+  if (wantKind === "PROJECT" || wantKind === "ALL") {
+    const rows = await db
+      .select({
+        id: projectsTable.id,
+        title: projectsTable.title,
+        description: projectsTable.description,
+        category: projectsTable.category,
+        status: projectsTable.status,
+        budgetMin: projectsTable.budgetMin,
+        budgetMax: projectsTable.budgetMax,
+        imageUrl: projectsTable.imageUrl,
+        userId: projectsTable.userId,
+        acceptedBidId: projectsTable.acceptedBidId,
+        createdAt: projectsTable.createdAt,
+        updatedAt: projectsTable.updatedAt,
+      })
+      .from(projectsTable)
+      .where(
+        and(
+          not(eq(projectsTable.status, "CANCELLED")),
+          ...(authorId ? [eq(projectsTable.userId, authorId)] : []),
+        ) as SQL
+      )
+      .orderBy(desc(projectsTable.updatedAt))
+      .limit(limit);
+
+    const winnerIds = rows.map((r) => r.acceptedBidId).filter(Boolean) as string[];
+    let winners: Record<string, any> = {};
+    const bidById = new Map<string, string>();
+    if (winnerIds.length) {
+      const bids = await db
+        .select({ id: projectBidsTable.id, userId: projectBidsTable.userId })
+        .from(projectBidsTable)
+        .where(inArray(projectBidsTable.id, winnerIds));
+      for (const b of bids) bidById.set(b.id, b.userId);
+      winners = await people(bids.map((b) => b.userId));
+    }
+    const owners = await people(rows.map((r) => r.userId));
+
+    for (const r of rows) {
+      const winnerId = r.acceptedBidId ? bidById.get(r.acceptedBidId) : null;
+      activity.push({
+        type: "PROJECT",
+        id: r.id,
+        status: r.status,
+        title: r.title,
+        subtitle: r.category,
+        description: r.description,
+        budgetMin: r.budgetMin,
+        budgetMax: r.budgetMax,
+        imageUrl: r.imageUrl,
+        partner: (winnerId ? winners[winnerId] : null) ?? owners[r.userId] ?? null,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+        linkUrl: `/projects/${r.id}`,
+      });
+    }
+  }
+
+  activity.sort((a, b) => new Date(b.updatedAt ?? b.createdAt).getTime() - new Date(a.updatedAt ?? a.createdAt).getTime());
+  res.status(200).json({ success: true, data: { activity: activity.slice(0, limit) } });
+});
+
 // â”€â”€ GET /community/posts/:id â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get("/community/posts/:id", optionalAuth, async (req: Request, res: Response): Promise<void> => {
   const [post] = await db
@@ -1320,7 +1457,7 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
     return;
   }
 
-  // Clients ordering gigs is free forever; bids/proposals on projects and
+// Requesting a gig never costs a proposal quota; bids/proposals on projects and
   // barter offers draw from the monthly proposal quota (freelancer quota).
   if (post.kind === "PROJECT" || post.kind === "BARTER") {
     const q = await consumeProposal(meId);
@@ -1328,12 +1465,34 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
       res.status(402).json({
         success: false,
         code: "QUOTA_PROPOSAL",
-        message: `You've used all ${FREE_PROPOSALS} free proposals this month. 5 more = just ₹60.`,
+        message: `You've used all ${FREE_PROPOSALS} free proposals this month. 5 more = just ?60.`,
         usage: { proposals: { used: q.usage.proposalsUsed, free: q.usage.proposalsFree, bonus: q.usage.proposalsBonus, limit: FREE_PROPOSALS } },
       });
       return;
     }
   }
+
+// A client can only order a gig if their wallet can cover it. resolveGigAmount is
+  // shared with the unit tests so the amount we check is exactly the amount we
+  // store — a client cannot lower one without lowering the other.
+  const gigPrice = resolveGigAmount(post.kind, post.priceInr, amount);
+  if (gigPrice !== null && gigPrice > 0) {
+    const [buyerWallet] = await db
+      .select({ balance: freelanceWalletsTable.balance })
+      .from(freelanceWalletsTable)
+      .where(eq(freelanceWalletsTable.userId, meId))
+      .limit(1);
+    const walletBalance = buyerWallet?.balance ?? 0;
+    if (!canAfford(walletBalance, gigPrice)) {
+      res.status(400).json({
+        success: false,
+        code: "INSUFFICIENT_FUNDS",
+        message: `You need ₹${Number(gigPrice).toLocaleString("en-IN")} in your wallet to order this gig. You have ₹${Number(walletBalance).toLocaleString("en-IN")}. Please add funds first.`,
+      });
+      return;
+    }
+  }
+
 
   const [author] = await db
     .select({ id: usersTable.id, firstName: usersTable.firstName })
@@ -1347,12 +1506,12 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
 
   // GIG posts have a fixed price on the post. PROJECT proposals carry a bid.
   // BARTER is free by definition, so it never stores a monetary amount.
-  const finalAmount =
-    post.kind === "GIG"
-      ? post.priceInr ?? (Math.round(amount) || null)
-      : post.kind === "BARTER"
-        ? null
-        : Number.isFinite(amount) && amount > 0
+const finalAmount =
+      post.kind === "GIG"
+? gigPrice
+: post.kind === "BARTER"
+? null
+: Number.isFinite(amount) && amount > 0
           ? Math.round(amount)
           : null;
 

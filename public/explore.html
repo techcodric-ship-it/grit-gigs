@@ -145,13 +145,55 @@
     var url = '/community/feed?limit=48';
     if (kind) url += '&kind=' + encodeURIComponent(kind);
     if (q) url += '&q=' + encodeURIComponent(q);
-    c.api(url).then(function (r) {
+
+    // Gigs/Wins/Tips/Posts/Reels come from the feed. Barter and Project also show
+    // real work — completed and in-progress exchanges and projects — which lives
+    // outside the feed, so ask for it too. Each keeps its own bucket; none of it
+    // is merged into Gigs.
+    var wantsWork = !kind || kind === 'BARTER' || kind === 'PROJECT';
+    var aUrl = '/community/activity?limit=24';
+    if (kind) aUrl += '&kind=' + encodeURIComponent(kind);
+
+    Promise.all([
+      c.api(url),
+      wantsWork ? c.api(aUrl).catch(function () { return { ok: false }; }) : Promise.resolve({ ok: false })
+    ]).then(function (res) {
+      var r = res[0], ar = res[1];
       if (!r.ok) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1;"><h3>Could not load</h3></div>'; return; }
       var posts = (r.d.data && r.d.data.posts) || [];
-      if (!posts.length) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1;"><h3>Nothing found' + (q ? ' for "' + c.esc(q) + '"' : '') + '.</h3><p>Try a different search or tab.</p></div>'; return; }
+      var work = (ar && ar.ok && ar.d.data && ar.d.data.activity) || [];
+      if (!posts.length && !work.length) {
+        grid.innerHTML = '<div class="empty" style="grid-column:1/-1;"><h3>Nothing found' + (q ? ' for "' + c.esc(q) + '"' : '') + '.</h3><p>Try a different search or tab.</p></div>';
+        return;
+      }
       grid.innerHTML = '';
       posts.forEach(function (row) { grid.appendChild(tile(row)); });
+      work.forEach(function (a) { grid.appendChild(workTile(a)); });
     }).catch(function () { grid.innerHTML = '<div class="empty" style="grid-column:1/-1;"><h3>Network error</h3></div>'; });
+  }
+
+  var WORK_LABEL = {
+    PENDING: 'Matched', ACCEPTED: 'Accepted', IN_PROGRESS: 'In progress',
+    DELIVERED: 'Delivered', COMPLETED: 'Completed', REVISION_REQUESTED: 'Revisions',
+    OPEN: 'Open'
+  };
+
+  function workTile(a) {
+    var div = document.createElement('div');
+    div.className = 'tile';
+    var isBarter = a.type === 'BARTER';
+    var img = a.imageUrl
+      ? '<img src="' + c.esc(a.imageUrl) + '" loading="lazy"/>'
+      : '<div style="position:absolute;inset:0;display:grid;place-items:center;background:#efefef;font-size:30px;">' + (isBarter ? '🔁' : '🗂') + '</div>';
+    var who = a.partner ? ((a.partner.firstName || '') + ' ' + (a.partner.lastName || '')).trim() : null;
+    var sub = a.subtitle || (who ? 'with ' + who : '');
+    div.innerHTML =
+      img +
+      '<span class="kindtag">' + (isBarter ? 'BARTER' : 'PROJECT') + '</span>' +
+      '<span class="spot-ribbon work">' + c.esc(WORK_LABEL[a.status] || String(a.status || 'Active')) + '</span>' +
+      '<div class="over work"><span>' + c.esc((a.title || 'Untitled').slice(0, 60)) + '</span>' + (sub ? '<span>' + c.esc(String(sub).slice(0, 40)) + '</span>' : '') + '</div>';
+    if (a.linkUrl) div.addEventListener('click', function () { location.href = a.linkUrl; });
+    return div;
   }
 
   function tile(row) {
