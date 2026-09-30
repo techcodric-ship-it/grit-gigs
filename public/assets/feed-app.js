@@ -98,14 +98,17 @@
 
   function syncMe() {
     if (!token || !me || !me.id) return Promise.resolve(null);
-    return api('/users/' + encodeURIComponent(me.id)).then(function (res) {
+    // /auth/me is the authoritative account read for these prompts: it is the
+    // only endpoint that exists to return the signed-in account, and it carries
+    // phone / phoneVerified / onboardingComplete. The public /users/:id profile
+    // is a different shape (it nests the account under data.user and also
+    // returns gigs/reviews) and gets trimmed independently, so it must never
+    // decide whether a phone is on file. The old code also merged that whole
+    // payload, which left the cached phone stale forever and re-prompted on
+    // every sign-in.
+    return api('/auth/me').then(function (res) {
       var d = res.d;
       if (!d || !d.success || !d.data || !me) return null;
-      // The profile endpoint nests the account under data.user and also returns
-      // gigs/reviews, which must not be merged into the cached user. Merging the
-      // whole payload (the old behaviour) left the cached phone and
-      // onboardingComplete untouched forever, so a stale cache kept re-prompting
-      // for a phone the user had already given.
       var fresh = d.data.user;
       if (!fresh || !fresh.id) return null;
       var u = Object.assign({}, me, fresh);
@@ -193,6 +196,10 @@
   function needsPhone(u) { return !u || !u.phone; }
   function needsOnboarding(u) { return !!u && u.onboardingComplete === false; }
 
+  // Set only when the member explicitly skips the phone prompt, so it stops
+  // re-asking on every page of this visit. Cleared once a phone is saved.
+  var PHONE_SKIP_KEY = 'gg_phone_skipped';
+
   function phoneModalOpen() {
     var m = document.getElementById('phoneModal');
     return !!(m && m.classList.contains('open'));
@@ -241,6 +248,7 @@
       '<button class="ghost" id="phoneCancel">Sign out</button>' +
       '<button class="primary" id="phoneSubmit">Save &amp; continue</button>' +
       '</div>' +
+      '<button id="phoneSkip" type="button">Skip for now &mdash; add it later in Settings</button>' +
       '</div>';
     document.body.appendChild(m);
     var sub = m.querySelector('#phoneSubmit');
@@ -258,16 +266,24 @@
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
         body: JSON.stringify({ phone: phone }),
       }).then(function (r) { return r.json(); }).then(function (d) {
-        sub.disabled = false;
-        if (!d.success) { errEl.textContent = d.message || 'Could not save phone.'; return; }
-        m.classList.remove('open');
-        errEl.textContent = '';
-        toast('Phone saved!');
-        var u = getUser();
-        if (u) { u.phone = phone; localStorage.setItem('se_user', JSON.stringify(u)); me = u; }
-        refreshAuthedUI();
-        var fn = m._onDone;
-        if (typeof fn === 'function') { m._onDone = null; fn(); }
+        if (!d.success) { sub.disabled = false; errEl.textContent = d.message || 'Could not save phone.'; return; }
+        // Do not trust the write: re-read the account and only close once the
+        // server actually has the phone. Otherwise a silent no-op save leaves
+        // the user "signed up" and re-prompted on their next sign-in.
+        return syncMe().then(function (fresh) {
+          sub.disabled = false;
+          if (!fresh || !fresh.phone) {
+            errEl.textContent = 'Could not save that number. Please try again.';
+            return;
+          }
+          m.classList.remove('open');
+          errEl.textContent = '';
+          try { sessionStorage.removeItem(PHONE_SKIP_KEY); } catch (e) {}
+          toast('Phone saved!');
+          refreshAuthedUI();
+          var fn = m._onDone;
+          if (typeof fn === 'function') { m._onDone = null; fn(); }
+        });
       }).catch(function () { sub.disabled = false; errEl.textContent = 'Network error. Try again.'; });
     });
     var input0 = m.querySelector('#phoneInput');
@@ -278,11 +294,35 @@
       clearSession();
       location.href = '/';
     });
+    // A signed-in member must not be trapped: signing out was the only escape,
+    // which turned a missing phone into a sign-in loop. Skipping is remembered
+    // for this tab only, so it never nags again and still resets on a new visit.
+    var skip = m.querySelector('#phoneSkip');
+    if (skip) skip.addEventListener('click', function () {
+      try { sessionStorage.setItem(PHONE_SKIP_KEY, '1'); } catch (e) {}
+      m.classList.remove('open');
+      m._onDone = null;
+    });
     return m;
   }
+  function phonePromptSkipped() {
+    try { return sessionStorage.getItem(PHONE_SKIP_KEY) === '1'; } catch (e) { return false; }
+  }
   function openPhoneModal(opts) {
+    var force = !!(opts && opts.force);
+    // Every caller of this modal is an automatic post-authentication prompt, so
+    // honouring a skip for the rest of the tab is safe: no phone-dependent
+    // action routes through here. force:true is available if one ever does.
+    if (!force && phonePromptSkipped()) return;
     var m = ensurePhoneModal();
     m._onDone = opts && typeof opts.onDone === 'function' ? opts.onDone : null;
+    // Show the number already on file, so a member who did save it can see it is
+    // on their account rather than staring at an empty box.
+    var inp = document.getElementById('phoneInput');
+    var known = (me && me.phone) || (getUser() && getUser().phone);
+    if (inp && known && !inp.value) inp.value = known;
+    var errEl = document.getElementById('phoneErr');
+    if (errEl) errEl.textContent = '';
     m.classList.add('open');
     setTimeout(function () { var i = document.getElementById('phoneInput'); if (i) i.focus(); }, 60);
   }

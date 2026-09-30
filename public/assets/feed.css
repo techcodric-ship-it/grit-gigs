@@ -160,6 +160,10 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
 .grid .tile .over.work span:first-child { line-height: 1.25; }
 .grid .tile .over.work span + span { font-weight: 500; font-size: 11px; opacity: .85; }
 
+/* Phone prompt: a real escape that does not sign the member out. */
+#phoneSkip { display: block; width: 100%; margin-top: 4px; padding: 8px; background: none; border: 0; border-radius: 8px; color: var(--dusk); font-size: 12.5px; font-weight: 600; font-family: inherit; cursor: pointer; }
+#phoneSkip:hover { color: var(--ink); background: rgba(0,0,0,.03); }
+
 /* Feed: real barter/project work, in its own block above the post stream. */
 .work-block { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 18px; overflow: hidden; }
 .work-head { display: flex; align-items: center; justify-content: space-between; padding: 11px 16px; border-bottom: 1px solid var(--line); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); }
