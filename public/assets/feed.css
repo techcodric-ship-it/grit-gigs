@@ -159,6 +159,21 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
 .grid .tile .over.work { inset: auto 0 0 0; top: auto; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 2px; padding: 10px; background: linear-gradient(transparent, rgba(0,0,0,.72)); color: #fff; text-align: left; font-weight: 700; font-size: 12.5px; }
 .grid .tile .over.work span:first-child { line-height: 1.25; }
 .grid .tile .over.work span + span { font-weight: 500; font-size: 11px; opacity: .85; }
+
+/* Feed: real barter/project work, in its own block above the post stream. */
+.work-block { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 18px; overflow: hidden; }
+.work-head { display: flex; align-items: center; justify-content: space-between; padding: 11px 16px; border-bottom: 1px solid var(--line); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); }
+.work-head a { font-size: 11px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--blue); text-decoration: none; }
+.work-row { display: flex; align-items: center; gap: 12px; padding: 11px 16px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.work-row:last-child { border-bottom: 0; }
+.work-row:hover { background: rgba(0,0,0,.025); }
+.work-ic { flex: 0 0 34px; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: rgba(14,138,95,.12); font-size: 16px; }
+.work-main { min-width: 0; flex: 1; }
+.work-title { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.work-sub { font-size: 11.5px; color: var(--dusk); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.work-badge { flex: 0 0 auto; font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 999px; color: #fff; }
+.work-badge.bt { background: #0E8A5F; }
+.work-badge.pj { background: #6C3FE8; }
 @media (max-width: 640px) { .grid { grid-template-columns: repeat(3, 1fr); gap: 2px; } }
 .grid .tile .tile-share { position: absolute; bottom: 8px; right: 8px; width: 32px; height: 32px; border-radius: 50%; border: none; background: rgba(0,0,0,.6); color: #fff; font-size: 15px; line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 2; opacity: .92; }
 .grid .tile:hover .tile-share { opacity: 1; }
