@@ -101,7 +101,14 @@
     return api('/users/' + encodeURIComponent(me.id)).then(function (res) {
       var d = res.d;
       if (!d || !d.success || !d.data || !me) return null;
-      var u = Object.assign({}, me, d.data);
+      // The profile endpoint nests the account under data.user and also returns
+      // gigs/reviews, which must not be merged into the cached user. Merging the
+      // whole payload (the old behaviour) left the cached phone and
+      // onboardingComplete untouched forever, so a stale cache kept re-prompting
+      // for a phone the user had already given.
+      var fresh = d.data.user;
+      if (!fresh || !fresh.id) return null;
+      var u = Object.assign({}, me, fresh);
       localStorage.setItem('se_user', JSON.stringify(u));
       me = u;
       refreshAuthedUI();
@@ -173,28 +180,48 @@
 
   function openOnboarding() {
     if (obOpen()) return;
-    var u = getUser() || me;
+    var u = me || getUser();
     if (!window.GritOnboarding || !u) return;
     try { sessionStorage.setItem(OB_SEEN_KEY, u.id || '1'); } catch (e) {}
     window.GritOnboarding.open({ user: u, onDone: function () { refreshAuthedUI(); } });
   }
 
-  function maybeOnboard() {
+  // The phone modal and the profile popup must be driven by the SERVER's answer,
+  // never by a cached copy that may predate the user filling these in. Both are
+  // shown only while the server still reports the step as outstanding, so a
+  // returning user who signs in again is not asked a second time.
+  function needsPhone(u) { return !u || !u.phone; }
+  function needsOnboarding(u) { return !!u && u.onboardingComplete === false; }
+
+  function phoneModalOpen() {
+    var m = document.getElementById('phoneModal');
+    return !!(m && m.classList.contains('open'));
+  }
+
+  function setupProfile() {
     var u = getUser() || me;
+    if (!token || !u || !u.id) return Promise.resolve();
+    // Re-read the account first: the cached copy can be stale (e.g. the user
+    // added a phone in Settings, or finished onboarding on another device).
+    return syncMe().then(function (fresh) {
+      var acc = fresh || u;
+      if (needsPhone(acc)) {
+        if (!phoneModalOpen()) openPhoneModal({ onDone: maybeOnboard });
+        return;
+      }
+      maybeOnboard();
+    });
+  }
+
+  function maybeOnboard() {
+    var u = me || getUser();
     if (!token || !u || !u.id || !window.GritOnboarding) return;
-    if (u.onboardingComplete !== false) return;
+    if (!needsOnboarding(u)) return;
     if (obOpen()) return;
     var seen = null;
     try { seen = sessionStorage.getItem(OB_SEEN_KEY); } catch (e) {}
     if (seen === (u.id || '1')) return;
     openOnboarding();
-  }
-
-  function setupProfile() {
-    var u = getUser() || me;
-    if (!token || !u || !u.id) return;
-    if (!u.phone) { openPhoneModal({ onDone: maybeOnboard }); return; }
-    maybeOnboard();
   }
 
   // ── phone capture (compulsory) ──
@@ -1083,7 +1110,7 @@
     if (!regPhone.placeholder) regPhone.placeholder = 'Phone (WhatsApp)';
   }
 
-  if (token && me) syncMe().then(function () { setupProfile(); });
+  if (token && me) setupProfile();
 
   // ── realtime: likes / comments / posts / profile stats ──
   var statsHooks = window.communityStatsHooks = window.communityStatsHooks || [];
