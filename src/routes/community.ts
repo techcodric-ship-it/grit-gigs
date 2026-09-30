@@ -1015,6 +1015,18 @@ router.get("/community/users/:id", optionalAuth, async (req: Request, res: Respo
     .from(communityPostsTable)
     .where(eq(communityPostsTable.userId, user.id));
 
+  // Likes given and comments made drive the LIKED / COMMENTED tabs, so the
+  // header counters have to include them or those tabs look empty.
+  const [likesGiven] = await db
+    .select({ c: count() })
+    .from(communityLikesTable)
+    .where(eq(communityLikesTable.userId, user.id));
+
+  const [commentsMade] = await db
+    .select({ c: count() })
+    .from(communityCommentsTable)
+    .where(eq(communityCommentsTable.userId, user.id));
+
   const [followerCount] = await db
     .select({ c: count() })
     .from(communityFollowsTable)
@@ -1040,8 +1052,8 @@ router.get("/community/users/:id", optionalAuth, async (req: Request, res: Respo
     data: {
       user,
       posts: Number(postStats?.posts ?? 0),
-      likes: Number(postStats?.likes ?? 0),
-      comments: Number(postStats?.comments ?? 0),
+      likes: Number(postStats?.likes ?? 0) + Number(likesGiven?.c ?? 0),
+      comments: Number(postStats?.comments ?? 0) + Number(commentsMade?.c ?? 0),
       followers: Number(followerCount?.c ?? 0),
       followingCount: Number(followingCount?.c ?? 0),
       following,
@@ -1333,8 +1345,16 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
     return;
   }
 
-  // For a GIG post the price is fixed on the post (buyer may still send an amount for barter/projects)
-  const finalAmount = post.kind === "GIG" ? post.priceInr ?? (Math.round(amount) || null) : Number.isFinite(amount) && amount > 0 ? Math.round(amount) : null;
+  // GIG posts have a fixed price on the post. PROJECT proposals carry a bid.
+  // BARTER is free by definition, so it never stores a monetary amount.
+  const finalAmount =
+    post.kind === "GIG"
+      ? post.priceInr ?? (Math.round(amount) || null)
+      : post.kind === "BARTER"
+        ? null
+        : Number.isFinite(amount) && amount > 0
+          ? Math.round(amount)
+          : null;
 
   try {
     const [order] = await db

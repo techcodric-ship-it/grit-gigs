@@ -668,9 +668,12 @@
     m.dataset.post = post.id;
     m.dataset.amt = kind === 'GIG' ? String(post.priceInr || '') : '';
     var amtRow = document.getElementById('orderAmtRow');
-    if (amtRow) amtRow.style.display = kind === 'PROJECT' || kind === 'BARTER' ? '' : 'none';
+    if (amtRow) amtRow.style.display = kind === 'PROJECT' ? '' : 'none';
     var amt = document.getElementById('orderAmt');
-    if (amt) amt.placeholder = kind === 'PROJECT' ? 'Your bid (₹)' : kind === 'BARTER' ? 'Value you offer (₹, optional)' : '';
+    if (amt) {
+      amt.placeholder = kind === 'PROJECT' ? 'Your bid (₹)' : '';
+      if (kind !== 'PROJECT') amt.value = '';
+    }
     m.classList.add('open');
   }
 

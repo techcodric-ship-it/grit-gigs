@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, follow"/>
 <title>Profile — Grit&Gigs</title>
 <link rel="icon" href="/favicon.ico?v=7"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=7"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=1"/>
-<link rel="stylesheet" href="/assets/feed.css?v=20"/>
+<link rel="stylesheet" href="/assets/feed.css?v=21"/>
 <style>
 .pcard{background:#fff;border:1px solid #ececf0;border-radius:16px;margin-bottom:14px;overflow:hidden}
 .pbanner{height:120px;background:linear-gradient(115deg,#111 0%,#2b2b33 55%,#eab308 175%)}
@@ -255,7 +255,7 @@
   </div>
 </div>
 
-<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=22"></script>
+<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=23"></script>
 <script>
 (function () {
   var c = window.community;
@@ -392,7 +392,7 @@
       img = '<div style="position:absolute;inset:0;display:grid;place-items:center;background:#efefef;font-size:30px;">' + (kind === 'REEL' ? '▶' : '💬') + '</div>';
     }
     div.innerHTML = img + '<span class="kindtag">' + kind + '</span>' +
-      (kind === 'REEL' || med.type === 'video' ? '<span class="reel-ic">▶</span>' : '') +
+      ((kind === 'REEL' || (med && med.type === 'video')) ? '<span class="reel-ic">▶</span>' : '') +
       '<button class="tile-share" data-share="' + c.esc(p.id) + '" title="Share">↗</button>' +
       '<div class="over"><span>♥ ' + Number(p.likeCount || 0) + '</span><span>💬 ' + Number(p.commentCount || 0) + '</span></div>';
     var spotRib = '';
@@ -412,11 +412,17 @@
     var posts = (fr && fr.ok && fr.d && fr.d.data && fr.d.data.posts) || [];
     grid.innerHTML = '';
     if (!posts.length) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1;"><h3>' + emptyMsg + '</h3></div>'; return; }
-    posts.forEach(function (row) { grid.appendChild(tile(row)); });
+    posts.forEach(function (row) {
+      try { grid.appendChild(tile(row)); } catch (e) {}
+    });
+    if (!grid.children.length) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1;"><h3>' + emptyMsg + '</h3></div>'; }
   }
 
+  var activeTab = 'posts';
+  var tabTouched = false;
   function loadPosts(tab) {
     var url, emptyMsg;
+    activeTab = tab;
     if (tab === 'liked') { url = '/community/me/liked-posts?limit=30'; emptyMsg = 'No liked posts yet.'; }
     else if (tab === 'commented') { url = '/community/me/commented-posts?limit=30'; emptyMsg = 'No commented posts yet.'; }
     else { url = '/community/feed?authorId=' + encodeURIComponent(profId) + '&limit=30'; emptyMsg = 'No posts yet.'; }
@@ -483,11 +489,23 @@
       '<div class="kycsub">Accepted: Aadhaar, PAN, Voter ID, Driving License, Passport or any other government ID — JPG, PNG or PDF up to 10 MB.</div>' +
       '<div class="kycform">' +
         '<div class="kycfields">' +
-          '<div class="kycfield"><label>Document type</label><select id="kycDocType">' +
+          '<div class="kycfield"><label for="kycDocType">Document type</label><select id="kycDocType">' +
             '<option>Aadhaar card</option><option>PAN card</option><option>Voter ID</option>' +
             '<option>Driving License</option><option>Passport</option><option>Other Government ID</option>' +
           '</select></div>' +
-          '<div class="kycfield"><label>Document file</label><input type="file" id="kycFile" accept=".jpg,.jpeg,.png,.pdf"/></div>' +
+          '<div class="kycfield"><label>Document file</label>' +
+            '<label class="kyc-drop" for="kycFile" id="kycDrop">' +
+              '<span class="kyc-drop-ic" aria-hidden="true">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' +
+                '<path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>' +
+                '</svg>' +
+              '</span>' +
+              '<span class="kyc-drop-tx"><b id="kycDropName">Choose a file</b>' +
+              '<em>or drag &amp; drop — JPG, PNG, PDF up to 10 MB</em></span>' +
+              '<span class="kyc-drop-btn">Browse</span>' +
+            '</label>' +
+            '<input type="file" id="kycFile" accept=".jpg,.jpeg,.png,.pdf" hidden/>' +
+          '</div>' +
         '</div>' +
         '<div class="kycerr" id="kycErr"></div>' +
         '<div class="kycactions"><button class="kycbtn" id="kycSubmit">Submit for review</button>' +
@@ -495,9 +513,35 @@
       '</div>';
   }
 
+  function bindKycDrop() {
+    var input = $('kycFile');
+    var box = $('kycDrop');
+    var name = $('kycDropName');
+    if (!input || !box) return;
+    var setFile = function (f) {
+      if (!name) return;
+      name.textContent = f ? f.name : 'Choose a file';
+      box.classList.toggle('has-file', !!f);
+    };
+    input.addEventListener('change', function () { setFile(input.files && input.files[0]); });
+    ['dragenter', 'dragover'].forEach(function (e) {
+      box.addEventListener(e, function (ev) { ev.preventDefault(); box.classList.add('over'); });
+    });
+    ['dragleave', 'drop'].forEach(function (e) {
+      box.addEventListener(e, function (ev) { ev.preventDefault(); box.classList.remove('over'); });
+    });
+    box.addEventListener('drop', function (ev) {
+      var f = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0];
+      if (!f) return;
+      try { input.files = ev.dataTransfer.files; } catch (e) {}
+      setFile(f);
+    });
+  }
+
   function bindKycForm() {
     var btn = $('kycSubmit');
     if (!btn) return;
+    bindKycDrop();
     btn.addEventListener('click', function () {
       var err = $('kycErr');
       var file = $('kycFile').files && $('kycFile').files[0];
@@ -670,6 +714,7 @@
         document.querySelectorAll('[data-ptab]').forEach(function (el) {
           if (el.getAttribute('data-ptab') !== 'posts') el.style.display = '';
           el.addEventListener('click', function () {
+            tabTouched = true;
             document.querySelectorAll('[data-ptab]').forEach(function (x) { x.classList.remove('on'); });
             el.classList.add('on');
             loadPosts(el.getAttribute('data-ptab'));
@@ -702,7 +747,7 @@
       } else if (curMe && curMe.id === profId) {
         btn.style.display = 'none';
       }
-      loadPosts('posts');
+      if (!tabTouched) loadPosts('posts');
       loadReviews();
     });
   }
@@ -720,7 +765,7 @@
     if (typeof nn.commentCount === 'number' && spans[1]) spans[1].textContent = '💬 ' + Number(nn.commentCount).toLocaleString('en-IN');
   };
   window.communityFeedDelegates.onPost = function (authorId) {
-    if (authorId === profId) { refreshProfileRealtime(); loadPosts('posts'); }
+    if (authorId === profId) { refreshProfileRealtime(); loadPosts(activeTab); }
   };
   window.communityStatsHooks = window.communityStatsHooks || [];
   window.communityStatsHooks.push(function (uid) {
