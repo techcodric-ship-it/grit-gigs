@@ -372,6 +372,18 @@
     return days + 'd';
   }
   function kindCode(k) { return { GIG: 'GIG', BARTER: 'BARTER', WIN: 'WIN', TIPS: 'TIPS', POST: 'POST', REEL: 'REEL', PROJECT: 'PROJECT' }[k] || 'POST'; }
+
+  // Status of the real work behind a BARTER / PROJECT post, from the server.
+  // closed:true means a bid would be wasted, so the bid button is suppressed.
+  var WORK_STATES = {
+    OPEN: { label: 'Open for offers', cls: 'open', closed: false, cta: '', note: '' },
+    PENDING: { label: 'Offers pending', cls: 'pending', closed: false, cta: '', note: 'waiting on the poster' },
+    IN_PROGRESS: { label: 'Work in progress', cls: 'busy', closed: true, cta: 'Work already in progress', note: 'do not bid' },
+    REVISION: { label: 'Revisions in progress', cls: 'busy', closed: true, cta: 'Revisions in progress', note: 'do not bid' },
+    DELIVERED: { label: 'Delivered', cls: 'busy', closed: true, cta: 'Already delivered', note: 'awaiting approval' },
+    COMPLETED: { label: 'Completed', cls: 'done', closed: true, cta: 'This work is completed', note: 'no longer accepting offers' }
+  };
+  function workStatusInfo(s) { return (s && WORK_STATES[s]) ? WORK_STATES[s] : null; }
   function mediaOf(p) { return (p && p.media && p.media.length) ? p.media : []; }
   function primeMedia(row) {
     var p = row.post || row;
@@ -398,6 +410,7 @@
     var el = document.createElement('div');
     el.className = 'card' + (kind === 'REEL' ? ' reel-card' : '');
     el.dataset.id = p.id;
+    el.dataset.kind = kind;
     if (row.spotlight) el.classList.add('spotlight');
 
     var spotFlag = row.spotlight ? '<div class="spot-promo"><span>✦ BOOSTED</span><span class="spot-promo-sub">Promoted</span></div>' : '';
@@ -437,11 +450,27 @@
       }
     }
 
+    // Work status sits directly on BARTER / PROJECT posts. Freelancers were
+    // bidding on work that was already finished or underway, so the state of the
+    // work behind the post is stated on the post itself, and the bid button is
+    // replaced with the reason it is closed. GIG posts are untouched.
+    var ws = (kind === 'BARTER' || kind === 'PROJECT') ? workStatusInfo(row.workStatus) : null;
+    var workBar = ws ? '<div class="work-state ' + ws.cls + '"><span class="ws-dot"></span>' + esc(ws.label) +
+      (ws.note ? '<span class="ws-note">' + esc(ws.note) + '</span>' : '') + '</div>' : '';
+
     // optional action buttons below media (for GIG/PROJECT/BARTER)
     var cta = '';
     if (kind === 'GIG' && token && !isMine) cta = '<button class="big-cta" data-order="' + esc(p.id) + '">Send order</button>';
-    if (kind === 'PROJECT' && token && !isMine) cta = '<button class="big-cta" data-bid="' + esc(p.id) + '">Bid on project</button>';
-    if (kind === 'BARTER' && token && !isMine) cta = '<button class="big-cta" data-offer="' + esc(p.id) + '">Make an offer</button>';
+    if (kind === 'PROJECT' && token && !isMine) {
+      cta = ws && ws.closed
+        ? '<div class="big-cta closed-cta">' + esc(ws.cta) + '</div>'
+        : '<button class="big-cta" data-bid="' + esc(p.id) + '">Bid on project</button>';
+    }
+    if (kind === 'BARTER' && token && !isMine) {
+      cta = ws && ws.closed
+        ? '<div class="big-cta closed-cta">' + esc(ws.cta) + '</div>'
+        : '<button class="big-cta" data-offer="' + esc(p.id) + '">Make an offer</button>';
+    }
 
     var tagsHtml = (p.tags && p.tags.length) ? p.tags.map(function (t) { return '<a href="/explore.html?q=' + encodeURIComponent(t) + '">#' + esc(t) + '</a> '; }).join('') : '';
 
@@ -472,6 +501,7 @@
         followBtn +
       '</div>' +
       mediaHtml +
+      workBar +
       (cta ? '<div style="padding:0 16px 8px;">' + cta + '</div>' : '') +
       spotCtl +
       '<div class="card-actions">' +
@@ -1080,6 +1110,7 @@
     mediaOf: mediaOf,
     primeMedia: primeMedia,
     renderPost: renderPost,
+    workStatusInfo: workStatusInfo,
     domComment: domComment,
     openModal: openModal,
     closeModals: closeModals,

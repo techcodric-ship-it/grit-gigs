@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, follow"/>
 <title>Grit&Gigs — Feed</title>
 <link rel="icon" href="/favicon.ico?v=8"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=8"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=8"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=8"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2"/>
-<link rel="stylesheet" href="/assets/feed.css?v=22"/>
+<link rel="stylesheet" href="/assets/feed.css?v=23"/>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
@@ -196,7 +196,7 @@
   </div>
 </div>
 
-<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=24"></script>
+<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=25"></script>
 <script>
 (function () {
   var c = window.community;
@@ -410,58 +410,16 @@
 
   // -- feed --
   var postsEl = $('posts');
-  var WORK_LABEL = {
-    PENDING: 'Matched', ACCEPTED: 'Accepted', IN_PROGRESS: 'In progress',
-    DELIVERED: 'Delivered', COMPLETED: 'Completed', REVISION_REQUESTED: 'Revisions',
-    OPEN: 'Open'
-  };
-
-  // Real barter + project work, shown as its own clearly-labelled block above the
-  // posts so the status is visible without mixing work records into the social
-  // stream. Same source Explore uses, so both pages agree.
-  function renderWorkBlock(items) {
-    var wrap = document.createElement('div');
-    wrap.className = 'work-block';
-    var head = document.createElement('div');
-    head.className = 'work-head';
-    head.innerHTML = '<span>Barter &amp; project work</span><a href="/explore">See all</a>';
-    wrap.appendChild(head);
-
-    items.forEach(function (a) {
-      var isBarter = a.type === 'BARTER';
-      var who = a.partner ? ((a.partner.firstName || '') + ' ' + (a.partner.lastName || '')).trim() : null;
-      var it = document.createElement('div');
-      it.className = 'work-row';
-      it.innerHTML =
-        '<div class="work-ic">' + (isBarter ? '&#128260;' : '&#128193;') + '</div>' +
-        '<div class="work-main">' +
-          '<div class="work-title">' + c.esc(a.title || 'Untitled') + '</div>' +
-          '<div class="work-sub">' + c.esc((isBarter ? 'Barter' : 'Project') + (who ? ' with ' + who : '') + (a.subtitle ? ' · ' + a.subtitle : '')) + '</div>' +
-        '</div>' +
-        '<span class="work-badge ' + (isBarter ? 'bt' : 'pj') + '">' + c.esc(WORK_LABEL[a.status] || String(a.status || 'Active')) + '</span>';
-      if (a.linkUrl) it.addEventListener('click', function () { location.href = a.linkUrl; });
-      wrap.appendChild(it);
-    });
-    return wrap;
-  }
-
   function loadFeed(kind) {
     postsEl.innerHTML = '<div class="loading">Loading feed…</div>';
     var url = '/community/feed?limit=25' + (kind ? '&kind=' + encodeURIComponent(kind) : '');
-    // Only the unfiltered feed carries the work block; a kind-filtered feed is
-    // already scoped to one kind of post.
-    var wantsWork = !kind;
-    Promise.all([
-      c.api(url),
-      wantsWork ? c.api('/community/activity?limit=6').catch(function () { return { ok: false }; }) : Promise.resolve({ ok: false })
-    ]).then(function (res) {
-      var r = res[0], ar = res[1];
+    c.api(url).then(function (r) {
       if (!r.ok) { postsEl.innerHTML = '<div class="empty"><h3>Could not load the feed</h3><p>' + c.esc(r.d.message || '') + '</p></div>'; return; }
       var posts = (r.d.data && r.d.data.posts) || [];
-      var work = (ar && ar.ok && ar.d.data && ar.d.data.activity) || [];
-      if (!posts.length && !work.length) { postsEl.innerHTML = '<div class="empty"><h3>The feed is fresh.</h3><p>Be the first to share a win, gig, or question.</p></div>'; return; }
+      if (!posts.length) { postsEl.innerHTML = '<div class="empty"><h3>The feed is fresh.</h3><p>Be the first to share a win, gig, or question.</p></div>'; return; }
       postsEl.innerHTML = '';
-      if (work.length) postsEl.appendChild(renderWorkBlock(work));
+      // Each BARTER / PROJECT post carries its own work status, so the state of
+      // the work is visible right on the post rather than in a separate list.
       posts.forEach(function (row) { postsEl.appendChild(c.renderPost(row)); });
     }).catch(function () { postsEl.innerHTML = '<div class="empty"><h3>Network error</h3></div>'; });
   }

@@ -283,6 +283,10 @@ interface PostRowShape {
     createdAt: Date;
     author: { id: string; firstName: string; lastName: string; profilePhoto: string | null };
   }[];
+  // State of the work behind a BARTER / PROJECT post, so the UI can warn a
+  // freelancer before they bid on something already finished or underway.
+  // null for every other kind.
+  workStatus: "OPEN" | "PENDING" | "IN_PROGRESS" | "REVISION" | "DELIVERED" | "COMPLETED" | null;
   spotlight?: { expiresAt: string; tags: string[] };
   mySpotlight?: { expiresAt: string; tags: string[]; extendCount: number };
 }
@@ -345,9 +349,69 @@ async function loadCommentAuthors(commentRows: (typeof communityCommentsTable.$i
   return map;
 }
 
+// ── work status for BARTER / PROJECT posts ─────────────────────────────────
+// A project or barter post is a standing ask for work. Freelancers were bidding
+// on things that were already finished or already underway, so each post now
+// reports the state of the work behind it and the client shows it on the post.
+//
+// States come from community_orders for that post: the most recently updated
+// live order wins, so a post that is live again (a new proposal) reads as open
+// even if an earlier order on it completed, and a post with work underway never
+// looks biddable. A post with no live order is still open for offers.
+type WorkStatus = "OPEN" | "PENDING" | "IN_PROGRESS" | "REVISION" | "DELIVERED" | "COMPLETED";
+const WORK_LIVE: Record<string, WorkStatus> = {
+  PENDING: "PENDING",
+  IN_PROGRESS: "IN_PROGRESS",
+  REVISION: "REVISION",
+  DELIVERED: "DELIVERED",
+  COMPLETED: "COMPLETED",
+};
+
+async function loadWorkStatus(
+  posts: typeof communityPostsTable.$inferSelect[],
+): Promise<Map<string, WorkStatus>> {
+  const out = new Map<string, WorkStatus>();
+  const ids = posts.filter((p) => p.kind === "BARTER" || p.kind === "PROJECT").map((p) => p.id);
+  // No orders at all is the normal state for a fresh post: it is open for offers.
+  for (const id of ids) out.set(id, "OPEN");
+  if (!ids.length) return out;
+
+  let rows: { postId: string; status: string; updatedAt: Date }[] = [];
+  try {
+    rows = await db
+      .select({
+        postId: communityOrdersTable.postId,
+        status: communityOrdersTable.status,
+        updatedAt: communityOrdersTable.updatedAt,
+      })
+      .from(communityOrdersTable)
+      .where(inArray(communityOrdersTable.postId, ids));
+  } catch (err) {
+    // Never let a status lookup break the feed. These are the normal
+    // "no orders yet" values, not a guess: nothing is underway.
+    logger.warn({ err }, "work status lookup failed; posts render as open");
+    return out;
+  }
+
+  const latest = new Map<string, number>();
+  for (const r of rows) {
+    // CANCELLED means nothing is happening, so it never counts towards the state.
+    const live = WORK_LIVE[r.status];
+    if (!live) continue;
+    const at = r.updatedAt ? new Date(r.updatedAt).getTime() : 0;
+    if (at >= (latest.get(r.postId) ?? -1)) {
+      latest.set(r.postId, at);
+      out.set(r.postId, live);
+    }
+  }
+  return out;
+}
+
 async function renderPosts(rawPosts: typeof communityPostsTable.$inferSelect[], currentUserId: string | undefined, limitComments = 2): Promise<PostRowShape[]> {
   const postIds = rawPosts.map((p) => p.id);
   const authorIds = [...new Set(rawPosts.map((p) => p.userId))];
+
+  const workStatusByPost = await loadWorkStatus(rawPosts);
 
   let authors: { id: string; firstName: string; lastName: string; profilePhoto: string | null; email: string | null; city: string | null; reputationScore: number }[] = [];
   if (authorIds.length) {
@@ -388,6 +452,7 @@ async function renderPosts(rawPosts: typeof communityPostsTable.$inferSelect[], 
       likedByMe: likedSet.has(post.id),
       followingAuthor: followingSet.has(post.userId),
       comments,
+      workStatus: workStatusByPost.get(post.id) ?? null,
     };
   });
 

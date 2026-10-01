@@ -201,6 +201,9 @@
     var a = row.author || {};
     var med = c.primeMedia(row);
     var kind = c.kindCode(p.kind);
+    // Status of the real work behind a BARTER / PROJECT post, so nobody bids on
+    // something already finished or underway. GIG posts are untouched.
+    var ws = (kind === 'BARTER' || kind === 'PROJECT') ? c.workStatusInfo(row.workStatus) : null;
     var div = document.createElement('div');
     div.className = 'tile';
     var img;
@@ -227,6 +230,8 @@
       spotRib = '<span class="spot-ribbon mine">✦ ' + (spH >= 24 ? Math.floor(spH / 24) + 'd' : spH + 'h') + ' left</span>';
     }
     if (spotRib) div.insertAdjacentHTML('afterbegin', spotRib);
+    // Work-status ribbon on the tile itself, so it reads without opening the post.
+    if (ws) div.insertAdjacentHTML('afterbegin', '<span class="work-ribbon ' + ws.cls + '">' + c.esc(ws.label) + '</span>');
     div.addEventListener('click', function () { c.openPost(p.id); });
     var tb = div.querySelector('.tile-share');
     if (tb) tb.addEventListener('click', function (e) { e.stopPropagation(); c.share(p.id); });
