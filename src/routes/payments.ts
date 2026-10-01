@@ -135,7 +135,7 @@ router.post("/payments/webhook", async (req: Request, res: Response): Promise<vo
     await db.transaction(async (tx) => {
       const updResult = await tx
         .update(transactionsTable)
-        .set({ status: "COMPLETED", gatewayTxnId: paymentId, updatedAt: new Date() })
+        .set({ status: "COMPLETED", gatewayTxnId: paymentId, description: `Wallet top-up ₹${amtInr}`, updatedAt: new Date() })
         .where(and(eq(transactionsTable.id, pending.id), eq(transactionsTable.status, "PENDING")));
       if (updResult.rowCount === 0) return;
       await tx.execute(

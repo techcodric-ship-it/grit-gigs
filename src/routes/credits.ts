@@ -165,7 +165,10 @@ router.post("/credits/verify-payment", authenticate, async (req: Request, res: R
   await db.transaction(async (tx) => {
     const updResult = await tx
       .update(transactionsTable)
-      .set({ status: "COMPLETED", gatewayTxnId: razorpayPaymentId || "", updatedAt: new Date() })
+      // The description is the title the member sees in their wallet history, and
+      // it is written as "Pending ..." when the order is created. Rewrite it on
+      // settle so a successful top-up never reads as pending.
+      .set({ status: "COMPLETED", gatewayTxnId: razorpayPaymentId || "", description: `Wallet top-up ₹${amtInr}`, updatedAt: new Date() })
       .where(and(eq(transactionsTable.id, txn.id), eq(transactionsTable.status, "PENDING")));
     if (updResult.rowCount === 0) return; // already processed by concurrent request
     credited = true;
@@ -229,7 +232,7 @@ router.get("/credits/check-order/:orderId", authenticate, async (req: Request, r
           await db.transaction(async (tx) => {
             const claim = await tx
               .update(transactionsTable)
-              .set({ status: "COMPLETED", gatewayTxnId: captured.id, updatedAt: new Date() })
+              .set({ status: "COMPLETED", gatewayTxnId: captured.id, description: `Wallet top-up ₹${txn.amount}`, updatedAt: new Date() })
               .where(and(eq(transactionsTable.id, txn.id), eq(transactionsTable.status, "PENDING")));
             if (claim.rowCount === 0) return;
             const addResult = await tx.execute(
@@ -292,7 +295,7 @@ router.post("/credits/check-pending", authenticate, async (req: Request, res: Re
         await db.transaction(async (tx) => {
           const claim = await tx
             .update(transactionsTable)
-            .set({ status: "COMPLETED", gatewayTxnId: captured.id, updatedAt: new Date() })
+            .set({ status: "COMPLETED", gatewayTxnId: captured.id, description: `Wallet top-up ₹${txn.amount}`, updatedAt: new Date() })
             .where(and(eq(transactionsTable.id, txn.id), eq(transactionsTable.status, "PENDING")));
           if (claim.rowCount === 0) return;
           const addResult = await tx.execute(
