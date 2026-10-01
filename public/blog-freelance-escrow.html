@@ -5,19 +5,19 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>What is Escrow and How It Protects Freelancers in India — Grit&Gigs</title>
-<meta name="description" content="Learn how escrow payment protection works for freelancers in India. Secure payments, dispute resolution, and why escrow is essential for freelance work."/>
-<meta name="keywords" content="escrow payment India, freelance payment protection, secure payment freelancing, escrow for freelancers, Razorpay escrow"/>
+<meta name="description" content="How escrow actually works on Grit&amp;Gigs: the client must fund a bid before accepting it, the amount is debited at acceptance and released on delivery. Includes what escrow does not solve."/>
+<meta name="keywords" content="escrow payment India, freelance payment protection, secure payment freelancing, escrow for freelancers, how escrow works, client funds bid before accepting"/>
 <link rel="stylesheet" href="css/main.css"/>
 <link rel="canonical" href="https://www.gritandgigs.in/blog-freelance-escrow"/>
 <meta property="og:type" content="article"/>
 <meta property="og:url" content="https://www.gritandgigs.in/blog-freelance-escrow"/>
 <meta property="og:title" content="What is Escrow and How It Protects Freelancers in India"/>
-<meta property="og:description" content="Escrow protects both freelancers and clients by holding payments securely until work is approved. Here's how it works on Grit&Gigs and why it matters."/>
+<meta property="og:description" content="Escrow protects both sides, but only if the money actually moves. Here's how it works on Grit&Gigs, and the file-reuse gap it doesn't solve."/>
 <meta property="og:site_name" content="Grit&Gigs"/>
 <meta property="og:locale" content="en_IN"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="What is Escrow and How It Protects Freelancers in India"/>
-<meta name="twitter:description" content="Escrow payment protection explained for Indian freelancers. How Grit&Gigs uses Razorpay escrow to keep payments secure."/>
+<meta name="twitter:description" content="How Grit&amp;Gigs escrow works: clients fund a bid before accepting it, money is debited at acceptance and released on delivery. And what it does not protect."/>
 <meta property="og:image" content="https://www.gritandgigs.in/logo-og.png?v=3"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
@@ -114,32 +114,41 @@
   <p>Escrow protects freelancers from non-payment and protects clients from incomplete or substandard work. It's the most trusted payment model in online freelancing.</p>
 
   <h2>How Escrow Works on Grit&Gigs</h2>
-  <p>Grit&Gigs uses Razorpay-powered escrow for all freelance transactions. Here's the step-by-step flow:</p>
+  <p>Escrow here is enforced by the client's own Grit&amp;Gigs wallet, and the money moves at bid-accept time — before any work starts. Here is the actual flow:</p>
   <ul>
-    <li><strong>1. Client hires a freelancer</strong> — The client selects a gig and places an order.</li>
-    <li><strong>2. Payment is held in escrow</strong> — The client pays upfront, but the money is held securely by Razorpay. The freelancer can see the funds are available.</li>
-    <li><strong>3. Freelancer delivers work</strong> — The freelancer completes the work and submits it through the platform.</li>
-    <li><strong>4. Client approves</strong> — The client reviews the work. If satisfied, they approve it. The payment is released to the freelancer's wallet.</li>
-    <li><strong>5. Dispute resolution if needed</strong> — If there's a disagreement, Grit&Gigs mediates and decides the fair outcome based on evidence.</li>
+    <li><strong>1. Client funds their wallet</strong> — The client tops up via UPI, card, or net banking. Razorpay processes this top-up; it is the payment gateway, not the escrow account.</li>
+    <li><strong>2. Client accepts a bid</strong> — The bid amount is checked against the client's wallet balance. If it isn't there, the acceptance is rejected. If it is, the money is debited from the client's balance in the same operation that marks the bid as accepted.</li>
+    <li><strong>3. Work begins</strong> — The freelancer can see the agreed amount is already committed, so there is no exposure on the freelancer's side for the payment itself.</li>
+    <li><strong>4. Freelancer delivers</strong> — Work is submitted and the project moves to delivered.</li>
+    <li><strong>5. Client releases payment</strong> — The freelancer is credited (minus platform commission) only after delivery, and the release is blocked if the project has not been delivered.</li>
+    <li><strong>6. If a project is cancelled</strong> — Any amount held is returned to the client's wallet automatically, with a transaction record explaining it.</li>
   </ul>
+  <p>Because the deduction and the acceptance happen together atomically, a client cannot accept several bids they could never collectively pay for. Each acceptance must be funded at the moment it happens.</p>
+
+  <h2>What Escrow Does Not Solve</h2>
+  <p>Being direct about the limits: escrow protects the <em>payment</em>, not the <em>files</em>. Once final source files, logos, or a completed website are in a client's hands, nothing technical prevents reuse, resale, or re-uploading. Watermarked, domain-locked previews released as clean originals only when payment clears is the fix — it is not built yet. If your work is easy to copy, escrow is necessary but not sufficient on its own.</p>
+  <p>We would rather say that plainly than let a marketing page imply escrow solves a problem it does not. <a href="/blog-escrow-truth-honest-guide">Read the full breakdown</a>, including the loophole we found in our own design and how we closed it.</p>
 
   <h2>Why Indian Freelancers Need Escrow</h2>
   <p>Indian freelancers face unique challenges. Many clients are small businesses or individuals who prefer paying after work is done — which leaves freelancers vulnerable. Up to 30% of Indian freelancers report being ghosted without payment at least once.</p>
-  <p>Escrow eliminates this risk. The freelancer knows the money is there before they start. The client knows their funds aren't released until they're satisfied. It builds trust in a market where trust is often the biggest barrier.</p>
+  <p>Escrow eliminates the payment risk. Because the amount leaves the client's wallet when the bid is accepted, the freelancer starts work knowing the money is already committed — and the client cannot accept work they have not funded. It builds trust in a market where trust is often the biggest barrier.</p>
+  <p>What remains is the file-reuse problem, which is a different problem with a different fix. See <a href="/blog-escrow-truth-honest-guide">the honest breakdown</a>.</p>
 
   <h2>Escrow vs Other Payment Methods</h2>
   <ul>
     <li><strong>Bank transfer / UPI</strong> — Once sent, you can't get the money back. No protection for either party.</li>
     <li><strong>Advance payment</strong> — Client takes all the risk. If the freelancer disappears, the client loses everything.</li>
     <li><strong>Post-delivery payment</strong> — Freelancer takes all the risk. Client can ghost after receiving work.</li>
-    <li><strong>Escrow</strong> — Both parties are protected. Payment is only released when both sides agree the work is complete.</li>
+    <li><strong>"We'll hold it for you"</strong> — A record claiming funds are in escrow, with no rule about when money can leave. This is the most common version and it protects almost nobody.</li>
+    <li><strong>Funded escrow (Grit&amp;Gigs)</strong> — The client's balance is debited at acceptance, so the money is already committed before work starts. The freelancer is credited on delivery release. The client cannot accept work they haven't paid for.</li>
   </ul>
+  <p>The distinction that matters: between a promise that funds are held and money that has actually left an account the client controls. Ask any platform which one they mean.</p>
 
   <h2>Is Escrow Safe?</h2>
-  <p>Yes. Grit&Gigs escrow is powered by Razorpay, one of India's largest and most trusted payment gateways. All transactions are encrypted, and funds are held in secure accounts. The platform also verifies both parties and maintains a record of all communications and deliveries for dispute resolution.</p>
+  <p>Wallet funding is processed by Razorpay, one of India's largest and most trusted payment gateways, so top-ups are encrypted and settled through standard rails. The escrow itself is arithmetic on your own wallet balance, not a third-party custody account: the amount is debited at bid acceptance and credited to the freelancer on delivery release. Because the deduction is conditional on the balance still being sufficient at that instant, bids accepted in parallel cannot overspend the same funds.</p>
 
-  <h2>Fees and Payouts</h2>
-  <p>Grit&Gigs charges a nominal platform fee on completed transactions. Barter trades are completely free. Standard payouts to freelancers are processed within 1-2 business days via UPI or bank transfer. There are no hidden charges.</p>
+  <h2>Commission, Not Escrow Fees</h2>
+  <p>There is no fee for holding funds in escrow. Commission is charged on the payout when a project is released, and it comes out of the freelancer's share, not on top of the client's agreed amount. Barter trades are free. Withdrawals from your wallet are processed via UPI or bank transfer, and the minimum withdrawal threshold is ₹100. There are no hidden charges on the escrow itself.</p>
 
   <h2>Start Freelancing with Escrow Protection</h2>
   <p>If you're a freelancer tired of chasing payments, or a client tired of paying upfront for poor results — Grit&Gigs escrow is the solution. <a href="/?signup=1">Create your free account</a> and start working with confidence.</p>
