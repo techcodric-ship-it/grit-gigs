@@ -325,8 +325,10 @@ router.post("/credits/check-pending", authenticate, async (req: Request, res: Re
           }
         }
         if (shouldFail) {
+          // Same reasoning as the COMPLETED paths: the description is the label
+          // the member reads, so a failed attempt must not still say "Pending".
           await db.update(transactionsTable)
-            .set({ status: "FAILED", updatedAt: new Date() })
+            .set({ status: "FAILED", description: `Failed top-up ₹${txn.amount}`, updatedAt: new Date() })
             .where(eq(transactionsTable.id, txn.id));
           cleaned++;
         }
