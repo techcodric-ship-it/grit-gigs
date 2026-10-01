@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, or, sql } from "drizzle-orm";
 import { db, freelanceWalletsTable, transactionsTable, notificationsTable } from "../db";
 import { authenticate } from "../middlewares/authenticate";
 import { isWalletCreditAllowed } from "../lib/subscriptions";
@@ -56,13 +56,16 @@ router.post("/credits/create-order", authenticate, async (req: Request, res: Res
     }
     const order = await rzResp.json() as { id: string };
 
-    // Store order→user mapping for webhook fallback
+    // Store order→user mapping for webhook fallback. gatewayOrderId is the
+    // permanent lookup key; gatewayTxnId is only a mirror while pending and gets
+    // replaced by the payment id when the wallet is credited.
     await db.insert(transactionsTable).values({
       userId: req.user!.id,
       type: "CREDIT_PURCHASE",
       amount: amtInr,
       status: "PENDING",
       paymentMethod: "razorpay",
+      gatewayOrderId: order.id,
       gatewayTxnId: order.id,
       description: `Pending wallet top-up ₹${amtInr}`,
     });
@@ -84,11 +87,13 @@ router.post("/credits/verify-payment", authenticate, async (req: Request, res: R
     return;
   }
 
-  // Use the amount stored in the pending transaction — never trust client amount
+  // Use the amount stored in the pending transaction — never trust client amount.
+  // gatewayOrderId is the stable key; gatewayTxnId is also matched so callbacks
+  // and rows written before the migration still resolve.
   const [txn] = await db
     .select({ id: transactionsTable.id, amount: transactionsTable.amount, status: transactionsTable.status, userId: transactionsTable.userId, type: transactionsTable.type })
     .from(transactionsTable)
-    .where(eq(transactionsTable.gatewayTxnId, razorpayOrderId))
+    .where(or(eq(transactionsTable.gatewayOrderId, razorpayOrderId), eq(transactionsTable.gatewayTxnId, razorpayOrderId)))
     .limit(1);
   if (!txn) {
     res.status(400).json({ success: false, message: "Transaction not found" });
@@ -152,13 +157,18 @@ router.post("/credits/verify-payment", authenticate, async (req: Request, res: R
     return;
   }
 
-  // Atomically credit wallet and mark transaction completed (only if still PENDING)
+  // Atomically credit wallet and mark transaction completed (only if still PENDING).
+  // The conditional UPDATE is the single source of truth for "was this already
+  // credited", so a webhook that got here first means we must not credit again —
+  // and the user must still be told the money landed.
+  let credited = false;
   await db.transaction(async (tx) => {
     const updResult = await tx
       .update(transactionsTable)
       .set({ status: "COMPLETED", gatewayTxnId: razorpayPaymentId || "", updatedAt: new Date() })
       .where(and(eq(transactionsTable.id, txn.id), eq(transactionsTable.status, "PENDING")));
     if (updResult.rowCount === 0) return; // already processed by concurrent request
+    credited = true;
     const addResult = await tx.execute(
       sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${amtInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${req.user!.id}`
     );
@@ -171,6 +181,13 @@ router.post("/credits/verify-payment", authenticate, async (req: Request, res: R
       });
     }
   });
+
+  if (!credited) {
+    // The webhook credited it moments earlier. Report success, not an error:
+    // the money is in the wallet and the member did nothing wrong.
+    res.json({ success: true, message: "Amount added successfully" });
+    return;
+  }
 
   await db.insert(notificationsTable).values({
     userId: req.user!.id,
@@ -186,9 +203,9 @@ router.post("/credits/verify-payment", authenticate, async (req: Request, res: R
 router.get("/credits/check-order/:orderId", authenticate, async (req: Request, res: Response): Promise<void> => {
   const orderId = req.params.orderId as string;
   const [txn] = await db
-    .select({ id: transactionsTable.id, status: transactionsTable.status, amount: transactionsTable.amount, gatewayTxnId: transactionsTable.gatewayTxnId, userId: transactionsTable.userId })
+    .select({ id: transactionsTable.id, status: transactionsTable.status, amount: transactionsTable.amount, gatewayTxnId: transactionsTable.gatewayTxnId, gatewayOrderId: transactionsTable.gatewayOrderId, userId: transactionsTable.userId })
     .from(transactionsTable)
-    .where(eq(transactionsTable.gatewayTxnId, orderId))
+    .where(or(eq(transactionsTable.gatewayOrderId, orderId), eq(transactionsTable.gatewayTxnId, orderId)))
     .limit(1);
   if (!txn || txn.userId !== req.user!.id) {
     res.json({ success: true, data: { status: "PENDING" } });
@@ -246,7 +263,7 @@ router.get("/credits/check-order/:orderId", authenticate, async (req: Request, r
 // Recover pending payments — checks Razorpay for captured orders and credits wallet
 router.post("/credits/check-pending", authenticate, async (req: Request, res: Response): Promise<void> => {
   const pending = await db
-    .select({ id: transactionsTable.id, gatewayTxnId: transactionsTable.gatewayTxnId, amount: transactionsTable.amount })
+    .select({ id: transactionsTable.id, gatewayTxnId: transactionsTable.gatewayTxnId, gatewayOrderId: transactionsTable.gatewayOrderId, amount: transactionsTable.amount })
     .from(transactionsTable)
     .where(and(eq(transactionsTable.userId, req.user!.id), eq(transactionsTable.status, "PENDING"), eq(transactionsTable.type, "CREDIT_PURCHASE")));
   if (pending.length === 0) {
@@ -257,12 +274,15 @@ router.post("/credits/check-pending", authenticate, async (req: Request, res: Re
   let totalAmount = 0;
   let cleaned = 0;
   for (const txn of pending) {
-    if (!txn.gatewayTxnId) continue;
+    // Rows are still PENDING, so gatewayTxnId still holds the order id, but
+    // gatewayOrderId is the authoritative one now.
+    const razorpayOrderId = txn.gatewayOrderId || txn.gatewayTxnId;
+    if (!razorpayOrderId) continue;
     try {
       const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
       // Check payments linked to this order
-      const payResp = await fetch("https://api.razorpay.com/v1/orders/" + txn.gatewayTxnId + "/payments", {
-        headers: { Authorization: "Basic " + auth },
+      const payResp = await fetch("https://api.razorpay.com/v1/orders/" + razorpayOrderId + "/payments", {
+        headers: { Authorization: `Basic ${auth}` },
       });
       if (!payResp.ok) continue;
       const payData = await payResp.json() as { items?: { status: string; id: string }[] };
@@ -293,8 +313,8 @@ router.post("/credits/check-pending", authenticate, async (req: Request, res: Re
         // Payment failed or never attempted — check order status too
         let shouldFail = payments.some((p: { status: string }) => p.status === "failed");
         if (payments.length === 0) {
-          const ordResp = await fetch("https://api.razorpay.com/v1/orders/" + txn.gatewayTxnId, {
-            headers: { Authorization: "Basic " + auth },
+          const ordResp = await fetch("https://api.razorpay.com/v1/orders/" + razorpayOrderId, {
+            headers: { Authorization: `Basic ${auth}` },
           });
           if (ordResp.ok) {
             const ordData = await ordResp.json() as { status: string; attempt_count?: number };
@@ -327,14 +347,15 @@ router.get("/credits/diagnose", authenticate, async (req: Request, res: Response
     const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
     // Check a recent failed payment for error details
     const [failed] = await db
-      .select({ gatewayTxnId: transactionsTable.gatewayTxnId })
+      .select({ gatewayTxnId: transactionsTable.gatewayTxnId, gatewayOrderId: transactionsTable.gatewayOrderId })
       .from(transactionsTable)
       .where(and(eq(transactionsTable.userId, req.user!.id), eq(transactionsTable.status, "FAILED")))
       .limit(1);
     let failureReason: any = null;
-    if (failed?.gatewayTxnId) {
-      const payResp = await fetch("https://api.razorpay.com/v1/orders/" + failed.gatewayTxnId + "/payments", {
-        headers: { Authorization: "Basic " + auth },
+    const failedOrderId = failed?.gatewayOrderId || failed?.gatewayTxnId;
+    if (failedOrderId) {
+      const payResp = await fetch("https://api.razorpay.com/v1/orders/" + failedOrderId + "/payments", {
+        headers: { Authorization: `Basic ${auth}` },
       });
       if (payResp.ok) {
         const payData = await payResp.json() as { items?: any[] };

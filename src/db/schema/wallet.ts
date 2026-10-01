@@ -79,6 +79,12 @@ export const transactionsTable = pgTable("transactions", {
   currency: varchar("currency", { length: 10 }).default("INR").notNull(),
   status: txnStatusEnum("status").default("PENDING").notNull(),
   paymentMethod: varchar("payment_method", { length: 50 }),
+  // The gateway's ORDER id for this payment. gatewayTxnId holds the order id
+  // while the payment is pending and is overwritten with the PAYMENT id once it
+  // settles, so it cannot be used to find a transaction afterwards. This column
+  // keeps the order id permanently, which is what every callback and poll looks
+  // up by. NULL for rows that never had a gateway order.
+  gatewayOrderId: text("gateway_order_id"),
   gatewayTxnId: text("gateway_txn_id").unique(),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

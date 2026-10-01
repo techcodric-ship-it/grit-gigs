@@ -160,6 +160,7 @@ router.post("/community/quota/order", authenticate, async (req, res): Promise<vo
       amount: plan.priceInr,
       status: "PENDING",
       paymentMethod: "razorpay",
+      gatewayOrderId: order.id,
       gatewayTxnId: order.id,
       description: `Pending ${plan.label} (₹${plan.priceInr})`,
     });
@@ -201,7 +202,7 @@ router.post("/community/quota/verify", authenticate, async (req, res): Promise<v
     const [txn] = await db
       .select()
       .from(transactionsTable)
-      .where(eq(transactionsTable.gatewayTxnId, razorpayOrderId))
+      .where(or(eq(transactionsTable.gatewayOrderId, razorpayOrderId), eq(transactionsTable.gatewayTxnId, razorpayOrderId)))
       .limit(1);
     if (txn && txn.userId !== req.user!.id) {
       res.status(403).json({ success: false, message: "Payment does not belong to you" });

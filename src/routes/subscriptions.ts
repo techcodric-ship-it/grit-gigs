@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { eq, count, and, sql } from "drizzle-orm";
+import { eq, count, and, or, sql } from "drizzle-orm";
 import { db, notificationsTable, transactionsTable, userSubscriptionsTable, projectBidsTable } from "../db";
 import { authenticate } from "../middlewares/authenticate";
 import { PLANS, getPlan, getOrCreateSubscription, PLATFORM_COMMISSION_PCT, type PlanConfig } from "../lib/subscriptions";
@@ -146,6 +146,7 @@ router.post("/subscriptions/create-order", authenticate, async (req: Request, re
       amount: plan.priceInr,
       status: "PENDING",
       paymentMethod: "razorpay",
+      gatewayOrderId: order.id,
       gatewayTxnId: order.id,
       description: `SUBSCRIPTION_PLAN:${plan.id}|Pending ${plan.name} subscription (₹${plan.priceInr})`,
     });
@@ -173,7 +174,7 @@ router.post("/subscriptions/verify-payment", authenticate, async (req: Request, 
   const [txn] = await db
     .select({ id: transactionsTable.id, description: transactionsTable.description, status: transactionsTable.status, amount: transactionsTable.amount, userId: transactionsTable.userId })
     .from(transactionsTable)
-    .where(eq(transactionsTable.gatewayTxnId, razorpayOrderId))
+    .where(or(eq(transactionsTable.gatewayOrderId, razorpayOrderId), eq(transactionsTable.gatewayTxnId, razorpayOrderId)))
     .limit(1);
   if (!txn) {
     res.status(400).json({ success: false, message: "Transaction not found" });
@@ -242,7 +243,7 @@ router.post("/subscriptions/verify-payment", authenticate, async (req: Request, 
     const updResult = await tx
       .update(transactionsTable)
       .set({ status: "COMPLETED", gatewayTxnId: razorpayPaymentId || "", updatedAt: now })
-      .where(and(eq(transactionsTable.gatewayTxnId, razorpayOrderId), eq(transactionsTable.status, "PENDING")));
+      .where(and(eq(transactionsTable.id, txn.id), eq(transactionsTable.status, "PENDING")));
     if (updResult.rowCount === 0) return;
     await tx
       .update(userSubscriptionsTable)

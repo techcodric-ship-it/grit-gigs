@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { eq, sql, and, inArray } from "drizzle-orm";
+import { eq, sql, and, or, inArray } from "drizzle-orm";
 import { db, withdrawalRequestsTable, transactionsTable, freelanceWalletsTable, notificationsTable } from "../db";
 import { verifyWebhookSignature } from "../lib/razorpay";
 
@@ -112,11 +112,13 @@ router.post("/payments/webhook", async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    // Look up the pending transaction by order ID with idempotency check
+    // Look up the transaction by order ID with idempotency check. gatewayOrderId
+    // is the permanent key; gatewayTxnId is also matched because it holds the
+    // order id until the payment settles and then the payment id.
     const [pending] = await db
       .select({ id: transactionsTable.id, userId: transactionsTable.userId, amount: transactionsTable.amount, status: transactionsTable.status })
       .from(transactionsTable)
-      .where(eq(transactionsTable.gatewayTxnId, orderId))
+      .where(or(eq(transactionsTable.gatewayOrderId, orderId), eq(transactionsTable.gatewayTxnId, orderId)))
       .limit(1);
 
     if (!pending) {
