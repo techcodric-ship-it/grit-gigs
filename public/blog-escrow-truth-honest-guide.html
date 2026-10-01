@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" href="/favicon.ico?v=8"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=8"/><link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png?v=8"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2"/>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Escrow Is Easy to Claim and Hard to Build: What We Got Wrong First — Grit&Gigs</title>
+<meta name="description" content="An honest look at escrow on Grit&amp;Gigs. Why requiring clients to fund a bid before accepting it matters, what escrow does not solve, and the file-reuse gap we have not closed yet."/>
+<meta name="keywords" content="escrow payment India, freelance payment protection, how escrow works, freelance trust problem, client ghosting freelancer, escrow for freelancers India, freelancer payment safety"/>
+<link rel="stylesheet" href="css/main.css"/>
+<link rel="canonical" href="https://www.gritandgigs.in/blog-escrow-truth-honest-guide"/>
+<meta property="og:type" content="article"/>
+<meta property="og:url" content="https://www.gritandgigs.in/blog-escrow-truth-honest-guide"/>
+<meta property="og:title" content="Escrow Is Easy to Claim and Hard to Build: What We Got Wrong First"/>
+<meta property="og:description" content="Most platforms say 'we have escrow.' Very few explain who holds the money and when. Here is what our escrow actually does, and the gap we have not closed."/>
+<meta property="og:site_name" content="Grit&Gigs"/>
+<meta property="og:locale" content="en_IN"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Escrow Is Easy to Claim and Hard to Build"/>
+<meta name="twitter:description" content="What our escrow actually does, the loophole we closed, and the file-reuse problem we have not solved yet."/>
+<meta property="og:image" content="https://www.gritandgigs.in/logo-og.png?v=3"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:image" content="https://www.gritandgigs.in/logo-og.png?v=3"/>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Escrow Is Easy to Claim and Hard to Build: What We Got Wrong First",
+  "description": "An honest look at escrow on Grit&Gigs. Why requiring clients to fund a bid before accepting it matters, what escrow does not solve, and the file-reuse gap we have not closed yet.",
+  "author": { "@type": "Person", "name": "Amuthavanan", "url": "https://www.gritandgigs.in/" },
+  "datePublished": "2026-10-01",
+  "publisher": { "@type": "Organization", "name": "Grit&Gigs" },
+  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://www.gritandgigs.in/blog-escrow-truth-honest-guide" }
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  .nav-logo-mark{width:auto!important;min-width:44px!important;padding:0 8px!important;}
+  .footer .nav-logo-mark{width:auto!important;min-width:38px!important;padding:0 6px!important;}
+  .page-hero{padding:100px 24px 60px;background:var(--bg);text-align:center;}
+  .page-hero h1{font-family:var(--font-display);font-size:2.2rem;font-weight:800;color:var(--text);margin-bottom:12px;}
+  .page-hero .meta{font-size:0.85rem;color:var(--text-muted);}
+  .page-content{max-width:720px;margin:0 auto;padding:0 24px 80px;}
+  .page-content h2{font-family:var(--font-display);font-size:1.5rem;font-weight:700;margin-top:48px;margin-bottom:12px;}
+  .page-content h3{font-size:1.1rem;font-weight:600;margin-top:28px;margin-bottom:8px;}
+  .page-content p{font-size:0.95rem;line-height:1.8;color:var(--text-muted);margin-bottom:16px;}
+  .page-content ul{padding-left:20px;margin-bottom:16px;}
+  .page-content li{font-size:0.95rem;line-height:1.8;color:var(--text-muted);margin-bottom:6px;}
+  .callout{border-left:3px solid var(--primary,#6C3FE8);background:rgba(108,63,232,0.05);padding:16px 20px;margin:24px 0;border-radius:0 6px 6px 0;}
+  .callout p{margin:0;font-size:0.92rem;}
+  .honest{background:rgba(200,245,34,0.08);border:1px solid rgba(200,245,34,0.25);}
+  @media(max-width:600px){.page-hero h1{font-size:1.6rem;}.page-content{padding:0 16px 60px;}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div>
+      <span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span>
+    </a>
+    <div class="nav-links">
+      <a href="/#how-it-works">How it works</a>
+      <a href="/#barter">Skill Exchange</a>
+      <a href="/#freelance">Freelance</a>
+      <a href="/explore?kind=PROJECT">Browse Projects</a>
+      <a href="/about">About</a>
+    </div>
+    <div class="nav-actions" id="siteNavActions">
+      <button class="btn btn-secondary btn-sm" onclick="location.href='/?login=1'">Sign in</button>
+      <button class="btn btn-primary btn-sm" onclick="location.href='/?signup=1'">Join free</button>
+    </div>
+<script>
+      // Logged-in nav sync (same as index.html) - instant from localStorage, no main.js needed
+      (function () {
+        try {
+          var t = localStorage.getItem('se_token');
+          var u = t && (function () { try { return JSON.parse(localStorage.getItem('se_user') || 'null'); } catch (e) { return null; } })();
+          var el = document.getElementById('siteNavActions');
+          if (u && u.firstName && el) {
+            el.innerHTML = '<a href="/feed" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
+              '<button class="btn btn-primary btn-sm" onclick="window.doLogout && window.doLogout()">Sign out</button>';
+          }
+        } catch (e) {}
+      })();
+      if (!window.doLogout) {
+        window.doLogout = function () {
+          var rt = null;
+          try { rt = localStorage.getItem('se_refresh'); } catch (e) {}
+          try { fetch('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken: rt }) }); } catch (e) {}
+          try { localStorage.removeItem('se_token'); localStorage.removeItem('se_refresh'); localStorage.removeItem('se_user'); } catch (e) {}
+          window.location.href = '/';
+        };
+      }
+    </script>
+    <div class="nav-hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <h1>Escrow Is Easy to Claim and Hard to Build: What We Got Wrong First</h1>
+  <div class="meta">October 1, 2026 — 6 min read</div>
+</div>
+
+<div class="page-content">
+  <p>Every freelance platform says it has escrow. Almost none of them explain who is actually holding the money, and at what moment it becomes impossible for either side to walk away.</p>
+
+  <p>We shipped ours, then realised we had built the easy half and skipped the hard half. This is an honest account of what our escrow does, the loophole we found in our own design, and the problem we still have not solved.</p>
+
+  <h2>The version of escrow that does nothing</h2>
+
+  <p>Here is the lazy way to build escrow, and it is what most platforms ship first.</p>
+
+  <p>A client accepts a bid. A record is created that says a payment is "in escrow." Work starts. The money has not moved anywhere, or it sits in the platform's float with no rules about when it can be released. Everyone calls this escrow. It protects nobody, because the moment the client decides to dispute, the money is already in a position to be withheld indefinitely, and the freelancer has no way to force the issue.</p>
+
+  <p>A promise that funds are "secured" is not protection. Protection requires the money to be somewhere the client cannot reach.</p>
+
+  <h2>What our escrow actually does</h2>
+
+  <p>On Grit&amp;Gigs, escrow is enforced by the client's own wallet balance, and the enforcement happens <em>before</em> work begins.</p>
+
+  <p>When a client accepts a bid on a project, the system checks their wallet against the bid amount. If they do not have it, the acceptance is rejected outright with a clear message: you need ₹X in your wallet to accept this bid.</p>
+
+  <p>If they do have it, the money is debited from their balance in the same transaction that marks the bid as accepted. The balance update is written with a condition that it only succeeds if the balance is still sufficient at that instant, so two bids accepted in parallel cannot both succeed against the same funds.</p>
+
+  <div class="callout">
+    <p><strong>The consequence:</strong> a client physically cannot accept work they have not paid for. By the time the freelancer starts, the money has already left the client's wallet and is committed to that specific project. Ghosting after delivery is not a risk the freelancer is carrying, because there is nothing left for the client to walk away with.</p>
+  </div>
+
+  <h2>The loophole we found in our own design</h2>
+
+  <p>When we first built this, the escrow logic only checked whether the client had <em>enough</em> money at the moment of acceptance. It did not debit it right then.</p>
+
+  <p>That is a real hole, and it is the exact kind of hole that looks fine in demos. A client with ₹10,000 in their wallet could accept five ₹8,000 bids in a row. Every individual acceptance passed the balance check, because each one was evaluated against the original balance. Five freelancers started work. The client had committed to ₹40,000 and could pay at most one of them.</p>
+
+  <p>Fixing it meant changing the semantics of acceptance. The check alone was never sufficient. The deduction is the actual enforcement, and it has to happen atomically with the acceptance itself, not as a hopeful follow-up step.</p>
+
+  <p>We rebuilt it so the debit and the acceptance are one indivisible operation. If the debit fails, the acceptance does not happen. If the acceptance fails, the money does not move. There is no window where one occurs without the other.</p>
+
+  <h2>Money that comes back</h2>
+
+  <p>Holding someone's money in escrow creates the opposite obligation. What happens if the project never happens?</p>
+
+  <p>If a project is cancelled while funds are held, the escrow is released back to the client's wallet automatically, with a transaction record explaining why. We do not make clients chase support to get their own money back, because a platform that holds funds it cannot promptly return has no business calling itself safe.</p>
+
+  <h2>What escrow does not solve</h2>
+
+  <p>Here is the part most platforms skip, and it is the reason this post exists.</p>
+
+  <div class="callout honest">
+    <p><strong>Escrow protects the payment. It does not protect the files.</strong></p>
+    <p>Once a designer delivers final source files, logos, or a finished website to a client, nothing technical prevents those files from being reused, resold, or quietly handed to someone else. The money may be safely committed, but the work is now in someone else's hands. Screenshotting and re-uploading is trivial, and no escrow arrangement stops it.</p>
+    <p><strong>We have not solved this and we are not going to pretend otherwise.</strong></p>
+  </div>
+
+  <p>The fix is technically well understood. Deliver a watermarked, domain-locked preview while funds are held, and release clean originals only when payment clears. The client sees something real enough to approve, useless enough to resell. It is not a checkbox, it is a delivery pipeline, and it is not built yet.</p>
+
+  <p>We would rather say that plainly than let a marketing page imply escrow solves a problem it does not solve. If your work is easy to copy, escrow is necessary but not sufficient. Judge any platform on whether it protects the payment, the files, or only the first one.</p>
+
+  <h2>Why local changes the equation</h2>
+
+  <p>One more thing worth saying about the market we are building for.</p>
+
+  <p>Global freelance platforms solved cross-border outsourcing. A ₹3,000 logo design is not a Fiverr search. It is usually someone two streets away who could deliver today, and that relationship has something global platforms structurally cannot offer: reputation that carries over outside a marketplace.</p>
+
+  <p>That local context actually makes escrow more important, not less. When the buyer and seller may share a network, a neighbourhood, even a mutual friend, the cost of a bad transaction is higher than a bad review. A dispute that gets resolved badly damages both parties socially, not just commercially.</p>
+
+  <p>Payment guarantees that hold up globally get us part of the way. Being known locally handles the rest. Most platforms only solve one of those two problems.</p>
+
+  <h2>The honest summary</h2>
+
+  <ul>
+    <li><strong>Clients fund a bid before accepting it.</strong> Not a promise, a balance check with an atomic deduction.</li>
+    <li><strong>Money is committed at acceptance,</strong> so a client cannot accept work and then not pay for it.</li>
+    <li><strong>Parallel bids cannot overspend the same funds,</strong> because the deduction is the gate, not a check.</li>
+    <li><strong>Cancelled projects refund automatically,</strong> with a record explaining it.</li>
+    <li><strong>Files are not protected yet.</strong> Watermarked previews are the fix and they are not built.</li>
+  </ul>
+
+  <p>If you are evaluating a platform on payment safety, ask one question: if the client accepts this bid, whose money moves, and when? If the answer is "we'll hold it for you," you have a promise. If the answer is "it already left their balance," you have escrow.</p>
+
+  <h2>Try it yourself</h2>
+
+  <p>Post a project, or browse existing ones and see what escrow-protected bidding looks like in practice. <a href="/?signup=1">Create a free account</a> — no listing fee, and the escrow mechanics are visible on every project from the moment you post.</p>
+</div>
+
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+     <div class="nav-logo">
+      <div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div>
+      <div class="nav-logo-text"><span class="logo-text-black" style="color:black;">Grit</span><span class="logo-text-blue">&amp;Gigs</span></div>
+     </div>
+      <p>India's all-in-one skill marketplace — freelance, barter, and build projects with escrow protection.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Platform</h4>
+      <a href="/#barter">Skill Exchange</a>
+      <a href="/#freelance">Freelance</a>
+      <a href="/explore?kind=PROJECT">Browse Projects</a>
+    </div>
+    <div class="footer-col">
+      <h4>Company</h4>
+      <a href="/about">About us</a>
+      <a href="/blog">Blog</a>
+      <a href="/faq">FAQ</a>
+      <a href="/contact">Contact</a>
+    </div>
+    <div class="footer-col">
+      <h4>Legal</h4>
+      <a href="/terms">Terms of service</a>
+      <a href="/privacy">Privacy policy</a>
+      <a href="/refund">Refund policy</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>&copy; 2026 Grit&Gigs Technologies Pvt. Ltd. All rights reserved.</p>
+    <p>Built with love in Chennai, India</p>
+  </div>
+</footer>
+
+</body>
+</html>
