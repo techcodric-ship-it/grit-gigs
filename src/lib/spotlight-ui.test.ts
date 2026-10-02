@@ -135,6 +135,37 @@ describe("Spotlight markup hooks", () => {
   });
 });
 
+describe("sticky sidebar reachability", () => {
+  // The Spotlight card made the feed sidebar taller than the viewport. A sticky
+  // element sticks by its top edge, so the overflow below the fold scrolls up
+  // out of view and can never be reached again: at maximum page scroll the
+  // footer sat 404px above the fold and the user rail was unreachable. Capping
+  // the height and scrolling inside the sidebar is what makes it reachable.
+  it("caps a sticky sidebar to the viewport and lets it scroll", () => {
+    const rule = css().match(/\.sidebar\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(rule).toMatch(/position:\s*sticky/);
+    expect(rule, "sticky sidebar must be height-limited or its overflow is unreachable").toMatch(
+      /max-height:[^;]*vh/,
+    );
+    expect(rule).toMatch(/overflow-y:\s*auto/);
+  });
+
+  it("leaves no uncapped sticky rule in the shared stylesheet", () => {
+    // Scoped to feed.css on purpose. A sticky element only becomes unreachable
+    // when its height grows with its content, which CSS text cannot tell apart
+    // from a short fixed nav bar, so sweeping every page would just flag the
+    // harmless topbars in admin.html and the design pages. feed.css is shared by
+    // every feed-family page and is where a tall sticky container would be added.
+    const sticky = [...css().matchAll(/([.#][\w-]+)\s*\{([^}]*position:\s*sticky[^}]*)\}/g)];
+    expect(sticky.length).toBeGreaterThan(0);
+    for (const [, selector, body] of sticky) {
+      expect(body, `feed.css ${selector} is sticky with no height bound`).toMatch(
+        /(max-height|height):[^;]*(vh|px)/,
+      );
+    }
+  });
+});
+
 describe("asset cache versioning", () => {
   it("points every feed page at the same feed.css version", () => {
     // One page left behind serves old CSS against new markup and looks broken.

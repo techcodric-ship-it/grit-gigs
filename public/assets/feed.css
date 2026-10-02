@@ -189,7 +189,15 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
 .grid .tile .tile-share:hover { background: var(--volt); opacity: 1; }
 
 /* ── side panel ── */
-.sidebar { position: sticky; top: 76px; }
+/* Height-limited so it is fully reachable. A sticky element taller than the
+   viewport sticks by its top edge, so everything below the fold scrolls up out
+   of view and can never be scrolled back to: the footer, the user rail and the
+   lower suggestions became permanently unreachable, no matter how far the page
+   was scrolled. Cap the height and let the sidebar scroll inside itself. */
+.sidebar { position: sticky; top: 76px; max-height: calc(100vh - 92px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.sidebar::-webkit-scrollbar { width: 6px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
 .side-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin-bottom: 18px; }
 .side-card h4 { margin: 0 0 10px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; color: var(--dusk); }
 .top-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
