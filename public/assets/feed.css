@@ -377,9 +377,19 @@ h4.sub-title { font-size: 14px; font-weight: 600; margin: 20px 0 12px; }
 .spcard-star { font-size: 11px; line-height: 1; }
 .spcard-title { font-size: 14.5px; font-weight: 700; line-height: 1.35; color: #17171a; letter-spacing: -.01em; }
 .spcard-sub { margin: 7px 0 11px; font-size: 12.5px; line-height: 1.5; color: #55555c; }
-.spcard-stat { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #E7E2FA; border-radius: 10px; padding: 9px 11px; margin-bottom: 11px; }
-.spcard-stat b { flex: none; font-size: 20px; font-weight: 800; line-height: 1; color: #4a2fb0; letter-spacing: -.02em; }
-.spcard-stat span { font-size: 11.5px; line-height: 1.4; color: #55555c; }
+/* Stacked, not side by side. A numeral beside its sentence works in a wide
+   box, but the sidebar is only ~215px of content, so the explanation gets its
+   own full-width line and only the number leads. */
+.spcard-stat { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; background: #fff; border: 1px solid #E7E2FA; border-radius: 10px; padding: 10px 12px; margin-bottom: 11px; }
+.spc-num { display: flex; align-items: baseline; gap: 5px; }
+.spc-num b { font-size: 21px; font-weight: 800; line-height: 1.1; color: #4a2fb0; letter-spacing: -.02em; }
+.spc-num span { font-size: 11.5px; font-weight: 600; color: #55555c; }
+.spc-note { font-size: 11.5px; line-height: 1.45; color: #55555c; }
+.spcard-stat.zero { background: #FFFCF7; border-color: #F0DFCC; }
+.spcard-stat.zero .spc-num b { color: #8A5A2B; }
+/* Empty state gets a quiet badge, never display type. */
+.spcard-stat.empty { background: #FBFBFC; border-style: dashed; border-color: #DEDEDF; }
+.spc-flag { display: inline-flex; align-items: center; font-size: 10px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #6B6B72; background: #EFEFF2; border-radius: 5px; padding: 3px 7px; margin-bottom: 2px; }
 .spcard-prices { display: flex; gap: 6px; margin-bottom: 12px; }
 .spcard-prices div { flex: 1; text-align: center; background: #fff; border: 1px solid #E7E2FA; border-radius: 9px; padding: 8px 2px; }
 .spcard-prices b { display: block; font-size: 14px; font-weight: 800; color: #4a2fb0; line-height: 1.1; }

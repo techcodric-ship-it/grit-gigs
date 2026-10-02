@@ -210,6 +210,17 @@ describe("Spotlight honesty", () => {
     expect(boost).toContain("&#8377;499");
   });
 
+  it("gives the empty demand state its own treatment, not the number layout", () => {
+    // A phrase must never occupy the numeral slot. The stat box is a
+    // number-and-label layout in a 215px column, so 20px display type beside a
+    // sentence is what made the empty state look broken.
+    const feed = html("feed.html");
+    expect(feed).toContain('class="spc-flag"');
+    expect(feed).toContain('class="spc-note"');
+    expect(feed).not.toMatch(/<b>[^<]*[Pp]ost a gig/);
+    expect(css()).toMatch(/\.spcard-stat\.empty\s*\{[^}]*border-style:\s*dashed/);
+  });
+
   it("shows an honest zero instead of a fabricated number", () => {
     const feed = html("feed.html");
     expect(feed).toContain("Post a gig first");

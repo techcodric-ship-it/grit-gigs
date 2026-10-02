@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, follow"/>
 <title>Grit&Gigs — Feed</title>
 <link rel="icon" href="/favicon.ico?v=8"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=8"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=8"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=8"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2"/>
-<link rel="stylesheet" href="/assets/feed.css?v=31"/>
+<link rel="stylesheet" href="/assets/feed.css?v=32"/>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
@@ -214,7 +214,7 @@
   </div>
 </div>
 
-<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=31"></script>
+<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=32"></script>
 <script>
 (function () {
   var c = window.community;
@@ -590,15 +590,24 @@
     var demand = $('spcDemand');
     if (!tags.length) {
       // No gigs yet: still explain the product, but do not fake a number.
-      demand.innerHTML = '<b>Post a gig first</b><span>Then we can show you how many people are searching for your keywords.</span>';
+      // This is its own treatment, not the number layout with a word in it:
+      // a 20px "Post a gig first" beside a sentence read as a mistake.
+      demand.className = 'spcard-stat empty';
+      demand.innerHTML =
+        '<span class="spc-flag">No gigs yet</span>' +
+        '<span class="spc-note">Post a gig first and we will show you how many people are searching for your keywords.</span>';
       return;
     }
     c.api('/community/spotlight/demand?tags=' + encodeURIComponent(tags.join(','))).then(function (r) {
       if (!(r && r.ok && r.d && r.d.data)) return;
       var n = r.d.data.totalSearches || 0;
+      demand.className = 'spcard-stat' + (n > 0 ? '' : ' zero');
       demand.innerHTML = n > 0
-        ? '<b>' + n + '</b><span>search' + (n === 1 ? '' : 'es') + ' matched your keywords this week. A boost reaches those people.</span>'
-        : '<b>0</b><span>searches for your keywords this week. Check the number before you pay.</span>';
+        ? '<span class="spc-num"><b>' + n + '</b>' +
+          '<span>search' + (n === 1 ? '' : 'es') + ' this week</span></span>' +
+          '<span class="spc-note">matched your keywords. A boost reaches those people.</span>'
+        : '<span class="spc-num"><b>0</b><span>searches this week</span></span>' +
+          '<span class="spc-note">for your keywords. Check the number before you pay.</span>';
     });
   }
   var spotBtn = $('spcBoost');
