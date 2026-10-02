@@ -24,7 +24,6 @@ import {
   squadsTable, squadMembersTable, squadInvitesTable, squadServicesTable,
   communityPostsTable, postBoostsTable,
   communityOrdersTable,
-  communityQuotasTable,
 } from "../db";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -1679,40 +1678,37 @@ router.get("/admin/activity", async (req: Request, res: Response): Promise<void>
       // Paid quota bundles — proposals and gig posts bought via Buy more.
       key: "bundles",
       run: async () => {
+        // Purchase events, not current balances: quota bonuses get spent, so
+        // reading community_quotas would repeat live rows and miss paid ones.
         const rows = await db
           .select({
-            id: communityQuotasTable.id,
-            gigBonus: communityQuotasTable.gigPostsBonus,
-            propBonus: communityQuotasTable.proposalsBonus,
-            updatedAt: communityQuotasTable.updatedAt,
+            id: transactionsTable.id,
+            amount: transactionsTable.amount,
+            status: transactionsTable.status,
+            description: transactionsTable.description,
+            createdAt: transactionsTable.createdAt,
             user: {
               firstName: nameCols.first,
               lastName: nameCols.last,
               email: nameCols.email,
             },
           })
-          .from(communityQuotasTable)
-          .innerJoin(usersTable, eq(communityQuotasTable.userId, usersTable.id))
-          .orderBy(desc(communityQuotasTable.updatedAt))
+          .from(transactionsTable)
+          .innerJoin(usersTable, eq(transactionsTable.userId, usersTable.id))
+          .where(eq(transactionsTable.type, "QUOTA_BUNDLE"))
+          .orderBy(desc(transactionsTable.createdAt))
           .limit(limit);
-        return rows
-          .filter((r) => Number(r.gigBonus) > 0 || Number(r.propBonus) > 0)
-          .map((r) => {
-            const parts: string[] = [];
-            if (Number(r.gigBonus) > 0) parts.push(`${r.gigBonus} gig post${Number(r.gigBonus) === 1 ? "" : "s"}`);
-            if (Number(r.propBonus) > 0) parts.push(`${r.propBonus} proposal${Number(r.propBonus) === 1 ? "" : "s"}`);
-            return {
-              id: r.id,
-              type: "BUNDLE",
-              title: `Quota bundle: ${parts.join(" + ")}`,
-              meta: "Buy more",
-              status: "ACTIVE",
-              amount: null,
-              at: r.updatedAt,
-              actor: who(r as unknown as Record<string, unknown>),
-              link: `/admin/users?q=${encodeURIComponent(r.user.email ?? "")}`,
-            };
-          });
+        return rows.map((r) => ({
+          id: r.id,
+          type: "BUNDLE" as const,
+          title: (r.description || "Quota bundle").replace(/^Pending\s+/, ""),
+          meta: "Buy more",
+          status: r.status,
+          amount: Math.round(Number(r.amount)),
+          at: r.createdAt,
+          actor: who(r as unknown as Record<string, unknown>),
+          link: `/admin/users?q=${encodeURIComponent(r.user.email ?? "")}`,
+        }));
       },
     },
   ];

@@ -23,6 +23,16 @@ export const QUOTA_PLANS = {
 export type QuotaPlanId = keyof typeof QUOTA_PLANS;
 
 /**
+ * Resolves a bundle from its paid amount. Bundle orders are stored with only the
+ * price, so recovery paths (which have no client-supplied plan id) map the amount
+ * back to the plan. Returns null when no plan matches.
+ */
+export function planForAmount(amountInr: number): (typeof QUOTA_PLANS)[QuotaPlanId] | null {
+  const match = Object.values(QUOTA_PLANS).find((p) => p.priceInr === Math.round(amountInr));
+  return match ?? null;
+}
+
+/**
  * Fetches the user's community quota row, creating one on first use and
  * lazily resetting the monthly counters every 30 days (no cron needed).
  */

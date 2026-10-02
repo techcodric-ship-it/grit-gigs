@@ -1,8 +1,9 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { and, eq, or, sql } from "drizzle-orm";
+import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { db, freelanceWalletsTable, transactionsTable, notificationsTable } from "../db";
 import { authenticate } from "../middlewares/authenticate";
 import { isWalletCreditAllowed } from "../lib/subscriptions";
+import { grantQuotaBundle, planForAmount } from "../lib/community-quota";
 
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
@@ -266,9 +267,13 @@ router.get("/credits/check-order/:orderId", authenticate, async (req: Request, r
 // Recover pending payments — checks Razorpay for captured orders and credits wallet
 router.post("/credits/check-pending", authenticate, async (req: Request, res: Response): Promise<void> => {
   const pending = await db
-    .select({ id: transactionsTable.id, gatewayTxnId: transactionsTable.gatewayTxnId, gatewayOrderId: transactionsTable.gatewayOrderId, amount: transactionsTable.amount })
+    .select({ id: transactionsTable.id, gatewayTxnId: transactionsTable.gatewayTxnId, gatewayOrderId: transactionsTable.gatewayOrderId, amount: transactionsTable.amount, type: transactionsTable.type })
     .from(transactionsTable)
-    .where(and(eq(transactionsTable.userId, req.user!.id), eq(transactionsTable.status, "PENDING"), eq(transactionsTable.type, "CREDIT_PURCHASE")));
+    .where(and(
+      eq(transactionsTable.userId, req.user!.id),
+      eq(transactionsTable.status, "PENDING"),
+      inArray(transactionsTable.type, ["CREDIT_PURCHASE", "QUOTA_BUNDLE"]),
+    ));
   if (pending.length === 0) {
     res.json({ success: true, message: "No pending payments", data: { credited: false } });
     return;
@@ -292,12 +297,25 @@ router.post("/credits/check-pending", authenticate, async (req: Request, res: Re
       const payments = payData.items || [];
       const captured = payments.find((p: { status: string }) => p.status === "captured");
       if (captured) {
+        // Bundle orders buy posting allowances, never wallet cash — crediting the
+        // wallet here too would hand the member ₹80 for a ₹80 purchase.
+        const plan = txn.type === "QUOTA_BUNDLE" ? planForAmount(Number(txn.amount)) : null;
+        if (txn.type === "QUOTA_BUNDLE" && !plan) continue;
         await db.transaction(async (tx) => {
           const claim = await tx
             .update(transactionsTable)
-            .set({ status: "COMPLETED", gatewayTxnId: captured.id, description: `Wallet top-up ₹${txn.amount}`, updatedAt: new Date() })
+            .set({
+              status: "COMPLETED",
+              gatewayTxnId: captured.id,
+              description: plan ? `${plan.label} (₹${plan.priceInr})` : `Wallet top-up ₹${txn.amount}`,
+              updatedAt: new Date(),
+            })
             .where(and(eq(transactionsTable.id, txn.id), eq(transactionsTable.status, "PENDING")));
           if (claim.rowCount === 0) return;
+          if (plan) {
+            await grantQuotaBundle(req.user!.id, plan.gigBonus, plan.propBonus);
+            return;
+          }
           const addResult = await tx.execute(
             sql`UPDATE ${freelanceWalletsTable} SET balance = balance + ${txn.amount}, updated_at = NOW() WHERE ${freelanceWalletsTable.userId} = ${req.user!.id}`
           );
@@ -328,7 +346,11 @@ router.post("/credits/check-pending", authenticate, async (req: Request, res: Re
           // Same reasoning as the COMPLETED paths: the description is the label
           // the member reads, so a failed attempt must not still say "Pending".
           await db.update(transactionsTable)
-            .set({ status: "FAILED", description: `Failed top-up ₹${txn.amount}`, updatedAt: new Date() })
+            .set({
+              status: "FAILED",
+              description: txn.type === "QUOTA_BUNDLE" ? `Failed quota bundle ₹${txn.amount}` : `Failed top-up ₹${txn.amount}`,
+              updatedAt: new Date(),
+            })
             .where(eq(transactionsTable.id, txn.id));
           cleaned++;
         }

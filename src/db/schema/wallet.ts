@@ -11,6 +11,7 @@ import { usersTable } from "./users";
 
 export const transactionTypeEnum = pgEnum("transaction_type", [
   "CREDIT_PURCHASE",
+  "QUOTA_BUNDLE",
   "CREDIT_WITHDRAWAL",
   "SUBSCRIPTION",
   "SERVICE_PAYMENT",

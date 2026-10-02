@@ -176,6 +176,7 @@ app.set("io", io);
           DO $$ BEGIN CREATE TYPE squad_join_request_status AS ENUM ('PENDING','ACCEPTED','DECLINED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
           ALTER TYPE transaction_type ADD VALUE IF NOT EXISTS 'REFERRAL_REWARD';
           ALTER TYPE transaction_type ADD VALUE IF NOT EXISTS 'WITHDRAWAL';
+          ALTER TYPE transaction_type ADD VALUE IF NOT EXISTS 'QUOTA_BUNDLE';
         `);
         logger.info("migrate: enums ready");
 

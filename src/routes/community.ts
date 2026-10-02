@@ -156,7 +156,7 @@ router.post("/community/quota/order", authenticate, async (req, res): Promise<vo
     const order = (await rzResp.json()) as { id: string };
     await db.insert(transactionsTable).values({
       userId: req.user!.id,
-      type: "CREDIT_PURCHASE",
+      type: "QUOTA_BUNDLE",
       amount: plan.priceInr,
       status: "PENDING",
       paymentMethod: "razorpay",
@@ -204,22 +204,39 @@ router.post("/community/quota/verify", authenticate, async (req, res): Promise<v
       .from(transactionsTable)
       .where(or(eq(transactionsTable.gatewayOrderId, razorpayOrderId), eq(transactionsTable.gatewayTxnId, razorpayOrderId)))
       .limit(1);
-    if (txn && txn.userId !== req.user!.id) {
+    if (!txn) {
+      res.status(404).json({ success: false, message: "Order not found" });
+      return;
+    }
+    if (txn.userId !== req.user!.id) {
       res.status(403).json({ success: false, message: "Payment does not belong to you" });
       return;
     }
-    if (txn && txn.status !== "PENDING") {
+    if (txn.type !== "QUOTA_BUNDLE") {
+      res.status(400).json({ success: false, message: "Order is not a quota bundle" });
+      return;
+    }
+    if (txn.status !== "PENDING") {
       res.json({ success: true, data: { already: true } });
       return;
     }
     const plan = QUOTA_PLANS[bundleId as QuotaPlanId];
-    await grantQuotaBundle(req.user!.id, plan.gigBonus, plan.propBonus);
-    if (txn) {
-      await db
-        .update(transactionsTable)
-        .set({ status: "COMPLETED", gatewayTxnId: razorpayPaymentId || "", updatedAt: new Date() })
-        .where(eq(transactionsTable.id, txn.id));
+    // Claim the order first so a concurrent/replayed callback cannot grant twice.
+    const claim = await db
+      .update(transactionsTable)
+      .set({
+        status: "COMPLETED",
+        gatewayTxnId: razorpayPaymentId || "",
+        description: `${plan.label} (₹${plan.priceInr})`,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(transactionsTable.id, txn.id), eq(transactionsTable.status, "PENDING")))
+      .returning({ id: transactionsTable.id });
+    if (claim.length === 0) {
+      res.json({ success: true, data: { already: true } });
+      return;
     }
+    await grantQuotaBundle(req.user!.id, plan.gigBonus, plan.propBonus);
     res.json({ success: true, data: { bundleId: plan.id } });
   } catch {
     res.status(502).json({ success: false, message: "Failed to verify payment" });

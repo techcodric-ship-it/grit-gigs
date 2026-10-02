@@ -116,13 +116,20 @@ router.post("/payments/webhook", async (req: Request, res: Response): Promise<vo
     // is the permanent key; gatewayTxnId is also matched because it holds the
     // order id until the payment settles and then the payment id.
     const [pending] = await db
-      .select({ id: transactionsTable.id, userId: transactionsTable.userId, amount: transactionsTable.amount, status: transactionsTable.status })
+      .select({ id: transactionsTable.id, userId: transactionsTable.userId, amount: transactionsTable.amount, status: transactionsTable.status, type: transactionsTable.type })
       .from(transactionsTable)
       .where(or(eq(transactionsTable.gatewayOrderId, orderId), eq(transactionsTable.gatewayTxnId, orderId)))
       .limit(1);
 
     if (!pending) {
       res.status(200).json({ success: true, message: "No pending order found" });
+      return;
+    }
+
+    // Quota bundles are credited by /community/quota/verify, not as wallet cash.
+    // Guarding here stops the same ₹ payment from being credited twice.
+    if (pending.type === "QUOTA_BUNDLE") {
+      res.status(200).json({ success: true, message: "Quota bundle order - handled by quota verify" });
       return;
     }
 

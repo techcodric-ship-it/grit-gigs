@@ -1,5 +1,6 @@
 // Loads the admin activity endpoint against the real database and prints the
 // merged feed. Read-only: hits GET /admin/activity only.
+import "dotenv/config";
 import express from "express";
 import adminRouter from "../src/routes/admin";
 
