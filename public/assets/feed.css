@@ -328,10 +328,22 @@ h4.sub-title { font-size: 14px; font-weight: 600; margin: 20px 0 12px; }
 .card.spotlight { box-shadow: 0 0 0 1.5px #6C3FE8, 0 6px 18px rgba(108, 63, 232, .10); }
 .spot-promo { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 16px 0; font-size: 11px; font-weight: 800; letter-spacing: .07em; color: #6C3FE8; text-transform: uppercase; }
 .spot-promo-sub { font-weight: 600; letter-spacing: 0; text-transform: none; color: #9a9db0; font-size: 11.5px; }
-.spot-bar { display: flex; align-items: center; gap: 10px; margin: 0 16px 10px; padding: 9px 12px; border-radius: 10px; background: #f4f1ff; color: #4a2fb0; font-size: 12.5px; font-weight: 600; }
+.spot-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 16px 10px; padding: 9px 12px; border-radius: 10px; background: #f4f1ff; color: #4a2fb0; font-size: 12.5px; font-weight: 600; }
 .spot-bar.idle span { color: #7a68c8; font-weight: 500; }
 .spot-bar button { margin-left: auto; flex: none; border: none; background: #6C3FE8; color: #fff; border-radius: 8px; padding: 7px 12px; font-size: 12px; font-weight: 700; cursor: pointer; transition: .15s; }
 .spot-bar button:hover { background: #5a34c6; }
+.spot-metrics { display: flex; align-items: baseline; gap: 4px; font-size: 12px; font-weight: 500; color: #6a5aa8; }
+.spot-metrics b { font-size: 13.5px; font-weight: 800; color: #4a2fb0; margin-left: 6px; }
+.spot-metrics b:first-child { margin-left: 0; }
+.spot-packs { display: grid; gap: 8px; }
+.spot-pack { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 11px 13px; border-radius: 12px; border: 1.5px solid #e3e0f2; background: #fff; cursor: pointer; text-align: left; transition: .15s; }
+.spot-pack:hover { border-color: #b6a8f0; }
+.spot-pack.on { border-color: #6C3FE8; background: #f6f3ff; box-shadow: 0 0 0 1px #6C3FE8 inset; }
+.sp-main { display: flex; flex-direction: column; gap: 2px; }
+.sp-main b { font-size: 13.5px; font-weight: 700; color: #1c1b22; }
+.sp-main small { font-size: 11.5px; color: #8b8fa3; font-weight: 500; }
+.sp-price { display: flex; flex-direction: column; align-items: flex-end; font-size: 15px; font-weight: 800; color: #4a2fb0; }
+.sp-price small { font-size: 11px; font-weight: 600; color: #8b8fa3; }
 .spot-chips { display: flex; flex-wrap: wrap; gap: 7px; }
 .spot-chip { border: 1px solid #d9d3f2; background: #fff; color: #4a2fb0; border-radius: 999px; padding: 6px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: .15s; }
 .spot-chip:hover { border-color: #6C3FE8; }

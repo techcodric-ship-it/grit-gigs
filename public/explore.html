@@ -232,7 +232,17 @@
     if (spotRib) div.insertAdjacentHTML('afterbegin', spotRib);
     // Work-status ribbon on the tile itself, so it reads without opening the post.
     if (ws) div.insertAdjacentHTML('afterbegin', '<span class="work-ribbon ' + ws.cls + '">' + c.esc(ws.label) + '</span>');
-    div.addEventListener('click', function () { c.openPost(p.id); });
+    // A viewer opening a boosted tile is the click the boost owner is paying
+    // for, so fire the beacon before the post modal opens. Fire-and-forget:
+    // never let analytics delay or block opening the post.
+    div.addEventListener('click', function () {
+      if (row.spotlight && row.spotlight.boostId && c.token()) {
+        try {
+          c.api('/community/boosts/' + row.spotlight.boostId + '/click', { method: 'POST' }).catch(function () {});
+        } catch (e) {}
+      }
+      c.openPost(p.id);
+    });
     var tb = div.querySelector('.tile-share');
     if (tb) tb.addEventListener('click', function (e) { e.stopPropagation(); c.share(p.id); });
     return div;

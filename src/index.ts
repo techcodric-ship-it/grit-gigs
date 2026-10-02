@@ -1149,11 +1149,28 @@ $mig$
           starts_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
           expires_at TIMESTAMPTZ NOT NULL,
           extend_count INTEGER NOT NULL DEFAULT 0,
+          plan_id TEXT NOT NULL DEFAULT 'day1',
           created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
         )
       `);
       await col(`CREATE INDEX IF NOT EXISTS idx_post_boosts_active ON post_boosts(expires_at)`);
       await col(`CREATE INDEX IF NOT EXISTS idx_post_boosts_post ON post_boosts(post_id)`);
+      // Added after the original table shipped, so older databases need the ALTER.
+      await col(`ALTER TABLE post_boosts ADD COLUMN IF NOT EXISTS plan_id TEXT NOT NULL DEFAULT 'day1'`);
+      await col(`
+        CREATE TABLE IF NOT EXISTS boost_impressions (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          boost_id UUID NOT NULL REFERENCES post_boosts(id) ON DELETE CASCADE,
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          viewed_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+          clicked_at TIMESTAMPTZ,
+          views INTEGER NOT NULL DEFAULT 1
+        )
+      `);
+      // Name matches the drizzle unique constraint so a later drizzle
+      // migration cannot try to create a second, duplicate index.
+      await col(`CREATE UNIQUE INDEX IF NOT EXISTS boost_impressions_boost_user_unique ON boost_impressions(boost_id, user_id)`);
+      await col(`CREATE INDEX IF NOT EXISTS idx_boost_impressions_boost ON boost_impressions(boost_id)`);
       await col(`
         CREATE TABLE IF NOT EXISTS search_logs (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

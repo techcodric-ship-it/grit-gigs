@@ -417,9 +417,9 @@
     var spotCtl = '';
     if (isMine && (kind === 'GIG' || kind === 'PROJECT')) {
       if (row.mySpotlight) {
-        spotCtl = '<div class="spot-bar"><span>✦ Boost active · ' + spotLeftText(row.mySpotlight.expiresAt) + '</span><button data-spot-extend="' + esc(p.id) + '">Extend ₹50</button></div>';
+        spotCtl = spotStatsBar(row.mySpotlight, p);
       } else {
-        spotCtl = '<div class="spot-bar idle"><span>Boost your ' + (kind === 'PROJECT' ? 'project' : 'gig') + ' — rank it higher in marketplace results for 24 hours</span><button data-spot="' + esc(p.id) + '">Boost ₹50</button></div>';
+        spotCtl = '<div class="spot-bar idle"><span>Boost your ' + (kind === 'PROJECT' ? 'project' : 'gig') + ' — rank it higher in marketplace results</span><button data-spot="' + esc(p.id) + '">Boost from ₹50</button></div>';
       }
     }
 
@@ -601,6 +601,19 @@
     if (spStart) spStart.addEventListener('click', function () { if (!token) { openLogin(); return; } openSpotlightModal(p); });
     var spExt = el.querySelector('[data-spot-extend]');
     if (spExt) spExt.addEventListener('click', function () { if (!token) { openLogin(); return; } extendSpotlight(p); });
+    // A viewer opening a boosted post is the click the owner is paying for.
+    if (row.spotlight && row.spotlight.boostId && token) {
+      var bid = row.spotlight.boostId;
+      el.addEventListener('click', function () {
+        api('/community/boosts/' + bid + '/click', { method: 'POST' }).catch(function () {});
+      });
+    }
+    // Only the owner gets mySpotlight back from the server, so this is the
+    // "you have a live boost" signal. Nudge the numbers once so a boost that
+    // just started doesn't sit on zeros until the next manual reload.
+    if (row.mySpotlight) {
+      (function (pid) { setTimeout(function () { pollSpotStats(pid); }, 2500); })(p.id);
+    }
 
     // expand long caption
     var more = el.querySelector('[data-more]');
@@ -774,13 +787,59 @@
     m.classList.add('open');
   }
 
-  // ── spotlight (paid 24h pin) ──
+  // ── spotlight (paid pin) ──
   function spotLeftText(hs) {
     var ms = new Date(hs).getTime() - Date.now();
     if (ms <= 0) return 'expired';
     var h = Math.ceil(ms / 3600e3);
     if (h >= 24) return Math.floor(h / 24) + 'd ' + (h % 24) + 'h left';
     return h + 'h left';
+  }
+
+  var SPOT_PACKS = null;   // loaded from /community/spotlight/packs on first use
+  var chosenPack = 'day1';
+
+  function spotPack(id) {
+    var list = SPOT_PACKS || [];
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return { id: 'day1', label: 'Quick boost', hours: 24, priceInr: 50, duration: '24 hours', perDay: 50 };
+  }
+
+  function loadSpotPacks(cb) {
+    if (SPOT_PACKS) { cb(); return; }
+    api('/community/spotlight/packs').then(function (r) {
+      if (r && r.ok && r.d && r.d.data && r.d.data.packs) SPOT_PACKS = r.d.data.packs;
+      else SPOT_PACKS = [];
+      cb();
+    }).catch(function () { SPOT_PACKS = []; cb(); });
+  }
+
+  // Per-day rate is shown as plain arithmetic only. Do not mark it as a saving:
+  // day3 and week currently cost MORE per day than day1, so a "save" badge here
+  // would be a false claim.
+  function packRowHtml(pk, sel) {
+    var per = Math.round(Number(pk.perDay || 0) * 100) / 100;
+    return '<button type="button" class="spot-pack' + (sel ? ' on' : '') + '" data-pack="' + esc(pk.id) + '">' +
+      '<span class="sp-main"><b>' + esc(pk.duration) + '</b><small>' + esc(pk.label) + '</small></span>' +
+      '<span class="sp-price">₹' + Number(pk.priceInr) + '<small>₹' + per + '/day</small></span>' +
+      '</button>';
+  }
+
+  /**
+   * Live numbers for the boost owner. Reach is distinct viewers and clicks are
+   * people who opened the post, so both stay honest under repeated refreshes.
+   */
+  function spotStatsBar(sp, p) {
+    var reach = Number(sp.reach || 0), imp = Number(sp.impressions || 0), clicks = Number(sp.clicks || 0);
+    var ctr = imp > 0 ? (Math.round(clicks / imp * 1000) / 10) : 0;
+    var parts = '<span class="spot-metrics">' +
+      '<b>' + reach + '</b> reached' +
+      '<b>' + clicks + '</b> opened' +
+      (imp > 0 ? '<b>' + ctr + '%</b> opened' : '') +
+      '</span>';
+    return '<div class="spot-bar"><span class="spot-txt">✦ Boost active · ' + spotLeftText(sp.expiresAt) + '</span>' +
+      parts +
+      '<button data-spot-extend="' + esc(p.id) + '">Extend</button></div>';
   }
 
   function refreshSpotBars(postId, expiresAt) {
@@ -792,19 +851,81 @@
       var bar = card.querySelector('.spot-bar');
       if (!bar) return;
       bar.classList.remove('idle');
-      bar.innerHTML = '<span>✦ Spotlight active · ' + spotLeftText(expiresAt) + '</span><button data-spot-extend="' + esc(postId) + '">Extend ₹50</button>';
+      bar.innerHTML = '<span>✦ Spotlight active · ' + spotLeftText(expiresAt) + '</span><button data-spot-extend="' + esc(postId) + '">Extend</button>';
       var btn = bar.querySelector('button');
-      if (btn) btn.addEventListener('click', function () { if (!token) { openLogin(); return; } extendSpotlight({ id: postId }); });
+      if (btn) btn.addEventListener('click', function () { if (!token) { openLogin(); return; } openExtendModal({ id: postId }); });
     });
   }
 
-  function extendSpotlight(p) {
-    api('/community/posts/' + p.id + '/spotlight/extend', { method: 'POST' }).then(function (r) {
-      if (!r.ok) { toast(r.d.message || 'Could not extend boost', true); return; }
-      toast('Boost extended by 24 hours');
-      refreshSpotBars(p.id, r.d.data.boost.expiresAt);
+  /** Re-pulls stats so the owner sees reach/clicks climb during the boost. */
+  function pollSpotStats(postId) {
+    api('/community/posts/' + postId + '/spotlight/stats').then(function (r) {
+      if (!(r && r.ok && r.d && r.d.data && r.d.data.stats)) return;
+      var st = r.d.data.stats;
+      var bar = document.querySelector('.card[data-id="' + postId + '"] .spot-bar');
+      if (!bar) return;
+      var post = { id: postId };
+      bar.classList.remove('idle');
+      bar.innerHTML = spotStatsBar({
+        expiresAt: st.expiresAt, reach: st.reach, impressions: st.impressions, clicks: st.clicks
+      }, post);
+      var b = bar.querySelector('button');
+      if (b) b.addEventListener('click', function () { openExtendModal(post); });
     });
   }
+
+  function openExtendModal(p) {
+    loadSpotPacks(function () {
+      var m = document.getElementById('spotExtModal');
+      if (!m) {
+        m = document.createElement('div');
+        m.id = 'spotExtModal';
+        m.className = 'modal-backdrop';
+        m.innerHTML = '<div class="modal" style="max-width:430px;"></div>';
+        document.body.appendChild(m);
+        m.addEventListener('click', function (e) { if (e.target === m) m.classList.remove('open'); });
+      }
+      var body = m.querySelector('.modal');
+      chosenPack = 'day3';
+      body.innerHTML =
+        '<h3>✦ Extend boost</h3>' +
+        '<div class="sub">Pick how much longer you want to stay featured. One payment, no auto-renewal.</div>' +
+        '<div class="spot-packs" id="spotExtPacks"></div>' +
+        '<div class="err" id="spotExtErr"></div>' +
+        '<div class="row"><button type="button" id="spotExtCancel" style="padding:11px 18px;border-radius:10px;border:1px solid var(--line,#e3e0f2);background:#fff;font-weight:600;cursor:pointer;">Cancel</button><button type="button" id="spotExtGo" style="padding:11px 18px;border-radius:10px;border:none;background:#6C3FE8;color:#fff;font-weight:700;cursor:pointer;">Extend</button></div>';
+      m.classList.add('open');
+      function draw() {
+        var wrap = body.querySelector('#spotExtPacks');
+        wrap.innerHTML = (SPOT_PACKS && SPOT_PACKS.length ? SPOT_PACKS : [spotPack('day1')])
+          .map(function (pk) { return packRowHtml(pk, pk.id === chosenPack); }).join('');
+        wrap.querySelectorAll('[data-pack]').forEach(function (b) {
+          b.addEventListener('click', function () { chosenPack = b.getAttribute('data-pack'); draw(); });
+        });
+        var go = body.querySelector('#spotExtGo');
+        go.textContent = 'Extend ' + spotPack(chosenPack).duration + ' · ₹' + spotPack(chosenPack).priceInr;
+      }
+      draw();
+      body.querySelector('#spotExtCancel').addEventListener('click', function () { m.classList.remove('open'); });
+      body.querySelector('#spotExtGo').addEventListener('click', function () {
+        var btn = this;
+        var err = body.querySelector('#spotExtErr');
+        var pk = spotPack(chosenPack);
+        btn.disabled = true;
+        btn.textContent = 'Extending…';
+        api('/community/posts/' + p.id + '/spotlight/extend', { method: 'POST', body: { planId: pk.id } }).then(function (r) {
+          btn.disabled = false;
+          btn.textContent = 'Extend ' + pk.duration + ' · ₹' + pk.priceInr;
+          if (!r.ok) { err.textContent = (r.d && r.d.message) || 'Could not extend boost'; return; }
+          m.classList.remove('open');
+          toast('Boost extended by ' + pk.duration);
+          refreshSpotBars(p.id, r.d.data.boost.expiresAt);
+          setTimeout(function () { pollSpotStats(p.id); }, 1200);
+        });
+      });
+    });
+  }
+
+  function extendSpotlight(p) { openExtendModal(p); }
 
   function openSpotlightModal(p) {
     var m = document.getElementById('spotModal');
@@ -823,13 +944,28 @@
     var trendList = [];
     body.innerHTML =
       '<h3>✦ Boost this ' + (p.kind === 'PROJECT' ? 'project' : 'gig') + '</h3>' +
-      '<div class="sub">₹50 for 24 hours. Your ' + (p.kind === 'PROJECT' ? 'project' : 'gig') + ' is featured at the top of marketplace results, shown to people who are actively looking for your skills.</div>' +
+      '<div class="sub">Your ' + (p.kind === 'PROJECT' ? 'project' : 'gig') + ' is featured at the top of marketplace results, shown to people actively looking for your skills. You can see exactly how many people it reached.</div>' +
+      '<div class="fld"><label>Choose how long</label><div class="spot-packs" id="spotPacks"></div></div>' +
       '<div class="fld"><label>Target keywords (up to 5)</label><div class="spot-chips" id="spotChips"></div></div>' +
       '<div class="fld" id="spotTrendWrap" style="display:none;"><label>Popular searches right now</label><div class="spot-chips" id="spotTrend"></div></div>' +
       '<div class="fld"><label>Add your own tag</label><div style="display:flex;gap:8px;"><input id="spotTagIn" placeholder="e.g. logo design" maxlength="30" style="flex:1;"/><button type="button" id="spotTagAdd" style="padding:10px 14px;border-radius:10px;border:1px solid var(--line,#e3e0f2);background:var(--bg-alt,#f4f1ff);color:#6C3FE8;font-weight:600;cursor:pointer;">Add</button></div></div>' +
       '<div class="err" id="spotErr"></div>' +
-      '<div class="row"><button type="button" id="spotCancel" style="padding:11px 18px;border-radius:10px;border:1px solid var(--line,#e3e0f2);background:#fff;font-weight:600;cursor:pointer;">Cancel</button><button type="button" id="spotGo" style="padding:11px 18px;border-radius:10px;border:none;background:#6C3FE8;color:#fff;font-weight:700;cursor:pointer;">✦ Boost for ₹50</button></div>';
+      '<div class="row"><button type="button" id="spotCancel" style="padding:11px 18px;border-radius:10px;border:1px solid var(--line,#e3e0f2);background:#fff;font-weight:600;cursor:pointer;">Cancel</button><button type="button" id="spotGo" style="padding:11px 18px;border-radius:10px;border:none;background:#6C3FE8;color:#fff;font-weight:700;cursor:pointer;">✦ Boost</button></div>';
     m.classList.add('open');
+
+    function drawPacks() {
+      var wrap = body.querySelector('#spotPacks');
+      if (!wrap) return;
+      var list = (SPOT_PACKS && SPOT_PACKS.length) ? SPOT_PACKS : [spotPack('day1')];
+      wrap.innerHTML = list.map(function (pk) { return packRowHtml(pk, pk.id === chosenPack); }).join('');
+      wrap.querySelectorAll('[data-pack]').forEach(function (b) {
+        b.addEventListener('click', function () { chosenPack = b.getAttribute('data-pack'); drawPacks(); });
+      });
+      var go = body.querySelector('#spotGo');
+      if (go) go.textContent = '✦ Boost ' + spotPack(chosenPack).duration + ' · ₹' + spotPack(chosenPack).priceInr;
+    }
+    drawPacks();
+    loadSpotPacks(function () { drawPacks(); });
 
     function drawTrend() {
       var wrap = body.querySelector('#spotTrend');
@@ -883,17 +1019,19 @@
       var btn = this;
       var err = body.querySelector('#spotErr');
       var tags = Object.keys(sel);
+      var pk = spotPack(chosenPack);
       err.textContent = '';
       if (!tags.length) { err.textContent = 'Pick at least one keyword'; return; }
       btn.disabled = true;
       btn.textContent = 'Boosting…';
-      api('/community/posts/' + p.id + '/spotlight', { method: 'POST', body: { tags: tags } }).then(function (r) {
+      api('/community/posts/' + p.id + '/spotlight', { method: 'POST', body: { tags: tags, planId: pk.id } }).then(function (r) {
         btn.disabled = false;
-        btn.textContent = '✦ Boost for ₹50';
+        btn.textContent = '✦ Boost ' + pk.duration + ' · ₹' + pk.priceInr;
         if (!r.ok) { err.textContent = r.d.message || 'Could not start boost'; return; }
         m.classList.remove('open');
-        toast('Your boost is live for 24 hours!');
+        toast('Your boost is live for ' + pk.duration + '!');
         refreshSpotBars(p.id, r.d.data.boost.expiresAt);
+        setTimeout(function () { pollSpotStats(p.id); }, 1200);
       });
     });
   }

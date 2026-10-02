@@ -3,6 +3,10 @@ import { eq, and, desc, count, sql, inArray, or, ilike, gt, gte, ne, not, type S
 import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable, conversationsTable, messagesTable, communityOrdersTable, communityOrderDeliveriesTable, communityOrderReviewsTable, transactionsTable, freelanceWalletsTable, postBoostsTable, searchLogsTable, projectsTable, projectBidsTable, barterMatchesTable, barterRequestsTable } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { logger } from "../lib/logger";
+import {
+  SPOTLIGHT_PACK_LIST, SPOTLIGHT_DEFAULT_PACK,
+  getSpotlightPack, isKnownSpotlightPack, buildSpotlightStats, packPerDay,
+} from "../lib/spotlight";
 import { uploadToSupabase } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
 import { getCommunityQuota, consumeGigPost, consumeProposal, grantQuotaBundle, QUOTA_PLANS, FREE_GIG_POSTS, FREE_PROPOSALS, type QuotaPlanId } from "../lib/community-quota";
@@ -305,8 +309,25 @@ interface PostRowShape {
   // freelancer before they bid on something already finished or underway.
   // null for every other kind.
   workStatus: "OPEN" | "PENDING" | "IN_PROGRESS" | "REVISION" | "DELIVERED" | "COMPLETED" | null;
-  spotlight?: { expiresAt: string; tags: string[] };
-  mySpotlight?: { expiresAt: string; tags: string[]; extendCount: number };
+  spotlight?: {
+    expiresAt: string;
+    tags: string[];
+    boostId: string;
+    reach: number;
+    impressions: number;
+    clicks: number;
+  };
+  mySpotlight?: {
+    expiresAt: string;
+    tags: string[];
+    extendCount: number;
+    boostId: string;
+    planId: string;
+    amount: number;
+    reach: number;
+    impressions: number;
+    clicks: number;
+  };
 }
 
 async function loadCommentCounts(postIds: string[]): Promise<Record<string, { count: number; rows: (typeof communityCommentsTable.$inferSelect)[] }>> {
@@ -483,9 +504,24 @@ async function renderPosts(rawPosts: typeof communityPostsTable.$inferSelect[], 
           .from(postBoostsTable)
           .where(and(inArray(postBoostsTable.postId, myIds), gt(postBoostsTable.expiresAt, new Date())));
         const boostByPost = new Map(myBoosts.map((b) => [b.postId, b]));
+        const mineEng = await boostEngagementFor(myBoosts.map((b) => b.id));
         for (const r of rows) {
           const b = boostByPost.get(r.post.id);
-          if (b) r.mySpotlight = { expiresAt: b.expiresAt.toISOString(), tags: b.tags, extendCount: b.extendCount };
+          if (!b) continue;
+          // Owners always see the live numbers on their own card, which is what
+          // makes a boost worth re-buying.
+          const e = mineEng.get(b.id) ?? { reach: 0, impressions: 0, clicks: 0 };
+          r.mySpotlight = {
+            expiresAt: b.expiresAt.toISOString(),
+            tags: b.tags,
+            extendCount: b.extendCount,
+            boostId: b.id,
+            planId: b.planId ?? SPOTLIGHT_DEFAULT_PACK,
+            amount: Number(b.amount) || 0,
+            reach: e.reach,
+            impressions: e.impressions,
+            clicks: e.clicks,
+          };
         }
       } catch (err) {
         logger.warn({ err }, "renderPosts: mySpotlight lookup failed");
@@ -495,8 +531,59 @@ async function renderPosts(rawPosts: typeof communityPostsTable.$inferSelect[], 
   return rows;
 }
 
-const SPOTLIGHT_FEE = 50;
-const SPOTLIGHT_HOURS = 24;
+/**
+ * Records that `viewerId` was shown `boostId`. Upsert keeps one row per pair so
+ * reach stays a distinct-person count, while `views` accumulates render events.
+ * Fire-and-forget: analytics must never fail a feed request.
+ */
+async function recordBoostImpression(boostIds: string[], viewerId: string): Promise<void> {
+  if (!boostIds.length || !viewerId) return;
+  try {
+    for (const bid of boostIds) {
+      await db.execute(
+        sql`INSERT INTO boost_impressions (boost_id, user_id, viewed_at, views)
+            VALUES (${bid}::uuid, ${viewerId}::uuid, NOW(), 1)
+            ON CONFLICT (boost_id, user_id)
+            DO UPDATE SET views = boost_impressions.views + 1`,
+      );
+    }
+  } catch (err) {
+    logger.warn({ err }, "recordBoostImpression failed");
+  }
+}
+
+/** Aggregate reach/impressions/clicks for a set of boosts in one round trip. */
+async function boostEngagementFor(boostIds: string[]): Promise<Map<string, { reach: number; impressions: number; clicks: number }>> {
+  const out = new Map<string, { reach: number; impressions: number; clicks: number }>();
+  if (!boostIds.length) return out;
+  try {
+    const rows = await db.execute(
+      sql`SELECT boost_id,
+                 count(*)::int AS reach,
+                 COALESCE(SUM(views), 0)::int AS impressions,
+                 count(clicked_at)::int AS clicks
+          FROM boost_impressions
+          WHERE boost_id IN (${sql.join(boostIds.map((b) => sql`${b}::uuid`))})
+          GROUP BY boost_id`,
+    );
+    const list = ((rows as { rows?: unknown[] }).rows ?? []) as {
+      boost_id: string; reach: number; impressions: number; clicks: number;
+    }[];
+    for (const r of list) {
+      out.set(r.boost_id, {
+        reach: Number(r.reach) || 0,
+        impressions: Number(r.impressions) || 0,
+        clicks: Number(r.clicks) || 0,
+      });
+    }
+  } catch (err) {
+    logger.warn({ err }, "boostEngagementFor failed");
+  }
+  for (const b of boostIds) {
+    if (!out.has(b)) out.set(b, { reach: 0, impressions: 0, clicks: 0 });
+  }
+  return out;
+}
 
 function normalizeSpotTerm(t: string): string {
   return String(t).toLowerCase().replace(/^#+/, "").trim();
@@ -566,12 +653,28 @@ async function loadSpotlightPins(viewerId: string, kindFilter: string): Promise<
       }
     }
     if (!matched.length) return [];
+    // Count the pin itself as the impression, then attach the numbers so the
+    // post owner can see what the boost is doing.
+    await recordBoostImpression(
+      matched.map((m) => m.boost.id),
+      viewerId,
+    );
+    const eng = await boostEngagementFor(matched.map((m) => m.boost.id));
     const rows = await renderPosts(
       matched.map((m) => m.post),
       viewerId,
     );
     rows.forEach((r, i) => {
-      r.spotlight = { expiresAt: matched[i].boost.expiresAt.toISOString(), tags: matched[i].boost.tags };
+      const b = matched[i];
+      const e = eng.get(b.boost.id) ?? { reach: 0, impressions: 0, clicks: 0 };
+      r.spotlight = {
+        expiresAt: b.boost.expiresAt.toISOString(),
+        tags: b.boost.tags,
+        boostId: b.boost.id,
+        reach: e.reach,
+        impressions: e.impressions,
+        clicks: e.clicks,
+      };
     });
     return rows;
   } catch (err) {
@@ -580,8 +683,107 @@ async function loadSpotlightPins(viewerId: string, kindFilter: string): Promise<
   }
 }
 
+router.get("/community/spotlight/packs", (_req: Request, res: Response): void => {
+  res.json({
+    success: true,
+    data: {
+      packs: SPOTLIGHT_PACK_LIST.map((p) => ({
+        id: p.id,
+        label: p.label,
+        hours: p.hours,
+        priceInr: p.priceInr,
+        duration: p.duration,
+        perDay: packPerDay(p),
+      })),
+      defaultPack: SPOTLIGHT_DEFAULT_PACK,
+    },
+  });
+});
+
+router.get("/community/posts/:id/spotlight/stats", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const meId = req.user!.id;
+  const postId = String(req.params.id);
+  const [post] = await db
+    .select({ id: communityPostsTable.id, userId: communityPostsTable.userId })
+    .from(communityPostsTable)
+    .where(eq(communityPostsTable.id, postId))
+    .limit(1);
+  if (!post) {
+    res.status(404).json({ success: false, message: "Post not found" });
+    return;
+  }
+  if (post.userId !== meId) {
+    res.status(403).json({ success: false, message: "You can only see stats for your own boosts" });
+    return;
+  }
+  const [boost] = await db
+    .select()
+    .from(postBoostsTable)
+    .where(eq(postBoostsTable.postId, postId))
+    .orderBy(desc(postBoostsTable.createdAt))
+    .limit(1);
+  if (!boost) {
+    res.json({ success: true, data: { stats: null, packs: SPOTLIGHT_PACK_LIST.map((p) => ({ ...p, perDay: packPerDay(p) })) } });
+    return;
+  }
+  const eng = await boostEngagementFor([boost.id]);
+  const e = eng.get(boost.id) ?? { reach: 0, impressions: 0, clicks: 0 };
+  res.json({
+    success: true,
+    data: {
+      stats: buildSpotlightStats({
+        planId: boost.planId ?? SPOTLIGHT_DEFAULT_PACK,
+        amount: Number(boost.amount) || 0,
+        reach: e.reach,
+        impressions: e.impressions,
+        clicks: e.clicks,
+        startsAt: boost.startsAt,
+        expiresAt: boost.expiresAt,
+      }),
+      packs: SPOTLIGHT_PACK_LIST.map((p) => ({ ...p, perDay: packPerDay(p) })),
+    },
+  });
+});
+
+/**
+ * Records that a viewer opened a boosted post. Upserts rather than UPDATEs so
+ * an open via a share/direct link is never silently dropped, and `clicked_at`
+ * is only stamped once so repeat opens cannot inflate the click count.
+ * Owner clicks are ignored, since the buyer can't be their own customer.
+ */
+router.post("/community/boosts/:boostId/click", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const meId = req.user!.id;
+  const boostId = String(req.params.boostId);
+  try {
+    const [boost] = await db
+      .select({ id: postBoostsTable.id, userId: postBoostsTable.userId, postId: postBoostsTable.postId })
+      .from(postBoostsTable)
+      .where(eq(postBoostsTable.id, boostId))
+      .limit(1);
+    if (!boost || boost.userId === meId) {
+      res.json({ success: true });
+      return;
+    }
+    await db.execute(
+      sql`INSERT INTO boost_impressions (boost_id, user_id, viewed_at, clicked_at, views)
+          VALUES (${boost.id}::uuid, ${meId}::uuid, NOW(), NOW(), 1)
+          ON CONFLICT (boost_id, user_id)
+          DO UPDATE SET clicked_at = COALESCE(boost_impressions.clicked_at, NOW())`,
+    );
+    res.json({ success: true });
+  } catch (err) {
+    logger.warn({ err }, "boost click tracking failed");
+    res.json({ success: true });
+  }
+});
+
 router.post("/community/posts/:id/spotlight", authenticate, async (req: Request, res: Response): Promise<void> => {
   const meId = req.user!.id;
+  if (req.body?.planId != null && !isKnownSpotlightPack(req.body.planId)) {
+    res.status(400).json({ success: false, message: "Unknown boost pack" });
+    return;
+  }
+  const pack = getSpotlightPack(req.body?.planId);
   const [post] = await db
     .select()
     .from(communityPostsTable)
@@ -616,16 +818,16 @@ router.post("/community/posts/:id/spotlight", authenticate, async (req: Request,
   try {
     const boost = await db.transaction(async (tx) => {
       const [wallet] = await tx.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, meId));
-      if (!wallet || Number(wallet.balance) < SPOTLIGHT_FEE) throw new Error("INSUFFICIENT_SPOTLIGHT");
+      if (!wallet || Number(wallet.balance) < pack.priceInr) throw new Error("INSUFFICIENT_SPOTLIGHT");
       const deductResult = await tx.execute(
-        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${SPOTLIGHT_FEE}, updated_at = NOW() WHERE ${freelanceWalletsTable.id} = ${wallet.id} AND balance >= ${SPOTLIGHT_FEE}`,
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${pack.priceInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.id} = ${wallet.id} AND balance >= ${pack.priceInr}`,
       );
       if (deductResult.rowCount === 0) throw new Error("INSUFFICIENT_SPOTLIGHT");
       await tx.insert(transactionsTable).values({
         userId: meId,
         type: "SERVICE_PAYMENT",
-        amount: SPOTLIGHT_FEE,
-        description: `Featured boost · ${SPOTLIGHT_HOURS}h (post ${post.id})`,
+        amount: pack.priceInr,
+        description: `Featured boost · ${pack.duration} (post ${post.id})`,
         status: "COMPLETED",
       });
       const [created] = await tx
@@ -634,23 +836,34 @@ router.post("/community/posts/:id/spotlight", authenticate, async (req: Request,
           postId: post.id,
           userId: meId,
           tags,
-          amount: SPOTLIGHT_FEE,
+          amount: pack.priceInr,
+          planId: pack.id,
           startsAt: new Date(),
-          expiresAt: new Date(Date.now() + SPOTLIGHT_HOURS * 3600e3),
+          expiresAt: new Date(Date.now() + pack.hours * 3600e3),
         })
         .returning();
       return created;
     });
     res.status(201).json({
       success: true,
-      message: `Your boost is live for ${SPOTLIGHT_HOURS} hours!`,
-      data: { boost: { id: boost.id, expiresAt: boost.expiresAt, tags: boost.tags, extendCount: boost.extendCount } },
+      message: `Your boost is live for ${pack.duration}!`,
+      data: {
+        boost: {
+          id: boost.id,
+          expiresAt: boost.expiresAt,
+          tags: boost.tags,
+          extendCount: boost.extendCount,
+          planId: pack.id,
+          amount: pack.priceInr,
+        },
+        packs: SPOTLIGHT_PACK_LIST.map((p) => ({ ...p, perDay: packPerDay(p) })),
+      },
     });
   } catch (e) {
     if (e instanceof Error && e.message === "INSUFFICIENT_SPOTLIGHT") {
       res.status(400).json({
         success: false,
-        message: `Insufficient balance (₹${SPOTLIGHT_FEE} required). Add money to your wallet first.`,
+        message: `Insufficient balance (₹${pack.priceInr} required). Add money to your wallet first.`,
         _spotlightFailed: true,
       });
       return;
@@ -661,6 +874,11 @@ router.post("/community/posts/:id/spotlight", authenticate, async (req: Request,
 
 router.post("/community/posts/:id/spotlight/extend", authenticate, async (req: Request, res: Response): Promise<void> => {
   const meId = req.user!.id;
+  if (req.body?.planId != null && !isKnownSpotlightPack(req.body.planId)) {
+    res.status(400).json({ success: false, message: "Unknown boost pack" });
+    return;
+  }
+  const pack = getSpotlightPack(req.body?.planId);
   const [post] = await db
     .select()
     .from(communityPostsTable)
@@ -686,35 +904,52 @@ router.post("/community/posts/:id/spotlight/extend", authenticate, async (req: R
   try {
     const updated = await db.transaction(async (tx) => {
       const [wallet] = await tx.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, meId));
-      if (!wallet || Number(wallet.balance) < SPOTLIGHT_FEE) throw new Error("INSUFFICIENT_SPOTLIGHT");
+      if (!wallet || Number(wallet.balance) < pack.priceInr) throw new Error("INSUFFICIENT_SPOTLIGHT");
       const deductResult = await tx.execute(
-        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${SPOTLIGHT_FEE}, updated_at = NOW() WHERE ${freelanceWalletsTable.id} = ${wallet.id} AND balance >= ${SPOTLIGHT_FEE}`,
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${pack.priceInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.id} = ${wallet.id} AND balance >= ${pack.priceInr}`,
       );
       if (deductResult.rowCount === 0) throw new Error("INSUFFICIENT_SPOTLIGHT");
       await tx.insert(transactionsTable).values({
         userId: meId,
         type: "SERVICE_PAYMENT",
-        amount: SPOTLIGHT_FEE,
-        description: `Boost extension · ${SPOTLIGHT_HOURS}h (post ${post.id})`,
+        amount: pack.priceInr,
+        description: `Boost extension · ${pack.duration} (post ${post.id})`,
         status: "COMPLETED",
       });
+      // Longer packs replace the plan on the row, so stats report what the buyer
+      // actually paid for rather than the cheapest tier they started on.
       const [u] = await tx
         .update(postBoostsTable)
-        .set({ expiresAt: new Date(boost.expiresAt.getTime() + SPOTLIGHT_HOURS * 3600e3), extendCount: boost.extendCount + 1 })
+        .set({
+          expiresAt: new Date(boost.expiresAt.getTime() + pack.hours * 3600e3),
+          extendCount: boost.extendCount + 1,
+          planId: pack.id,
+          amount: pack.priceInr,
+        })
         .where(eq(postBoostsTable.id, boost.id))
         .returning();
       return u;
     });
     res.json({
       success: true,
-      message: `Boost extended by ${SPOTLIGHT_HOURS} hours`,
-      data: { boost: { id: updated.id, expiresAt: updated.expiresAt, tags: updated.tags, extendCount: updated.extendCount } },
+      message: `Boost extended by ${pack.duration}`,
+      data: {
+        boost: {
+          id: updated.id,
+          expiresAt: updated.expiresAt,
+          tags: updated.tags,
+          extendCount: updated.extendCount,
+          planId: pack.id,
+          amount: pack.priceInr,
+        },
+        packs: SPOTLIGHT_PACK_LIST.map((p) => ({ ...p, perDay: packPerDay(p) })),
+      },
     });
   } catch (e) {
     if (e instanceof Error && e.message === "INSUFFICIENT_SPOTLIGHT") {
       res.status(400).json({
         success: false,
-        message: `Insufficient balance (₹${SPOTLIGHT_FEE} required). Add money to your wallet first.`,
+        message: `Insufficient balance (₹${pack.priceInr} required). Add money to your wallet first.`,
         _spotlightFailed: true,
       });
       return;

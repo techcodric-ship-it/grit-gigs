@@ -192,8 +192,34 @@ export const postBoostsTable = pgTable("post_boosts", {
   startsAt: timestamp("starts_at").defaultNow().notNull(),
   expiresAt: timestamp("expires_at").notNull(),
   extendCount: integer("extend_count").default(0).notNull(),
+  // Which priced pack was bought. Legacy rows predate packs and stay day1 (24h).
+  planId: text("plan_id").default("day1").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+/**
+ * One row per (boost, viewer). The unique key makes reach a distinct-person
+ * count and stops a refresh loop from inflating the number the buyer is shown.
+ */
+export const boostImpressionsTable = pgTable(
+  "boost_impressions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    boostId: uuid("boost_id")
+      .notNull()
+      .references(() => postBoostsTable.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    viewedAt: timestamp("viewed_at").defaultNow().notNull(),
+    clickedAt: timestamp("clicked_at"),
+    // Incremented on every render; reach above is the deduped floor.
+    views: integer("views").default(1).notNull(),
+  },
+  (t) => ({
+    boostViewerUnique: { name: "boost_impressions_boost_user_unique", columns: [t.boostId, t.userId], type: "unique" as const },
+  }),
+);
 
 export const searchLogsTable = pgTable("search_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
