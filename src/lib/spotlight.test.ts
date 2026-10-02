@@ -6,6 +6,7 @@ import {
   getSpotlightPack,
   isKnownSpotlightPack,
   packPerDay,
+  formatInr,
   buildSpotlightStats,
 } from "./spotlight";
 
@@ -24,12 +25,33 @@ describe("spotlight packs", () => {
 
   it("publishes per-day rates without pretending they are a discount", () => {
     const rates = SPOTLIGHT_PACK_LIST.map(packPerDay);
-    // day3 is ₹66.33/day and week is ₹71.29/day, both ABOVE day1's ₹50/day.
+    // day3 is ₹66/day and week is ₹71/day, both ABOVE day1's ₹50/day.
     // The UI must therefore never show a "save"/"cheaper per day" claim until
     // the tiers are actually repriced into a real volume discount.
-    expect(rates).toEqual([50, 66.33, 71.29]);
+    expect(rates).toEqual([50, 66, 71]);
     expect(rates[1]).toBeGreaterThan(rates[0]);
     expect(rates[2]).toBeGreaterThan(rates[1]);
+  });
+
+  it("never shows a fractional rupee on the payment screen", () => {
+    for (const p of SPOTLIGHT_PACK_LIST) {
+      expect(Number.isInteger(packPerDay(p))).toBe(true);
+      expect(Number.isInteger(Number(p.priceInr))).toBe(true);
+      expect(formatInr(p.priceInr)).toBe(String(p.priceInr));
+    }
+    expect(formatInr(199)).toBe("199");
+    expect(formatInr(66.33)).toBe("66");
+    expect(formatInr(49.5)).toBe("50");
+    expect(formatInr(NaN)).toBe("0");
+    expect(formatInr(undefined)).toBe("0");
+  });
+
+  it("gives every pack a distinct label so no row repeats its own duration", () => {
+    const labels = SPOTLIGHT_PACK_LIST.map((p) => p.label);
+    expect(new Set(labels).size).toBe(labels.length);
+    for (const p of SPOTLIGHT_PACK_LIST) {
+      expect(p.label.toLowerCase()).not.toBe(p.duration.toLowerCase());
+    }
   });
 
   it("is cheaper per hour the longer the pack, unlike per-day", () => {
@@ -87,9 +109,9 @@ describe("buildSpotlightStats", () => {
     expect(s.reach).toBe(12);
     expect(s.impressions).toBe(40);
     expect(s.clicks).toBe(5);
-    expect(s.clickThroughRate).toBe(12.5);
+    expect(s.clickThroughRate).toBe(13);
     expect(s.pricePaid).toBe(199);
-    expect(s.perDay).toBe(66.33);
+    expect(s.perDay).toBe(66);
     expect(s.planId).toBe("day3");
   });
 
@@ -101,12 +123,12 @@ describe("buildSpotlightStats", () => {
     expect(s.isActive).toBe(true);
   });
 
-  it("never lets clicks exceed impressions or reach", () => {
+  it("clamps a nonsense ratio instead of rendering an absurd percentage", () => {
     const s = buildSpotlightStats({ ...base, reach: 3, impressions: 4, clicks: 9 });
     expect(s.reach).toBe(3);
     expect(s.impressions).toBe(4);
     expect(s.clicks).toBe(9);
-    expect(s.clickThroughRate).toBe(225);
+    expect(s.clickThroughRate).toBe(100);
   });
 
   it("counts down remaining hours and flags expiry", () => {

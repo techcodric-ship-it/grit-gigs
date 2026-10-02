@@ -5,7 +5,7 @@ import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { logger } from "../lib/logger";
 import {
   SPOTLIGHT_PACK_LIST, SPOTLIGHT_DEFAULT_PACK,
-  getSpotlightPack, isKnownSpotlightPack, buildSpotlightStats, packPerDay,
+  getSpotlightPack, isKnownSpotlightPack,   buildSpotlightStats, packPerDay, spotSuggestions,
 } from "../lib/spotlight";
 import { uploadToSupabase } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
@@ -585,6 +585,18 @@ async function boostEngagementFor(boostIds: string[]): Promise<Map<string, { rea
   return out;
 }
 
+/**
+ * Turns one raw search-log term into clean suggestion chips.
+ *
+ * Search logs are free text typed by humans, so a single row can be a whole
+ * phrase ("operation, communication, strategy"), contain typos ("profreading"),
+ * or repeat a word already offered on its own. Surfacing those raw inside a
+ * payment dialog makes the page look careless and erodes trust, so terms are
+ * split on punctuation and de-duplicated across the whole list.
+ */
+// Short but real skill acronyms. A generic length floor would drop these and
+// they are exactly the terms people search for.
+
 function normalizeSpotTerm(t: string): string {
   return String(t).toLowerCase().replace(/^#+/, "").trim();
 }
@@ -963,11 +975,11 @@ router.get("/community/spotlight/suggestions", optionalAuth, async (_req: Reques
     const trend = await db
       .select({ term: searchLogsTable.term, n: count() })
       .from(searchLogsTable)
-      .where(gte(searchLogsTable.createdAt, new Date(Date.now() - 7 * 864e5)))
+      .where(gte(searchLogsTable.createdAt, new Date(Date.now() - 14 * 864e5)))
       .groupBy(searchLogsTable.term)
       .orderBy(desc(count()))
-      .limit(12);
-    res.json({ success: true, data: { trending: trend.map((r) => normalizeSpotTerm(r.term)).filter((t) => t.length >= 2) } });
+      .limit(40);
+    res.json({ success: true, data: { trending: spotSuggestions(trend) } });
   } catch {
     res.json({ success: true, data: { trending: [] } });
   }

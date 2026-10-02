@@ -802,8 +802,7 @@
   function spotPack(id) {
     var list = SPOT_PACKS || [];
     for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
-    return { id: 'day1', label: 'Quick boost', hours: 24, priceInr: 50, duration: '24 hours', perDay: 50 };
-  }
+    return { id: 'day1', label: 'Quick boost', hours: 24, priceInr: 50, duration: '24 hours', perDay: 50 };  }
 
   function loadSpotPacks(cb) {
     if (SPOT_PACKS) { cb(); return; }
@@ -816,14 +815,17 @@
 
   // Per-day rate is shown as plain arithmetic only. Do not mark it as a saving:
   // day3 and week currently cost MORE per day than day1, so a "save" badge here
-  // would be a false claim.
+  // would be a false claim. Prices are rounded to whole rupees so the payment
+  // screen never shows "₹66.33".
   function packRowHtml(pk, sel) {
-    var per = Math.round(Number(pk.perDay || 0) * 100) / 100;
+    var per = Math.round(Number(pk.perDay || 0));
     return '<button type="button" class="spot-pack' + (sel ? ' on' : '') + '" data-pack="' + esc(pk.id) + '">' +
       '<span class="sp-main"><b>' + esc(pk.duration) + '</b><small>' + esc(pk.label) + '</small></span>' +
-      '<span class="sp-price">₹' + Number(pk.priceInr) + '<small>₹' + per + '/day</small></span>' +
+      '<span class="sp-price">₹' + formatInr(pk.priceInr) + '<small>₹' + per + '/day</small></span>' +
       '</button>';
   }
+
+  function formatInr(n) { return String(Math.round(Number(n) || 0)); }
 
   /**
    * Live numbers for the boost owner. Reach is distinct viewers and clicks are
@@ -889,7 +891,7 @@
       chosenPack = 'day3';
       body.innerHTML =
         '<h3>✦ Extend boost</h3>' +
-        '<div class="sub">Pick how much longer you want to stay featured. One payment, no auto-renewal.</div>' +
+        '<div class="sub">Pick how much longer to stay visible. One payment from your wallet, no auto-renewal.</div>' +
         '<div class="spot-packs" id="spotExtPacks"></div>' +
         '<div class="err" id="spotExtErr"></div>' +
         '<div class="row"><button type="button" id="spotExtCancel" style="padding:11px 18px;border-radius:10px;border:1px solid var(--line,#e3e0f2);background:#fff;font-weight:600;cursor:pointer;">Cancel</button><button type="button" id="spotExtGo" style="padding:11px 18px;border-radius:10px;border:none;background:#6C3FE8;color:#fff;font-weight:700;cursor:pointer;">Extend</button></div>';
@@ -902,7 +904,7 @@
           b.addEventListener('click', function () { chosenPack = b.getAttribute('data-pack'); draw(); });
         });
         var go = body.querySelector('#spotExtGo');
-        go.textContent = 'Extend ' + spotPack(chosenPack).duration + ' · ₹' + spotPack(chosenPack).priceInr;
+        go.textContent = 'Pay ₹' + formatInr(spotPack(chosenPack).priceInr) + ' · extend ' + spotPack(chosenPack).duration;
       }
       draw();
       body.querySelector('#spotExtCancel').addEventListener('click', function () { m.classList.remove('open'); });
@@ -913,8 +915,8 @@
         btn.disabled = true;
         btn.textContent = 'Extending…';
         api('/community/posts/' + p.id + '/spotlight/extend', { method: 'POST', body: { planId: pk.id } }).then(function (r) {
-          btn.disabled = false;
-          btn.textContent = 'Extend ' + pk.duration + ' · ₹' + pk.priceInr;
+        btn.disabled = false;
+        btn.textContent = 'Pay ₹' + formatInr(pk.priceInr) + ' · extend ' + pk.duration;
           if (!r.ok) { err.textContent = (r.d && r.d.message) || 'Could not extend boost'; return; }
           m.classList.remove('open');
           toast('Boost extended by ' + pk.duration);
@@ -942,13 +944,15 @@
     var initial = (p.tags && p.tags.length ? p.tags : []).slice(0, 5);
     initial.forEach(function (t) { sel[String(t).toLowerCase().replace(/^#/, '')] = true; });
     var trendList = [];
+    var noun = p.kind === 'PROJECT' ? 'project' : 'gig';
     body.innerHTML =
-      '<h3>✦ Boost this ' + (p.kind === 'PROJECT' ? 'project' : 'gig') + '</h3>' +
-      '<div class="sub">Your ' + (p.kind === 'PROJECT' ? 'project' : 'gig') + ' is featured at the top of marketplace results, shown to people actively looking for your skills. You can see exactly how many people it reached.</div>' +
+      '<h3>✦ Boost this ' + noun + '</h3>' +
+      '<div class="sub">Your ' + noun + ' is shown at the top of the feed to people searching for your keywords. You can see exactly how many people it reached and opened.</div>' +
       '<div class="fld"><label>Choose how long</label><div class="spot-packs" id="spotPacks"></div></div>' +
+      '<div class="spot-note" id="spotNote"></div>' +
       '<div class="fld"><label>Target keywords (up to 5)</label><div class="spot-chips" id="spotChips"></div></div>' +
-      '<div class="fld" id="spotTrendWrap" style="display:none;"><label>Popular searches right now</label><div class="spot-chips" id="spotTrend"></div></div>' +
-      '<div class="fld"><label>Add your own tag</label><div style="display:flex;gap:8px;"><input id="spotTagIn" placeholder="e.g. logo design" maxlength="30" style="flex:1;"/><button type="button" id="spotTagAdd" style="padding:10px 14px;border-radius:10px;border:1px solid var(--line,#e3e0f2);background:var(--bg-alt,#f4f1ff);color:#6C3FE8;font-weight:600;cursor:pointer;">Add</button></div></div>' +
+      '<div class="fld" id="spotTrendWrap" style="display:none;"><label>What people are searching for</label><div class="spot-chips" id="spotTrend"></div></div>' +
+      '<div class="fld"><label>Add your own keyword</label><div style="display:flex;gap:8px;"><input id="spotTagIn" placeholder="e.g. logo design" maxlength="30" style="flex:1;"/><button type="button" id="spotTagAdd" style="padding:10px 14px;border-radius:10px;border:1px solid var(--line,#e3e0f2);background:var(--bg-alt,#f4f1ff);color:#6C3FE8;font-weight:600;cursor:pointer;">Add</button></div></div>' +
       '<div class="err" id="spotErr"></div>' +
       '<div class="row"><button type="button" id="spotCancel" style="padding:11px 18px;border-radius:10px;border:1px solid var(--line,#e3e0f2);background:#fff;font-weight:600;cursor:pointer;">Cancel</button><button type="button" id="spotGo" style="padding:11px 18px;border-radius:10px;border:none;background:#6C3FE8;color:#fff;font-weight:700;cursor:pointer;">✦ Boost</button></div>';
     m.classList.add('open');
@@ -961,8 +965,16 @@
       wrap.querySelectorAll('[data-pack]').forEach(function (b) {
         b.addEventListener('click', function () { chosenPack = b.getAttribute('data-pack'); drawPacks(); });
       });
+      var pk = spotPack(chosenPack);
       var go = body.querySelector('#spotGo');
-      if (go) go.textContent = '✦ Boost ' + spotPack(chosenPack).duration + ' · ₹' + spotPack(chosenPack).priceInr;
+      if (go) go.textContent = '✦ Pay ₹' + formatInr(pk.priceInr) + ' · boost ' + pk.duration;
+      // State the total and the wallet debit before the buyer commits, so the
+      // amount charged is never a surprise.
+      var note = body.querySelector('#spotNote');
+      if (note) {
+        note.innerHTML = '<b>₹' + formatInr(pk.priceInr) + '</b> from your wallet for <b>' + esc(pk.duration) +
+          '</b>. Charged once, no auto-renewal. You can see your reach and clicks while it runs.</div>';
+      }
     }
     drawPacks();
     loadSpotPacks(function () { drawPacks(); });
@@ -1026,10 +1038,10 @@
       btn.textContent = 'Boosting…';
       api('/community/posts/' + p.id + '/spotlight', { method: 'POST', body: { tags: tags, planId: pk.id } }).then(function (r) {
         btn.disabled = false;
-        btn.textContent = '✦ Boost ' + pk.duration + ' · ₹' + pk.priceInr;
-        if (!r.ok) { err.textContent = r.d.message || 'Could not start boost'; return; }
+        btn.textContent = '✦ Pay ₹' + formatInr(pk.priceInr) + ' · boost ' + pk.duration;
+        if (!r.ok) { err.textContent = (r.d && r.d.message) || 'Could not start boost'; return; }
         m.classList.remove('open');
-        toast('Your boost is live for ' + pk.duration + '!');
+        toast('Boost live for ' + pk.duration + '. Track reach and clicks below.');
         refreshSpotBars(p.id, r.d.data.boost.expiresAt);
         setTimeout(function () { pollSpotStats(p.id); }, 1200);
       });

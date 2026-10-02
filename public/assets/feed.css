@@ -336,6 +336,8 @@ h4.sub-title { font-size: 14px; font-weight: 600; margin: 20px 0 12px; }
 .spot-metrics b { font-size: 13.5px; font-weight: 800; color: #4a2fb0; margin-left: 6px; }
 .spot-metrics b:first-child { margin-left: 0; }
 .spot-packs { display: grid; gap: 8px; }
+.spot-note { margin: -2px 0 14px; padding: 10px 12px; border-radius: 10px; background: #fbfaff; border: 1px solid #e9e4fb; font-size: 12.5px; color: #5b5680; line-height: 1.5; }
+.spot-note b { color: #3c2a7a; font-weight: 700; }
 .spot-pack { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 11px 13px; border-radius: 12px; border: 1.5px solid #e3e0f2; background: #fff; cursor: pointer; text-align: left; transition: .15s; }
 .spot-pack:hover { border-color: #b6a8f0; }
 .spot-pack.on { border-color: #6C3FE8; background: #f6f3ff; box-shadow: 0 0 0 1px #6C3FE8 inset; }
