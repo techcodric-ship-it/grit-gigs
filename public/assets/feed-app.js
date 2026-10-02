@@ -864,7 +864,7 @@
         el.innerHTML = '<b>' + d.totalSearches + '</b> search' + (d.totalSearches === 1 ? '' : 'es') +
           ' matched ' + esc(best) + ' in the last 7 days. Boosting puts you in front of them.';
       } else {
-        el.innerHTML = 'No one searched these keywords this week. <a href="/spotlight-boost.html">How boosting works</a>';
+        el.innerHTML = 'No one searched these keywords this week. <a href="/spotlight-boost">How boosting works</a>';
       }
     }
     if (DEMAND_CACHE[key]) { paint(DEMAND_CACHE[key]); return; }
