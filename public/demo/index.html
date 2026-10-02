@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Product Walkthrough — Grit&amp;Gigs</title>
+<meta name="robots" content="noindex, nofollow"/>
+<meta name="description" content="A guided walkthrough of how projects, barter, gigs and escrow work on Grit&amp;Gigs. Uses fictional sample data."/>
+<link rel="icon" href="/favicon.ico?v=8"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=8"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=8"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2"/>
+<link rel="stylesheet" href="/css/main.css"/>
+<style>
+  /* Scoped: nothing here can leak into the live product pages. */
+  body.dm{background:var(--surface-2);}
+  .dm-banner{background:#0A0A0F;color:#fff;padding:14px 24px;text-align:center;font-size:.85rem;line-height:1.6;}
+  .dm-banner strong{color:#C8F522;}
+  .dm-banner .dm-tag{display:inline-block;background:#C8F522;color:#0A0A0F;font-weight:800;font-size:.68rem;letter-spacing:.8px;padding:3px 9px;border-radius:4px;margin-right:8px;vertical-align:1px;}
+  .dm-wrap{max-width:1120px;margin:0 auto;padding:0 24px 80px;}
+  .dm-hero{padding:56px 0 36px;text-align:center;}
+  .dm-hero h1{font-family:var(--font-display);font-size:2.1rem;font-weight:800;margin-bottom:10px;}
+  .dm-hero p{color:var(--text-muted);font-size:.95rem;max-width:640px;margin:0 auto;line-height:1.7;}
+  .dm-sec{margin-top:56px;}
+  .dm-sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;}
+  .dm-sec-h h2{font-family:var(--font-display);font-size:1.35rem;font-weight:800;}
+  .dm-sec-h .dm-n{font-size:.78rem;color:var(--text-muted);font-weight:600;}
+  .dm-sec-sub{color:var(--text-muted);font-size:.86rem;margin-bottom:20px;line-height:1.6;}
+  .dm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;}
+  .dm-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:transform .16s,box-shadow .16s;}
+  .dm-card:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,0,0,.07);}
+  .dm-card img{display:block;width:100%;aspect-ratio:2/1;object-fit:cover;}
+  .dm-body{padding:16px 18px 18px;}
+  .dm-body h3{font-size:1rem;font-weight:700;line-height:1.45;margin-bottom:10px;}
+  .dm-meta{display:flex;align-items:center;gap:9px;margin-bottom:12px;}
+  .dm-av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:.7rem;font-weight:700;flex:none;}
+  .dm-meta-n{font-size:.8rem;font-weight:600;line-height:1.3;}
+  .dm-meta-r{font-size:.72rem;color:var(--text-muted);}
+  .dm-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+  .dm-pill{background:var(--surface-2);border:1px solid var(--border);color:var(--text-secondary);font-size:.7rem;font-weight:600;padding:3px 9px;border-radius:20px;}
+  .dm-kv{display:flex;justify-content:space-between;font-size:.78rem;padding:5px 0;border-bottom:1px dashed var(--border);}
+  .dm-kv:last-child{border-bottom:0;}
+  .dm-kv span:first-child{color:var(--text-muted);}
+  .dm-kv span:last-child{font-weight:600;text-align:right;}
+  .dm-note{font-size:.76rem;color:var(--text-muted);line-height:1.6;margin-top:10px;font-style:italic;}
+  .dm-badge{display:inline-flex;align-items:center;gap:5px;font-size:.7rem;font-weight:700;padding:4px 10px;border-radius:20px;}
+  .dm-badge.done{background:rgba(16,185,129,.12);color:#047857;}
+  .dm-badge.open{background:rgba(236,72,153,.12);color:#BE185D;}
+  .dm-escrow{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;}
+  .dm-flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0;counter-reset:s;}
+  .dm-step{position:relative;padding:0 18px 0 0;}
+  .dm-step-n{width:28px;height:28px;border-radius:50%;background:var(--violet);color:#fff;display:grid;place-items:center;font-size:.78rem;font-weight:800;margin-bottom:10px;}
+  .dm-step h4{font-size:.9rem;font-weight:700;margin-bottom:5px;}
+  .dm-step p{font-size:.8rem;color:var(--text-muted);line-height:1.65;}
+  .dm-caveat{background:rgba(200,245,34,.1);border:1px solid rgba(200,245,34,.35);border-radius:12px;padding:16px 18px;margin-top:22px;}
+  .dm-caveat strong{display:block;font-size:.82rem;margin-bottom:5px;}
+  .dm-caveat p{font-size:.8rem;color:var(--text-secondary);line-height:1.65;margin:0;}
+  .dm-foot{margin-top:56px;padding-top:28px;border-top:1px solid var(--border);text-align:center;}
+  .dm-foot p{font-size:.78rem;color:var(--text-muted);line-height:1.75;max-width:620px;margin:0 auto 16px;}
+  @media(max-width:640px){.dm-wrap{padding:0 16px 60px;}.dm-hero h1{font-size:1.55rem;}.dm-sec{margin-top:44px;}}
+</style>
+</head>
+<body class="dm">
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div>
+      <span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span>
+    </a>
+    <div class="nav-links">
+      <a href="/#how-it-works">How it works</a>
+      <a href="/#barter">Skill Exchange</a>
+      <a href="/explore?kind=PROJECT">Browse Projects</a>
+      <a href="/blog">Blog</a>
+    </div>
+    <div class="nav-actions" id="siteNavActions">
+      <button class="btn btn-secondary btn-sm" onclick="location.href='/?login=1'">Sign in</button>
+      <button class="btn btn-primary btn-sm" onclick="location.href='/?signup=1'">Join free</button>
+    </div>
+<script>
+      // Logged-in nav sync, same pattern as blog.html
+      (function () {
+        try {
+          var t = localStorage.getItem('se_token');
+          var u = t && (function () { try { return JSON.parse(localStorage.getItem('se_user') || 'null'); } catch (e) { return null; } })();
+          var el = document.getElementById('siteNavActions');
+          if (u && u.firstName && el) {
+            el.innerHTML = '<a href="/feed" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
+              '<button class="btn btn-primary btn-sm" onclick="window.doLogout && window.doLogout()">Sign out</button>';
+          }
+        } catch (e) {}
+      })();
+      if (!window.doLogout) {
+        window.doLogout = function () {
+          var rt = null;
+          try { rt = localStorage.getItem('se_refresh'); } catch (e) {}
+          try { fetch('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken: rt }) }); } catch (e) {}
+          try { localStorage.removeItem('se_token'); localStorage.removeItem('se_refresh'); localStorage.removeItem('se_user'); } catch (e) {}
+          window.location.href = '/';
+        };
+      }
+    </script>
+    <div class="nav-hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+</nav>
+
+<!-- Labelled once, plainly. Everything below is fictional sample data. -->
+<div class="dm-banner">
+  <span class="dm-tag">SAMPLE DATA</span>
+  <strong>This is a product walkthrough.</strong>
+  Every person, project, barter and gig below is fictional and exists only to show how the flow works. None of it is real activity on Grit&amp;Gigs.
+</div>
+
+<div class="dm-wrap">
+  <div class="dm-hero">
+    <h1>How Grit&amp;Gigs works</h1>
+    <p>Four completed projects, open offers, barter exchanges and gigs — plus the escrow mechanic that makes the money safe on both sides.</p>
+  </div>
+
+  <div id="app"></div>
+
+  <div class="dm-foot">
+    <p>Want to see the live platform instead? <a href="/">Open Grit&amp;Gigs</a> or <a href="/explore">browse real posts</a>. Sample data like this never reaches the live feed.</p>
+    <button class="btn btn-primary btn-sm" onclick="location.href='/?signup=1'">Create a free account</button>
+  </div>
+</div>
+
+<script type="module">
+import {
+  PEOPLE, COMPLETED_PROJECTS, OPEN_OFFERS, BARTERS, GIGS,
+  ESCROW_STEPS, RAISED_LIMITATION,
+} from "./demo-data.mjs";
+
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const rupee = (n) => "₹" + Number(n).toLocaleString("en-IN");
+
+function person(id) { return PEOPLE[id] || { name: "—", role: "", city: "", initials: "?", hue: 260 }; }
+
+function avatar(p) {
+  return `<div class="dm-av" style="background:hsl(${p.hue} 62% 44%)">${esc(p.initials)}</div>`;
+}
+
+function personLine(id, verb) {
+  const p = person(id);
+  return `<div class="dm-meta">${avatar(p)}
+    <div><div class="dm-meta-n">${esc(p.name)}</div>
+    <div class="dm-meta-r">${esc(p.role)} &middot; ${esc(p.city)}${verb ? " &middot; " + esc(verb) : ""}</div></div>
+  </div>`;
+}
+
+function pills(list) {
+  return `<div class="dm-pills">${list.map((t) => `<span class="dm-pill">${esc(t)}</span>`).join("")}</div>`;
+}
+
+function kv(label, value) {
+  return `<div class="dm-kv"><span>${esc(label)}</span><span>${esc(value)}</span></div>`;
+}
+
+function section(n, title, sub, html) {
+  return `<div class="dm-sec">
+    <div class="dm-sec-h"><h2>${esc(title)}</h2><span class="dm-n">${n} items</span></div>
+    <div class="dm-sec-sub">${sub}</div>
+    <div class="dm-grid">${html}</div>
+  </div>`;
+}
+
+function completedCard(p) {
+  const c = person(p.client), w = person(p.winner);
+  return `<article class="dm-card">
+    <img src="/demo/covers/${p.cover}.svg" alt="${esc(p.title)}" loading="lazy"/>
+    <div class="dm-body">
+      <h3>${esc(p.title)}</h3>
+      ${personLine(p.client)}
+      <pills(p.scope)}
+      ${kv("Agreed amount", rupee(p.budget))}
+      ${kv("Bids received", String(p.bids))}
+      ${kv("Won by", w.name)}
+      ${kv("Delivered", p.deliveredOn)}
+      <div class="dm-note">${esc(p.note)}</div>
+    </div>
+  </article>`;
+}
+
+function openCard(p) {
+  return `<article class="dm-card">
+    <img src="/demo/covers/${p.cover}.svg" alt="${esc(p.title)}" loading="lazy"/>
+    <div class="dm-body">
+      <div style="margin-bottom:10px"><span class="dm-badge open">Open &middot; ${esc(p.posted)}</span></div>
+      <h3>${esc(p.title)}</h3>
+      ${personLine(p.client)}
+      ${pills(p.skills)}
+      ${kv("Budget", rupee(p.budget))}
+      ${kv("Bids so far", "0")}
+      <div class="dm-note">${esc(p.brief)}</div>
+    </div>
+  </article>`;
+}
+
+function barterCard(b) {
+  const badge = b.done
+    ? '<span class="dm-badge done">Completed</span>'
+    : '<span class="dm-badge open">In progress</span>';
+  return `<article class="dm-card">
+    <img src="/demo/covers/${b.cover}.svg" alt="${esc(b.title)}" loading="lazy"/>
+    <div class="dm-body">
+      <div style="margin-bottom:10px">${badge}</div>
+      <h3>${esc(b.title)}</h3>
+      ${personLine(b.by)}
+      ${pills([b.wants, b.offers])}
+      ${kv("Wants", b.wants)}
+      ${kv("Offers", b.offers)}
+      ${kv("Swaps made", String(b.swaps))}
+      ${kv("Completed", b.completedOn || "Not yet")}
+      <div class="dm-note">${esc(b.note)}</div>
+    </div>
+  </article>`;
+}
+
+function gigCard(g) {
+  const p = person(g.by);
+  return `<article class="dm-card">
+    <img src="/demo/covers/${g.cover}.svg" alt="${esc(g.title)}" loading="lazy"/>
+    <div class="dm-body">
+      <h3>${esc(g.title)}</h3>
+      ${personLine(g.by)}
+      ${pills(g.includes)}
+      ${kv("Starting at", rupee(g.price))}
+      ${kv("Rating", "★ " + g.rating + " (" + g.reviews + ")")}
+      ${kv("Orders delivered", String(g.orders))}
+      ${kv("Turnaround", g.turnaround)}
+      <div class="dm-note">Sample listing. Ratings and order counts are illustrative only.</div>
+    </div>
+  </article>`;
+}
+
+const escrow = `
+<div class="dm-sec">
+  <div class="dm-sec-h"><h2>Where the money sits</h2><span class="dm-n">the escrow mechanic</span></div>
+  <div class="dm-sec-sub">The important part: the client's own wallet is debited at bid acceptance, so the amount is already committed before any work starts. Razorpay only handles the top-up.</div>
+  <div class="dm-escrow">
+    <div class="dm-flow">
+      ${ESCROW_STEPS.map((s, i) => `<div class="dm-step">
+        <div class="dm-step-n">${i + 1}</div>
+        <h4>${esc(s.title)}</h4><p>${esc(s.body)}</p>
+      </div>`).join("")}
+    </div>
+    <div class="dm-caveat">
+      <strong>What escrow does not do</strong>
+      <p>${esc(RAISED_LIMITATION)}</p>
+    </div>
+  </div>
+</div>`;
+
+document.getElementById("app").innerHTML =
+  section(COMPLETED_PROJECTS.length, "Completed projects",
+    "Money was committed at acceptance and released after delivery. These show the finished state of a project.",
+    COMPLETED_PROJECTS.map(completedCard).join("")) +
+  section(OPEN_OFFERS.length, "Open offers",
+    "Live requests you could bid on today. Budget shown, no bids yet.",
+    OPEN_OFFERS.map(openCard).join("")) +
+  escrow +
+  section(BARTERS.length, "Barter exchanges",
+    "Skills traded directly with no money involved, tracked through swaps.",
+    BARTERS.map(barterCard).join("")) +
+  section(GIGS.length, "Fixed-price gigs",
+    "Standard services with an upfront price and defined turnaround.",
+    GIGS.map(gigCard).join(""));
+</script>
+
+</body>
+</html>

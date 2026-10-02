@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="800" height="400" role="img" aria-label="Bakery rebrand with full brand identity">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6C3FE8"/>
+      <stop offset="100%" stop-color="#2E1065"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.7" cy="0.2" r="0.8">
+      <stop offset="0%" stop-color="#fff" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="400" fill="url(#g)"/>
+  <circle cx="401" cy="222" r="180" fill="url(#glow)"/>
+  <g transform="rotate(11 401 222)" opacity="0.14">
+    <rect x="251" y="112" width="300" height="220" rx="24" fill="none" stroke="#fff" stroke-width="2"/>
+    <rect x="291" y="152" width="220" height="140" rx="16" fill="none" stroke="#fff" stroke-width="1.5"/>
+  </g>
+  <rect x="48" y="52" width="162.5" height="28" rx="14" fill="#C8F522"/>
+  <text x="125" y="71" font-family="sans-serif" font-size="12" font-weight="800" fill="#0A0A0F" letter-spacing="0.6">COMPLETED PROJECT</text>
+  <text x="48" y="196" font-family="sans-serif" font-size="34" font-weight="800" fill="#fff">Bakery rebrand with full brand</text><text x="48" y="238" font-family="sans-serif" font-size="34" font-weight="800" fill="#fff">identity</text>
+  
+  <g><rect x="48" y="332" width="86" height="30" rx="15" fill="rgba(255,255,255,0.16)"/><text x="62" y="352" font-family="sans-serif" font-size="13" font-weight="600" fill="#fff" opacity="0.92">Branding</text></g><g><rect x="198" y="332" width="54" height="30" rx="15" fill="rgba(255,255,255,0.16)"/><text x="212" y="352" font-family="sans-serif" font-size="13" font-weight="600" fill="#fff" opacity="0.92">Logo</text></g><g><rect x="348" y="332" width="62" height="30" rx="15" fill="rgba(255,255,255,0.16)"/><text x="362" y="352" font-family="sans-serif" font-size="13" font-weight="600" fill="#fff" opacity="0.92">Print</text></g>
+</svg>
