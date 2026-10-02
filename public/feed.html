@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, follow"/>
 <title>Grit&Gigs — Feed</title>
 <link rel="icon" href="/favicon.ico?v=8"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=8"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=8"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=8"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2"/>
-<link rel="stylesheet" href="/assets/feed.css?v=29"/>
+<link rel="stylesheet" href="/assets/feed.css?v=30"/>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
@@ -46,15 +46,18 @@
       <!-- Always visible to signed-in sellers. This is the main way people learn
            Spotlight exists at all: it does not depend on already owning a gig
            with tags, which is how the earlier placement stayed invisible. -->
-      <div class="side-card spot-promo-card" id="spotPromoCard" style="display:none;">
-        <h4>Get seen by the right people</h4>
-        <div class="spc-body">
-          <b>Spotlight puts your gig at the top of the feed</b> for people already searching your keywords &mdash; and shows you the real numbers while it runs.
+      <div class="side-card spcard" id="spotPromoCard" style="display:none;">
+        <div class="spcard-eyebrow"><span class="spcard-star">&#10022;</span> Spotlight</div>
+        <div class="spcard-title">Put your gig in front of people already searching for it</div>
+        <p class="spcard-sub">Your gig sits at the top of their feed while the boost runs, and you see the real reached and opened numbers.</p>
+        <div class="spcard-stat" id="spcDemand"></div>
+        <div class="spcard-prices">
+          <div><b>&#8377;50</b><span>24 hours</span></div>
+          <div><b>&#8377;199</b><span>3 days</span></div>
+          <div><b>&#8377;499</b><span>7 days</span></div>
         </div>
-        <div class="spc-demand" id="spcDemand"></div>
-        <div class="spc-prices"><span>24h <b>&#8377;50</b></span><span>3d <b>&#8377;199</b></span><span>7d <b>&#8377;499</b></span></div>
-        <button class="spc-cta" id="spcBoost">See my gigs</button>
-        <a class="spc-more" href="/spotlight-boost">How it works &amp; what it costs</a>
+        <button class="spcard-cta" id="spcBoost">Boost my gig</button>
+        <a class="spcard-more" href="/spotlight-boost">How it works &amp; what it costs</a>
       </div>
       <div class="side-card">
         <h4>On the grind</h4>
@@ -211,7 +214,7 @@
   </div>
 </div>
 
-<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=29"></script>
+<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=30"></script>
 <script>
 (function () {
   var c = window.community;
@@ -587,15 +590,15 @@
     var demand = $('spcDemand');
     if (!tags.length) {
       // No gigs yet: still explain the product, but do not fake a number.
-      demand.innerHTML = 'Post a gig first, then we can show you how many people are searching for your keywords.';
+      demand.innerHTML = '<b>Post a gig first</b><span>Then we can show you how many people are searching for your keywords.</span>';
       return;
     }
     c.api('/community/spotlight/demand?tags=' + encodeURIComponent(tags.join(','))).then(function (r) {
       if (!(r && r.ok && r.d && r.d.data)) return;
       var n = r.d.data.totalSearches || 0;
       demand.innerHTML = n > 0
-        ? '<b>' + n + '</b> search' + (n === 1 ? '' : 'es') + ' matched your keywords this week. A boost reaches those people.'
-        : 'Nobody searched your keywords this week. Check the number before you pay.';
+        ? '<b>' + n + '</b><span>search' + (n === 1 ? '' : 'es') + ' matched your keywords this week. A boost reaches those people.</span>'
+        : '<b>0</b><span>searches for your keywords this week. Check the number before you pay.</span>';
     });
   }
   var spotBtn = $('spcBoost');

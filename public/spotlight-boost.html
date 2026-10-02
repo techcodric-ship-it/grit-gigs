@@ -7,13 +7,23 @@
 <title>Boost your gig or project &mdash; Grit&amp;Gigs</title>
 <meta name="description" content="How Spotlight boosting works on Grit&amp;Gigs: what it does, what it costs, and exactly how many people it can reach. Real numbers, no guarantees."/>
 <link rel="icon" href="/favicon.ico?v=8"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=8"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2"/>
-<link rel="stylesheet" href="/assets/feed.css?v=29"/>
+<link rel="stylesheet" href="/assets/feed.css?v=30"/>
 <style>
   /* Every rule is scoped under .sboost. feed.css already defines .wrap as a
      flex row, plus bare h1/h2/p/table rules, so reusing those names here made
      the whole page lay out sideways. Do not use generic class names. */
-  .sboost { display: block; max-width: 780px; margin: 0 auto; padding: 30px 20px 70px; }
+  .sboost { display: block; max-width: 780px; margin: 0 auto; padding: 0 20px 70px; }
   .sboost * { box-sizing: border-box; }
+  .sb-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 0 22px; }
+  .sb-brand { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+  .sb-mark { display: flex; align-items: center; justify-content: center; gap: 1px; min-width: 40px; height: 40px; padding: 0 8px; border-radius: 11px; background: #fff; border: 1px solid rgba(0,0,0,.12); box-shadow: 0 1px 2px rgba(0,0,0,.03); font-family: 'Syne', sans-serif; font-weight: 800; font-size: 17px; letter-spacing: -.04em; }
+  .sb-mark .g1 { color: #0A0A0F; }
+  .sb-mark .g2 { color: #6C3FE8; }
+  .sb-word { display: flex; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.05rem; letter-spacing: -.04em; }
+  .sb-word .w1 { color: #0A0A0F; }
+  .sb-word .w2 { color: #6C3FE8; margin-left: 3px; }
+  .sb-back { font-size: 12.5px; font-weight: 600; color: #6C3FE8; text-decoration: none; }
+  .sb-back:hover { text-decoration: underline; }
   .sboost h1 { display: block; font-size: 29px; line-height: 1.22; margin: 0 0 10px; letter-spacing: -.02em; font-weight: 800; color: #1c1b22; }
   .sboost .sb-lede { display: block; font-size: 16px; line-height: 1.6; margin: 0 0 8px; color: #5b5680; font-weight: 400; }
   .sboost h2 { display: block; font-size: 19px; line-height: 1.3; margin: 34px 0 10px; letter-spacing: -.01em; font-weight: 700; color: #1c1b22; }
@@ -39,7 +49,8 @@
   .sboost .sb-faq b { display: block; font-size: 15px; margin-bottom: 4px; color: #1c1b22; }
   .sboost .sb-faq span { display: block; font-size: 14px; color: #5b5680; line-height: 1.6; font-weight: 400; }
   @media (max-width: 620px) {
-    .sboost { padding: 22px 16px 60px; }
+    .sboost { padding: 0 16px 60px; }
+    .sb-word { display: none; }
     .sboost h1 { font-size: 24px; }
     .sboost .sb-packs { grid-template-columns: 1fr; }
     .sboost .sb-lbl { min-height: 0; }
@@ -48,6 +59,14 @@
 </head>
 <body>
 <div class="sboost">
+  <div class="sb-top">
+    <a class="sb-brand" href="/feed" title="Grit&amp;Gigs home">
+      <span class="sb-mark"><span class="g1">G</span><span class="g2">&amp;G</span></span>
+      <span class="sb-word"><span class="w1">Grit</span><span class="w2">&amp;Gigs</span></span>
+    </a>
+    <a class="sb-back" href="/profile">Back to my gigs</a>
+  </div>
+
   <h1>Spotlight: get your gig in front of the right people</h1>
   <p class="sb-lede">Your gig is only seen by people who happen to scroll past it. Spotlight puts it at the top of the feed for people who are already searching for what you offer &mdash; and shows you exactly how many people it reached.</p>
 

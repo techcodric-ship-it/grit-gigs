@@ -338,31 +338,52 @@ h4.sub-title { font-size: 14px; font-weight: 600; margin: 20px 0 12px; }
 .spot-packs { display: grid; gap: 8px; }
 .spot-note { margin: -2px 0 14px; padding: 10px 12px; border-radius: 10px; background: #fbfaff; border: 1px solid #e9e4fb; font-size: 12.5px; color: #5b5680; line-height: 1.5; }
 .spot-note b { color: #3c2a7a; font-weight: 700; }
-.psp-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f0eefa; }
+/* ── Spotlight: profile panel + feed sidebar card ────────────────────────────
+   Built on the app's own tokens (--line, --ink-2, --radius, #6C3FE8) so these
+   read as part of the product instead of a bolted-on widget. */
+.pspot { padding: 0; }
+.pspot-head { padding: 15px 20px 13px; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, #FBFAFF, #fff); border-radius: 16px 16px 0 0; }
+.pspot-eyebrow { display: flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #6C3FE8; margin-bottom: 5px; }
+.pspot-star { font-size: 11px; line-height: 1; }
+.pspot-title { font-size: 15px; font-weight: 700; line-height: 1.35; color: #17171a; letter-spacing: -.01em; }
+.pspot-more { display: block; padding: 12px 20px 15px; border-top: 1px solid var(--line); font-size: 12.5px; font-weight: 600; color: #6C3FE8; text-decoration: none; }
+.pspot-more:hover { background: #FAF8FF; }
+
+.psp-row { display: flex; align-items: center; gap: 14px; padding: 13px 20px; border-bottom: 1px solid #F0F0F2; }
 .psp-row:last-child { border-bottom: none; }
-.psp-txt { min-width: 0; flex: 1; }
-.psp-txt b { display: block; font-size: 13.5px; font-weight: 600; color: #1c1b22; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.psp-kind { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .05em; color: #8b8fa3; background: #f2f1f7; border-radius: 4px; padding: 1px 5px; margin-top: 3px; }
-.psp-stats { display: block; font-size: 11.5px; color: var(--dusk); margin-top: 2px; }
-.psp-stats b { display: inline; font-size: 11.5px; font-weight: 800; color: #4a2fb0; }
-.psp-live { display: block; font-size: 11.5px; font-weight: 700; color: #2e8b57; margin-top: 2px; }
-.psp-btn { flex: none; border: none; background: #6C3FE8; color: #fff; border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 700; cursor: pointer; }
+.psp-main { flex: 1 1 auto; min-width: 0; }
+.psp-name { font-size: 14px; font-weight: 600; line-height: 1.35; color: #17171a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.psp-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 5px; font-size: 12px; line-height: 1.3; color: #6b6b70; }
+.psp-chip { flex: none; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #5b5b62; background: #F2F2F5; border-radius: 5px; padding: 2px 6px; }
+.psp-dot { color: #C9C9CF; }
+.psp-live { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; color: #1F9254; }
+.psp-live i { width: 6px; height: 6px; border-radius: 50%; background: #1F9254; box-shadow: 0 0 0 3px rgba(31,146,84,.15); }
+.psp-demand b { font-weight: 800; color: #4a2fb0; }
+.psp-btn { flex: none; align-self: center; border: 1px solid transparent; background: #6C3FE8; color: #fff; border-radius: 9px; padding: 8px 18px; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .15s ease; }
 .psp-btn:hover { background: #5a34c6; }
-.psp-btn.ghost { background: #f1eeff; color: #4a2fb0; }
-.psp-btn.ghost:hover { background: #e5dfff; }
-.spot-promo-card { background: linear-gradient(180deg, #faf8ff, #f4f0ff); border-color: #e0d8fb; }
-.spc-body { font-size: 12.5px; line-height: 1.5; color: #5b5680; margin-bottom: 8px; }
-.spc-body b { color: #3c2a7a; font-weight: 700; }
-.spc-demand { font-size: 11.5px; line-height: 1.45; color: #6a5fb0; background: #fff; border: 1px solid #e7e1fb; border-radius: 8px; padding: 7px 9px; margin-bottom: 9px; }
-.spc-demand b { font-weight: 800; color: #4a2fb0; }
-.spc-prices { display: flex; gap: 6px; margin-bottom: 9px; }
-.spc-prices span { flex: 1; text-align: center; font-size: 11px; color: #8b8fa3; background: #fff; border: 1px solid #e7e1fb; border-radius: 7px; padding: 5px 2px; }
-.spc-prices b { display: block; font-size: 13px; font-weight: 800; color: #4a2fb0; }
-.spc-cta { width: 100%; border: none; background: #6C3FE8; color: #fff; border-radius: 9px; padding: 9px 12px; font-size: 13px; font-weight: 700; cursor: pointer; transition: .15s; }
-.spc-cta:hover { background: #5a34c6; }
-.spc-more { display: block; text-align: center; margin-top: 7px; font-size: 11px; color: #7a68c8; }
-.spot-demand { flex-basis: 100%; margin-top: 2px; font-size: 11.5px; font-weight: 500; color: #7a68c8; line-height: 1.45; }
+.psp-btn.ghost { background: #F4F1FF; color: #4a2fb0; border-color: #E4DEFB; }
+.psp-btn.ghost:hover { background: #EAE4FF; }
+
+.spcard { background: linear-gradient(180deg, #FBFAFF 0%, #F6F3FF 100%); border-color: #E4DEFB; }
+.spcard-eyebrow { display: flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #6C3FE8; margin-bottom: 7px; }
+.spcard-star { font-size: 11px; line-height: 1; }
+.spcard-title { font-size: 14.5px; font-weight: 700; line-height: 1.35; color: #17171a; letter-spacing: -.01em; }
+.spcard-sub { margin: 7px 0 11px; font-size: 12.5px; line-height: 1.5; color: #55555c; }
+.spcard-stat { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #E7E2FA; border-radius: 10px; padding: 9px 11px; margin-bottom: 11px; }
+.spcard-stat b { flex: none; font-size: 20px; font-weight: 800; line-height: 1; color: #4a2fb0; letter-spacing: -.02em; }
+.spcard-stat span { font-size: 11.5px; line-height: 1.4; color: #55555c; }
+.spcard-prices { display: flex; gap: 6px; margin-bottom: 12px; }
+.spcard-prices div { flex: 1; text-align: center; background: #fff; border: 1px solid #E7E2FA; border-radius: 9px; padding: 8px 2px; }
+.spcard-prices b { display: block; font-size: 14px; font-weight: 800; color: #4a2fb0; line-height: 1.1; }
+.spcard-prices span { display: block; font-size: 10.5px; color: #6b6b70; margin-top: 2px; }
+.spcard-cta { width: 100%; border: none; background: #6C3FE8; color: #fff; border-radius: 10px; padding: 10px 12px; font-size: 13.5px; font-weight: 700; cursor: pointer; transition: background .15s ease; }
+.spcard-cta:hover { background: #5a34c6; }
+.spcard-more { display: block; text-align: center; margin-top: 9px; font-size: 11.5px; font-weight: 600; color: #6C3FE8; text-decoration: none; }
+.spcard-more:hover { text-decoration: underline; }
+/* Gig card + boost dialog demand readouts. */
+.spot-demand { flex-basis: 100%; margin-top: 2px; font-size: 11.5px; font-weight: 500; color: #6a5fb0; line-height: 1.45; }
 .spot-demand b { font-weight: 800; color: #4a2fb0; }
+.spot-demand a { color: #6C3FE8; font-weight: 600; }
 .spot-demand-box { margin: 0 0 14px; padding: 11px 13px; border-radius: 12px; border: 1px solid #e4defa; background: linear-gradient(180deg, #faf8ff, #f6f3ff); display: flex; flex-direction: column; gap: 5px; }
 .spot-demand-box > b { font-size: 13px; font-weight: 700; color: #3c2a7a; }
 .spot-demand-box > span { font-size: 11.5px; color: #6b648f; line-height: 1.5; }
