@@ -23,6 +23,8 @@ import {
   jobsTable, jobApplicationsTable,
   squadsTable, squadMembersTable, squadInvitesTable, squadServicesTable,
   communityPostsTable, postBoostsTable,
+  communityOrdersTable,
+  communityQuotasTable,
 } from "../db";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -1457,6 +1459,313 @@ router.put("/admin/squads/services/:serviceId", async (req: Request, res: Respon
   }
   res.json({ success: true, message: "Service updated", data: updated });
 });
+
+interface ActivityItem {
+  id: string;
+  type: "POST" | "BID" | "BARTER" | "ORDER" | "WALLET" | "BUNDLE";
+  title: string;
+  meta: string | null;
+  status: string;
+  amount: number | null;
+  at: Date | null;
+  actor: { name: string; email: string | null };
+  link: string | null;
+}
+
+// ── GET /admin/activity — recent platform activity across all surfaces ──
+// One merged, newest-first feed. Each source is capped independently so a
+// single busy table cannot starve the others. Sources that fail are reported
+// in `errors` rather than failing the whole request.
+router.get("/admin/activity", async (req: Request, res: Response): Promise<void> => {
+  const limitRaw = Number(req.query.limit ?? 20);
+  const limit = Math.min(50, Math.max(5, Number.isFinite(limitRaw) ? limitRaw : 20));
+  const errors: string[] = [];
+
+  const nameCols = {
+    first: usersTable.firstName,
+    last: usersTable.lastName,
+    email: usersTable.email,
+  };
+  const who = (row: Record<string, unknown>) => {
+    const u = row.user as { firstName?: string; lastName?: string; email?: string } | null;
+    const label = u ? `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || u.email || "Unknown" : "Unknown";
+    return { name: label, email: u?.email ?? null };
+  };
+
+  const sources: { key: string; run: () => Promise<ActivityItem[]> }[] = [
+    {
+      // New posts of every kind: POST, GIG, BARTER, PROJECT.
+      key: "posts",
+      run: async () => {
+        const rows = await db
+          .select({
+            id: communityPostsTable.id,
+            kind: communityPostsTable.kind,
+            content: communityPostsTable.content,
+            status: communityPostsTable.status,
+            priceInr: communityPostsTable.priceInr,
+            createdAt: communityPostsTable.createdAt,
+            user: {
+              firstName: nameCols.first,
+              lastName: nameCols.last,
+              email: nameCols.email,
+            },
+          })
+          .from(communityPostsTable)
+          .leftJoin(usersTable, eq(communityPostsTable.userId, usersTable.id))
+          .orderBy(desc(communityPostsTable.createdAt))
+          .limit(limit);
+        return rows.map((r) => ({
+          id: r.id,
+          type: "POST",
+          title: summarize(r.content, r.kind),
+          meta: r.kind,
+          status: r.status,
+          amount: r.priceInr,
+          at: r.createdAt,
+          actor: who(r as unknown as Record<string, unknown>),
+          link: `/explore?q=${encodeURIComponent(r.id)}`,
+        }));
+      },
+    },
+    {
+      // Bids placed on client projects.
+      key: "bids",
+      run: async () => {
+        const rows = await db
+          .select({
+            id: projectBidsTable.id,
+            amount: projectBidsTable.amount,
+            status: projectBidsTable.status,
+            deliveryDays: projectBidsTable.deliveryDays,
+            createdAt: projectBidsTable.createdAt,
+            proposal: projectBidsTable.proposal,
+            projectId: projectBidsTable.projectId,
+            projectTitle: projectsTable.title,
+            projectBudgetMin: projectsTable.budgetMin,
+            projectBudgetMax: projectsTable.budgetMax,
+            user: {
+              firstName: nameCols.first,
+              lastName: nameCols.last,
+              email: nameCols.email,
+            },
+          })
+          .from(projectBidsTable)
+          .leftJoin(usersTable, eq(projectBidsTable.userId, usersTable.id))
+          .leftJoin(projectsTable, eq(projectBidsTable.projectId, projectsTable.id))
+          .orderBy(desc(projectBidsTable.createdAt))
+          .limit(limit);
+        return rows.map((r) => ({
+          id: r.id,
+          type: "BID",
+          title: r.projectTitle ? `Bid on "${summarize(r.projectTitle, "PROJECT")}"` : "Bid placed",
+          meta: bidMeta(r.deliveryDays, r.projectBudgetMin, r.projectBudgetMax),
+          status: r.status,
+          amount: r.amount,
+          at: r.createdAt,
+          actor: who(r as unknown as Record<string, unknown>),
+          link: r.projectId ? `/projects/${r.projectId}` : null,
+        }));
+      },
+    },
+    {
+      // Barter matches formed between two members.
+      key: "barter",
+      run: async () => {
+        const rows = await db
+          .select({
+            id: barterMatchesTable.id,
+            status: barterMatchesTable.status,
+            createdAt: barterMatchesTable.createdAt,
+            user1: {
+              firstName: usersTable.firstName,
+              lastName: usersTable.lastName,
+              email: usersTable.email,
+            },
+          })
+          .from(barterMatchesTable)
+          .innerJoin(usersTable, eq(barterMatchesTable.user1Id, usersTable.id))
+          .orderBy(desc(barterMatchesTable.createdAt))
+          .limit(limit);
+        return rows.map((r) => ({
+          id: r.id,
+          type: "BARTER",
+          title: `Barter match formed with ${(r.user1.firstName ?? "") + " " + (r.user1.lastName ?? "")}`.trim(),
+          meta: null,
+          status: r.status,
+          amount: null,
+          at: r.createdAt,
+          actor: { name: "Platform", email: null },
+          link: `/barter?match=${r.id}`,
+        }));
+      },
+    },
+    {
+      // Community orders — a buyer ordering a GIG or BARTER post.
+      key: "orders",
+      run: async () => {
+        const rows = await db
+          .select({
+            id: communityOrdersTable.id,
+            kind: communityOrdersTable.kind,
+            status: communityOrdersTable.status,
+            amount: communityOrdersTable.amount,
+            createdAt: communityOrdersTable.createdAt,
+            seller: {
+              firstName: nameCols.first,
+              lastName: nameCols.last,
+              email: nameCols.email,
+            },
+          })
+          .from(communityOrdersTable)
+          .innerJoin(usersTable, eq(communityOrdersTable.sellerId, usersTable.id))
+          .orderBy(desc(communityOrdersTable.createdAt))
+          .limit(limit);
+        return rows.map((r) => ({
+          id: r.id,
+          type: "ORDER",
+          title: `${r.kind} order placed`,
+          meta: null,
+          status: r.status,
+          amount: r.amount,
+          at: r.createdAt,
+          actor: who({ user: r.seller }),
+          link: `/orders?id=${r.id}`,
+        }));
+      },
+    },
+    {
+      // Settled wallet credits — real money in.
+      key: "wallet",
+      run: async () => {
+        const rows = await db
+          .select({
+            id: transactionsTable.id,
+            type: transactionsTable.type,
+            amount: transactionsTable.amount,
+            status: transactionsTable.status,
+            description: transactionsTable.description,
+            createdAt: transactionsTable.createdAt,
+            user: {
+              firstName: nameCols.first,
+              lastName: nameCols.last,
+              email: nameCols.email,
+            },
+          })
+          .from(transactionsTable)
+          .leftJoin(usersTable, eq(transactionsTable.userId, usersTable.id))
+          .where(
+            and(
+              eq(transactionsTable.type, "CREDIT_PURCHASE"),
+              eq(transactionsTable.status, "COMPLETED"),
+            ),
+          )
+          .orderBy(desc(transactionsTable.createdAt))
+          .limit(limit);
+        return rows.map((r) => ({
+          id: r.id,
+          type: "WALLET",
+          title: r.description || "Wallet top-up",
+          meta: null,
+          status: r.status,
+          amount: Math.round(Number(r.amount)),
+          at: r.createdAt,
+          actor: who(r as unknown as Record<string, unknown>),
+          link: `/wallet`,
+        }));
+      },
+    },
+    {
+      // Paid quota bundles — proposals and gig posts bought via Buy more.
+      key: "bundles",
+      run: async () => {
+        const rows = await db
+          .select({
+            id: communityQuotasTable.id,
+            gigBonus: communityQuotasTable.gigPostsBonus,
+            propBonus: communityQuotasTable.proposalsBonus,
+            updatedAt: communityQuotasTable.updatedAt,
+            user: {
+              firstName: nameCols.first,
+              lastName: nameCols.last,
+              email: nameCols.email,
+            },
+          })
+          .from(communityQuotasTable)
+          .innerJoin(usersTable, eq(communityQuotasTable.userId, usersTable.id))
+          .orderBy(desc(communityQuotasTable.updatedAt))
+          .limit(limit);
+        return rows
+          .filter((r) => Number(r.gigBonus) > 0 || Number(r.propBonus) > 0)
+          .map((r) => {
+            const parts: string[] = [];
+            if (Number(r.gigBonus) > 0) parts.push(`${r.gigBonus} gig post${Number(r.gigBonus) === 1 ? "" : "s"}`);
+            if (Number(r.propBonus) > 0) parts.push(`${r.propBonus} proposal${Number(r.propBonus) === 1 ? "" : "s"}`);
+            return {
+              id: r.id,
+              type: "BUNDLE",
+              title: `Quota bundle: ${parts.join(" + ")}`,
+              meta: "Buy more",
+              status: "ACTIVE",
+              amount: null,
+              at: r.updatedAt,
+              actor: who(r as unknown as Record<string, unknown>),
+              link: `/admin/users?q=${encodeURIComponent(r.user.email ?? "")}`,
+            };
+          });
+      },
+    },
+  ];
+
+  const settled = await Promise.all(
+    sources.map(async (s) => {
+      try {
+        return await s.run();
+      } catch (err) {
+        errors.push(s.key);
+        console.error(`admin activity source "${s.key}" failed:`, err);
+        return [] as ActivityItem[];
+      }
+    }),
+  );
+
+  const items = settled.flat().sort((a, b) => {
+    const at = a.at ? new Date(a.at).getTime() : 0;
+    const bt = b.at ? new Date(b.at).getTime() : 0;
+    return bt - at;
+  });
+
+  const counts = {
+    posts: settled[0].length,
+    bids: settled[1].length,
+    barter: settled[2].length,
+    orders: settled[3].length,
+    wallet: settled[4].length,
+    bundles: settled[5].length,
+  };
+
+  res.json({ success: true, data: { items: items.slice(0, limit * 3), counts, errors } });
+});
+
+/** Builds the secondary line on a bid row: delivery time plus project budget. */
+function bidMeta(days: number | null, min: number | null, max: number | null): string | null {
+  const parts: string[] = [];
+  if (days) parts.push(`${days} day${Number(days) === 1 ? "" : "s"} delivery`);
+  if (min != null && max != null && max > 0) {
+    parts.push(min > 0 ? `budget ₹${min.toLocaleString("en-IN")}–₹${max.toLocaleString("en-IN")}` : `up to ₹${max.toLocaleString("en-IN")}`);
+  } else if (max != null && max > 0) {
+    parts.push(`budget ₹${max.toLocaleString("en-IN")}`);
+  }
+  return parts.length ? parts.join(" · ") : null;
+}
+
+/** Trims long post/bid copy down to a single-line summary for the feed. */
+function summarize(text: string | null | undefined, kind?: string | null): string {
+  const raw = (text ?? "").replace(/\s+/g, " ").trim();
+  if (!raw) return `${kind ?? "Item"} posted`;
+  const cap = 90;
+  return raw.length > cap ? raw.slice(0, cap - 1).trimEnd() + "…" : raw;
+}
 
 // POST /admin/community/grant-quota — manually credit community quota bundles.
 router.post("/admin/community/grant-quota", async (req: Request, res: Response): Promise<void> => {

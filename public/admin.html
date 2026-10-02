@@ -288,6 +288,10 @@ a{text-decoration:none;color:inherit;}
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
       Calculator Leads
     </button>
+    <button class="ni" data-p="activity">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      Live Activity
+    </button>
     <div class="ns">Session</div>
     <button class="ni danger" onclick="adminLogout()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -565,6 +569,21 @@ a{text-decoration:none;color:inherit;}
     <button class="btn bs btn-sm" onclick="loadReferrals()">⟳ Refresh</button>
   </div>
   <div id="referralsContent"><p style="font-size:.82rem;color:var(--muted);">Loading...</p></div>
+</div>
+
+<!-- ══════════ LIVE ACTIVITY ══════════ -->
+<div class="ps" id="ps-activity">
+  <div style="margin-bottom:16px;">
+    <h1 style="font-size:1.2rem;">Live Activity</h1>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:3px;">What is happening on the platform right now — new posts, bids placed, barter matches, orders, wallet top-ups and paid quota bundles, newest first.</p>
+  </div>
+  <div id="activityFilters" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;"></div>
+  <div id="activitySummary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px;"></div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;">
+    <button class="btn bs btn-sm" onclick="loadActivity()">⟳ Refresh</button>
+    <button class="btn bs btn-sm" onclick="toggleActivityAuto()" id="activityAutoBtn">▶ Auto-refresh</button>
+  </div>
+  <div id="activityContent"><p style="font-size:.82rem;color:var(--muted);">Loading...</p></div>
 </div>
 
 <!-- ══════════ TOOL LEADS ══════════ -->
@@ -937,6 +956,7 @@ function loadPage(n) {
   else if (n==='withdrawals') loadPendingWithdrawals();
   else if (n==='referrals') loadReferrals();
   else if (n==='tool-leads') loadToolLeads();
+  else if (n==='activity') loadActivity();
 }
 
 // ─── GRIT CIRCLES / SQUADS MANAGEMENT ───
@@ -2199,6 +2219,121 @@ async function voidReferral(id) {
 
 // ─── TOOL LEADS ───
 let _toolLeads = [];
+
+// ─── LIVE ACTIVITY FEED ───
+let _activity = [];
+let _activityFilter = 'ALL';
+let _activityTimer = null;
+
+const ACTIVITY_TYPES = [
+  { k: 'ALL',     label: 'All' },
+  { k: 'POST',    label: 'Posts' },
+  { k: 'BID',     label: 'Bids' },
+  { k: 'BARTER',  label: 'Barter' },
+  { k: 'ORDER',   label: 'Orders' },
+  { k: 'WALLET',  label: 'Wallet' },
+  { k: 'BUNDLE',  label: 'Bundles' },
+];
+
+function actInr(n) { return n == null ? null : '₹' + Number(n).toLocaleString('en-IN'); }
+
+function actAgo(v) {
+  if (!v) return '—';
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return '—';
+  const s = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (s < 60) return 'just now';
+  const m = Math.floor(s / 60); if (m < 60) return m + 'm ago';
+  const h = Math.floor(m / 60); if (h < 24) return h + 'h ago';
+  const d2 = Math.floor(h / 24); if (d2 < 30) return d2 + 'd ago';
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+function actTone(status) {
+  const s = String(status || '').toUpperCase();
+  if (s === 'COMPLETED' || s === 'DELIVERED' || s === 'APPROVED' || s === 'ACCEPTED' || s === 'PAID' || s === 'ACTIVE') return 'var(--ok)';
+  if (s === 'CANCELLED' || s === 'REJECTED' || s === 'FAILED' || s === 'EXPIRED') return 'var(--danger)';
+  if (s === 'DISPUTED') return 'var(--warn)';
+  return 'var(--muted)';
+}
+
+function renderActivityFilters() {
+  const el = document.getElementById('activityFilters');
+  if (!el) return;
+  el.innerHTML = ACTIVITY_TYPES.map(t =>
+    `<button class="btn bs btn-sm" data-act="${t.k}" style="${_activityFilter === t.k ? 'background:var(--violet);color:#fff;border-color:var(--violet);' : ''}">${esc(t.label)}</button>`
+  ).join('');
+  el.querySelectorAll('button[data-act]').forEach(b => {
+    b.onclick = () => { _activityFilter = b.getAttribute('data-act'); renderActivityFilters(); renderActivityRows(); };
+  });
+}
+
+function renderActivitySummary() {
+  const el = document.getElementById('activitySummary');
+  if (!el) return;
+  const cards = ACTIVITY_TYPES.filter(t => t.k !== 'ALL').map(t => {
+    const n = _activity.filter(x => x.type === t.k).length;
+    return `<div style="background:var(--white);border:1px solid var(--bd);border-radius:var(--rm);padding:14px;">
+      <div style="font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);">${esc(t.label)}</div>
+      <div style="font-size:1.5rem;font-weight:800;margin-top:2px;">${n}</div>
+    </div>`;
+  });
+  el.innerHTML = cards.join('');
+}
+
+function renderActivityRows() {
+  const el = document.getElementById('activityContent');
+  if (!el) return;
+  const rows = _activityFilter === 'ALL' ? _activity : _activity.filter(x => x.type === _activityFilter);
+  if (!rows.length) {
+    const label = _activityFilter === 'ALL' ? '' : ACTIVITY_TYPES.find(t => t.k === _activityFilter).label.toLowerCase();
+    el.innerHTML = `<div class="empty"><div class="empty-title">No recent ${esc(label)}</div><div class="empty-sub">Nothing new here yet.</div></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr>
+    <th>What happened</th><th>Who</th><th>Amount</th><th>Status</th><th>When</th>
+  </tr></thead><tbody>${rows.map(x => {
+    const badge = `<span class="pill" style="background:${actTone(x.status)}1A;color:${actTone(x.status)};">${esc(x.status || '')}</span>`;
+    const amt = actInr(x.amount);
+    const main = `<div class="tdt"><strong>${esc(x.title)}</strong>${x.meta ? `<div style="font-size:.68rem;color:var(--muted);">${esc(x.meta)}</div>` : ''}</div>`;
+    const who_ = `<div class="tdt">${esc(x.actor && x.actor.name || 'Unknown')}${x.actor && x.actor.email ? `<div style="font-size:.68rem;color:var(--muted);">${esc(x.actor.email)}</div>` : ''}</div>`;
+    return `<tr>
+      <td>${main}</td>
+      <td>${who_}</td>
+      <td>${amt || '<span style="color:var(--muted);">—</span>'}</td>
+      <td>${badge}</td>
+      <td style="white-space:nowrap;color:var(--muted);font-size:.75rem;">${esc(actAgo(x.at))}</td>
+    </tr>`;
+  }).join('')}</tbody></table></div>`;
+}
+
+async function loadActivity() {
+  const el = document.getElementById('activityContent');
+  try {
+    const r = await api('/admin/activity?limit=20');
+    _activity = (r && r.data && Array.isArray(r.data.items)) ? r.data.items : [];
+    renderActivityFilters();
+    renderActivitySummary();
+    renderActivityRows();
+    const errs = r && r.data && Array.isArray(r.data.errors) && r.data.errors.length
+      ? `<div style="margin-top:10px;font-size:.74rem;color:var(--warn);">Partial data — failed: ${esc(r.data.errors.join(', '))}</div>` : '';
+    if (el) el.insertAdjacentHTML('beforeend', errs);
+  } catch(e) {
+    if (el) el.innerHTML = `<div class="empty"><div class="empty-sub">Failed to load activity</div></div>`;
+  }
+}
+
+function toggleActivityAuto() {
+  const btn = document.getElementById('activityAutoBtn');
+  if (_activityTimer) {
+    clearInterval(_activityTimer); _activityTimer = null;
+    if (btn) btn.textContent = '▶ Auto-refresh';
+  } else {
+    _activityTimer = setInterval(loadActivity, 20000);
+    if (btn) btn.textContent = '⏸ Stop auto-refresh';
+    loadActivity();
+  }
+}
 
 async function loadToolLeads() {
   try {
