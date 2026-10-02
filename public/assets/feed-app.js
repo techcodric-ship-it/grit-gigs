@@ -411,6 +411,11 @@
     el.className = 'card' + (kind === 'REEL' ? ' reel-card' : '');
     el.dataset.id = p.id;
     el.dataset.kind = kind;
+    // Tags drive boost demand, so keep them on the element for callers that
+    // need to ask "how many people searched for this?".
+    if (p.tags && p.tags.length) {
+      try { el.dataset.tags = JSON.stringify(p.tags); } catch (e) { /* non-fatal */ }
+    }
     if (row.spotlight) el.classList.add('spotlight');
 
     var spotFlag = row.spotlight ? '<div class="spot-promo"><span>✦ BOOSTED</span><span class="spot-promo-sub">Promoted</span></div>' : '';
@@ -419,7 +424,13 @@
       if (row.mySpotlight) {
         spotCtl = spotStatsBar(row.mySpotlight, p);
       } else {
-        spotCtl = '<div class="spot-bar idle"><span>Boost your ' + (kind === 'PROJECT' ? 'project' : 'gig') + ' — rank it higher in marketplace results</span><button data-spot="' + esc(p.id) + '">Boost from ₹50</button></div>';
+        // Named and priced, so the seller can act on this without hunting for
+        // a Boost menu. The demand line below fills in why it is worth it.
+        spotCtl = '<div class="spot-bar idle" data-spot-row="' + esc(p.id) + '">' +
+          '<span class="spot-txt">Get seen by people searching for your skills</span>' +
+          '<button data-spot="' + esc(p.id) + '">Boost from ₹50</button>' +
+          '<div class="spot-demand" data-demand="' + esc(p.id) + '"></div>' +
+          '</div>';
       }
     }
 
@@ -613,6 +624,11 @@
     // just started doesn't sit on zeros until the next manual reload.
     if (row.mySpotlight) {
       (function (pid) { setTimeout(function () { pollSpotStats(pid); }, 2500); })(p.id);
+    }
+    // For an unboosted gig, show how many real searches its keywords matched
+    // this week. This is the seller's own audience, not a marketing figure.
+    if (spotCtl.indexOf('data-demand') > -1 && p.tags && p.tags.length) {
+      loadSpotDemand(p.id, p.tags);
     }
 
     // expand long caption
@@ -827,6 +843,63 @@
 
   function formatInr(n) { return String(Math.round(Number(n) || 0)); }
 
+  var DEMAND_CACHE = {};
+
+  /**
+   * Fills the demand line on an unboosted gig card.
+   *
+   * These are real searches from the last 7 days, so the copy never promises an
+   * outcome. Zero searches renders a plain "no recent searches" rather than a
+   * fabricated number: if nobody is looking, the seller should not buy.
+   */
+  function loadSpotDemand(postId, tags) {
+    var key = String(tags).toLowerCase().split(',').sort().join(',');
+    var slot = function () { return document.querySelector('[data-demand="' + postId + '"]'); };
+    function paint(d) {
+      var el = slot();
+      if (!el) return;
+      if (d.totalSearches > 0) {
+        var hits = (d.terms || []).filter(function (t) { return t.searches > 0; }).slice(0, 2);
+        var best = hits.length ? hits.map(function (t) { return t.term; }).join(', ') : 'your keywords';
+        el.innerHTML = '<b>' + d.totalSearches + '</b> search' + (d.totalSearches === 1 ? '' : 'es') +
+          ' matched ' + esc(best) + ' in the last 7 days. Boosting puts you in front of them.';
+      } else {
+        el.innerHTML = 'No one searched these keywords this week. <a href="/spotlight-boost.html">How boosting works</a>';
+      }
+    }
+    if (DEMAND_CACHE[key]) { paint(DEMAND_CACHE[key]); return; }
+    api('/community/spotlight/demand?tags=' + encodeURIComponent(tags.join(','))).then(function (r) {
+      if (!(r && r.ok && r.d && r.d.data)) return;
+      DEMAND_CACHE[key] = r.d.data;
+      paint(r.d.data);
+    }).catch(function () {});
+  }
+
+  /**
+   * Builds the demand block inside the boost dialog.
+   *
+   * Every line here is checkable by the buyer: the count is real searches, the
+   * match rule is the same one that decides who sees the boost, and the price
+   * is the price. No reach guarantee, because we cannot promise one.
+   */
+  function spotDemandPanel(d) {
+    if (!d) return '';
+    if (!(d.totalSearches > 0)) {
+      return '<div class="spot-demand-box zero">' +
+        '<b>No one has searched these keywords this week.</b>' +
+        '<span>A boost can only reach people already searching. Try broader or more common terms, or wait until demand picks up.</span>' +
+        '</div>';
+    }
+    var rows = (d.terms || []).filter(function (t) { return t.searches > 0; });
+    return '<div class="spot-demand-box">' +
+      '<b>' + d.totalSearches + ' search' + (d.totalSearches === 1 ? '' : 'es') + ' matched your keywords this week</b>' +
+      '<span>' + rows.slice(0, 4).map(function (t) {
+        return '<i>' + esc(t.term) + '</i> <b>' + t.searches + '</b>';
+      }).join(' · ') + '</span>' +
+      '<span>How many actually open it varies. You will see the real number as it happens.</span>' +
+      '</div>';
+  }
+
   /**
    * Live numbers for the boost owner. Reach is distinct viewers and clicks are
    * people who opened the post, so both stay honest under repeated refreshes.
@@ -950,6 +1023,7 @@
       '<div class="sub">Your ' + noun + ' is shown at the top of the feed to people searching for your keywords. You can see exactly how many people it reached and opened.</div>' +
       '<div class="fld"><label>Choose how long</label><div class="spot-packs" id="spotPacks"></div></div>' +
       '<div class="spot-note" id="spotNote"></div>' +
+      '<div id="spotDemand"></div>' +
       '<div class="fld"><label>Target keywords (up to 5)</label><div class="spot-chips" id="spotChips"></div></div>' +
       '<div class="fld" id="spotTrendWrap" style="display:none;"><label>What people are searching for</label><div class="spot-chips" id="spotTrend"></div></div>' +
       '<div class="fld"><label>Add your own keyword</label><div style="display:flex;gap:8px;"><input id="spotTagIn" placeholder="e.g. logo design" maxlength="30" style="flex:1;"/><button type="button" id="spotTagAdd" style="padding:10px 14px;border-radius:10px;border:1px solid var(--line,#e3e0f2);background:var(--bg-alt,#f4f1ff);color:#6C3FE8;font-weight:600;cursor:pointer;">Add</button></div></div>' +
@@ -1005,6 +1079,22 @@
         b.addEventListener('click', function () { delete sel[b.getAttribute('data-chip')]; drawChips(); });
       });
       drawTrend();
+      drawDemand();
+    }
+
+    // Demand is re-fetched as keywords change, so the seller can compare terms
+    // on real numbers before paying.
+    function drawDemand() {
+      var slot = body.querySelector('#spotDemand');
+      if (!slot) return;
+      var keys = Object.keys(sel);
+      if (!keys.length) { slot.innerHTML = ''; return; }
+      api('/community/spotlight/demand?tags=' + encodeURIComponent(keys.join(','))).then(function (r) {
+        var el = body.querySelector('#spotDemand');
+        if (!el) return;
+        if (!(r && r.ok && r.d && r.d.data)) { el.innerHTML = ''; return; }
+        el.innerHTML = spotDemandPanel(r.d.data);
+      }).catch(function () {});
     }
     drawChips();
     api('/community/spotlight/suggestions').then(function (r) {

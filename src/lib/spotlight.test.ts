@@ -7,6 +7,7 @@ import {
   isKnownSpotlightPack,
   packPerDay,
   formatInr,
+  demandCopy,
   buildSpotlightStats,
 } from "./spotlight";
 
@@ -129,6 +130,42 @@ describe("buildSpotlightStats", () => {
     expect(s.impressions).toBe(4);
     expect(s.clicks).toBe(9);
     expect(s.clickThroughRate).toBe(100);
+  });
+
+  it("reports demand as searches, never as a view promise", () => {
+    const c = demandCopy({ totalSearches: 12, terms: [{ term: "ai", searches: 12 }] });
+    expect(c).not.toBeNull();
+    expect(c!.headline).toContain("12 searches");
+    expect(c!.headline).toContain("7 days");
+    // The detail must not imply any guaranteed outcome.
+    expect(c!.detail).toContain("varies");
+    for (const forbidden of ["guarantee", "guaranteed", "views", "200"]) {
+      expect((c!.headline + c!.detail).toLowerCase()).not.toContain(forbidden);
+    }
+  });
+
+  it("returns null for zero demand so the UI can say nobody is looking", () => {
+    expect(demandCopy({ totalSearches: 0, terms: [{ term: "ai", searches: 0 }] })).toBeNull();
+  });
+
+  it("names at most two matching keywords", () => {
+    const c = demandCopy({
+      totalSearches: 9,
+      terms: [
+        { term: "ai", searches: 5 },
+        { term: "hr", searches: 3 },
+        { term: "data", searches: 1 },
+      ],
+    });
+    expect(c!.headline).toContain("ai");
+    expect(c!.headline).toContain("hr");
+    expect(c!.headline).not.toContain("data");
+  });
+
+  it("handles a single search without awkward plurals", () => {
+    const c = demandCopy({ totalSearches: 1, terms: [{ term: "ai", searches: 1 }] });
+    expect(c!.headline).toContain("1 search ");
+    expect(c!.headline).not.toContain("1 searches");
   });
 
   it("counts down remaining hours and flags expiry", () => {

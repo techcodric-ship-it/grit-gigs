@@ -119,6 +119,29 @@ export function packPerDay(pack: SpotlightPack): number {
 }
 
 /**
+ * Copy for the "how many people searched this" line.
+ *
+ * Kept here, next to the pricing rules, because the wording is a promise: it
+ * must never imply a guaranteed view count. It reports searches and says
+ * nothing about how many will open the post. Returns "" for a zero-demand
+ * keyword set, so callers can show the "nobody is looking" state instead.
+ */
+export function demandCopy(d: {
+  totalSearches: number;
+  terms: { term: string; searches: number }[];
+}): { headline: string; detail: string } | null {
+  if (!d.totalSearches) return null;
+  const hits = d.terms.filter((t) => t.searches > 0).slice(0, 2);
+  const names = hits.map((t) => t.term);
+  const listed = names.length ? names.join(", ") : "your keywords";
+  const n = d.totalSearches;
+  return {
+    headline: `${n} search${n === 1 ? "" : "es"} matched ${listed} in the last 7 days`,
+    detail: "A boost shows your post to people who searched these. How many open it varies, and you will see the real number as it happens.",
+  };
+}
+
+/**
  * Round-trips a price for display without float artefacts, e.g. 199 stays 199.
  * Kept separate from packPerDay so the API can still publish exact numbers.
  */

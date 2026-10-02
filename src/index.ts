@@ -1171,6 +1171,7 @@ $mig$
       // migration cannot try to create a second, duplicate index.
       await col(`CREATE UNIQUE INDEX IF NOT EXISTS boost_impressions_boost_user_unique ON boost_impressions(boost_id, user_id)`);
       await col(`CREATE INDEX IF NOT EXISTS idx_boost_impressions_boost ON boost_impressions(boost_id)`);
+      await col(`CREATE INDEX IF NOT EXISTS idx_search_logs_created ON search_logs(created_at)`);
       await col(`
         CREATE TABLE IF NOT EXISTS search_logs (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

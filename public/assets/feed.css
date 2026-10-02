@@ -338,6 +338,14 @@ h4.sub-title { font-size: 14px; font-weight: 600; margin: 20px 0 12px; }
 .spot-packs { display: grid; gap: 8px; }
 .spot-note { margin: -2px 0 14px; padding: 10px 12px; border-radius: 10px; background: #fbfaff; border: 1px solid #e9e4fb; font-size: 12.5px; color: #5b5680; line-height: 1.5; }
 .spot-note b { color: #3c2a7a; font-weight: 700; }
+.spot-demand { flex-basis: 100%; margin-top: 2px; font-size: 11.5px; font-weight: 500; color: #7a68c8; line-height: 1.45; }
+.spot-demand b { font-weight: 800; color: #4a2fb0; }
+.spot-demand-box { margin: 0 0 14px; padding: 11px 13px; border-radius: 12px; border: 1px solid #e4defa; background: linear-gradient(180deg, #faf8ff, #f6f3ff); display: flex; flex-direction: column; gap: 5px; }
+.spot-demand-box > b { font-size: 13px; font-weight: 700; color: #3c2a7a; }
+.spot-demand-box > span { font-size: 11.5px; color: #6b648f; line-height: 1.5; }
+.spot-demand-box i { font-style: normal; font-weight: 700; color: #4a2fb0; }
+.spot-demand-box.zero { border-color: #f0d9c8; background: linear-gradient(180deg, #fffaf5, #fff6ee); }
+.spot-demand-box.zero > b { color: #8a5a2b; }
 .spot-pack { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 11px 13px; border-radius: 12px; border: 1.5px solid #e3e0f2; background: #fff; cursor: pointer; text-align: left; transition: .15s; }
 .spot-pack:hover { border-color: #b6a8f0; }
 .spot-pack.on { border-color: #6C3FE8; background: #f6f3ff; box-shadow: 0 0 0 1px #6C3FE8 inset; }

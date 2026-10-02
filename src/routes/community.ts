@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { eq, and, desc, count, sql, inArray, or, ilike, gt, gte, ne, not, type SQL } from "drizzle-orm";
+import { eq, and, desc, count, countDistinct, sql, inArray, or, ilike, gt, gte, ne, not, type SQL } from "drizzle-orm";
 import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable, conversationsTable, messagesTable, communityOrdersTable, communityOrderDeliveriesTable, communityOrderReviewsTable, transactionsTable, freelanceWalletsTable, postBoostsTable, searchLogsTable, projectsTable, projectBidsTable, barterMatchesTable, barterRequestsTable } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { logger } from "../lib/logger";
@@ -967,6 +967,60 @@ router.post("/community/posts/:id/spotlight/extend", authenticate, async (req: R
       return;
     }
     throw e;
+  }
+});
+
+/**
+ * Real demand for a set of keywords, counted from search_logs.
+ *
+ * This is the honest version of "people want this": a boost only reaches
+ * viewers whose recent searches match its tags, so the number of matching
+ * searches IS the addressable audience. No invented figures, no "127 people are
+ * viewing" theatre — if nobody searched, it says zero and the seller should not
+ * buy.
+ */
+router.get("/community/spotlight/demand", optionalAuth, async (req: Request, res: Response): Promise<void> => {
+  const raw = String(req.query.tags ?? "");
+  const tags = spotSuggestions(raw.split(",").map((t) => ({ term: t, n: 1 })));
+  if (!tags.length) {
+    res.json({ success: true, data: { windowDays: 7, terms: [], totalSearches: 0, uniqueSearchers: 0 } });
+    return;
+  }
+  try {
+    const since = new Date(Date.now() - 7 * 864e5);
+    const rows = await db
+      .select({ term: searchLogsTable.term, userId: searchLogsTable.userId })
+      .from(searchLogsTable)
+      .where(gte(searchLogsTable.createdAt, since))
+      .limit(5000);
+    const perTerm: { term: string; searches: number }[] = [];
+    const matchedSearchers = new Set<string>();
+    let totalSearches = 0;
+    for (const tag of tags) {
+      // Same matching rule loadSpotlightPins() uses, so the count reflects the
+      // audience a boost with this tag would actually reach.
+      let n = 0;
+      for (const r of rows) {
+        if (!tagMatchesSignature(tag, [normalizeSpotTerm(r.term)])) continue;
+        n += 1;
+        // Only count people who actually searched this tag, so the number shown
+        // to the buyer is the reach ceiling, not a site-wide vanity metric.
+        if (r.userId) matchedSearchers.add(r.userId);
+      }
+      perTerm.push({ term: tag, searches: n });
+      totalSearches += n;
+    }
+    res.json({
+      success: true,
+      data: {
+        windowDays: 7,
+        terms: perTerm.sort((a, b) => b.searches - a.searches),
+        totalSearches,
+        uniqueSearchers: matchedSearchers.size,
+      },
+    });
+  } catch {
+    res.json({ success: true, data: { windowDays: 7, terms: [], totalSearches: 0, uniqueSearchers: 0 } });
   }
 });
 
