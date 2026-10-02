@@ -13,7 +13,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Pull new code on server
+      - name: Pull new code and restart the app
         uses: appleboy/ssh-action@v1
         with:
           host: 162.19.81.122
@@ -31,9 +31,58 @@ jobs:
             git reset --hard origin/main
             echo "DEPLOYED: $(git log --oneline -1)"
 
-      - name: Verify site
+            # A git reset leaves the old process running the old code. TypeScript
+            # changes are inert until PM2 picks them up, so restart here rather
+            # than relying on someone doing it by hand afterwards.
+            ERRLOG=/root/.pm2/logs/gritgigs-error.log
+            # Only judge errors this deploy introduces. Grepping the whole log
+            # would mean one historic error fails every future deploy forever.
+            before=$(wc -c < "$ERRLOG" 2>/dev/null || echo 0)
+            pm2 restart gritgigs --update-env
+            sleep 12
+            if ! pm2 list | grep -q "gritgigs.*online"; then
+              echo "::error::gritgigs is not online after restart"
+              pm2 list
+              exit 1
+            fi
+            fresh=$(tail -c "+$((before + 1))" "$ERRLOG" 2>/dev/null || true)
+            if echo "$fresh" | grep -qiE "uncaught|unhandled|fatal|Cannot find module"; then
+              echo "::error::this deploy introduced errors"
+              echo "$fresh" | tail -20
+              exit 1
+            fi
+            echo "APP RESTARTED: $(pm2 list | grep gritgigs)"
+
+      - name: Verify site is serving the deployed build
         run: |
-          sleep 5
-          curl -fsS --retry 5 --retry-delay 5 --retry-connrefused https://gritandgigs.in/health
+          set -euo pipefail
+          BASE=https://gritandgigs.in
+          curl -fsS --retry 5 --retry-delay 5 --retry-connrefused $BASE/health
           echo ""
+
+          # /health answers 200 whether it is running the old code or the new
+          # code, so it cannot prove a deploy landed. Compare the asset version
+          # the server actually sends against the one in the deployed repo: a
+          # mismatch means either the app was not restarted or a page kept a
+          # stale cache-buster, both of which show users a broken UI.
+          want=$(grep -ho 'feed\.css?v=[0-9]\+' public/feed.html | head -1 | grep -o '[0-9]\+$')
+          echo "repo feed.css version: $want"
+          for p in /feed /profile /explore /spotlight-boost; do
+            got=$(curl -fsS "$BASE$p" | grep -ho 'feed\.css?v=[0-9]\+' | head -1 | grep -o '[0-9]\+$' || true)
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE$p")
+            echo "$p -> $code, feed.css?v=$got"
+            [ "$code" = "200" ] || { echo "::error::$p returned $code"; exit 1; }
+            if [ "$got" != "$want" ]; then
+              echo "::error::$p serves feed.css?v=$got but repo has $want (stale process or stale page)"
+              exit 1
+            fi
+          done
+
+          # The sidebar card and profile panel only exist for signed-in users,
+          # so they cannot be checked here, but their CSS must ship in the file
+          # the pages just requested.
+          css=$(curl -fsS "$BASE/assets/feed.css?v=$want")
+          for sel in .pspot-head .psp-main .spcard-stat .spcard-prices; do
+            echo "$css" | grep -q -- "$sel" || { echo "::error::served CSS is missing $sel"; exit 1; }
+          done
           echo "SITE OK"
