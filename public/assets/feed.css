@@ -338,6 +338,28 @@ h4.sub-title { font-size: 14px; font-weight: 600; margin: 20px 0 12px; }
 .spot-packs { display: grid; gap: 8px; }
 .spot-note { margin: -2px 0 14px; padding: 10px 12px; border-radius: 10px; background: #fbfaff; border: 1px solid #e9e4fb; font-size: 12.5px; color: #5b5680; line-height: 1.5; }
 .spot-note b { color: #3c2a7a; font-weight: 700; }
+.psp-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f0eefa; }
+.psp-row:last-child { border-bottom: none; }
+.psp-txt { min-width: 0; flex: 1; }
+.psp-txt b { display: block; font-size: 13.5px; font-weight: 600; color: #1c1b22; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.psp-stats { display: block; font-size: 11.5px; color: var(--dusk); margin-top: 2px; }
+.psp-stats b { display: inline; font-size: 11.5px; font-weight: 800; color: #4a2fb0; }
+.psp-live { display: block; font-size: 11.5px; font-weight: 700; color: #2e8b57; margin-top: 2px; }
+.psp-btn { flex: none; border: none; background: #6C3FE8; color: #fff; border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 700; cursor: pointer; }
+.psp-btn:hover { background: #5a34c6; }
+.psp-btn.ghost { background: #f1eeff; color: #4a2fb0; }
+.psp-btn.ghost:hover { background: #e5dfff; }
+.spot-promo-card { background: linear-gradient(180deg, #faf8ff, #f4f0ff); border-color: #e0d8fb; }
+.spc-body { font-size: 12.5px; line-height: 1.5; color: #5b5680; margin-bottom: 8px; }
+.spc-body b { color: #3c2a7a; font-weight: 700; }
+.spc-demand { font-size: 11.5px; line-height: 1.45; color: #6a5fb0; background: #fff; border: 1px solid #e7e1fb; border-radius: 8px; padding: 7px 9px; margin-bottom: 9px; }
+.spc-demand b { font-weight: 800; color: #4a2fb0; }
+.spc-prices { display: flex; gap: 6px; margin-bottom: 9px; }
+.spc-prices span { flex: 1; text-align: center; font-size: 11px; color: #8b8fa3; background: #fff; border: 1px solid #e7e1fb; border-radius: 7px; padding: 5px 2px; }
+.spc-prices b { display: block; font-size: 13px; font-weight: 800; color: #4a2fb0; }
+.spc-cta { width: 100%; border: none; background: #6C3FE8; color: #fff; border-radius: 9px; padding: 9px 12px; font-size: 13px; font-weight: 700; cursor: pointer; transition: .15s; }
+.spc-cta:hover { background: #5a34c6; }
+.spc-more { display: block; text-align: center; margin-top: 7px; font-size: 11px; color: #7a68c8; }
 .spot-demand { flex-basis: 100%; margin-top: 2px; font-size: 11.5px; font-weight: 500; color: #7a68c8; line-height: 1.45; }
 .spot-demand b { font-weight: 800; color: #4a2fb0; }
 .spot-demand-box { margin: 0 0 14px; padding: 11px 13px; border-radius: 12px; border: 1px solid #e4defa; background: linear-gradient(180deg, #faf8ff, #f6f3ff); display: flex; flex-direction: column; gap: 5px; }

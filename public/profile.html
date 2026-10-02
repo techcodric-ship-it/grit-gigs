@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, follow"/>
 <title>Profile — Grit&Gigs</title>
 <link rel="icon" href="/favicon.ico?v=8"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=8"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=8"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=8"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2"/>
-<link rel="stylesheet" href="/assets/feed.css?v=27"/>
+<link rel="stylesheet" href="/assets/feed.css?v=28"/>
 <style>
 .pcard{background:#fff;border:1px solid #ececf0;border-radius:16px;margin-bottom:14px;overflow:hidden}
 .pbanner{height:120px;background:linear-gradient(115deg,#111 0%,#2b2b33 55%,#eab308 175%)}
@@ -190,6 +190,14 @@
         <div id="pReviews"></div>
       </div>
 
+      <!-- Own-profile only. Gigs live here, so this is where a seller can
+           actually act on the offer instead of just reading about it. -->
+      <div class="pcard" id="pSpotCard" style="display:none;">
+        <div class="pctitle">Your gigs &mdash; get them seen</div>
+        <div id="pSpotList"></div>
+        <a class="spc-more" style="text-align:left;" href="/spotlight-boost">How Spotlight works and what it costs</a>
+      </div>
+
       <div class="prof-caption">
         <div class="on" data-ptab="posts">POSTS</div>
         <div data-ptab="liked" style="display:none;">LIKED</div>
@@ -255,7 +263,7 @@
   </div>
 </div>
 
-<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=27"></script>
+<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=28"></script>
 <script>
 (function () {
   var c = window.community;
@@ -416,6 +424,64 @@
       try { grid.appendChild(tile(row)); } catch (e) {}
     });
     if (!grid.children.length) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1;"><h3>' + emptyMsg + '</h3></div>'; }
+    renderSpotPanel(posts);
+  }
+
+  // Lists the seller's own boostable posts with a one-click Boost button and
+  // the real weekly search count for that gig's keywords. Only renders on your
+  // own profile, and only for posts that can actually be boosted.
+  function renderSpotPanel(posts) {
+    var card = $('pSpotCard');
+    var lm = liveMe();
+    if (!card || !lm || lm.id !== profId) return;
+    var mine = posts.filter(function (r) {
+      return r.post.kind === 'GIG' || r.post.kind === 'PROJECT';
+    });
+    if (!mine.length) { card.style.display = 'none'; return; }
+    card.style.display = '';
+
+    var list = $('pSpotList');
+    list.innerHTML = mine.map(function (r) {
+      var p = r.post;
+      var live = r.mySpotlight;
+      var left = '';
+      if (live) {
+        var h = Math.max(1, Math.ceil((new Date(live.expiresAt).getTime() - Date.now()) / 3600e3));
+        left = '<span class="psp-live">Live &middot; ' + (h >= 24 ? Math.floor(h / 24) + 'd' : h + 'h') + ' left</span>' +
+               '<span class="psp-stats">' + Number(live.reachCount || 0) + ' reached &middot; ' +
+               Number(live.clickCount || 0) + ' opened</span>';
+      } else {
+        left = '<span class="psp-stats" data-psd="' + c.esc(p.id) + '"></span>';
+      }
+      return '<div class="psp-row">' +
+        '<div class="psp-txt"><b>' + c.esc(p.title || 'Untitled') + '</b>' + left + '</div>' +
+        (live
+          ? '<button class="psp-btn ghost" data-spext="' + c.esc(p.id) + '">Extend</button>'
+          : '<button class="psp-btn" data-spboost="' + c.esc(p.id) + '">Boost</button>') +
+        '</div>';
+    }).join('');
+
+    list.querySelectorAll('[data-spboost]').forEach(function (b) {
+      b.addEventListener('click', function () { c.openSpotlightModal({ id: b.getAttribute('data-spboost') }); });
+    });
+    list.querySelectorAll('[data-spext]').forEach(function (b) {
+      b.addEventListener('click', function () { c.extendSpotlight({ id: b.getAttribute('data-spext') }); });
+    });
+
+    // Demand per gig, so the seller compares real numbers instead of guessing.
+    mine.forEach(function (r) {
+      var slot = list.querySelector('[data-psd="' + r.post.id + '"]');
+      if (!slot) return;
+      var tags = r.post.tags || [];
+      if (!tags.length) { slot.textContent = 'Add tags so buyers can find you.'; return; }
+      c.api('/community/spotlight/demand?tags=' + encodeURIComponent(tags.join(','))).then(function (res) {
+        if (!slot.isConnected || !(res && res.ok && res.d && res.d.data)) return;
+        var n = res.d.data.totalSearches || 0;
+        slot.innerHTML = n > 0
+          ? '<b>' + n + '</b> search' + (n === 1 ? '' : 'es') + ' this week for these keywords'
+          : 'No searches for these keywords this week';
+      });
+    });
   }
 
   var activeTab = 'posts';

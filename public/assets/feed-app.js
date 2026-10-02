@@ -1364,6 +1364,8 @@
     googleLogin: googleLogin,
     setupProfile: setupProfile,
     openOnboarding: openOnboarding,
+    openSpotlightModal: openSpotlightModal,
+    extendSpotlight: extendSpotlight,
   };
 
   document.addEventListener('click', function (e) {
