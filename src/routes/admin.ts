@@ -99,8 +99,12 @@ router.post("/admin/reset-password", async (req: Request, res: Response) => {
   res.json({ success: true, message: "Admin password reset successful" });
 });
 
-// All subsequent routes require the admin API key
-router.use(adminAuth);
+// All subsequent routes require the admin API key.
+// Scoped to "/admin" on purpose. An unscoped router.use(adminAuth) also runs for
+// every request that merely falls through this router, so any unknown /api path
+// answered 401 "Invalid or missing admin key" instead of falling through to the
+// real 404 handler and hiding typos in route paths.
+router.use("/admin", adminAuth);
 
 // ── Check Supabase storage status ──
 router.get("/admin/storage/status", async (req: Request, res: Response) => {
