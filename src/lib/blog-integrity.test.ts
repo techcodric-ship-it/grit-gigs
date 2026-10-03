@@ -78,6 +78,39 @@ describe("blog posts", () => {
       expect(existsSync(resolve(PUBLIC, rel)), `${file} stylesheet missing: ${href}`).toBe(true);
     }
   });
+
+  // The blog carries two generations of post template. Some posts define
+  // page-hero/page-content in their own inline <style>, others rely purely on
+  // main.css. So the invariant is not one fixed template, it is that every
+  // class a post uses must resolve somewhere. A post written with invented
+  // class names resolves nothing, which renders as a page with no column
+  // width, no hero padding and a footer with no grid - broken, but not
+  // obviously broken enough to catch in a preview.
+  it.each(posts)("%s only uses classes that resolve in main.css or its own style", (file) => {
+    const s = readFileSync(resolve(PUBLIC, file), "utf8");
+    const main = readFileSync(resolve(PUBLIC, "css", "main.css"), "utf8");
+    const style = /<style[^>]*>(.*?)<\/style>/s.exec(s)?.[1] ?? "";
+    const used = new Set(
+      [...s.matchAll(/class="([^"]+)"/g)]
+        .flatMap((m) => m[1].split(/\s+/))
+        .filter(Boolean),
+    );
+    const unresolved = [...used].filter(
+      (c) => !new RegExp(`\\.${c}(?![\\w-])`).test(main) && !style.includes(`.${c}`),
+    );
+    expect(unresolved, `${file} uses unstyled classes: ${unresolved.join(", ")}`).toEqual([]);
+  });
+
+  it.each(posts)("%s only references CSS variables that exist", (file) => {
+    // var(--typo) silently falls back to nothing and paints a rule blank with
+    // no error anywhere. blog-freelance-platforms-india had color:#fff on
+    // var(--primary), so its comparison-table header was white on white.
+    const main = readFileSync(resolve(PUBLIC, "css", "main.css"), "utf8");
+    const style = /<style[^>]*>(.*?)<\/style>/s.exec(readFileSync(resolve(PUBLIC, file), "utf8"))?.[1] ?? "";
+    const used = new Set([...style.matchAll(/var\((--[\w-]+)\)/g)].map((m) => m[1]));
+    const undefinedVars = [...used].filter((v) => !new RegExp(`${v}\\s*:`).test(main));
+    expect(undefinedVars, `${file} uses undefined CSS vars: ${undefinedVars.join(", ")}`).toEqual([]);
+  });
 });
 
 describe("blog index and sitemap", () => {
