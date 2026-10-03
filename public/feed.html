@@ -217,7 +217,7 @@
   </div>
 </div>
 
-<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=37"></script>
+<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=38"></script>
 <script>
 (function () {
   var c = window.community;
@@ -649,6 +649,9 @@
   // Also called from loadFeed() once cards render; this covers the case where the
   // feed is empty or already cached so that block never runs.
   loadSpotPromo();
+  // The keyword editor on your own gig calls this after saving, so the panel
+  // switches from "No keywords yet" to a real demand number without a reload.
+  window.refreshSpotPromo = loadSpotPromo;
   if ($('quotaCancel')) $('quotaCancel').addEventListener('click', function () { $('quotaModal').classList.remove('open'); });
   if ($('quotaModal')) $('quotaModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
 })();

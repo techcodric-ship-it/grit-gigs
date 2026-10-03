@@ -2425,6 +2425,60 @@ router.put("/community/orders/:id/cancel", authenticate, async (req: Request, re
   res.status(200).json({ success: true, data: updated });
 });
 
+router.put("/community/posts/:id", authenticate, async (req: Request, res: Response): Promise<void> => {
+  // Editing a gig or project after posting. Without this, keywords could never
+  // be added to an existing post: the composer only sends tags on create, and
+  // the boost modal's keyword picker only sets boost targets. So a gig posted
+  // without keywords could only be fixed by deleting and reposting it.
+  const [post] = await db
+    .select({
+      id: communityPostsTable.id,
+      userId: communityPostsTable.userId,
+      kind: communityPostsTable.kind,
+    })
+    .from(communityPostsTable)
+    .where(eq(communityPostsTable.id, String(req.params.id)))
+    .limit(1);
+  if (!post) {
+    res.status(404).json({ success: false, message: "Post not found" });
+    return;
+  }
+  if (post.userId !== req.user!.id && req.user!.role !== "ADMIN") {
+    res.status(403).json({ success: false, message: "You can only edit your own posts" });
+    return;
+  }
+
+  // Whitelist rather than spreading the body: this endpoint must not become a
+  // way to reassign ownership, force a like count, or flip status.
+  const patch: Partial<typeof communityPostsTable.$inferInsert> = {};
+  if (typeof req.body?.content === "string") {
+    const content = req.body.content.trim();
+    if (!content) {
+      res.status(400).json({ success: false, message: "Post content cannot be empty" });
+      return;
+    }
+    if (content.length > 5000) {
+      res.status(400).json({ success: false, message: "Post content is too long" });
+      return;
+    }
+    patch.content = content;
+  }
+  if (req.body?.tags !== undefined) patch.tags = cleanTags(req.body.tags);
+  if (!Object.keys(patch).length) {
+    res.status(400).json({ success: false, message: "Nothing to update" });
+    return;
+  }
+  patch.updatedAt = new Date();
+
+  const [updated] = await db
+    .update(communityPostsTable)
+    .set(patch)
+    .where(eq(communityPostsTable.id, post.id))
+    .returning();
+  emitGlobal(req, "community:changed", { postId: post.id });
+  res.status(200).json({ success: true, data: updated });
+});
+
 router.post("/community/posts/:id/delete", authenticate, async (req: Request, res: Response): Promise<void> => {
   const [post] = await db
     .select({ id: communityPostsTable.id, userId: communityPostsTable.userId })

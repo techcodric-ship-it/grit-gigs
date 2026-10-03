@@ -575,14 +575,23 @@
     var spotFlag = row.spotlight ? '<div class="spot-promo"><span>✦ BOOSTED</span><span class="spot-promo-sub">Promoted</span></div>' : '';
     var spotCtl = '';
     if (isMine && (kind === 'GIG' || kind === 'PROJECT')) {
+      // Keywords are what the demand number is measured against, and the boost
+      // picker's keywords only apply to the boost. Without this control the only
+      // way to add them to a gig was to delete it and post again.
+      spotCtl += '<div class="spot-bar idle" data-kw-row="' + esc(p.id) + '">' +
+        '<span class="spot-txt">' + (p.tags && p.tags.length
+          ? 'Keywords: <b>' + esc(p.tags.join(', ')) + '</b>'
+          : '<b>No keywords yet</b> \u2014 add them to see how many people search for this') + '</span>' +
+        '<button data-kw-edit="' + esc(p.id) + '">' + (p.tags && p.tags.length ? 'Edit keywords' : 'Add keywords') + '</button>' +
+        '</div>';
       if (row.mySpotlight) {
-        spotCtl = spotStatsBar(row.mySpotlight, p);
+        spotCtl += spotStatsBar(row.mySpotlight, p);
       } else {
         // Named and priced, so the seller can act on this without hunting for
         // a Boost menu. The demand line below fills in why it is worth it.
-        spotCtl = '<div class="spot-bar idle" data-spot-row="' + esc(p.id) + '">' +
+        spotCtl += '<div class="spot-bar idle" data-spot-row="' + esc(p.id) + '">' +
           '<span class="spot-txt">Get seen by people searching for your skills</span>' +
-          '<button data-spot="' + esc(p.id) + '">Boost from ₹50</button>' +
+          '<button data-spot="' + esc(p.id) + '">Boost from \u20B950</button>' +
           '<div class="spot-demand" data-demand="' + esc(p.id) + '"></div>' +
           '</div>';
       }
@@ -1154,6 +1163,76 @@
     });
   }
 
+  /**
+   * Add or change the keywords on your own gig/project. These are the words the
+   * spotlight demand number is measured against, and they are separate from the
+   * boost modal's targeting keywords, which only affect that one boost.
+   */
+  function openKeywordModal(postId) {
+    var card = document.querySelector('.card[data-id="' + postId + '"]');
+    if (!card) return;
+    var current = [];
+    if (card.dataset.tags) {
+      try { current = JSON.parse(card.dataset.tags); } catch (e) { current = []; }
+    }
+    var m = document.getElementById('kwModal');
+    if (!m) {
+      m = document.createElement('div');
+      m.id = 'kwModal';
+      m.className = 'modal-backdrop';
+      m.innerHTML = '<div class="modal" style="max-width:430px;"></div>';
+      document.body.appendChild(m);
+      m.addEventListener('click', function (e) { if (e.target === m) m.classList.remove('open'); });
+    }
+    var body = m.querySelector('.modal');
+    body.innerHTML =
+      '<h3>Your keywords</h3>' +
+      '<div class="sub">These are the words buyers search for. We use them to show you how many people are looking for what you offer.</div>' +
+      '<div class="fld"><label>Keywords (up to 5, comma separated)</label>' +
+      '<input id="kwInput" maxlength="160" value="' + esc(current.join(', ')) + '" placeholder="e.g. social media, instagram management"/></div>' +
+      '<div class="err" id="kwErr"></div>' +
+      '<div class="row"><button type="button" id="kwCancel" style="padding:11px 18px;border-radius:10px;border:1px solid var(--line,#e3e0f2);background:#fff;font-weight:600;cursor:pointer;">Cancel</button>' +
+      '<button type="button" id="kwSave" style="padding:11px 18px;border-radius:10px;border:none;background:#6C3FE8;color:#fff;font-weight:700;cursor:pointer;">Save</button></div>';
+    m.classList.add('open');
+
+    var input = body.querySelector('#kwInput');
+    var err = body.querySelector('#kwErr');
+    input.focus();
+    body.querySelector('#kwCancel').addEventListener('click', function () { m.classList.remove('open'); });
+    body.querySelector('#kwSave').addEventListener('click', function () {
+      var tags = input.value.split(',')
+        .map(function (t) { return t.trim().replace(/^#/, '').slice(0, 30); })
+        .filter(Boolean)
+        .filter(function (t, i, a) { return a.indexOf(t) === i; })
+        .slice(0, 5);
+      var btn = this;
+      btn.disabled = true;
+      api('/community/posts/' + postId, { method: 'PUT', body: { tags: tags } }).then(function (r) {
+        btn.disabled = false;
+        if (!(r && r.ok)) {
+          err.textContent = (r && r.d && r.d.message) || 'Could not save keywords.';
+          return;
+        }
+        m.classList.remove('open');
+        // Reflect it on the card without a full reload, then let the sidebar
+        // promo re-read the tags it just gained.
+        card.dataset.tags = JSON.stringify(tags);
+        var txt = card.querySelector('[data-kw-row] .spot-txt');
+        var edit = card.querySelector('[data-kw-edit]');
+        if (txt) {
+          txt.innerHTML = tags.length
+            ? 'Keywords: <b>' + esc(tags.join(', ')) + '</b>'
+            : '<b>No keywords yet</b> \u2014 add them to see how many people search for this';
+        }
+        if (edit) edit.textContent = tags.length ? 'Edit keywords' : 'Add keywords';
+        var row = card.querySelector('[data-kw-row]');
+        if (row) row.classList.toggle('idle', !tags.length);
+        if (tags.length) loadSpotDemand(postId, tags);
+        if (typeof window.refreshSpotPromo === 'function') window.refreshSpotPromo();
+      });
+    });
+  }
+
   function extendSpotlight(p) { openExtendModal(p); }
 
   function openSpotlightModal(p) {
@@ -1548,8 +1627,14 @@
       e.preventDefault();
       location.href = '/messages.html?to=' + encodeURIComponent(msgBtn.getAttribute('data-msg'));
     }
+    var kwBtn = e.target.closest('[data-kw-edit]');
+    if (kwBtn) {
+      e.preventDefault();
+      if (!token) { openLogin(); return; }
+      openKeywordModal(kwBtn.getAttribute('data-kw-edit'));
+    }
     var bd = e.target.closest('.modal-backdrop');
-    if (bd && bd.id !== 'phoneModal' && e.target === bd) bd.classList.remove('open');
+    if (bd && bd.id !== 'phoneModal' && bd.id !== 'kwModal' && e.target === bd) bd.classList.remove('open');
   });
 
   document.addEventListener('keydown', function (e) {
