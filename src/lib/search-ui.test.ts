@@ -74,10 +74,11 @@ describe("nav search typeahead", () => {
 
   it("responds while typing, not only on Enter", () => {
     const js = app();
-    expect(js).toMatch(/navSearch[\s\S]{0,4000}addEventListener\('input'/);
+    expect(js).toMatch(/function bindSearch\(/);
+    expect(js).toMatch(/addEventListener\('input'/);
     // Debounced so a request is not fired per keystroke. The callback body
     // contains parens, so match the trailing delay rather than the arguments.
-    const delay = js.match(/searchState\.timer = setTimeout\([\s\S]*?\},\s*(\d+)\);/);
+    const delay = js.match(/\.timer = setTimeout\([\s\S]*?\},\s*(\d+)\);/);
     expect(delay, "typeahead must be debounced").not.toBeNull();
     expect(Number(delay![1])).toBeGreaterThan(0);
     expect(Number(delay![1])).toBeLessThanOrEqual(400);
@@ -91,12 +92,12 @@ describe("nav search typeahead", () => {
 
   it("stays silent under two characters and when nothing matches", () => {
     const js = app();
-    expect(js).toMatch(/q\.length < 2[\s\S]{0,80}closeSearch\(\)/);
+    expect(js).toMatch(/q\.length < 2[\s\S]{0,80}closeSearch\(f\)/);
     expect(js).toMatch(/!terms\.length && !posts\.length/);
   });
 
   it("ignores responses that arrive out of order while typing", () => {
-    expect(app()).toMatch(/seq !== searchState\.seq/);
+    expect(app()).toMatch(/seq !== f\.seq/);
   });
 
   it("ships CSS for every class the dropdown renders", () => {
@@ -115,6 +116,63 @@ describe("nav search typeahead", () => {
     ]) {
       expect(styles.includes(sel), `feed.css is missing ${sel}`).toBe(true);
     }
+  });
+});
+
+describe("feed search sits above the filter chips on mobile", () => {
+  const feed = () => html("feed.html");
+
+  it("puts the inline bar directly before the filter chips", () => {
+    const s = feed();
+    const bar = s.indexOf('class="feedsearch"');
+    const chips = s.indexOf('id="stories"');
+    expect(bar).toBeGreaterThan(-1);
+    expect(chips).toBeGreaterThan(bar);
+    // Only the field's own markup may sit between them: no composer, no card.
+    const between = s.slice(bar, chips);
+    expect(between).not.toMatch(/quickpost/i);
+    expect(between).not.toMatch(/class="card/);
+    expect((between.match(/<input/g) || []).length).toBe(1);
+  });
+
+  it("gives the inline bar its own field, not a duplicate id", () => {
+    const s = feed();
+    expect(s).toContain('id="feedSearch"');
+    expect(s).toContain('id="feedSearchDrop"');
+    expect((s.match(/id="feedSearch"/g) || []).length).toBe(1);
+    expect((s.match(/id="feedSearchDrop"/g) || []).length).toBe(1);
+    // The nav field still exists for desktop.
+    expect(s).toContain('id="navSearch"');
+  });
+
+  it("is marked so CSS can target the feed page alone", () => {
+    expect(feed()).toMatch(/<body class="feedpage">/);
+  });
+
+  it("shows only one visible search field on a phone", () => {
+    const styles = css();
+    // The nav magnifier steps aside exactly where the inline bar appears, so
+    // there is never a duplicate bar on screen.
+    expect(styles).toMatch(/body\.feedpage \.topnav \.searchwrap \{ display: none; \}/);
+    expect(styles).toMatch(/\.feedsearch \{ display: none; \}/);
+    const mobile = styles.slice(styles.indexOf("@media (max-width: 600px)"));
+    expect(mobile).toMatch(/\.feedsearch \{ display: block;/);
+    expect(mobile).toMatch(/body\.feedpage \.topnav \.searchwrap \{ display: none; \}/);
+  });
+
+  it("gives the inline field the full column width", () => {
+    const styles = css();
+    const mobile = styles.slice(styles.indexOf("@media (max-width: 600px)"));
+    expect(mobile).toMatch(/\.feedsearch \.searchwrap \{ width: 100%; max-width: none;/);
+  });
+
+  it("binds both fields through the shared typeahead", () => {
+    const js = app();
+    expect(js).toMatch(/inputId: 'navSearch'/);
+    expect(js).toMatch(/inputId: 'feedSearch'/);
+    expect(js).toMatch(/SEARCH_FIELDS\.forEach\(bindSearch\)/);
+    // Separate state per field, so one cannot overwrite the other's results.
+    expect(js).not.toMatch(/var searchState/);
   });
 });
 

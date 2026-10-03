@@ -69,6 +69,11 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
 .sd-txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sd-all { margin-top: 5px; padding: 9px 10px; border-top: 1px solid var(--line-2); font-size: 12.5px; font-weight: 600; color: #6C3FE8; }
 .sb-cancel { display: none; position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; border: none; background: transparent; color: var(--ink-2); font-size: 15px; line-height: 1; cursor: pointer; }
+
+/* Feed-only search bar. On a phone the search belongs directly above the
+   filter chips it filters, rather than as a magnifier squeezed into the header,
+   so it replaces the nav field there instead of doubling up. */
+.feedsearch { display: none; }
 .topnav .icons { display: flex; gap: 6px; align-items: center; }
 .topnav .icons a { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; color: var(--ink); font-size: 21px; }
 .topnav .icons a.on { background: #F0EAFF; }
@@ -364,6 +369,16 @@ h4.sub-title { font-size: 14px; font-weight: 600; margin: 20px 0 12px; }
   .topnav.searching .nav-logo, .topnav.searching .icons { display: none; }
   .topnav.searching .searchwrap { position: absolute; left: 12px; right: 12px; width: auto; max-width: none; z-index: 2; }
   .topnav.searching .searchbox input { padding: 0 34px 0 12px; color: var(--ink); cursor: text; background-image: none; }
+
+  /* On the feed the search moves out of the header and sits directly above the
+     All / Gigs / Barter filter chips, so it is adjacent to what it filters and
+     has the full width of the column to type into. The nav magnifier steps
+     aside so there is only ever one visible search field. */
+  body.feedpage .topnav .searchwrap { display: none; }
+  .feedsearch { display: block; margin: 0 0 12px; }
+  .feedsearch .searchwrap { width: 100%; max-width: none; margin: 0; }
+  .feedsearch .searchbox input { height: 40px; padding: 0 12px; font-size: 15px; }
+  .feedsearch .searchdrop { top: calc(100% + 6px); }
   .topnav.searching .searchbox input::placeholder { color: #b9b9bf; }
   .topnav.searching .sb-cancel { display: grid; place-items: center; }
   .topnav.searching .searchdrop { left: 0; right: 0; }

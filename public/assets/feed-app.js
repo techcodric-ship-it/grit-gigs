@@ -89,20 +89,28 @@
   // "web development", so matching is substring, not prefix.
   //
   // Implemented once here rather than per page because every feed-family page
-  // loads this file with the same #navSearch markup.
-  var searchState = { timer: 0, items: [], active: -1, seq: 0 };
+  // loads this file with the same search markup. A page can carry more than one
+  // field: the feed adds an inline bar above its filter chips on phones, so
+  // each field gets its own state rather than sharing one.
+  var SEARCH_FIELDS = [
+    { inputId: 'navSearch', dropId: 'navSearchDrop', inNav: true, rowPrefix: 'sd' },
+    { inputId: 'feedSearch', dropId: 'feedSearchDrop', inNav: false, rowPrefix: 'fs' }
+  ];
+  var searchFields = [];
   function escHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
-  function closeSearch() {
-    var wrap = document.querySelector('.searchwrap');
-    if (wrap) wrap.classList.remove('open');
-    var input = document.getElementById('navSearch');
-    if (input) input.setAttribute('aria-expanded', 'false');
-    searchState.items = [];
-    searchState.active = -1;
+  function closeSearch(f) {
+    if (!f) return;
+    f.wrap.classList.remove('open');
+    f.input.setAttribute('aria-expanded', 'false');
+    f.items = [];
+    f.active = -1;
+  }
+  function closeAllSearch(except) {
+    searchFields.forEach(function (f) { if (f !== except) closeSearch(f); });
   }
   function highlight(text, q) {
     var t = String(text || '');
@@ -110,26 +118,26 @@
     if (at < 0) return escHtml(t);
     return escHtml(t.slice(0, at)) + '<b>' + escHtml(t.slice(at, at + q.length)) + '</b>' + escHtml(t.slice(at + q.length));
   }
-  function renderSearch(input, wrap, drop, data, q) {
+  function renderSearch(f, data, q) {
     var terms = (data && data.terms) || [];
     var posts = (data && data.posts) || [];
     if (!terms.length && !posts.length) {
       // Silence is better than an empty panel over the page. Visibility is owned
       // entirely by the .open class: setting an inline display here would outrank
       // it and leave the panel stuck open after Escape.
-      drop.innerHTML = '';
-      wrap.classList.remove('open');
-      input.setAttribute('aria-expanded', 'false');
+      f.drop.innerHTML = '';
+      f.wrap.classList.remove('open');
+      f.input.setAttribute('aria-expanded', 'false');
       return;
     }
     var html = '';
-    searchState.items = [];
+    f.items = [];
     if (terms.length) {
       html += '<div class="sd-group">Suggestions</div>';
       terms.forEach(function (t) {
-        var i = searchState.items.length;
-        searchState.items.push({ type: 'term', value: t });
-        html += '<div class="sd-row" id="sd-i' + i + '" role="option" data-i="' + i + '" aria-selected="false">' +
+        var i = f.items.length;
+        f.items.push({ type: 'term', value: t });
+        html += '<div class="sd-row" id="' + f.rowPrefix + '-i' + i + '" role="option" data-i="' + i + '" aria-selected="false">' +
           '<span class="sd-ic sd-ic-term" aria-hidden="true">#</span>' +
           '<span class="sd-txt">' + highlight(t, q) + '</span></div>';
       });
@@ -137,31 +145,28 @@
     if (posts.length) {
       html += '<div class="sd-group">Gigs and projects</div>';
       posts.forEach(function (p) {
-        var i = searchState.items.length;
-        searchState.items.push({ type: 'post', value: p.id, kind: p.kind });
-        html += '<div class="sd-row" id="sd-i' + i + '" role="option" data-i="' + i + '" aria-selected="false">' +
+        var i = f.items.length;
+        f.items.push({ type: 'post', value: p.id, kind: p.kind });
+        html += '<div class="sd-row" id="' + f.rowPrefix + '-i' + i + '" role="option" data-i="' + i + '" aria-selected="false">' +
           '<span class="sd-ic sd-ic-' + (p.kind === 'PROJECT' ? 'proj' : 'gig') + '" aria-hidden="true">' +
           (p.kind === 'PROJECT' ? 'P' : 'G') + '</span>' +
           '<span class="sd-txt">' + highlight(p.content, q) + '</span></div>';
       });
     }
     html += '<div class="sd-all"><span>Search all for &ldquo;' + escHtml(q) + '&rdquo;</span></div>';
-    drop.innerHTML = html;
-    wrap.classList.add('open');
-    input.setAttribute('aria-expanded', 'true');
-    searchState.active = -1;
+    f.drop.innerHTML = html;
+    f.wrap.classList.add('open');
+    f.input.setAttribute('aria-expanded', 'true');
+    f.active = -1;
   }
-  function setActive(i) {
-    var drop = document.getElementById('navSearchDrop');
-    if (!drop) return;
-    var rows = drop.querySelectorAll('.sd-row');
+  function setActive(f, i) {
+    var rows = f.drop.querySelectorAll('.sd-row');
     rows.forEach(function (r) { r.classList.remove('on'); r.setAttribute('aria-selected', 'false'); });
-    if (i < 0 || !rows[i]) { searchState.active = -1; return; }
+    if (i < 0 || !rows[i]) { f.active = -1; return; }
     rows[i].classList.add('on');
     rows[i].setAttribute('aria-selected', 'true');
-    searchState.active = i;
-    var input = document.getElementById('navSearch');
-    if (input) input.setAttribute('aria-activedescendant', rows[i].id);
+    f.active = i;
+    f.input.setAttribute('aria-activedescendant', rows[i].id);
     rows[i].scrollIntoView({ block: 'nearest' });
   }
   function choose(item, q) {
@@ -169,39 +174,43 @@
     if (item.type === 'term') location.href = '/explore.html?q=' + encodeURIComponent(item.value);
     else openPost(item.value);
   }
-  function initSearch() {
-    var input = document.getElementById('navSearch');
+  function bindSearch(def) {
+    var input = document.getElementById(def.inputId);
     var wrap = input && input.closest('.searchwrap');
-    if (!input || !wrap) return;
-    var drop = document.getElementById('navSearchDrop');
-    if (!drop) return;
+    var drop = document.getElementById(def.dropId);
+    if (!input || !wrap || !drop) return;
+
+    var f = { input: input, wrap: wrap, drop: drop, rowPrefix: def.rowPrefix,
+              inNav: !!def.inNav, timer: 0, items: [], active: -1, seq: 0 };
+    searchFields.push(f);
 
     input.addEventListener('input', function () {
       var q = input.value.toLowerCase().replace(/\s+/g, ' ').trim();
-      clearTimeout(searchState.timer);
+      clearTimeout(f.timer);
       // Under two characters matches nearly everything, so stay quiet.
-      if (q.length < 2) { closeSearch(); return; }
-      var seq = ++searchState.seq;
-      searchState.timer = setTimeout(function () {
+      if (q.length < 2) { closeSearch(f); return; }
+      var seq = ++f.seq;
+      f.timer = setTimeout(function () {
         api('/community/search/suggest?q=' + encodeURIComponent(q)).then(function (r) {
           // Ignore responses that arrive out of order while still typing.
-          if (seq !== searchState.seq) return;
+          if (seq !== f.seq) return;
           if (!r.ok || !r.d || !r.d.data) return;
-          renderSearch(input, wrap, drop, r.d.data, q);
-        }).catch(function () { closeSearch(); });
+          closeAllSearch(f);
+          renderSearch(f, r.d.data, q);
+        }).catch(function () { closeSearch(f); });
       }, 200);
     });
 
     input.addEventListener('keydown', function (e) {
       var open2 = wrap.classList.contains('open');
-      if (e.key === 'ArrowDown' && open2) { e.preventDefault(); setActive(Math.min(searchState.active + 1, searchState.items.length - 1)); return; }
-      if (e.key === 'ArrowUp' && open2) { e.preventDefault(); setActive(Math.max(searchState.active - 1, 0)); return; }
-      if (e.key === 'Escape') { closeSearch(); return; }
+      if (e.key === 'ArrowDown' && open2) { e.preventDefault(); setActive(f, Math.min(f.active + 1, f.items.length - 1)); return; }
+      if (e.key === 'ArrowUp' && open2) { e.preventDefault(); setActive(f, Math.max(f.active - 1, 0)); return; }
+      if (e.key === 'Escape') { closeSearch(f); return; }
       if (e.key === 'Enter') {
         var q = input.value.trim();
         if (!q) return;
         e.preventDefault();
-        choose(open2 && searchState.active >= 0 ? searchState.items[searchState.active] : null, q);
+        choose(open2 && f.active >= 0 ? f.items[f.active] : null, q);
       }
     });
 
@@ -209,34 +218,39 @@
       var row = e.target.closest('.sd-row');
       if (!row) return;
       e.preventDefault();
-      var i = Number(row.getAttribute('data-i'));
-      choose(searchState.items[i], input.value.trim());
+      choose(f.items[Number(row.getAttribute('data-i'))], input.value.trim());
     });
 
-    // Mobile: below 600px the box collapses to a 34px magnifier. Focusing it
-    // expands the field across the nav and hides the logo and icon row. Done on
-    // focus rather than with a separate toggle button so nothing has to be
-    // reordered in the nav, which differs per page.
-    var cancel = document.getElementById('navSearchCancel');
-    var topnav = document.querySelector('.topnav');
-    function closeMobile() {
-      if (!topnav) return;
-      topnav.classList.remove('searching');
-      closeSearch();
-      input.blur();
-    }
-    input.addEventListener('focus', function () {
-      if (topnav && window.matchMedia && window.matchMedia('(max-width: 600px)').matches) {
-        topnav.classList.add('searching');
+    input.addEventListener('focus', function () { closeAllSearch(f); });
+
+    // Only the nav field collapses on a phone. Done on focus rather than with a
+    // separate toggle button so nothing has to be reordered in the nav, which
+    // differs per page.
+    if (f.inNav) {
+      var cancel = document.getElementById('navSearchCancel');
+      var topnav = document.querySelector('.topnav');
+      function closeMobile() {
+        if (!topnav) return;
+        topnav.classList.remove('searching');
+        closeSearch(f);
+        input.blur();
       }
-    });
-    if (cancel) cancel.addEventListener('click', closeMobile);
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && topnav && topnav.classList.contains('searching')) closeMobile();
-    });
-
+      input.addEventListener('focus', function () {
+        if (topnav && window.matchMedia && window.matchMedia('(max-width: 600px)').matches) {
+          topnav.classList.add('searching');
+        }
+      });
+      if (cancel) cancel.addEventListener('click', closeMobile);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && topnav && topnav.classList.contains('searching')) closeMobile();
+      });
+    }
+  }
+  function initSearch() {
+    SEARCH_FIELDS.forEach(bindSearch);
     document.addEventListener('click', function (e) {
-      if (!e.target.closest('.searchwrap')) closeSearch();
+      // A tap outside any field dismisses whatever is open.
+      if (!e.target.closest('.searchwrap')) closeAllSearch(null);
     });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initSearch);
