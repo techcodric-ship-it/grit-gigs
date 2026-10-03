@@ -101,6 +101,16 @@ describe("Spotlight markup hooks", () => {
     expect(feed).not.toMatch(/sp\.\w+Count/);
   });
 
+  it("only offers Boost on your own posts, not ones you liked", () => {
+    // renderSpotPanel() is fed by renderPostList() on every tab. LIKED and
+    // COMMENTED return other people's posts, so a kind-only filter put a live
+    // Boost button on someone else's gig. Ownership must be part of the filter.
+    const profile = html("profile.html");
+    expect(profile).toMatch(/r\.post\.userId\s*===\s*lm\.id/);
+    // The ownership check has to sit in the same filter as the kind check.
+    expect(profile).toMatch(/userId\s*===\s*lm\.id\s*&&\s*\n?\s*\(r\.post\.kind/);
+  });
+
   it("reads gig text from content, because community_posts has no title", () => {
     // `p.title` is always undefined here and rendered as "Untitled".
     const profile = html("profile.html");

@@ -441,7 +441,12 @@
     var lm = liveMe();
     if (!card || !lm || lm.id !== profId) return;
     var mine = posts.filter(function (r) {
-      return r.post.kind === 'GIG' || r.post.kind === 'PROJECT';
+      // Ownership matters, not just kind. This panel is also fed by the LIKED
+      // and COMMENTED tabs, which return other people's posts, so a kind-only
+      // filter offered a Boost button on someone else's gig. The API rejects
+      // that with 403, but the button should never have been offered at all.
+      return r.post.userId === lm.id &&
+        (r.post.kind === 'GIG' || r.post.kind === 'PROJECT');
     });
     if (!mine.length) { card.style.display = 'none'; return; }
     card.style.display = '';
