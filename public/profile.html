@@ -459,9 +459,9 @@
         var h = Math.max(1, Math.ceil((new Date(live.expiresAt).getTime() - Date.now()) / 3600e3));
         meta = '<span class="psp-live"><i></i>Live &middot; ' + (h >= 24 ? Math.floor(h / 24) + 'd' : h + 'h') + ' left</span>' +
                '<span class="psp-dot">&middot;</span>' +
-               '<span>' + Number(live.reachCount || 0) + ' reached</span>' +
+               '<span>' + Number(live.reach || 0) + ' reached</span>' +
                '<span class="psp-dot">&middot;</span>' +
-               '<span>' + Number(live.clickCount || 0) + ' opened</span>';
+               '<span>' + Number(live.clicks || 0) + ' opened</span>';
       } else {
         meta = '<span class="psp-demand" data-psd="' + c.esc(p.id) + '"></span>';
       }

@@ -81,6 +81,26 @@ describe("static page CSS isolation", () => {
 });
 
 describe("Spotlight markup hooks", () => {
+  it("reads live counters with the exact field names the API returns", () => {
+    // renderPosts() sends reach/impressions/clicks. The profile card used to
+    // read reachCount/clickCount, which no payload has ever contained, so the
+    // counter rendered a permanent "0 reached · 0 opened" over real rows.
+    const profile = html("profile.html");
+    expect(profile).toMatch(/live\.reach\s*\|\|\s*0/);
+    expect(profile).toMatch(/live\.clicks\s*\|\|\s*0/);
+    expect(profile).not.toContain("reachCount");
+    expect(profile).not.toContain("clickCount");
+  });
+
+  it("keeps feed-app.js and profile.html on the same counter names", () => {
+    const feed = readFileSync(resolve(ROOT, "public", "assets", "feed-app.js"), "utf8");
+    for (const name of ["reach", "impressions", "clicks"]) {
+      expect(feed).toContain(name);
+    }
+    // Anything shaped like *Count has never been part of the API contract.
+    expect(feed).not.toMatch(/sp\.\w+Count/);
+  });
+
   it("reads gig text from content, because community_posts has no title", () => {
     // `p.title` is always undefined here and rendered as "Untitled".
     const profile = html("profile.html");
