@@ -51,6 +51,24 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
 .topnav .searchbox { flex: 1; max-width: 280px; position: relative; margin: 0 auto; }
 .topnav .searchbox input { width: 100%; height: 34px; padding: 0 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; font-size: 14px; outline: none; }
 .topnav .searchbox input:focus { border-color: var(--ink-2); background: #fff; }
+
+/* ── nav search typeahead ─────────────────────────────────────────────────
+   .searchwrap owns the positioning so the dropdown can sit below the field
+   without being clipped by the fixed-height nav. */
+.searchwrap { flex: 1; max-width: 280px; position: relative; margin: 0 auto; }
+.searchdrop { position: absolute; top: calc(100% + 8px); left: 0; right: 0; background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 12px 32px rgba(20, 20, 30, .16); padding: 6px; z-index: 60; display: none; max-height: min(70vh, 460px); overflow-y: auto; overscroll-behavior: contain; }
+.searchwrap.open .searchdrop { display: block; }
+.sd-group { font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--dusk); padding: 8px 10px 5px; }
+.sd-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 9px; cursor: pointer; font-size: 13.5px; color: var(--ink); }
+.sd-row b { font-weight: 700; color: #6C3FE8; }
+.sd-row:hover, .sd-row.on { background: var(--bg); }
+.sd-ic { flex: none; width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; font-size: 11px; font-weight: 800; }
+.sd-ic-term { background: #F0EAFF; color: #6C3FE8; font-size: 13px; }
+.sd-ic-gig { background: #E8F3FF; color: #1668C7; }
+.sd-ic-proj { background: #EAF7EF; color: #1F9254; }
+.sd-txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sd-all { margin-top: 5px; padding: 9px 10px; border-top: 1px solid var(--line-2); font-size: 12.5px; font-weight: 600; color: #6C3FE8; }
+.sb-cancel { display: none; position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; border: none; background: transparent; color: var(--ink-2); font-size: 15px; line-height: 1; cursor: pointer; }
 .topnav .icons { display: flex; gap: 6px; align-items: center; }
 .topnav .icons a { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; color: var(--ink); font-size: 21px; }
 .topnav .icons a.on { background: #F0EAFF; }
@@ -327,10 +345,28 @@ h4.sub-title { font-size: 14px; font-weight: 600; margin: 20px 0 12px; }
 @media (max-width: 600px) {
   .topnav { padding: 0 12px; }
   .topnav .nav-logo-text { display: none; }
-  .topnav .searchbox { display: none; }
   .topnav .icons { gap: 2px; }
   .topnav .icons a { width: 36px; height: 36px; }
   .topnav .icons svg { width: 20px; height: 20px; }
+
+  /* Search used to be display:none here, so mobile had no search at all. It
+     now collapses to a 34px magnifier and expands on focus. */
+  .topnav .searchwrap { flex: 0 0 auto; width: 34px; max-width: 34px; margin: 0; }
+  .topnav .searchbox input { padding: 0 8px; color: transparent; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%236C3FE8' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.6-3.6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: center; }
+  .topnav .searchbox input::placeholder { color: transparent; }
+  .topnav .searchbox input::-webkit-search-cancel-button { display: none; }
+  /* Collapsed, the panel has nowhere useful to sit, so keep it shut until the
+     field is expanded. The .open rule must still win once searching. */
+  .topnav .searchwrap .searchdrop { display: none; }
+  .topnav.searching .searchwrap.open .searchdrop { display: block; }
+
+  .topnav.searching { padding: 0 12px; }
+  .topnav.searching .nav-logo, .topnav.searching .icons { display: none; }
+  .topnav.searching .searchwrap { position: absolute; left: 12px; right: 12px; width: auto; max-width: none; z-index: 2; }
+  .topnav.searching .searchbox input { padding: 0 34px 0 12px; color: var(--ink); cursor: text; background-image: none; }
+  .topnav.searching .searchbox input::placeholder { color: #b9b9bf; }
+  .topnav.searching .sb-cancel { display: grid; place-items: center; }
+  .topnav.searching .searchdrop { left: 0; right: 0; }
 }
 
 .card.spotlight { box-shadow: 0 0 0 1.5px #6C3FE8, 0 6px 18px rgba(108, 63, 232, .10); }

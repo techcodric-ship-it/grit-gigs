@@ -8,6 +8,7 @@ import {
   getSpotlightPack, isKnownSpotlightPack,   buildSpotlightStats, packPerDay, spotSuggestions,
 } from "../lib/spotlight";
 import { uploadToSupabase } from "../lib/storage";
+import { likeTerm, rankTerms } from "../lib/search-suggest";
 import { PROJECT_ROOT } from "../lib/root";
 import { getCommunityQuota, consumeGigPost, consumeProposal, grantQuotaBundle, QUOTA_PLANS, FREE_GIG_POSTS, FREE_PROPOSALS, type QuotaPlanId } from "../lib/community-quota";
 import { resolveGigAmount, canAfford } from "../lib/wallet-guards";
@@ -1039,6 +1040,89 @@ router.get("/community/spotlight/suggestions", optionalAuth, async (_req: Reques
   }
 });
 
+/**
+ * GET /community/search/suggest?q=
+ *
+ * Typeahead behind the nav search. Partial input has to work: typing "web" or
+ * "web de" must surface "web development", so matching is substring on both
+ * sides rather than a prefix test.
+ *
+ * Deliberately never writes to search_logs. /community/feed logs every query,
+ * and a typeahead fires one request per few keystrokes, so reusing the feed
+ * endpoint would record "w", "we", "web", "web d" as genuine searches and
+ * quietly inflate the Spotlight demand numbers that are sold to sellers.
+ */
+router.get("/community/search/suggest", optionalAuth, async (req: Request, res: Response): Promise<void> => {
+  const q = String(req.query.q || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 60);
+  // One character matches nearly everything and teaches the user nothing.
+  if (q.length < 2) {
+    res.json({ success: true, data: { q, terms: [], posts: [] } });
+    return;
+  }
+
+  try {
+    // Suggested terms come from tags people have actually used, so a suggestion
+    // always leads somewhere. unnest flattens the text[] column.
+    const tagRows = await db.execute(sql`
+      SELECT t AS term, COUNT(*)::int AS n
+      FROM community_posts, unnest(tags) AS t
+      WHERE t ILIKE ${likeTerm(q)} ESCAPE '\\'
+      GROUP BY t
+      ORDER BY n DESC
+      LIMIT 40
+    `);
+    const rawTags = (tagRows as unknown as { rows?: { term: string; n: number }[] }).rows ?? [];
+    const terms = rankTerms(
+      rawTags
+        .map((r) => ({ term: String(r.term).trim(), n: Number(r.n) }))
+        .filter((r) => r.term.length >= 2 && r.term.length <= 40),
+      q,
+      6,
+    );
+
+    // A couple of matching gigs, so the dropdown is useful before the user
+    // commits to a full search.
+    const posts = await db
+      .select({
+        id: communityPostsTable.id,
+        kind: communityPostsTable.kind,
+        content: communityPostsTable.content,
+        userId: communityPostsTable.userId,
+      })
+      .from(communityPostsTable)
+      .where(
+        or(
+          ilike(communityPostsTable.content, likeTerm(q)),
+          ilike(sql`${communityPostsTable.tags}::text`, likeTerm(q)),
+          ilike(communityPostsTable.location, likeTerm(q)),
+        ) as SQL,
+      )
+      .orderBy(desc(communityPostsTable.createdAt))
+      .limit(4);
+
+    res.json({
+      success: true,
+      data: {
+        q,
+        terms,
+        posts: posts.map((p) => ({
+          id: p.id,
+          kind: p.kind,
+          content: String(p.content || "").replace(/\s+/g, " ").trim().slice(0, 90),
+          userId: p.userId,
+        })),
+      },
+    });
+  } catch {
+    // A failed suggestion must never break typing in the search box.
+    res.json({ success: true, data: { q, terms: [], posts: [] } });
+  }
+});
+
 // ── GET /community/feed?kind=&filter=&cursor=&q= ──
 router.get("/community/feed", optionalAuth, async (req: Request, res: Response): Promise<void> => {
   const meId = req.user?.id;
@@ -1065,9 +1149,9 @@ router.get("/community/feed", optionalAuth, async (req: Request, res: Response):
   }
   if (q) {
     const searchCond: SQL = or(
-      ilike(communityPostsTable.content, `%${q}%`),
-      ilike(sql`${communityPostsTable.tags}::text`, `%${q}%`),
-      ilike(communityPostsTable.location, `%${q}%`),
+      ilike(communityPostsTable.content, likeTerm(q)),
+      ilike(sql`${communityPostsTable.tags}::text`, likeTerm(q)),
+      ilike(communityPostsTable.location, likeTerm(q)),
     ) as SQL;
     where = where ? and(where, searchCond) : searchCond;
   }
