@@ -90,11 +90,11 @@
   //
   // Implemented once here rather than per page because every feed-family page
   // loads this file with the same search markup. A page can carry more than one
-  // field: the feed adds an inline bar above its filter chips on phones, so
-  // each field gets its own state rather than sharing one.
+  // field: Explore adds a bar above its filter tabs on phones, so each field
+  // gets its own state rather than sharing one.
   var SEARCH_FIELDS = [
-    { inputId: 'navSearch', dropId: 'navSearchDrop', inNav: true, rowPrefix: 'sd' },
-    { inputId: 'feedSearch', dropId: 'feedSearchDrop', inNav: false, rowPrefix: 'fs' }
+    { inputId: 'navSearch', dropId: 'navSearchDrop', rowPrefix: 'sd' },
+    { inputId: 'exploreSearch', dropId: 'exploreSearchDrop', rowPrefix: 'es' }
   ];
   var searchFields = [];
   function escHtml(s) {
@@ -181,7 +181,7 @@
     if (!input || !wrap || !drop) return;
 
     var f = { input: input, wrap: wrap, drop: drop, rowPrefix: def.rowPrefix,
-              inNav: !!def.inNav, timer: 0, items: [], active: -1, seq: 0 };
+              timer: 0, items: [], active: -1, seq: 0 };
     searchFields.push(f);
 
     input.addEventListener('input', function () {
@@ -222,29 +222,6 @@
     });
 
     input.addEventListener('focus', function () { closeAllSearch(f); });
-
-    // Only the nav field collapses on a phone. Done on focus rather than with a
-    // separate toggle button so nothing has to be reordered in the nav, which
-    // differs per page.
-    if (f.inNav) {
-      var cancel = document.getElementById('navSearchCancel');
-      var topnav = document.querySelector('.topnav');
-      function closeMobile() {
-        if (!topnav) return;
-        topnav.classList.remove('searching');
-        closeSearch(f);
-        input.blur();
-      }
-      input.addEventListener('focus', function () {
-        if (topnav && window.matchMedia && window.matchMedia('(max-width: 600px)').matches) {
-          topnav.classList.add('searching');
-        }
-      });
-      if (cancel) cancel.addEventListener('click', closeMobile);
-      document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && topnav && topnav.classList.contains('searching')) closeMobile();
-      });
-    }
   }
   function initSearch() {
     SEARCH_FIELDS.forEach(bindSearch);

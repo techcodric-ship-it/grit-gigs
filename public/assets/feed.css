@@ -68,12 +68,11 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
 .sd-ic-proj { background: #EAF7EF; color: #1F9254; }
 .sd-txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sd-all { margin-top: 5px; padding: 9px 10px; border-top: 1px solid var(--line-2); font-size: 12.5px; font-weight: 600; color: #6C3FE8; }
-.sb-cancel { display: none; position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; border: none; background: transparent; color: var(--ink-2); font-size: 15px; line-height: 1; cursor: pointer; }
 
-/* Feed-only search bar. On a phone the search belongs directly above the
-   filter chips it filters, rather than as a magnifier squeezed into the header,
-   so it replaces the nav field there instead of doubling up. */
-.feedsearch { display: none; }
+/* Explore-only search bar. On a phone the search belongs with the filter tabs
+   it filters, so it sits directly above them at full width instead of being
+   squeezed into the header. Desktop keeps the single nav field. */
+.exploresearch { display: none; }
 .topnav .icons { display: flex; gap: 6px; align-items: center; }
 .topnav .icons a { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; color: var(--ink); font-size: 21px; }
 .topnav .icons a.on { background: #F0EAFF; }
@@ -354,34 +353,14 @@ h4.sub-title { font-size: 14px; font-weight: 600; margin: 20px 0 12px; }
   .topnav .icons a { width: 36px; height: 36px; }
   .topnav .icons svg { width: 20px; height: 20px; }
 
-  /* Search used to be display:none here, so mobile had no search at all. It
-     now collapses to a 34px magnifier and expands on focus. */
-  .topnav .searchwrap { flex: 0 0 auto; width: 34px; max-width: 34px; margin: 0; }
-  .topnav .searchbox input { padding: 0 8px; color: transparent; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%236C3FE8' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.6-3.6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: center; }
-  .topnav .searchbox input::placeholder { color: transparent; }
-  .topnav .searchbox input::-webkit-search-cancel-button { display: none; }
-  /* Collapsed, the panel has nowhere useful to sit, so keep it shut until the
-     field is expanded. The .open rule must still win once searching. */
-  .topnav .searchwrap .searchdrop { display: none; }
-  .topnav.searching .searchwrap.open .searchdrop { display: block; }
+  /* Mobile search lives on Explore only, directly above the filter tabs, so the
+     header carries no search icon on a phone. */
+  .topnav .searchwrap { display: none; }
 
-  .topnav.searching { padding: 0 12px; }
-  .topnav.searching .nav-logo, .topnav.searching .icons { display: none; }
-  .topnav.searching .searchwrap { position: absolute; left: 12px; right: 12px; width: auto; max-width: none; z-index: 2; }
-  .topnav.searching .searchbox input { padding: 0 34px 0 12px; color: var(--ink); cursor: text; background-image: none; }
-
-  /* On the feed the search moves out of the header and sits directly above the
-     All / Gigs / Barter filter chips, so it is adjacent to what it filters and
-     has the full width of the column to type into. The nav magnifier steps
-     aside so there is only ever one visible search field. */
-  body.feedpage .topnav .searchwrap { display: none; }
-  .feedsearch { display: block; margin: 0 0 12px; }
-  .feedsearch .searchwrap { width: 100%; max-width: none; margin: 0; }
-  .feedsearch .searchbox input { height: 40px; padding: 0 12px; font-size: 15px; }
-  .feedsearch .searchdrop { top: calc(100% + 6px); }
-  .topnav.searching .searchbox input::placeholder { color: #b9b9bf; }
-  .topnav.searching .sb-cancel { display: grid; place-items: center; }
-  .topnav.searching .searchdrop { left: 0; right: 0; }
+  body.explorepage .exploresearch { display: block; margin: 0 0 12px; }
+  .exploresearch .searchwrap { width: 100%; max-width: none; margin: 0; }
+  .exploresearch .searchbox input { width: 100%; height: 40px; padding: 0 12px; font-size: 15px; }
+  .exploresearch .searchdrop { top: calc(100% + 6px); }
 }
 
 .card.spotlight { box-shadow: 0 0 0 1.5px #6C3FE8, 0 6px 18px rgba(108, 63, 232, .10); }
