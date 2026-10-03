@@ -27,6 +27,21 @@ import { DEMO_LISTINGS, DEMO_PEOPLE, createdAtFor } from "../src/demo/dataset";
 
 const PREFIX = "demo+";
 
+// Requirements text per listing, so the order rows read like real work rather
+// than ten identical placeholders.
+const ORDER_NOTE: Record<string, string> = {
+  "p-brand-kit": "Logo, two colourways and a one-page usage guide. Two revision rounds included.",
+  "p-ops-dashboard": "Order tracking, status pipeline and a weekly exceptions view. Seeded with 6 months of sample data.",
+  "p-onboarding-copy": "14 help articles plus the welcome email sequence. Written in British English to match the product.",
+  "p-sales-bi": "Revenue by channel, cohort retention and a rep leaderboard. Built as a Power BI template plus the source workbook.",
+  "p-clinic-social": "Monthly management, 12 posts, before-and-after with signed consent forms. Report on the 1st.",
+  "p-booking-app": "Booking, reminders and reschedule flow for three clinics. Android and iOS from one codebase.",
+  "b-logo-for-site": "Logo and one-page brand treatment in exchange for React work on the landing page.",
+  "b-copy-for-code": "Writing help on the pricing and about pages in exchange for React work.",
+  "b-analytics-for-brand": "Analytics setup and a monthly report in exchange for SQL help on the events table.",
+  "b-reels-for-sql": "15 edited reels in exchange for SQL tutoring, one hour a week for a month.",
+};
+
 function target(): string {
   const t = process.env.DEMO_SEED_TARGET ?? process.env.DATABASE_URL;
   if (!t) {
@@ -94,6 +109,7 @@ async function main() {
   console.log(`people: ${DEMO_PEOPLE.length} (existing demo accounts skipped)`);
 
   let posts = 0;
+  const postIds: { id: string; listing: (typeof DEMO_LISTINGS)[number] }[] = [];
   for (const l of DEMO_LISTINGS) {
     const res = await pool.query(
       `INSERT INTO community_posts
@@ -124,9 +140,52 @@ async function main() {
         createdAtFor(l, new Date()),
       ],
     );
-    if (res.rowCount) posts += res.rowCount;
+    if (res.rowCount) {
+      posts += res.rowCount;
+      postIds.push({ id: res.rows[0].id, listing: l });
+    }
   }
   console.log(`listings: ${posts}`);
+
+  // The feed derives workStatus from the latest live community_orders row, so a
+  // listing with no order renders as OPEN and never shows Completed or Pending.
+  // Seeding one order per listing is what puts the ribbon on the card.
+  // Counterparty is always another demo person, never a real user.
+  let orders = 0;
+  for (const { id, listing } of postIds) {
+    const owner = `${PREFIX}${listing.ownerKey}@example.invalid`;
+    const others = DEMO_PEOPLE.map((p) => `${PREFIX}${p.key}@example.invalid`).filter(
+      (e) => e !== owner,
+    );
+    const buyer = others[orders % others.length];
+    const at = createdAtFor(listing, new Date());
+    const res = await pool.query(
+      `INSERT INTO community_orders
+         (post_id, buyer_id, seller_id, kind, status, requirements, amount,
+          revisions_used, delivered_at, completed_at, created_at, updated_at)
+       SELECT $1, b.id, s.id, $2::community_order_kind, $3::community_order_status,
+              $4, $5, $6,
+              CASE WHEN $10 THEN $7::timestamptz ELSE NULL END,
+              CASE WHEN $10 THEN $7::timestamptz ELSE NULL END,
+              $7::timestamp, $7::timestamp
+       FROM users b, users s
+       WHERE b.email = $8 AND s.email = $9`,
+      [
+        id,
+        listing.kind,
+        listing.workStatus,
+        ORDER_NOTE[listing.key] ?? "Scope agreed in chat.",
+        listing.priceInr ?? null,
+        listing.workStatus === "COMPLETED" ? 1 : 0,
+        at,
+        buyer,
+        owner,
+        listing.workStatus === "COMPLETED",
+      ],
+    );
+    if (res.rowCount) orders += res.rowCount;
+  }
+  console.log(`orders: ${orders}`);
 
   console.log(
     "\nDone. To remove every demo row:\n" +

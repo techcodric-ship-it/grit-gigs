@@ -123,6 +123,21 @@ describe("demo dataset", () => {
     for (const l of DEMO_LISTINGS) expect(() => personByKey(l.ownerKey)).not.toThrow();
   });
 
+  it("every completed listing has workStatus COMPLETED and every open one PENDING", () => {
+    // The feed derives workStatus from the latest live community_orders row and
+    // renders a Completed/Pending ribbon from it. A listing left at the default
+    // shows as OPEN instead, so the ribbon silently disappears - which is what
+    // made "completed" invisible on the cards.
+    for (const l of DEMO_LISTINGS) {
+      expect(l.workStatus, `${l.key} has no workStatus`).toBeTruthy();
+      expect(l.workStatus, `${l.key} workStatus disagrees with its status`).toBe(
+        l.status === "SOLD" ? "COMPLETED" : "PENDING",
+      );
+    }
+    const done = DEMO_LISTINGS.filter((l) => l.workStatus === "COMPLETED");
+    expect(done).toHaveLength(8);
+    expect(DEMO_LISTINGS.filter((l) => l.workStatus === "PENDING")).toHaveLength(2);
+  });
   it("uses unique keys, emails are demo-scoped, and no listing is unowned", () => {
     expect(new Set(DEMO_PEOPLE.map((p) => p.key)).size).toBe(DEMO_PEOPLE.length);
     expect(new Set(DEMO_LISTINGS.map((l) => l.key)).size).toBe(DEMO_LISTINGS.length);

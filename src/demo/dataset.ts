@@ -32,6 +32,13 @@ export interface DemoListingInput {
   ownerKey: string;
   kind: DemoKind;
   status: DemoStatus;
+  /**
+   * Work-lifecycle state shown on the card ribbon. The feed derives this
+   * from the latest live community_orders row, not from `status`, so a
+   * listing with no order renders as OPEN and never shows Completed or
+   * Pending. Seeding an order per listing is what makes the ribbon honest.
+   */
+  workStatus: "PENDING" | "COMPLETED";
   content: string;
   tags: string[];
   priceInr?: number;
@@ -122,6 +129,7 @@ const RAW_LISTINGS: DemoListingInput[] = [
     ownerKey: "ananya",
     kind: "PROJECT",
     status: "SOLD",
+  workStatus: "COMPLETED",
     content:
       "Brand identity for afilter-free skincare startup: logo, two colour palettes, packaging mockups and a small usage guide. Delivered as editable Figma files plus exported PNG and SVG. Three revisions included, 9 day turnaround.",
     tags: ["design", "branding", "figma"],
@@ -138,6 +146,7 @@ const RAW_LISTINGS: DemoListingInput[] = [
     ownerKey: "irfan",
     kind: "PROJECT",
     status: "SOLD",
+  workStatus: "COMPLETED",
     content:
       "Internal operations dashboard for a logistics team: order tracking, agent assignment and a daily revenue summary. Node and Postgres behind it, React front end. I wrote the schema and the seed script so their team can run it locally without me.",
     tags: ["react", "node", "postgres", "dashboard"],
@@ -154,6 +163,7 @@ const RAW_LISTINGS: DemoListingInput[] = [
     ownerKey: "meher",
     kind: "PROJECT",
     status: "SOLD",
+  workStatus: "COMPLETED",
     content:
       "Onboarding and help-centre copy for a payroll SaaS: 14 help articles, 9 email sequences and a rewrite of the signup flow. I recorded a short Loom per article so their support team can edit without coming back to me.",
     tags: ["copywriting", "saas", "content"],
@@ -170,6 +180,7 @@ const RAW_LISTINGS: DemoListingInput[] = [
     ownerKey: "devansh",
     kind: "PROJECT",
     status: "SOLD",
+  workStatus: "COMPLETED",
     content:
       "Sales dashboard for a D2C brand: revenue by channel, cohort retention and a weekly summary that goes out on Monday morning. Their export was three years of inconsistent spreadsheets, so cleaning was most of the work.",
     tags: ["powerbi", "excel", "analytics"],
@@ -186,6 +197,7 @@ const RAW_LISTINGS: DemoListingInput[] = [
     ownerKey: "priya",
     kind: "PROJECT",
     status: "ACTIVE",
+  workStatus: "PENDING",
     content:
       "Looking for someone to run Instagram and WhatsApp for a dermatology clinic in Baner. Roughly 12 posts a month, mostly before-and-after with consent forms. Budget is monthly, not per post, and I want a simple monthly report.",
     tags: ["social media", "reels", "local business"],
@@ -202,6 +214,7 @@ const RAW_LISTINGS: DemoListingInput[] = [
     ownerKey: "arjun",
     kind: "PROJECT",
     status: "ACTIVE",
+  workStatus: "PENDING",
     content:
       "Flutter app for a chain of three dental clinics: booking, reminders and a basic loyalty card. Designs are ready in Figma, I only need the build. Weekly demo so we can course-correct early.",
     tags: ["flutter", "mobile", "booking"],
@@ -218,6 +231,7 @@ const RAW_LISTINGS: DemoListingInput[] = [
     ownerKey: "ananya",
     kind: "BARTER",
     status: "SOLD",
+  workStatus: "COMPLETED",
     content:
       "I will design a logo and one-page brand treatment for anyone who can build or fix a small business website. I need the site more than the logo, honestly. Two rounds of revisions, files handed over in Figma and SVG.",
     tags: ["barter", "design", "web"],
@@ -235,6 +249,7 @@ const RAW_LISTINGS: DemoListingInput[] = [
     ownerKey: "irfan",
     kind: "BARTER",
     status: "SOLD",
+  workStatus: "COMPLETED",
     content:
       "Looking to trade React work for writing help. I will build a landing page or fix a bug in an existing React app; in return I need the copy written and edited, because I keep shipping placeholder text. My own site is a good candidate.",
     tags: ["barter", "react", "copywriting"],
@@ -252,6 +267,7 @@ const RAW_LISTINGS: DemoListingInput[] = [
     ownerKey: "devansh",
     kind: "BARTER",
     status: "SOLD",
+  workStatus: "COMPLETED",
     content:
       "I will set up a clean Excel and Power BI dashboard for a small business in exchange for brand identity work. I am specifically looking for a logo and colour palette, since I keep defaulting to Excel blue.",
     tags: ["barter", "analytics", "branding"],
@@ -269,6 +285,7 @@ const RAW_LISTINGS: DemoListingInput[] = [
     ownerKey: "priya",
     kind: "BARTER",
     status: "SOLD",
+  workStatus: "COMPLETED",
     content:
       "Offering 15 edited reels for anyone who can teach me SQL properly. I have copied queries from stack overflow for two years and still cannot write a join from memory. Remote sessions, twice a week, an hour each.",
     tags: ["barter", "video", "sql"],
