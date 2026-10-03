@@ -87,6 +87,18 @@ describe("rankTerms", () => {
     expect(rankTerms(rows, "web", 10)).not.toContain("logo design");
   });
 
+  it("collapses capitalisation variants and keeps the spelling people use most", () => {
+    const messy = [
+      { term: "Web Design", n: 2 },
+      { term: "web design", n: 9 },
+      { term: "WEB DESIGN", n: 1 },
+      { term: "web development", n: 4 },
+    ];
+    const out = rankTerms(messy, "web", 10);
+    expect(out.filter((t) => t.toLowerCase() === "web design")).toEqual(["web design"]);
+    expect(out).toHaveLength(2);
+  });
+
   it("leads with the exact match, then prefix matches, then mid-word ones", () => {
     const out = rankTerms(rows, "web", 10);
     // Someone who typed "web" and is shown "website" has not been answered yet.

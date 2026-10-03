@@ -49,9 +49,20 @@ export function matchesTerm(term: string, q: string): boolean {
  * shortest so "web" beats "web development services" at equal rank.
  */
 export function rankTerms(rows: { term: string; n: number }[], q: string, limit = 6): string[] {
-  return rows
+  // Tags are free text, so the same idea exists as several rows: "Web Design",
+  // "web design" and "WEB DESIGN" all count separately. Offering all three
+  // spends the short list repeating one suggestion, so collapse them and keep
+  // the spelling that people use most often.
+  const best = new Map<string, { term: string; n: number }>();
+  for (const r of rows) {
+    const key = r.term.trim().toLowerCase();
+    if (!key) continue;
+    const held = best.get(key);
+    if (!held || r.n > held.n) best.set(key, { term: r.term.trim(), n: r.n });
+  }
+
+  return [...best.values()]
     .filter((r) => matchesTerm(r.term, q))
-    .filter((r, i, arr) => arr.findIndex((o) => o.term === r.term) === i)
     .sort(
       (a, b) =>
         suggestRank(a.term, q) - suggestRank(b.term, q) ||
