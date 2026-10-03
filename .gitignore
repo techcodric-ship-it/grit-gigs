@@ -10,3 +10,6 @@ users-export.csv
 *.csv
 
 .grit-token
+
+# local demo database (PGlite data dir)
+.demo-db/

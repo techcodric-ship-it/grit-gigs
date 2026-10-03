@@ -13,7 +13,10 @@
     "db:migrate-project-type": "tsx src/db/migrate-project-type.ts",
     "db:migrate-community-delivery-link": "tsx src/db/migrate-community-delivery-link.ts",
     "demo:covers": "tsx scripts/generate-demo-covers.ts",
-    "demo:seed": "tsx scripts/seed-demo.ts"
+    "demo:seed": "tsx scripts/seed-demo.ts",
+    "demo:db": "tsx scripts/demo-db.ts",
+    "demo:setup": "tsx scripts/demo-setup.ts",
+    "demo:dev": "tsx scripts/demo-dev.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
@@ -38,6 +41,8 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@electric-sql/pglite-socket": "^0.2.11",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",

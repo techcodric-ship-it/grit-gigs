@@ -45,6 +45,29 @@ describe("demo guard", () => {
     }
   });
 
+  it("allows a local demo database even when DATABASE_URL points at it", () => {
+    // The local development flow deliberately sets DATABASE_URL to the throwaway
+    // demo database, so target === DATABASE_URL is the *expected* case there.
+    // A blanket "must differ from DATABASE_URL" rule refused exactly this.
+    expect(() =>
+      assertDemoTargetAllowed(LOCAL_URL, env({ DATABASE_URL: LOCAL_URL })),
+    ).not.toThrow();
+  });
+
+  it("never allows the live database, even with the remote opt-in set", () => {
+    // DEMO_ALLOW_REMOTE_TARGET=1 exists to permit a dedicated demo host. It must
+    // not become a way to seed the database the app itself is connected to.
+    expect(() =>
+      assertDemoTargetAllowed(PRODUCTION_URL, env({ DEMO_ALLOW_REMOTE_TARGET: "1" })),
+    ).toThrow(/live database/);
+  });
+
+  it("still refuses production when only NODE_ENV says development", () => {
+    expect(() =>
+      assertDemoTargetAllowed(PRODUCTION_URL, env({ NODE_ENV: "development" })),
+    ).toThrow(DemoTargetError);
+  });
+
   it("refuses when NODE_ENV=production, even for a loopback target", () => {
     expect(() =>
       assertDemoTargetAllowed(LOCAL_URL, env({ NODE_ENV: "production" })),

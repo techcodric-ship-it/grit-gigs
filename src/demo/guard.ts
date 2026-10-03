@@ -13,16 +13,6 @@
 
 const LOOPBACK = /^(localhost|127\.0\.0\.1|::1|\[::1\])$/i;
 
-/** Strip credentials and query string so two spellings of one URL compare equal. */
-function normalize(url: string): string {
-  try {
-    const u = new URL(url);
-    return `${u.protocol}//${u.host}${u.pathname}`.toLowerCase();
-  } catch {
-    return url.trim().toLowerCase();
-  }
-}
-
 function hostOf(url: string): string {
   try {
     return new URL(url).hostname;
@@ -53,11 +43,17 @@ export function isDemoEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
 /**
  * Refuse to write demo rows into a database that holds real users.
  *
- * Two independent checks, because either alone has a failure mode:
- *  - not equal to DATABASE_URL, so the production database is never a target
- *    even if the operator passes it explicitly;
- *  - not a remote host without an explicit opt-in, so a typo in a host name
- *    cannot point a seed run at someone's live database.
+ * Three checks, because each covers a case the others miss:
+ *  - NODE_ENV=production is refused outright;
+ *  - a non-loopback target is refused unless DEMO_ALLOW_REMOTE_TARGET=1, so a
+ *    typo in a hostname cannot point a seed run at a live database;
+ *  - a target that IS the configured DATABASE_URL on a remote host is refused
+ *    with no override, because that is unambiguously the live database.
+ *
+ * Loopback is always allowed. That is the local development case, where
+ * DATABASE_URL deliberately points at the throwaway demo database, so an
+ * earlier blanket "target must differ from DATABASE_URL" rule refused the one
+ * situation it was written to permit.
  */
 export function assertDemoTargetAllowed(
   target: string,
@@ -67,20 +63,25 @@ export function assertDemoTargetAllowed(
     throw new DemoTargetError("refusing to seed demo data with NODE_ENV=production");
   }
 
-  const production = env.DATABASE_URL ? normalize(env.DATABASE_URL) : null;
-  if (production && normalize(target) === production) {
-    throw new DemoTargetError(
-      "refusing to seed demo data into the production DATABASE_URL. " +
-        "Point DATABASE_URL at a local or dedicated demo database.",
-    );
-  }
-
   const host = hostOf(target);
   if (!host) {
     throw new DemoTargetError("could not parse a hostname out of the target URL");
   }
 
-  if (!LOOPBACK.test(host) && env.DEMO_ALLOW_REMOTE_TARGET !== "1") {
+  if (LOOPBACK.test(host)) return;
+
+  if (env.DATABASE_URL) {
+    const liveHost = hostOf(env.DATABASE_URL);
+    if (liveHost && liveHost.toLowerCase() === host.toLowerCase()) {
+      throw new DemoTargetError(
+        `refusing to seed demo data into "${host}", which is the database this ` +
+          "process is connected to. That is the live database. Point " +
+          "DATABASE_URL at a local or dedicated demo database instead.",
+      );
+    }
+  }
+
+  if (env.DEMO_ALLOW_REMOTE_TARGET !== "1") {
     throw new DemoTargetError(
       `refusing to seed demo data into remote host "${host}". ` +
         "Set DEMO_ALLOW_REMOTE_TARGET=1 only if this is a dedicated demo database.",
