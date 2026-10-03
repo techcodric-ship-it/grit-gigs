@@ -11,6 +11,7 @@ import { resolve } from "node:path";
 const ROOT = resolve(__dirname, "..", "..");
 const html = (p: string) => readFileSync(resolve(ROOT, "public", p), "utf8");
 const css = () => readFileSync(resolve(ROOT, "public", "assets", "feed.css"), "utf8");
+const js = () => readFileSync(resolve(ROOT, "public", "assets", "feed-app.js"), "utf8");
 
 const FEED_PAGES = [
   "feed.html",
@@ -255,5 +256,31 @@ describe("Spotlight honesty", () => {
     const feed = html("feed.html");
     expect(feed).toContain("Post a gig first");
     expect(feed).toContain("Check the number before you pay");
+  });
+
+  it("reads the signed-in user's own gig tags, not the first card's", () => {
+    const feed = html("feed.html");
+    // Ownership must be scoped. Reading the first GIG/PROJECT card on the page
+    // returned another person's keywords.
+    expect(feed).not.toMatch(/querySelector\('\.card\[data-kind="GIG"\]/);
+    expect(feed).toMatch(/\[data-mine="1"\]\[data-kind="GIG"\]/);
+    // renderPost has to actually set it.
+    expect(js()).toMatch(/if \(isMine\) el\.dataset\.mine\s*=\s*'1'/);
+  });
+
+  it("re-runs the demand promo after the feed renders, not just on page load", () => {
+    const feed = html("feed.html");
+    // The promo reads .card elements out of the DOM. Called inline at the bottom
+    // of the IIFE it ran before the feed fetch resolved, found no cards, and
+    // told every signed-in user they had no gigs.
+    const start = feed.indexOf("function loadFeed(");
+    // Bound the search to loadFeed's own body: the page-load call further down
+    // would otherwise satisfy the check on its own.
+    const body = feed.slice(start, feed.indexOf("function loadSuggest(", start));
+    const renderIdx = body.indexOf("c.renderPost(row)");
+    const promoIdx = body.indexOf("loadSpotPromo()", renderIdx);
+    expect(start).toBeGreaterThan(-1);
+    expect(renderIdx).toBeGreaterThan(-1);
+    expect(promoIdx, "loadSpotPromo must run after renderPost inside loadFeed").toBeGreaterThan(renderIdx);
   });
 });

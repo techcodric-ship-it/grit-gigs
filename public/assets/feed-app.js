@@ -565,6 +565,11 @@
     if (p.tags && p.tags.length) {
       try { el.dataset.tags = JSON.stringify(p.tags); } catch (e) { /* non-fatal */ }
     }
+    // Marks this card as the signed-in user's own. The spotlight demand promo
+    // needs "my gig's keywords", and it used to read the first GIG/PROJECT card
+    // on the page regardless of author, so it silently showed another person's
+    // tags - or, with no cards rendered yet, reported "no gigs yet".
+    if (isMine) el.dataset.mine = '1';
     if (row.spotlight) el.classList.add('spotlight');
 
     var spotFlag = row.spotlight ? '<div class="spot-promo"><span>✦ BOOSTED</span><span class="spot-promo-sub">Promoted</span></div>' : '';

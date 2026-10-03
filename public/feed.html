@@ -217,7 +217,7 @@
   </div>
 </div>
 
-<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=35"></script>
+<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=36"></script>
 <script>
 (function () {
   var c = window.community;
@@ -446,6 +446,10 @@
       // Each BARTER / PROJECT post carries its own work status, so the state of
       // the work is visible right on the post rather than in a separate list.
       posts.forEach(function (row) { postsEl.appendChild(c.renderPost(row)); });
+      // Runs here, after the cards exist. It used to run inline at the bottom of
+      // this IIFE, before this async fetch resolved, so it found no .card
+      // elements and told every signed-in user they had no gigs.
+      loadSpotPromo();
     }).catch(function () { postsEl.innerHTML = '<div class="empty"><h3>Network error</h3></div>'; });
   }
 
@@ -575,11 +579,21 @@
     });
   }
   function mySpotTags() {
-    // The feed already knows the signed-in user's own gigs, so pull their tags
-    // off the first own card instead of adding another request.
-    var el = document.querySelector('.card[data-kind="GIG"], .card[data-kind="PROJECT"]');
-    if (!el || !c.me || !el.dataset.tags) return [];
-    try { return JSON.parse(el.dataset.tags); } catch (e) { return []; }
+    // The signed-in user's own gigs only. Scoped to [data-mine] because the feed
+    // is mixed: reading the first GIG/PROJECT card on the page returned another
+    // person's keywords. Merge across their gigs so one tagged gig is enough.
+    if (!c.me) return [];
+    var out = [];
+    var els = document.querySelectorAll('.card[data-mine="1"][data-kind="GIG"], .card[data-mine="1"][data-kind="PROJECT"]');
+    for (var i = 0; i < els.length; i++) {
+      if (!els[i].dataset.tags) continue;
+      try {
+        JSON.parse(els[i].dataset.tags).forEach(function (t) {
+          if (out.indexOf(t) === -1) out.push(t);
+        });
+      } catch (e) { /* malformed tag payload: skip this card */ }
+    }
+    return out;
   }
   loadSpotLink();
 
@@ -615,6 +629,8 @@
   }
   var spotBtn = $('spcBoost');
   if (spotBtn) spotBtn.addEventListener('click', function () { location.href = '/profile'; });
+  // Also called from loadFeed() once cards render; this covers the case where the
+  // feed is empty or already cached so that block never runs.
   loadSpotPromo();
   if ($('quotaCancel')) $('quotaCancel').addEventListener('click', function () { $('quotaModal').classList.remove('open'); });
   if ($('quotaModal')) $('quotaModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
