@@ -217,7 +217,7 @@
   </div>
 </div>
 
-<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=36"></script>
+<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=37"></script>
 <script>
 (function () {
   var c = window.community;
@@ -578,23 +578,29 @@
         : 'Nobody searched your keywords this week \u2014 <a href="/spotlight-boost" style="color:#6C3FE8;font-weight:600;">how boosts work</a>';
     });
   }
-  function mySpotTags() {
+  function mySpotInfo() {
     // The signed-in user's own gigs only. Scoped to [data-mine] because the feed
     // is mixed: reading the first GIG/PROJECT card on the page returned another
     // person's keywords. Merge across their gigs so one tagged gig is enough.
-    if (!c.me) return [];
-    var out = [];
+    //
+    // Returns hasGig as well as tags, because "no gigs" and "gigs but no
+    // keywords" need different copy. Collapsing them told someone who had
+    // already posted a gig to "post a gig first".
+    var res = { hasGig: false, tags: [] };
+    if (!c.me) return res;
     var els = document.querySelectorAll('.card[data-mine="1"][data-kind="GIG"], .card[data-mine="1"][data-kind="PROJECT"]');
+    if (els.length) res.hasGig = true;
     for (var i = 0; i < els.length; i++) {
       if (!els[i].dataset.tags) continue;
       try {
         JSON.parse(els[i].dataset.tags).forEach(function (t) {
-          if (out.indexOf(t) === -1) out.push(t);
+          if (res.tags.indexOf(t) === -1) res.tags.push(t);
         });
       } catch (e) { /* malformed tag payload: skip this card */ }
     }
-    return out;
+    return res;
   }
+  function mySpotTags() { return mySpotInfo().tags; }
   loadSpotLink();
 
   // Sidebar promo: visible on every signed-in feed load, even for someone with
@@ -603,9 +609,10 @@
     var card = $('spotPromoCard');
     if (!card || !c.token()) return;
     card.style.display = '';
-    var tags = mySpotTags();
+    var info = mySpotInfo();
+    var tags = info.tags;
     var demand = $('spcDemand');
-    if (!tags.length) {
+    if (!info.hasGig) {
       // No gigs yet: still explain the product, but do not fake a number.
       // This is its own treatment, not the number layout with a word in it:
       // a 20px "Post a gig first" beside a sentence read as a mistake.
@@ -613,6 +620,16 @@
       demand.innerHTML =
         '<span class="spc-flag">No gigs yet</span>' +
         '<span class="spc-note">Post a gig first and we will show you how many people are searching for your keywords.</span>';
+      return;
+    }
+    if (!tags.length) {
+      // They have posted. The blocker is keywords, so name that instead of
+      // telling them to post a gig they already posted.
+      demand.className = 'spcard-stat empty';
+      demand.innerHTML =
+        '<span class="spc-flag">No keywords yet</span>' +
+        '<span class="spc-note">Add keywords to your gig and we will show you how many people are searching for them. ' +
+        '<a href="/profile" style="color:#6C3FE8;font-weight:600;">Edit your gig</a></span>';
       return;
     }
     c.api('/community/spotlight/demand?tags=' + encodeURIComponent(tags.join(','))).then(function (r) {

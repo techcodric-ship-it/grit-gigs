@@ -268,6 +268,17 @@ describe("Spotlight honesty", () => {
     expect(js()).toMatch(/if \(isMine\) el\.dataset\.mine\s*=\s*'1'/);
   });
 
+  it("distinguishes no gigs from gigs that have no keywords", () => {
+    const feed = html("feed.html");
+    // Someone who already posted a gig must not be told to post one. The panel
+    // used one branch for both, so a gig with no tags read as "no gigs yet".
+    expect(feed).toMatch(/if \(!info\.hasGig\)/);
+    expect(feed).toMatch(/if \(!tags\.length\)/);
+    expect(feed).toContain("No keywords yet");
+    expect(feed).toMatch(/Add keywords to your gig/);
+    // The no-gigs branch must still exist and stay the hasGig one.
+    expect(feed).toContain("No gigs yet");
+  });
   it("re-runs the demand promo after the feed renders, not just on page load", () => {
     const feed = html("feed.html");
     // The promo reads .card elements out of the DOM. Called inline at the bottom
