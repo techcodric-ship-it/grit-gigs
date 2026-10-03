@@ -55,6 +55,29 @@ describe("blog posts", () => {
     });
     expect(broken, `${file} links to missing ${broken.join(", ")}`).toEqual([]);
   });
+
+  // og:image lives in a content attribute, so the href check above cannot see
+  // it. A dead one still renders fine in a browser and only shows up as a blank
+  // card on LinkedIn and WhatsApp, which is where most of these posts are read.
+  it.each(posts)("%s points og:image at a file that exists", (file) => {
+    const s = readFileSync(resolve(PUBLIC, file), "utf8");
+    const img = /<meta property="og:image" content="([^"]+)"/.exec(s)?.[1];
+    expect(img, `${file} has no og:image`).toBeTruthy();
+    const rel = new URL(img!).pathname.replace(/^\//, "");
+    expect(existsSync(resolve(PUBLIC, rel)), `${file} og:image missing: ${img}`).toBe(true);
+  });
+
+  it.each(posts)("%s styles itself from a stylesheet that exists", (file) => {
+    // Relative hrefs escape the absolute-href check, so a typo'd stylesheet
+    // path renders as an unstyled page instead of failing anything.
+    const s = readFileSync(resolve(PUBLIC, file), "utf8");
+    const sheets = [...s.matchAll(/<link rel="stylesheet" href="([^"]+)"/g)].map((m) => m[1]);
+    expect(sheets.length, `${file} has no stylesheet`).toBeGreaterThan(0);
+    for (const href of sheets) {
+      const rel = href.replace(/^\//, "");
+      expect(existsSync(resolve(PUBLIC, rel)), `${file} stylesheet missing: ${href}`).toBe(true);
+    }
+  });
 });
 
 describe("blog index and sitemap", () => {
