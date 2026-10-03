@@ -257,10 +257,20 @@ function kindWhitelist(kind: string | undefined, fallback: string): string {
 
 function cleanTags(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
-  return raw
-    .map((t) => String(t).trim().replace(/^#/, "").slice(0, 30))
-    .filter(Boolean)
-    .slice(0, 5);
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const t of raw) {
+    const v = String(t).trim().replace(/^#/, "").slice(0, 30);
+    if (!v) continue;
+    // De-duplicate before counting against the 5 tag budget. The keyword editor
+    // de-dupes client side, but that is bypassable, and a repeated tag would
+    // otherwise silently eat one of the five slots.
+    const k = v.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(v);
+  }
+  return out.slice(0, 5);
 }
 
 function slugify(s: string): string {

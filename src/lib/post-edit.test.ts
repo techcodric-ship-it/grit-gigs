@@ -58,8 +58,10 @@ describe("PUT /community/posts/:id", () => {
 
   it("normalises tags through cleanTags rather than trusting input", () => {
     expect(block).toContain("cleanTags(req.body.tags)");
-    // cleanTags strips #, trims, caps length at 30 and count at 5.
-    expect(routes).toMatch(/function cleanTags[\s\S]*?slice\(0, 5\)/);
+    // cleanTags strips #, trims, caps length at 30, de-duplicates case
+    // insensitively and caps the count at 5. The de-dupe matters because the
+    // keyword editor de-dupes client side, which is bypassable.
+    expect(routes).toMatch(/function cleanTags[\s\S]*?seen\.has\(k\)[\s\S]*?slice\(0, 5\)/);
   });
 
   it("broadcasts a change so open feeds update", () => {
