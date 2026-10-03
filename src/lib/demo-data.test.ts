@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { assertDemoTargetAllowed, DemoTargetError } from "../demo/guard";
@@ -137,12 +137,14 @@ describe("demo dataset", () => {
 
   it("references a cover image that exists on disk at the declared size", () => {
     for (const l of DEMO_LISTINGS) {
-      expect(l.coverImage).toMatch(/^\/uploads\/demo-covers\/[a-z0-9-]+\.png$/);
+      expect(l.coverImage).toMatch(/^\/uploads\/demo-covers\/[a-z0-9-]+\.jpg$/);
       const file = resolve(ROOT, "public", l.coverImage.replace(/^\//, ""));
       expect(existsSync(file), `${l.key} cover missing: ${l.coverImage}`).toBe(true);
-      // A real PNG, not an empty placeholder.
-      const head = readFileSync(file).subarray(0, 8);
-      expect([...head], `${l.key} is not a PNG`).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
+      const head = readFileSync(file).subarray(0, 3);
+      expect([...head], `${l.key} is not a JPEG`).toEqual([255, 216, 255]);
+      // A real photograph, not a flat generated placeholder: a solid-colour
+      // gradient compresses to almost nothing at 1200x630.
+      expect(statSync(file).size, `${l.key} cover looks flat/empty`).toBeGreaterThan(25_000);
     }
   });
 

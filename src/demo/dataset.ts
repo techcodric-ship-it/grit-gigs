@@ -290,7 +290,7 @@ const RAW_LISTINGS: DemoListingInput[] = [
  */
 export const DEMO_LISTINGS: DemoListing[] = RAW_LISTINGS.map((l) => ({
   ...l,
-  coverImage: `/uploads/demo-covers/${l.key}.png`,
+  coverImage: `/uploads/demo-covers/${l.key}.jpg`,
 }));
 export const personByKey = (key: string): DemoPerson => {
   const p = DEMO_PEOPLE.find((x) => x.key === key);
