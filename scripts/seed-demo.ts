@@ -14,8 +14,11 @@ import { DEMO_LISTINGS, DEMO_PEOPLE, createdAtFor } from "../src/demo/dataset";
  *   $env:DATABASE_URL = "postgres://user:pw@localhost:5432/gritgigs_demo"
  *   npm run demo:seed
  *
- * Writes only rows whose email starts with "demo+" and whose content carries
- * the [DEMO] tag, so cleanup is two DELETEs and re-running is safe.
+ * Writes only rows whose owner email starts with "demo+", so cleanup is two
+ * DELETEs and re-running is safe. The listings carry no marker in their
+ * caption text: they sit in the live feed alongside the seeded content
+ * scripts/seed-community.ts has always put there, unmarked. Demo rows stay
+ * identifiable by owner, which is what the cleanup below keys on.
  *
  * Uses pool.query rather than drizzle's execute: this is the node-postgres
  * driver, where db.execute(sql.raw(...)) does not forward bind parameters, so
@@ -23,7 +26,6 @@ import { DEMO_LISTINGS, DEMO_PEOPLE, createdAtFor } from "../src/demo/dataset";
  */
 
 const PREFIX = "demo+";
-const TAG = "[DEMO]";
 
 function target(): string {
   const t = process.env.DEMO_SEED_TARGET ?? process.env.DATABASE_URL;
@@ -61,9 +63,12 @@ async function main() {
 
   // Idempotency: clear the previous demo set before inserting. Posts have no
   // natural unique key, so without this a re-run duplicates every listing.
+  // Keyed on owner rather than on a caption marker, since the captions are
+  // stored unmarked.
   const cleared = await pool.query(
-    `DELETE FROM community_posts WHERE content LIKE $1`,
-    [`${TAG}%`],
+    `DELETE FROM community_posts
+      WHERE user_id IN (SELECT id FROM users WHERE email LIKE $1)`,
+    [`${PREFIX}%`],
   );
   if (cleared.rowCount) console.log(`cleared ${cleared.rowCount} previous demo post(s)`);
 
@@ -100,7 +105,7 @@ async function main() {
       [
         `${PREFIX}${l.ownerKey}@example.invalid`,
         l.kind,
-        `${TAG} ${l.content}`,
+        l.content,
         l.coverImage,
         l.tags,
         l.priceInr ?? null,
@@ -125,7 +130,7 @@ async function main() {
 
   console.log(
     "\nDone. To remove every demo row:\n" +
-      `  DELETE FROM community_posts WHERE content LIKE '${TAG}%';\n` +
+      `  DELETE FROM community_posts WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'demo+%');\n` +
       `  DELETE FROM users WHERE email LIKE '${PREFIX}%';`,
   );
   await pool.end();
