@@ -59,6 +59,14 @@ async function main() {
 
   const passwordHash = await bcrypt.hash("demo-password-not-valid", 10);
 
+  // Idempotency: clear the previous demo set before inserting. Posts have no
+  // natural unique key, so without this a re-run duplicates every listing.
+  const cleared = await pool.query(
+    `DELETE FROM community_posts WHERE content LIKE $1`,
+    [`${TAG}%`],
+  );
+  if (cleared.rowCount) console.log(`cleared ${cleared.rowCount} previous demo post(s)`);
+
   for (const p of DEMO_PEOPLE) {
     await pool.query(
       `INSERT INTO users (email, password_hash, first_name, last_name, bio, city, tagline,
@@ -104,7 +112,11 @@ async function main() {
         l.status,
         l.likeCount,
         l.commentCount,
-        createdAtFor(l),
+        // Anchored to now, not the fixed epoch the tests use. The feed sorts by
+        // created_at DESC, so demo posts dated relative to a constant land at the
+        // very bottom of the feed - they were invisible in production for exactly
+        // that reason.
+        createdAtFor(l, new Date()),
       ],
     );
     if (res.rowCount) posts += res.rowCount;

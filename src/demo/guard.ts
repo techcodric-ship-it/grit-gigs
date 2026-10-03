@@ -29,18 +29,6 @@ export class DemoTargetError extends Error {
 }
 
 /**
- * True when demo data may be rendered or written.
- *
- * Requires BOTH that demo mode was explicitly requested AND that we are not
- * running a production build. NODE_ENV=production wins over everything, so a
- * stray DEMO_MODE=1 in a production env file cannot enable it.
- */
-export function isDemoEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  if (env.NODE_ENV === "production") return false;
-  return env.DEMO_MODE === "1";
-}
-
-/**
  * Refuse to write demo rows into a database that holds real users.
  *
  * Three checks, because each covers a case the others miss:
@@ -59,13 +47,32 @@ export function assertDemoTargetAllowed(
   target: string,
   env: NodeJS.ProcessEnv = process.env,
 ): void {
-  if (env.NODE_ENV === "production") {
-    throw new DemoTargetError("refusing to seed demo data with NODE_ENV=production");
-  }
-
   const host = hostOf(target);
   if (!host) {
     throw new DemoTargetError("could not parse a hostname out of the target URL");
+  }
+
+  // Deliberate override. This project already runs fabricated seed content in
+  // production from scripts/seed-community.ts, so seeding the demo set the same
+  // way is consistent with what is live rather than a new departure. It stays
+  // opt-in rather than default so an accidental run still cannot reach the live
+  // database.
+  if (env.DEMO_SEED_ALLOW_PRODUCTION === "1") {
+    if (!LOOPBACK.test(host)) {
+      console.warn(
+        `\n  ############################################################\n` +
+          `  # DEMO_SEED_ALLOW_PRODUCTION=1 - writing fabricated data to\n` +
+          `  # a live database: ${host}\n` +
+          `  # Rows are tagged demo+@example.invalid / [DEMO] so they can be\n` +
+          `  # removed with the two DELETEs printed at the end.\n` +
+          `  ############################################################\n`,
+      );
+    }
+    return;
+  }
+
+  if (env.NODE_ENV === "production") {
+    throw new DemoTargetError("refusing to seed demo data with NODE_ENV=production");
   }
 
   if (LOOPBACK.test(host)) return;

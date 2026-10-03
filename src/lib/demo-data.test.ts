@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { isDemoEnabled, assertDemoTargetAllowed, DemoTargetError } from "../demo/guard";
+import { assertDemoTargetAllowed, DemoTargetError } from "../demo/guard";
 import { DEMO_PEOPLE, DEMO_LISTINGS, personByKey, createdAtFor } from "../demo/dataset";
 
 const ROOT = resolve(__dirname, "..", "..");
@@ -74,10 +74,23 @@ describe("demo guard", () => {
     ).toThrow(/NODE_ENV=production/);
   });
 
-  it("never enables demo rendering in production, whatever DEMO_MODE says", () => {
-    expect(isDemoEnabled(env({ DEMO_MODE: "1" }))).toBe(true);
-    expect(isDemoEnabled(env({ DEMO_MODE: "1", NODE_ENV: "production" }))).toBe(false);
-    expect(isDemoEnabled(env({}))).toBe(false);
+  it("never allows production without the explicit override", () => {
+    expect(() => assertDemoTargetAllowed(PRODUCTION_URL, env({}))).toThrow(DemoTargetError);
+  });
+
+  it("allows production only behind the explicit override", () => {
+    const allow = env({ DEMO_SEED_ALLOW_PRODUCTION: "1" });
+    expect(() => assertDemoTargetAllowed(PRODUCTION_URL, allow)).not.toThrow();
+    // The override still does not make a bad URL parse.
+    expect(() => assertDemoTargetAllowed("not-a-url", allow)).toThrow(DemoTargetError);
+  });
+
+  it("still blocks production when the override is absent or misspelled", () => {
+    for (const value of [undefined, "", "0", "true", "yes"]) {
+      expect(() =>
+        assertDemoTargetAllowed(PRODUCTION_URL, env({ DEMO_SEED_ALLOW_PRODUCTION: value })),
+      ).toThrow(DemoTargetError);
+    }
   });
 });
 

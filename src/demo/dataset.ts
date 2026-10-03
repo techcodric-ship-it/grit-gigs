@@ -131,7 +131,7 @@ const RAW_LISTINGS: DemoListingInput[] = [
     isRemote: true,
     likeCount: 318,
     commentCount: 44,
-    daysAgo: 26,
+    daysAgo: 8,
   },
   {
     key: "p-ops-dashboard",
@@ -147,7 +147,7 @@ const RAW_LISTINGS: DemoListingInput[] = [
     isRemote: true,
     likeCount: 274,
     commentCount: 31,
-    daysAgo: 19,
+    daysAgo: 7,
   },
   {
     key: "p-onboarding-copy",
@@ -163,7 +163,7 @@ const RAW_LISTINGS: DemoListingInput[] = [
     isRemote: true,
     likeCount: 156,
     commentCount: 22,
-    daysAgo: 12,
+    daysAgo: 6,
   },
   {
     key: "p-sales-bi",
@@ -179,7 +179,7 @@ const RAW_LISTINGS: DemoListingInput[] = [
     isRemote: true,
     likeCount: 203,
     commentCount: 28,
-    daysAgo: 7,
+    daysAgo: 5,
   },
   {
     key: "p-clinic-social",
@@ -195,7 +195,7 @@ const RAW_LISTINGS: DemoListingInput[] = [
     isRemote: true,
     likeCount: 9,
     commentCount: 4,
-    daysAgo: 2,
+    daysAgo: 4,
   },
   {
     key: "p-booking-app",
@@ -211,7 +211,7 @@ const RAW_LISTINGS: DemoListingInput[] = [
     isRemote: true,
     likeCount: 14,
     commentCount: 6,
-    daysAgo: 1,
+    daysAgo: 0,
   },
   {
     key: "b-logo-for-site",
@@ -228,7 +228,7 @@ const RAW_LISTINGS: DemoListingInput[] = [
     isRemote: true,
     likeCount: 187,
     commentCount: 35,
-    daysAgo: 22,
+    daysAgo: 4,
   },
   {
     key: "b-copy-for-code",
@@ -245,7 +245,7 @@ const RAW_LISTINGS: DemoListingInput[] = [
     isRemote: true,
     likeCount: 141,
     commentCount: 26,
-    daysAgo: 16,
+    daysAgo: 3,
   },
   {
     key: "b-analytics-for-brand",
@@ -262,7 +262,7 @@ const RAW_LISTINGS: DemoListingInput[] = [
     isRemote: true,
     likeCount: 128,
     commentCount: 21,
-    daysAgo: 10,
+    daysAgo: 2,
   },
   {
     key: "b-reels-for-sql",
@@ -279,7 +279,7 @@ const RAW_LISTINGS: DemoListingInput[] = [
     isRemote: true,
     likeCount: 164,
     commentCount: 29,
-    daysAgo: 5,
+    daysAgo: 1,
   },
 ];
 
