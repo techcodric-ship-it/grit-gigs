@@ -104,4 +104,32 @@ describe("keyword editor on your own gig", () => {
     // The generic backdrop handler removes .open on any modal-backdrop click.
     expect(feedJs).toMatch(/bd\.id !== 'phoneModal' && bd\.id !== 'kwModal'/);
   });
+
+  // Regression: the Add keywords row was destroyed ~2.5s after the card
+  // rendered. Own gig cards render two .spot-bar rows (keywords, then boost)
+  // and both refreshSpotBars and pollSpotStats grabbed a bare first-match
+  // .spot-bar, which resolved to the keyword row and overwrote it. The poll at
+  // the end of render fires 2500ms later, so the button appeared, then vanished.
+  describe("spot-bar rows do not collide", () => {
+    it("never queries a bare .spot-bar", () => {
+      // Only class definitions and the comment mentioning it may remain.
+      const queries = feedJs.match(/querySelector(?:All)?\([^)]*['"][^'"]*\.spot-bar['"]/g) || [];
+      expect(queries, "querySelector on bare .spot-bar will clobber the keyword row").toEqual([]);
+    });
+
+    it("scopes boost updates to the boost rows", () => {
+      expect(feedJs).toMatch(/function boostBarIn\(card\)[\s\S]*?\[data-spot-row\], \.spot-stats-bar/);
+      expect(feedJs).toMatch(/function refreshSpotBars[\s\S]*?boostBarIn\(card\)/);
+      expect(feedJs).toMatch(/function pollSpotStats[\s\S]*?boostBarIn\(document\.querySelector/);
+    });
+
+    it("marks the active-boost stats row so it can be targeted", () => {
+      expect(feedJs).toContain('class="spot-bar spot-stats-bar"');
+    });
+
+    it("keeps the keyword row addressable and outside that lookup", () => {
+      expect(feedJs).toContain('data-kw-row="');
+      expect(feedJs).toMatch(/function boostBarIn\(card\)[\s\S]*?return card\.querySelector\('\[data-spot-row\], \.spot-stats-bar'\)/);
+    });
+  });
 });

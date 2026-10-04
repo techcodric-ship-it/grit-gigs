@@ -1075,9 +1075,19 @@
       '<b>' + clicks + '</b> opened' +
       (imp > 0 ? '<b>' + ctr + '%</b> opened' : '') +
       '</span>';
-    return '<div class="spot-bar"><span class="spot-txt">✦ Boost active · ' + spotLeftText(sp.expiresAt) + '</span>' +
+    return '<div class="spot-bar spot-stats-bar"><span class="spot-txt">✦ Boost active · ' + spotLeftText(sp.expiresAt) + '</span>' +
       parts +
       '<button data-spot-extend="' + esc(p.id) + '">Extend</button></div>';
+  }
+
+  /** The boost row inside a card.
+   *  Own gig cards render a keyword row above the boost row and both carry
+   *  .spot-bar for styling, so a bare first-match .spot-bar would resolve to
+   *  the keyword row and wipe the Add keywords button as soon as a boost poll
+   *  landed. Scope to the rows that are actually the boost UI. */
+  function boostBarIn(card) {
+    if (!card) return null;
+    return card.querySelector('[data-spot-row], .spot-stats-bar');
   }
 
   function refreshSpotBars(postId, expiresAt) {
@@ -1086,7 +1096,7 @@
       if (!card.querySelector('.spot-promo')) {
         card.insertAdjacentHTML('afterbegin', '<div class="spot-promo"><span>✦ SPOTLIGHT</span><span class="spot-promo-sub">Promoted</span></div>');
       }
-      var bar = card.querySelector('.spot-bar');
+      var bar = boostBarIn(card);
       if (!bar) return;
       bar.classList.remove('idle');
       bar.innerHTML = '<span>✦ Spotlight active · ' + spotLeftText(expiresAt) + '</span><button data-spot-extend="' + esc(postId) + '">Extend</button>';
@@ -1100,7 +1110,7 @@
     api('/community/posts/' + postId + '/spotlight/stats').then(function (r) {
       if (!(r && r.ok && r.d && r.d.data && r.d.data.stats)) return;
       var st = r.d.data.stats;
-      var bar = document.querySelector('.card[data-id="' + postId + '"] .spot-bar');
+      var bar = boostBarIn(document.querySelector('.card[data-id="' + postId + '"]'));
       if (!bar) return;
       var post = { id: postId };
       bar.classList.remove('idle');
