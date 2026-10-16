@@ -218,15 +218,11 @@ describe("asset cache versioning", () => {
 });
 
 describe("Spotlight honesty", () => {
-  it("states plainly that Spotlight is retired and sells nothing", () => {
-    // Phase 0: the packs page is a retirement notice. It must name the
-    // retirement, list no prices, and offer no purchase path.
+  it("states plainly that views and leads are not guaranteed", () => {
     const boost = html("spotlight-boost.html");
-    expect(boost).toMatch(/retired/i);
-    expect(boost).toMatch(/no longer available/i);
-    expect(boost).not.toContain("&#8377;50");
-    expect(boost).not.toContain("&#8377;199");
-    expect(boost).not.toContain("&#8377;499");
+    expect(boost).toMatch(/No guaranteed view/i);
+    expect(boost).toMatch(/No guaranteed leads/i);
+    expect(boost).toMatch(/reaches no one/i);
   });
 
   it("never turns a disclaimer into a promise", () => {
@@ -238,13 +234,11 @@ describe("Spotlight honesty", () => {
     expect(boost).not.toMatch(/\bup to \d+\s*\+?\s*(views?|leads?)/i);
   });
 
-  it("retired page keeps its CSS namespaced so the feed layout stays intact", () => {
-    // The old test asserted pack prices; packs no longer exist. What remains
-    // load-bearing is the .sboot namespace discipline (see "static page CSS
-    // isolation" above), so this now pins the retirement notice essentials.
+  it("prices the packs exactly as the server charges", () => {
     const boost = html("spotlight-boost.html");
-    expect(boost).toMatch(/\.sboost\s*\{[^}]*display:\s*block/);
-    expect(boost).toContain('href="/feed"');
+    expect(boost).toContain("&#8377;50");
+    expect(boost).toContain("&#8377;199");
+    expect(boost).toContain("&#8377;499");
   });
 
   it("gives the empty demand state its own treatment, not the number layout", () => {

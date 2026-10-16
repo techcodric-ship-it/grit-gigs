@@ -41,20 +41,27 @@
       </div>
     </div>
 
-    <div id="sortTabs" style="display:flex;gap:8px;margin-bottom:14px;">
-      <button data-sort="for-you" style="flex:1;border:1px solid var(--border);background:var(--blue);color:#fff;border-radius:10px;padding:8px 0;font-weight:700;font-size:.82rem;cursor:pointer;">✨ For you</button>
-      <button data-sort="top" style="flex:1;border:1px solid var(--border);background:#fff;border-radius:10px;padding:8px 0;font-weight:700;font-size:.82rem;cursor:pointer;">🔥 Top</button>
-      <button data-sort="following" style="flex:1;border:1px solid var(--border);background:#fff;border-radius:10px;padding:8px 0;font-weight:700;font-size:.82rem;cursor:pointer;">👥 Following</button>
-    </div>
-
     <div class="posts" id="posts"></div>
   </main>
 
   <aside class="col-side">
     <div class="sidebar">
-      <!-- Phase 0: Spotlight is retired. The promo card is gone; loadSpotPromo()
-           below is now a guarded no-op (its element no longer exists), kept only
-           so window.refreshSpotPromo keeps working for feed-app.js callers. -->
+      <!-- Always visible to signed-in sellers. This is the main way people learn
+           Spotlight exists at all: it does not depend on already owning a gig
+           with tags, which is how the earlier placement stayed invisible. -->
+      <div class="side-card spcard" id="spotPromoCard" style="display:none;">
+        <div class="spcard-eyebrow"><span class="spcard-star">&#10022;</span> Spotlight</div>
+        <div class="spcard-title">Put your gig in front of people already searching for it</div>
+        <p class="spcard-sub">Your gig sits at the top of their feed while the boost runs, and you see the real reached and opened numbers.</p>
+        <div class="spcard-stat" id="spcDemand"></div>
+        <div class="spcard-prices">
+          <div><b>&#8377;50</b><span>24 hours</span></div>
+          <div><b>&#8377;199</b><span>3 days</span></div>
+          <div><b>&#8377;499</b><span>7 days</span></div>
+        </div>
+        <button class="spcard-cta" id="spcBoost">Boost my gig</button>
+        <a class="spcard-more" href="/spotlight-boost">How it works &amp; what it costs</a>
+      </div>
       <div class="side-card">
         <h4>On the grind</h4>
         <div id="suggestList"></div>
@@ -125,7 +132,8 @@
       <button class="primary" id="composeSubmit">Post it</button>
     </div>
     <div class="note" id="quotaNote" style="display:none;"></div>
-    <!-- Phase 0: Spotlight retired — boost explainer removed from the composer. -->
+    <div class="note" id="spotLink" style="display:none;"></div>
+    <div class="note" style="font-size:11.5px;opacity:.78;">Want more eyes on it? <a href="/spotlight-boost" style="color:#6C3FE8;font-weight:600;">How Spotlight works and what it costs</a></div>
   </div>
 </div>
 
@@ -354,12 +362,8 @@
     $('quotaNote').style.display = (k === 'GIG') ? '' : 'none';
     // Surface the boost explainer in the gig composer, where someone has just
     // decided to post work and is thinking about how many people will see it.
-    // Phase 0: the spotLink element is gone (Spotlight retired). Guarded so
-    // the composer kind switch never throws; kind options themselves are
-    // removed in Phase 4 and the server already rejects retired kinds.
-    var _sl = $('spotLink');
-    if (_sl) _sl.style.display = (k === 'GIG' || k === 'PROJECT') ? '' : 'none';
-    if ((k === 'GIG' || k === 'PROJECT') && _sl) loadSpotLink();
+    $('spotLink').style.display = (k === 'GIG' || k === 'PROJECT') ? '' : 'none';
+    if (k === 'GIG' || k === 'PROJECT') loadSpotLink();
   }
 
   $('kindRow').addEventListener('click', function (e) {
@@ -430,29 +434,10 @@
   });
 
   // -- feed --
-  // Reddit-style sort: New (for-you, chronological), Top (most liked),
-  // Following (people you follow). The backend already supports all three via
-  // ?filter= — these tabs just surface them.
   var postsEl = $('posts');
-  var currentSort = 'for-you';
-  function paintSortTabs() {
-    var tabs = document.querySelectorAll('#sortTabs [data-sort]');
-    tabs.forEach(function (b) {
-      var on = b.getAttribute('data-sort') === currentSort;
-      b.style.background = on ? 'var(--blue)' : '#fff';
-      b.style.color = on ? '#fff' : '';
-    });
-  }
-  document.querySelectorAll('#sortTabs [data-sort]').forEach(function (b) {
-    b.addEventListener('click', function () {
-      currentSort = b.getAttribute('data-sort');
-      paintSortTabs();
-      loadFeed('');
-    });
-  });
   function loadFeed(kind) {
     postsEl.innerHTML = '<div class="loading">Loading feed…</div>';
-    var url = '/community/feed?limit=25&filter=' + encodeURIComponent(currentSort) + (kind ? '&kind=' + encodeURIComponent(kind) : '');
+    var url = '/community/feed?limit=25' + (kind ? '&kind=' + encodeURIComponent(kind) : '');
     c.api(url).then(function (r) {
       if (!r.ok) { postsEl.innerHTML = '<div class="empty"><h3>Could not load the feed</h3><p>' + c.esc(r.d.message || '') + '</p></div>'; return; }
       var posts = (r.d.data && r.d.data.posts) || [];

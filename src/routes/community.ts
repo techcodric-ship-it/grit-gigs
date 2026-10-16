@@ -20,16 +20,6 @@ import fs from "fs";
 
 const router: IRouter = Router();
 
-// ── Phase 0 (AI Work Engine rebuild) ─────────────────────────────────────
-// Human-to-human work kinds are retired: no new posts, no new human orders,
-// and no listing/surfacing. Rows stay in the DB (in-flight orders complete,
-// permalinks keep working). Set HUMAN_ORDERS_ENABLED=true to temporarily
-// re-allow human order creation while the AI engine is still being built.
-const HUMAN_ORDERS_ENABLED = process.env.HUMAN_ORDERS_ENABLED === "true";
-const RETIRED_KINDS = ["GIG", "BARTER", "PROJECT", "REEL"] as const;
-const isRetiredKind = (k: string): boolean =>
-  (RETIRED_KINDS as readonly string[]).includes(k);
-
 // ——— realtime helpers (socket.io) ———
 const socketApp = (req: Request): any => {
   try {
@@ -717,11 +707,19 @@ async function loadSpotlightPins(viewerId: string, kindFilter: string): Promise<
 }
 
 router.get("/community/spotlight/packs", (_req: Request, res: Response): void => {
-  // Phase 0: Spotlight is retired. The packs menu was the purchase flow.
-  res.status(410).json({
-    success: false,
-    code: "FEATURE_REMOVED",
-    message: "Spotlight boosts are no longer available.",
+  res.json({
+    success: true,
+    data: {
+      packs: SPOTLIGHT_PACK_LIST.map((p) => ({
+        id: p.id,
+        label: p.label,
+        hours: p.hours,
+        priceInr: p.priceInr,
+        duration: p.duration,
+        perDay: packPerDay(p),
+      })),
+      defaultPack: SPOTLIGHT_DEFAULT_PACK,
+    },
   });
 });
 
@@ -803,13 +801,6 @@ router.post("/community/boosts/:boostId/click", authenticate, async (req: Reques
 });
 
 router.post("/community/posts/:id/spotlight", authenticate, async (req: Request, res: Response): Promise<void> => {
-  // Phase 0: Spotlight is retired. Read-only stats below still work for history.
-  res.status(410).json({
-    success: false,
-    code: "FEATURE_REMOVED",
-    message: "Spotlight boosts are no longer available.",
-  });
-  return;
   const meId = req.user!.id;
   if (req.body?.planId != null && !isKnownSpotlightPack(req.body.planId)) {
     res.status(400).json({ success: false, message: "Unknown boost pack" });
@@ -892,7 +883,7 @@ router.post("/community/posts/:id/spotlight", authenticate, async (req: Request,
       },
     });
   } catch (e) {
-    if ((e as Error | null)?.message === "INSUFFICIENT_SPOTLIGHT") {
+    if (e instanceof Error && e.message === "INSUFFICIENT_SPOTLIGHT") {
       res.status(400).json({
         success: false,
         message: `Insufficient balance (₹${pack.priceInr} required). Add money to your wallet first.`,
@@ -905,13 +896,6 @@ router.post("/community/posts/:id/spotlight", authenticate, async (req: Request,
 });
 
 router.post("/community/posts/:id/spotlight/extend", authenticate, async (req: Request, res: Response): Promise<void> => {
-  // Phase 0: Spotlight is retired.
-  res.status(410).json({
-    success: false,
-    code: "FEATURE_REMOVED",
-    message: "Spotlight boosts are no longer available.",
-  });
-  return;
   const meId = req.user!.id;
   if (req.body?.planId != null && !isKnownSpotlightPack(req.body.planId)) {
     res.status(400).json({ success: false, message: "Unknown boost pack" });
@@ -985,7 +969,7 @@ router.post("/community/posts/:id/spotlight/extend", authenticate, async (req: R
       },
     });
   } catch (e) {
-    if ((e as Error | null)?.message === "INSUFFICIENT_SPOTLIGHT") {
+    if (e instanceof Error && e.message === "INSUFFICIENT_SPOTLIGHT") {
       res.status(400).json({
         success: false,
         message: `Insufficient balance (₹${pack.priceInr} required). Add money to your wallet first.`,
@@ -1182,12 +1166,6 @@ router.get("/community/feed", optionalAuth, async (req: Request, res: Response):
     where = where ? and(where, searchCond) : searchCond;
   }
 
-  // Phase 0: retired work kinds never surface in listings or search — not by
-  // default, not by explicit kind filter, not in Top. Direct permalinks
-  // (GET /community/posts/:id) keep working so nothing ever 404s.
-  const notRetired: SQL = sql`${communityPostsTable.kind} NOT IN ('GIG','BARTER','PROJECT','REEL')`;
-  where = where ? and(where, notRetired) : notRetired;
-
   let basePosts: (typeof communityPostsTable.$inferSelect)[];
 
   if (filter === "following" && meId) {
@@ -1237,10 +1215,14 @@ router.get("/community/feed", optionalAuth, async (req: Request, res: Response):
       .limit(limit);
   }
 
-  const rows = await renderPosts(basePosts, meId);
-  // Phase 0: Spotlight pins are no longer honored in feed ordering.
-  // loadSpotlightPins stays defined for the demand estimator's reference
-  // comment, but nothing pins anymore. Table and columns are untouched.
+  let rows = await renderPosts(basePosts, meId);
+  if (meId && !authorId && !q && filter === "for-you") {
+    const pins = await loadSpotlightPins(meId, kind);
+    if (pins.length) {
+      const pinIds = new Set(pins.map((r) => r.post.id));
+      rows = [...pins, ...rows.filter((r) => !pinIds.has(r.post.id))];
+    }
+  }
   res.status(200).json({ success: true, data: { posts: rows } });
 });
 
@@ -1400,15 +1382,6 @@ router.post("/community/posts", authenticate, async (req: Request, res: Response
   const { kind, content, tags, media, priceInr, priceMaxInr, deliveryDays, revisions, wantInr, wantText, coverUrl, location, isRemote } = req.body ?? {};
 
   const k = kindWhitelist(String(kind || "POST"), "POST");
-  // Phase 0: human work kinds are retired — the AI engine replaces them.
-  if (isRetiredKind(k)) {
-    res.status(400).json({
-      success: false,
-      code: "KIND_DISABLED",
-      message: "Gig, barter, project and clip posts are retired. Share a win, tip or post instead — paid work now runs through AI Work.",
-    });
-    return;
-  }
   if (!content || !String(content).trim()) {
     res.status(400).json({ success: false, message: "Post content is required" });
     return;
@@ -1955,17 +1928,6 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
   }
   if (post.kind !== "GIG" && post.kind !== "PROJECT" && post.kind !== "BARTER") {
     res.status(400).json({ success: false, message: "Only gig, project and barter posts can take requests." });
-    return;
-  }
-  // Phase 0: no new human-to-human orders. In-flight orders (deliver, revision,
-  // accept, cancel, review) are untouched and keep completing. Re-enable with
-  // HUMAN_ORDERS_ENABLED=true while the AI engine is still being built.
-  if (!HUMAN_ORDERS_ENABLED) {
-    res.status(400).json({
-      success: false,
-      code: "HUMAN_ORDERS_DISABLED",
-      message: "Direct orders are paused while we switch to AI-delivered work. Your pending orders are unaffected.",
-    });
     return;
   }
   if (post.userId === meId) {
