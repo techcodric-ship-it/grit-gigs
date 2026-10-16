@@ -1,8 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and, desc, sql, count } from "drizzle-orm";
-import { db, jobsTable, jobApplicationsTable, notificationsTable, searchLogsTable } from "../db";
+import { db, jobsTable, jobApplicationsTable, notificationsTable } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
-import { parseExternalApplyLink, externalApplyLogTerm } from "../lib/external-apply";
 
 const router: IRouter = Router();
 
@@ -126,39 +125,6 @@ router.post("/jobs/:id/apply", authenticate, async (req: Request, res: Response)
   }
 
   res.status(201).json({ success: true, message: "Application submitted", data: { applicationId: application.id, status: application.status } });
-});
-
-// POST /jobs/:id/external-apply — the safe alternative to auto-apply bots.
-//
-// Auto-apply bots submit applications from the candidate's account, which gets
-// the candidate banned (LinkedIn prohibits automation) and the applications
-// spam-flagged. This endpoint never submits anything on anyone's behalf: it
-// hands back the employer's own application URL (LinkedIn, career page, form)
-// so the candidate applies as themselves, in their own browser. The click is
-// logged to search_logs for demand telemetry (no schema change needed).
-router.post("/jobs/:id/external-apply", optionalAuth, async (req: Request, res: Response): Promise<void> => {
-  const [job] = await db
-    .select({ id: jobsTable.id, link: jobsTable.link })
-    .from(jobsTable)
-    .where(and(eq(jobsTable.id, String(req.params.id)), eq(jobsTable.isActive, true)))
-    .limit(1);
-  if (!job) {
-    res.status(404).json({ success: false, message: "Job not found or no longer active" });
-    return;
-  }
-  const link = parseExternalApplyLink(job.link);
-  if (!link) {
-    res.status(400).json({ success: false, message: "This job has no external application link. Apply here instead." });
-    return;
-  }
-  // Fire-and-forget analytics: which jobs send people off-platform.
-  db.insert(searchLogsTable)
-    .values({ userId: req.user?.id ?? null, term: externalApplyLogTerm(job.id) })
-    .then(
-      () => {},
-      () => {},
-    );
-  res.json({ success: true, data: { link } });
 });
 
 export default router;
