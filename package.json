@@ -12,6 +12,7 @@
     "db:migrate-plan": "tsx src/db/migrate-plan-tiers.ts",
     "db:migrate-project-type": "tsx src/db/migrate-project-type.ts",
     "db:migrate-community-delivery-link": "tsx src/db/migrate-community-delivery-link.ts",
+    "db:migrate-pivot-removal": "tsx src/db/migrate-pivot-removal.ts",
     "demo:covers": "tsx scripts/generate-demo-covers.ts",
     "demo:seed": "tsx scripts/seed-demo.ts",
     "demo:db": "tsx scripts/demo-db.ts",
