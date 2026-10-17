@@ -314,7 +314,7 @@ router.post("/jobs/:id/apply", authenticate, async (req: Request, res: Response)
       job.postedById,
       "JOB_APPLICATION",
       "New job application",
-      `${req.user!.firstName} ${req.user!.lastName} applied to "${job.title}".`,
+      `${req.user!.firstName}${req.user!.lastName ? ` ${req.user!.lastName}` : ""} applied to "${job.title}".`,
       "/jobs?mine=1",
       req.app?.get("io"),
     );

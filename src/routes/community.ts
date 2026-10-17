@@ -1592,7 +1592,7 @@ router.put("/community/orders/:id/accept", authenticate, async (req: Request, re
       .values({ user1Id: order.buyerId, user2Id: order.sellerId, lastMessageAt: new Date() })
       .returning();
   }
-  const chatLabel = order.kind === "GIG" ? "✅ Gig order accepted" : order.kind === "PROJECT" ? "✅ Proposal accepted" : "✅ Barter offer accepted";
+  const chatLabel = order.kind === "BARTER" ? "✅ Barter offer accepted" : "✅ Order accepted";
   await db
     .insert(messagesTable)
     .values({
@@ -1679,7 +1679,7 @@ router.post("/community/orders/:id/review", authenticate, async (req: Request, r
     .insert(communityOrderReviewsTable)
     .values({ orderId: order.id, reviewerId: meId, revieweeId, rating, review: review || null })
     .returning();
-  notify(revieweeId, "REVIEW_RECEIVED", "New review", `${req.user!.firstName} rated their gig order with you ${rating}/5.`, `/orders`);
+  notify(revieweeId, "REVIEW_RECEIVED", "New review", `${req.user!.firstName} rated their order with you ${rating}/5.`, `/orders`);
   emitToRoom(req, `user:${revieweeId}`, "profile:updated", { userId: revieweeId });
   res.status(201).json({ success: true, data: { review: created } });
 });

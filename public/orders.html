@@ -199,7 +199,7 @@ function loadLegacy() {
     if (liveFilter) { items = items.filter(function (o) { return keepStatus(o.status); }); }
     if (!items.length) {
       if (liveFilter) { list.innerHTML = filteredEmpty(liveFilter === 'done' ? 'Completed service orders you bought or sold appear here.' : 'Service orders you are buying or selling appear here.'); return; }
-      list.innerHTML = emptyBox('No service orders yet.', 'Orders for gigs you buy or sell show up here.', 'Browse gigs', '/jobs'); return;
+      list.innerHTML = emptyBox('No orders yet.', 'Paid orders from the feed show up here.', 'Browse the feed', '/circle'); return;
     }
 list.innerHTML = '';
     items.forEach(function (o) { list.appendChild(renderLegacy(o)); });
