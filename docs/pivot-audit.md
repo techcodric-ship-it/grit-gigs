@@ -194,3 +194,29 @@ keep their URLs; only in-page CTAs/links re-point. `freelance.html` also linked
 from sitemap line 59 — sitemap rewritten in Phase 3/13.
 
 Re-verify every row against implementation at Phase 3 and Phase 14.
+
+## 9. Phase 3 completion (2026-10-18)
+
+Done across 3a–3e (commits `5adb6cf`, `1028f9b`, `f247ce9`, `3a70a91`, `48865f3`):
+- Redirect map + `/jobs` + `/circle` shells; projects/services routes+pages and
+  spotlight lib/routes deleted; gig/project posts rejected at the API; admin and
+  front-end gig/project/spotlight UI stripped; 292 public links re-pointed.
+- Archive-and-drop migration designed, dry-run, then `--apply`d against the live
+  DB: project tables + `milestone_status` type dropped, GIG/PROJECT posts and
+  PROJECT rows of saved_items/invites/reports archived then deleted; all money
+  rows (orders, community_orders, transactions, post_boosts, disputes) intact.
+- Email templates re-pointed (welcome, complete-profile, listing notify limited
+  to barter, rate-report); faq/design-system/hire-* SEO copy de-gigged.
+
+Known residues, deferred with owners:
+- `hire-*` pages keep a live services widget hitting the deleted `/services`
+  API (renders empty state → /jobs). Repoint to the jobs API in Phase 4.
+- `src/lib/subscriptions.ts` still names quota fields after gigs/projects
+  (user-visible plan copy reworded in Phase 4 plan rework).
+- Demo seed dataset keeps kind=PROJECT rows (locked by protected
+  `demo-data.test.ts`); seed inserts directly into the throwaway demo DB only.
+- `docs/pivot-audit.md` §1 recorded `wallet-guards.ts` SHA-256 as `5ECD0068…`
+  — actual is `7FA6439B2EA851F863AC3018781F9108D1C6449E9FBFA6DB148A7F6C46C2CA97`;
+  file is unchanged since pre-pivot commit `8fe314c` (verified via git log).
+- LLM provider: GROQ_API_KEY/GROQ_MODEL already wired in `src/routes/ai-support.ts`
+  (Phase 10 can reuse; no new provider needed).

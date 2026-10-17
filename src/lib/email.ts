@@ -149,8 +149,8 @@ export async function sendWelcomeEmail(to: string, firstName: string): Promise<b
       <p style="margin-bottom:24px;">Here's what to do next:</p>
       <table style="width:100%;margin-bottom:24px;">
         <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">1️⃣ Set up your profile</td></tr>
-        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">2️⃣ Explore projects &amp; gigs</td></tr>
-        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">3️⃣ Post your first service or exchange</td></tr>
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">2️⃣ Browse real jobs</td></tr>
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">3️⃣ Post a skill exchange or join the circle</td></tr>
       </table>
       <p style="text-align:center;margin-bottom:0;"><a href="${APP_URL}/dashboard" class="btn">Go to Dashboard →</a></p>`,
   });
@@ -209,11 +209,11 @@ export async function sendCompleteProfileEmail(to: string, firstName: string): P
     html: `<h1>Thanks for joining Grit&amp;Gigs! 🙌</h1>
       <p>Hey ${htmlEscape(firstName)},</p>
       <p>Welcome to India's freelancing platform. We're excited to have you on board!</p>
-      <p>A complete profile gets <strong>10x more project opportunities.</strong> Here's what to do next:</p>
+      <p>A complete profile helps clients and collaborators know who they're working with. Here's what to do next:</p>
       <table style="width:100%;margin-bottom:24px;">
         <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">✅ Add your photo &amp; tagline</td></tr>
-        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">✅ List your skills and services</td></tr>
-        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">✅ Browse projects and place your first bid</td></tr>
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">✅ List your skills</td></tr>
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">✅ Browse jobs and apply to your first role</td></tr>
       </table>
       <p style="text-align:center;margin-bottom:0;"><a href="${APP_URL}/dashboard" class="btn">Complete Your Profile →</a></p>
       <p style="margin-top:24px;">Need help? Reply to this email — we personally read every message.</p>`,
@@ -249,18 +249,17 @@ export async function sendWaitlistConfirmationEmail(to: string, firstName: strin
   });
 }
 
-type ListingType = "barter" | "service" | "project";
+// Only skill exchanges notify the whole user base. Gig and project listings
+// were retired in the Jobs pivot, and job posts notify applicants directly
+// rather than bulk-mailing every account.
+type ListingType = "barter";
 
 function getListingEmailContent(listingType: ListingType, posterName: string, title: string, linkUrl: string) {
   const subjects = {
     barter: "New skill exchange posted on Grit&Gigs!",
-    service: "New gig posted on Grit&Gigs!",
-    project: "New project posted on Grit&Gigs!",
   };
   const messages = {
     barter: `${htmlEscape(posterName)} just posted a new skill exchange: "${htmlEscape(title)}". Find your next trade today!`,
-    service: `${htmlEscape(posterName)} just posted a new service: "${htmlEscape(title)}". Browse available gigs now.`,
-    project: `${htmlEscape(posterName)} is looking for talent: "${htmlEscape(title)}". Submit your proposal today.`,
   };
   return {
     subject: subjects[listingType],
@@ -334,7 +333,7 @@ export async function notifyAllUsersNewListing(
 
 // ── Free tool (Rate & Budget Calculator) lead emails ──────────────────────
 export async function sendToolReportEmail(to: string, firstName: string | undefined, role: "freelancer" | "client", lines: string[], ctaText: string, ctaUrl: string): Promise<boolean> {
-  const heading = role === "freelancer" ? "Your personalized rate report" : "Your project budget estimate";
+  const heading = role === "freelancer" ? "Your personalized rate report" : "Your hiring budget estimate";
   const rows = lines
     .map((l) => `<tr><td style="padding:8px 12px;border:1px solid #eee;font-size:0.9rem;color:#333;">${l}</td></tr>`)
     .join("");
@@ -348,8 +347,8 @@ export async function sendToolReportEmail(to: string, firstName: string | undefi
         ${rows}
       </table>
       ${role === "freelancer"
-        ? `<p>🚀 <strong>Make it easy for clients to find you.</strong> Post a service on Grit&Gigs — the free platform where Indian clients hire vetted freelancers.</p>`
-        : `<p>👀 <strong>Ready to hire?</strong> Post your project for free on Grit&Gigs and let freelancers come to you with quotes.</p>`}
+        ? `<p>🚀 <strong>Make it easy for clients to find you.</strong> Keep your profile current so clients hiring on Grit&amp;Gigs can find you.</p>`
+        : `<p>👀 <strong>Ready to hire?</strong> Post the role on Grit&amp;Gigs and reach Indian professionals directly.</p>`}
       <p style="text-align:center;margin:24px 0;"><a href="${ctaUrl}" class="btn">${ctaText}</a></p>
       <div class="meta"><p>You're receiving this because you used the Grit&Gigs Rate Calculator. <a href="${APP_URL}/rate-calculator?unsubscribe=${encodeURIComponent(to)}">Unsubscribe</a> anytime.</p></div>`,
   });
