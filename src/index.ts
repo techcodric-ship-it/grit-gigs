@@ -1,4 +1,4 @@
-import "dotenv/config";
+﻿import "dotenv/config";
 import http from "http";
 import app from "./app";
 import { setupSocket } from "./lib/socket";
@@ -9,11 +9,11 @@ import { ensureBucket } from "./lib/storage";
 import { sendToolFollowupEmail } from "./lib/email";
 
 process.on("unhandledRejection", (reason) => {
-  logger.error({ err: reason }, "Unhandled promise rejection — exiting");
+  logger.error({ err: reason }, "Unhandled promise rejection â€” exiting");
   process.exit(1);
 });
 process.on("uncaughtException", (err) => {
-  logger.error({ err }, "Uncaught exception — exiting");
+  logger.error({ err }, "Uncaught exception â€” exiting");
   process.exit(1);
 });
 
@@ -39,7 +39,7 @@ function shutdown(signal: string) {
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
 
-// ── Free tool follow-up emails (lead magnet nurture sequence) ─────────────
+// â”€â”€ Free tool follow-up emails (lead magnet nurture sequence) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Every 30 min, send the next nurture email to calculator leads that are due.
 const APP_URL = (process.env.APP_URL || "https://www.gritandgigs.in").trim();
 
@@ -52,14 +52,14 @@ const TOOL_FOLLOWUP_STEPS = [
     body: (firstName: string | undefined) => `
       <h1>Most freelancers underprice themselves</h1>
       <p>Hi${firstName ? " " + firstName : ""},</p>
-      <p>When you used the <strong>Grit&Gigs Rate Calculator</strong>, you got a market-based number. The #1 mistake we see is charging <em>below</em> that — because it feels safer. It isn't. Low prices attract price-shoppers, not good clients.</p>
+      <p>When you used the <strong>Grit&Gigs Rate Calculator</strong>, you got a market-based number. The #1 mistake we see is charging <em>below</em> that â€” because it feels safer. It isn't. Low prices attract price-shoppers, not good clients.</p>
       <p>Instead:</p>
       <table style="width:100%;margin-bottom:20px;">
-        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">✅ Show your past work in a portfolio</td></tr>
-        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">✅ Charge a fixed project price, not hourly</td></tr>
-        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">✅ Get a couple of client reviews early — they compound</td></tr>
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">âœ… Show your past work in a portfolio</td></tr>
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">âœ… Charge a fixed project price, not hourly</td></tr>
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">âœ… Get a couple of client reviews early â€” they compound</td></tr>
       </table>
-      <p style="text-align:center;margin:20px 0;"><a href="${APP_URL}/signup" class="btn">Start earning on Grit&Gigs →</a></p>`,
+      <p style="text-align:center;margin:20px 0;"><a href="${APP_URL}/signup" class="btn">Start earning on Grit&Gigs â†’</a></p>`,
   },
   // stage 2 (sent ~day 5)
   {
@@ -69,26 +69,26 @@ const TOOL_FOLLOWUP_STEPS = [
     body: (firstName: string | undefined) => `
       <h1>Clients are hiring right now</h1>
       <p>Hi${firstName ? " " + firstName : ""},</p>
-      <p>On Grit&Gigs, freelancers create a service listing and Indian clients hire them directly — no bidding, no fees to browse.</p>
+      <p>On Grit&Gigs, freelancers create a service listing and Indian clients hire them directly â€” no bidding, no fees to browse.</p>
       <p>Three things that make a listing get hired fast:</p>
       <table style="width:100%;margin-bottom:20px;">
-        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">1️⃣ A clear title with your skill + outcome</td></tr>
-        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">2️⃣ 3 example photos or links of past work</td></tr>
-        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">3️⃣ Fast delivery time (2-5 days works best)</td></tr>
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">1ï¸âƒ£ A clear title with your skill + outcome</td></tr>
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">2ï¸âƒ£ 3 example photos or links of past work</td></tr>
+        <tr><td style="padding:6px 0;font-size:0.9rem;color:#555;">3ï¸âƒ£ Fast delivery time (2-5 days works best)</td></tr>
       </table>
-      <p style="text-align:center;margin:20px 0;"><a href="${APP_URL}/dashboard" class="btn">Create your free listing →</a></p>`,
+      <p style="text-align:center;margin:20px 0;"><a href="${APP_URL}/dashboard" class="btn">Create your free listing â†’</a></p>`,
   },
   // stage 3 (sent ~day 9)
   {
     stage: 3,
     days: 0,
-    subject: "One last thing — a special offer for you",
+    subject: "One last thing â€” a special offer for you",
     body: (firstName: string | undefined) => `
       <h1>Your first project on us</h1>
       <p>Hi${firstName ? " " + firstName : ""},</p>
-      <p>Because you used our calculator, here's a head start: <strong>your first project on Grit&Gigs comes with 0% commission</strong> — you keep 100% of what you earn.</p>
+      <p>Because you used our calculator, here's a head start: <strong>your first project on Grit&Gigs comes with 0% commission</strong> â€” you keep 100% of what you earn.</p>
       <p>It takes 2 minutes to set up your profile and post your first service. That's it.</p>
-      <p style="text-align:center;margin:20px 0;"><a href="${APP_URL}/signup" class="btn">Claim your 0% commission →</a></p>`,
+      <p style="text-align:center;margin:20px 0;"><a href="${APP_URL}/signup" class="btn">Claim your 0% commission â†’</a></p>`,
   },
 ];
 
@@ -143,7 +143,7 @@ app.set("io", io);
   try {
     const client = await pool.connect();
     try {
-        // ── ENUMs ──────────────────────────────────────────────────────────────
+        // â”€â”€ ENUMs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         logger.info("migrate: creating enums...");
         await client.query(`
           DO $$ BEGIN CREATE TYPE user_role AS ENUM ('USER','ADMIN','MODERATOR'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
@@ -180,7 +180,7 @@ app.set("io", io);
         `);
         logger.info("migrate: enums ready");
 
-      // ── TABLES (all IF NOT EXISTS — safe to run repeatedly) ───────────────
+      // â”€â”€ TABLES (all IF NOT EXISTS â€” safe to run repeatedly) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       logger.info("migrate: creating tables...");
       try {
         await client.query(`
@@ -853,6 +853,20 @@ app.set("io", io);
           CREATE INDEX IF NOT EXISTS idx_squad_invites_squad ON squad_invites(squad_id);
           CREATE INDEX IF NOT EXISTS idx_squad_invites_user ON squad_invites(invited_user_id);
           CREATE INDEX IF NOT EXISTS idx_squad_services_squad ON squad_services(squad_id);
+
+          CREATE TABLE IF NOT EXISTS prep_sessions (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            track TEXT NOT NULL,
+            question TEXT NOT NULL,
+            answer TEXT NOT NULL,
+            feedback TEXT,
+            score INTEGER,
+            source TEXT NOT NULL DEFAULT 'ai_estimate',
+            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+          );
+          CREATE INDEX IF NOT EXISTS idx_prep_sessions_user ON prep_sessions(user_id, created_at DESC);
+
         `);
       } catch (e: unknown) {
         logger.error({ err: e }, "migrate: table creation failed");
@@ -860,7 +874,7 @@ app.set("io", io);
       }
       logger.info("migrate: tables ready");
 
-      // ── Column additions for old table versions (safe to run repeatedly) ──
+      // â”€â”€ Column additions for old table versions (safe to run repeatedly) â”€â”€
       async function col(sql: string) { try { await client.query(sql) } catch (e: unknown) { logger.warn({ err: (e as Error).message, sql: sql.slice(0, 80) }, "migrate: column addition skipped") } }
       await col(`ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS upi_id TEXT`);
       await col(`ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS gateway_txn_id TEXT`);
@@ -897,18 +911,18 @@ app.set("io", io);
       await col(`ALTER TABLE barter_requests ADD COLUMN IF NOT EXISTS is_paused BOOLEAN DEFAULT FALSE NOT NULL`);
       await col(`ALTER TABLE order_deliveries ADD COLUMN IF NOT EXISTS revision_number INTEGER DEFAULT 0 NOT NULL`);
 
-      // ── Referral program columns ────────────────────────────────────────────
+      // â”€â”€ Referral program columns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       await col(`ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code VARCHAR(20)`);
       await col(`ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by UUID REFERENCES users(id) ON DELETE SET NULL`);
       await col(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code)`);
       await col(`ALTER TABLE freelance_wallets ADD COLUMN IF NOT EXISTS bonus_balance NUMERIC(12,2) DEFAULT 0 NOT NULL`);
       await col(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS zero_commission BOOLEAN DEFAULT FALSE NOT NULL`);
 
-      // ── Monthly creation quota columns (gigs/projects created per 30-day cycle) ──
+      // â”€â”€ Monthly creation quota columns (gigs/projects created per 30-day cycle) â”€â”€
       await col(`ALTER TABLE user_subscriptions ADD COLUMN IF NOT EXISTS gigs_created_this_cycle INTEGER DEFAULT 0 NOT NULL`);
       await col(`ALTER TABLE user_subscriptions ADD COLUMN IF NOT EXISTS projects_created_this_cycle INTEGER DEFAULT 0 NOT NULL`);
 
-      // ── Table column fixes (Drizzle schema vs raw migration mismatches) ───
+      // â”€â”€ Table column fixes (Drizzle schema vs raw migration mismatches) â”€â”€â”€
       await col(`ALTER TABLE freelance_wallets ADD COLUMN IF NOT EXISTS total_spent NUMERIC(12,2) DEFAULT 0 NOT NULL`);
       await col(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'INR' NOT NULL`);
       await col(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50)`);
@@ -966,7 +980,7 @@ END
 $mig$
       `);
 
-      // ── Ensure every squad member is in the squad's group chat ────────────
+      // â”€â”€ Ensure every squad member is in the squad's group chat â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       await col(`
         DO $gchat$
         DECLARE
@@ -994,7 +1008,7 @@ $mig$
         $gchat$
       `);
 
-      // ── Backfill a buyer+squad conversation for every existing squad order ──
+      // â”€â”€ Backfill a buyer+squad conversation for every existing squad order â”€â”€
       await col(`CREATE UNIQUE INDEX IF NOT EXISTS idx_conversations_squad_order ON conversations(squad_order_id) WHERE squad_order_id IS NOT NULL`);
       await col(`
         DO $sorder$
@@ -1013,7 +1027,7 @@ $mig$
             INSERT INTO conversations (user1_id, user2_id, is_group, group_name, group_id, squad_order_id, last_message_at)
             VALUES (
               o.buyer_id, o.buyer_id, TRUE,
-              COALESCE((SELECT title FROM squad_services WHERE id = o.service_id), 'Squad Order') || ' · Order',
+              COALESCE((SELECT title FROM squad_services WHERE id = o.service_id), 'Squad Order') || ' Â· Order',
               o.squad_id, o.id, NOW()
             )
             RETURNING id INTO gid;
@@ -1028,28 +1042,28 @@ $mig$
         $sorder$
       `);
 
-      // ── Service images column (Drizzle uses `images` not `thumbnail`/`gallery`) ──
+      // â”€â”€ Service images column (Drizzle uses `images` not `thumbnail`/`gallery`) â”€â”€
       await col(`ALTER TABLE services ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT '{}' NOT NULL`);
-      // ── Service packages columns (Drizzle uses `package_type`, `price_inr`, `revisions`) ──
+      // â”€â”€ Service packages columns (Drizzle uses `package_type`, `price_inr`, `revisions`) â”€â”€
       await col(`ALTER TABLE service_packages ADD COLUMN IF NOT EXISTS package_type TEXT NOT NULL DEFAULT 'basic'`);
       await col(`ALTER TABLE service_packages ADD COLUMN IF NOT EXISTS price_inr REAL NOT NULL DEFAULT 0`);
       await col(`ALTER TABLE service_packages ADD COLUMN IF NOT EXISTS revisions INTEGER NOT NULL DEFAULT 2`);
-      // ── Client reviews: Drizzle uses `review_text`, migration had `comment` ──
+      // â”€â”€ Client reviews: Drizzle uses `review_text`, migration had `comment` â”€â”€
       await col(`ALTER TABLE client_reviews ADD COLUMN IF NOT EXISTS review_text TEXT DEFAULT ''`);
-      // ── Saved items: Drizzle uses generic `item_type`+`item_id`, migration had per-type columns ──
+      // â”€â”€ Saved items: Drizzle uses generic `item_type`+`item_id`, migration had per-type columns â”€â”€
       await col(`ALTER TABLE saved_items ADD COLUMN IF NOT EXISTS item_type saved_item_type`);
       await col(`ALTER TABLE saved_items ADD COLUMN IF NOT EXISTS item_id UUID`);
-      // ── Admin: is_active column on users (used for ban/unban) ──
+      // â”€â”€ Admin: is_active column on users (used for ban/unban) â”€â”€
       await col(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE NOT NULL`);
-      // ── Onboarding: sample works portfolio pieces per user ──
+      // â”€â”€ Onboarding: sample works portfolio pieces per user â”€â”€
       await col(`ALTER TABLE users ADD COLUMN IF NOT EXISTS sample_works JSONB DEFAULT '[]'::jsonb NOT NULL`);
-      // ── Onboarding: intent (freelancer / client / both) + completion flag ──
+      // â”€â”€ Onboarding: intent (freelancer / client / both) + completion flag â”€â”€
       await col(`ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_complete BOOLEAN DEFAULT FALSE NOT NULL`);
       await col(`ALTER TABLE users ADD COLUMN IF NOT EXISTS seeking_to VARCHAR(50)`);
-      // ── Onboarding: resume / CV upload (file kept in Supabase or /uploads) ──
+      // â”€â”€ Onboarding: resume / CV upload (file kept in Supabase or /uploads) â”€â”€
       await col(`ALTER TABLE users ADD COLUMN IF NOT EXISTS resume_url TEXT`);
       await col(`ALTER TABLE users ADD COLUMN IF NOT EXISTS resume_name VARCHAR(255)`);
-      // ── Unique DiceBear avatar for every user (based on UUID id) ─────────
+      // â”€â”€ Unique DiceBear avatar for every user (based on UUID id) â”€â”€â”€â”€â”€â”€â”€â”€â”€
       // Replaces old name-based DiceBear avatars and fills missing ones.
       // Custom uploaded photos (non-DiceBear URLs) are left untouched.
       await col(`UPDATE users SET profile_photo = 'https://api.dicebear.com/7.x/adventurer/svg?seed=' || REPLACE(id::text, '-', '')
@@ -1058,7 +1072,7 @@ $mig$
            OR profile_photo LIKE 'https://api.dicebear.com/%'
       `);
 
-      // ── INDEXES ──────────────────────────────────────────────────────────
+      // â”€â”€ INDEXES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       await col(`
         CREATE INDEX IF NOT EXISTS idx_barter_requests_user_id ON barter_requests(user_id);
         CREATE INDEX IF NOT EXISTS idx_barter_requests_status ON barter_requests(status);
@@ -1100,14 +1114,14 @@ $mig$
         CREATE INDEX IF NOT EXISTS idx_project_deliveries_project ON project_deliveries(project_id);
       `);
 
-      // ── ENUM additions for old versions ──
+      // â”€â”€ ENUM additions for old versions â”€â”€
       await col(`ALTER TYPE order_status ADD VALUE IF NOT EXISTS 'DISPUTED'`);
 
-      // ── UNIQUE constraints (safe to run repeatedly) ──
+      // â”€â”€ UNIQUE constraints (safe to run repeatedly) â”€â”€
       try { await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_saved_items_user_item ON saved_items(user_id, COALESCE(item_type, ''), COALESCE(item_id, ''))`); } catch {}
 
-      // ── Backfill: charge ₹50 for already-highlighted bids that were never
-      //    debited (old free-credit path). Idempotent — skips any freelancer
+      // â”€â”€ Backfill: charge â‚¹50 for already-highlighted bids that were never
+      //    debited (old free-credit path). Idempotent â€” skips any freelancer
       //    who already has a matching "Bid highlight fee" transaction.
       await col(`
         DO $hl$
