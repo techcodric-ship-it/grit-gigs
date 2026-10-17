@@ -461,7 +461,7 @@
     if (s.kind === 'profile') {
       return (s.title || 'Someone') + ' on Grit&Gigs:\n' + location.origin + '/profile.html?id=' + encodeURIComponent(s.id) + '\n';
     }
-    return 'Shared a ' + (s.kind || 'post') + ' with you on Grit&Gigs:\n' + location.origin + '/explore.html?post=' + encodeURIComponent(s.postId) + '\n';
+    return 'Shared a ' + (s.kind || 'post') + ' with you on Grit&Gigs:\n' + location.origin + '/jobs?post=' + encodeURIComponent(s.postId) + '\n';
   }
   function renderShareTargets() {
     var el = $('shareTargets');

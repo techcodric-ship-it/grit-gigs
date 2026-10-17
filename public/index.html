@@ -626,7 +626,7 @@
           </div>
           <div class="x-foot"><span class="x-ago">Posted 1 day ago</span><a class="x-cta" href="#barter">Match me</a></div>
         </div>
-        <a class="x-card" href="/explore?kind=BARTER" style="text-decoration:none;color:inherit;">
+        <a class="x-card" href="/barter" style="text-decoration:none;color:inherit;">
           <span class="badge badge-v" style="align-self:flex-start;">Browse all</span>
           <h3 style="font-family:'Syne',sans-serif;font-size:1.05rem;">9,400+ exchanges completed</h3>
           <p style="font-size:.86rem;color:var(--ink-2);">Zero fees. Pure skill trade. Post your exchange and get matched in minutes.</p>
@@ -688,7 +688,7 @@
       </a>
     </div>
     <div style="text-align:center;margin-top:26px;">
-      <a class="btn-pill ghost" href="/explore?kind=GIG">View 2,000+ services →</a>
+      <a class="btn-pill ghost" href="/jobs">Find real jobs →</a>
     </div>
   </section>
 
@@ -811,9 +811,9 @@
     </div>
     <div class="foot-col">
       <h4>Platform</h4>
-      <a href="/explore?kind=BARTER">Skill Exchange</a>
-      <a href="/explore?kind=GIG">Freelance</a>
-      <a href="/explore?kind=PROJECT">Browse projects</a>
+      <a href="/barter">Skill Exchange</a>
+      <a href="/jobs">Freelance</a>
+      <a href="/jobs">Browse jobs</a>
       <a href="rate-calculator.html">Rate calculator</a>
       <a href="refer-and-earn.html">Refer &amp; earn</a>
     </div>
@@ -865,7 +865,7 @@
   var qs = new URLSearchParams(window.location.search);
   var wantLogin = qs.get('login') === '1';
   var wantSignup = qs.get('signup') === '1';
-  var nextPath = qs.get('next') || '/feed';
+  var nextPath = qs.get('next') || '/circle';
   if (read('se_token')) {
     location.replace(nextPath);
     return;

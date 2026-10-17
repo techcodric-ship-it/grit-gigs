@@ -24,7 +24,7 @@
   } else if (hash === "#my-projects") {
     to = "/orders.html?tab=projects";
   } else if (hash === "#post-project") {
-    to = "/feed";
+    to = "/circle";
   } else if (tab === "orders") {
     to = "/orders.html?tab=community";
   } else if (tab === "wallet" || tab === "transactions" || tab === "payments") {
@@ -42,21 +42,21 @@
   } else if (tab === "my-exchanges" || tab === "exchanges" || tab === "barter") {
     to = "/orders.html?tab=exchanges";
   } else if (tab === "post-exchange") {
-    to = "/feed";
+    to = "/circle";
   } else if (tab === "gigs" || tab === "my-gigs" || tab === "services") {
-    to = "/explore?kind=GIG";
+    to = "/jobs";
   } else if (tab === "") {
-    to = "/feed" + location.search;
+    to = "/circle" + location.search;
   } else {
-    to = "/feed";
+    to = "/circle";
   }
   location.replace(to);
 })();
 </script>
-<noscript><meta http-equiv="refresh" content="0;url=/feed"/></noscript>
+<noscript><meta http-equiv="refresh" content="0;url=/circle"/></noscript>
 <link rel="icon" href="/favicon.ico?v=8"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=8"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=8"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=8"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2"/>
 </head>
 <body>
-<p style="font-family:system-ui,sans-serif;padding:24px;">Redirecting… <a href="/feed">Continue to the feed</a></p>
+<p style="font-family:system-ui,sans-serif;padding:24px;">Redirecting… <a href="/circle">Continue to the feed</a></p>
 </body>
 </html>

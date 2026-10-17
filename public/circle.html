@@ -94,7 +94,7 @@
   }
   var state = document.getElementById("circleState");
   var list = document.getElementById("circleList");
-  fetch("/api/community/feed?limit=8").then(function (r) { return r.json(); }).then(function (j) {
+  fetch("/api/community/circle?limit=8").then(function (r) { return r.json(); }).then(function (j) {
     var rows = Array.isArray(j && j.data) ? j.data : (j && Array.isArray(j.posts) ? j.posts : []);
     state.innerHTML = "";
     if (!rows.length) {

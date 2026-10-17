@@ -147,7 +147,7 @@ function updateNav(u) {
   if (user) {
     actions.innerHTML = `
       <span id="mainNavPlanBadge"></span>
-      <a href="/feed" class="btn btn-secondary btn-sm">Hi, ${user.firstName}</a>
+      <a href="/circle" class="btn btn-secondary btn-sm">Hi, ${user.firstName}</a>
       <button class="btn btn-primary btn-sm" onclick="doLogout()">Sign out</button>`;
     // Fetch plan badge asynchronously
     api('/subscriptions/my-plan').then(function(pr) {
@@ -202,7 +202,7 @@ window.doLogout = function() {
             }
           } catch(e) {}
           el.innerHTML = planBadgeHtml +
-            '<a href="/feed" class="btn btn-secondary btn-sm">Hi, ' + user.firstName + '</a>' +
+            '<a href="/circle" class="btn btn-secondary btn-sm">Hi, ' + user.firstName + '</a>' +
             '<button class="btn btn-primary btn-sm" onclick="doLogout()">Sign out</button>';
         }
       } else if (r.status === 401) {
@@ -414,7 +414,7 @@ async function loadLiveBarterCards() {
   });
 
   cards.push(ctaCard);
-  cards.push(`<div style="grid-column:1/-1;text-align:center;margin-top:8px;"><a href="/explore?kind=BARTER" class="btn btn-secondary btn-sm">View all exchanges →</a></div>`);
+  cards.push(`<div style="grid-column:1/-1;text-align:center;margin-top:8px;"><a href="/barter" class="btn btn-secondary btn-sm">View all exchanges →</a></div>`);
   grid.innerHTML = cards.join('');
 }
 
@@ -430,47 +430,9 @@ window.matchOrLogin = async function(requestId) {
 async function loadLiveServices() {
   const grid = document.querySelector('.services-grid');
   if (!grid) return;
-  try {
-    const data = await api('/services?limit=4');
-    if (!data.success || !data.data.services?.length) {
-      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">No services yet. <a href=\"/feed\" style=\"color:var(--violet);font-weight:600;\">Be the first to post one!</a></div>';
-      return;
-    }
-
-  grid.innerHTML = data.data.services.map(s => {
-    const initials = ((s.seller?.firstName || '?')[0] + (s.seller?.lastName || '')[0]).toUpperCase();
-    const pp = s.seller?.profilePhoto || '';
-    const ppEnc = encodeURIComponent(pp);
-  const img = s.images?.[0] || getDefaultImg(s.category);
-  const price = s.packages?.[0]?.priceInr || 0;
-    const levelBadge = s.orderCount > 200 ? 'Top Rated' : s.orderCount > 50 ? 'Level 2' : s.orderCount > 10 ? 'Level 1' : 'New';
-    const levelClass = levelBadge === 'Top Rated' ? 'badge-violet' : levelBadge === 'Level 2' ? 'badge-gold' : 'badge-surface';
-    const sellerAv = pp ? `<img src="${pp}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;"/>` : `<div class="avatar-placeholder avatar-v" style="width:24px;height:24px;font-size:10px;">${initials}</div>`;
-    return `
-      <div class="service-card" onclick="openServiceModal('${s.id}','${s.title.replace(/'/g,"\\'")}',${price},'${ppEnc}','${s.seller?.firstName||'?'} ${s.seller?.lastName||''}')">
-        <div class="service-card-img">
-          <img src="${img}" alt="${s.title}" loading="lazy"/>
-        </div>
-        <div class="service-card-body">
-          <div class="service-card-seller">
-            ${sellerAv}
-            <span class="service-card-seller-name">${s.seller?.firstName || '?'} ${s.seller?.lastName || ''}${kycBadge(s.seller?.kycVerified)}${planBadge(s.seller?.planBadge)}</span>
-            <span class="badge ${levelClass}" style="font-size:0.68rem;padding:2px 7px;">${levelBadge}</span>
-          </div>
-          <div class="service-card-title">${s.title}</div>
-          <div class="service-card-footer">
-            <div class="service-card-rating">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="#F59E0B"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              ${s.ratingAvg?.toFixed(1) || 'New'} <span style="color:var(--text-muted);font-weight:400;">(${s.reviewCount || 0})</span>
-            </div>
-            <div class="service-card-price">From ₹${price.toLocaleString('en-IN')}</div>
-          </div>
-        </div>
-      </div>`;
-  }).join('');
-  } catch (err) {
-    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">Couldn\'t load services right now. <a href="/explore?kind=GIG" style="color:var(--violet);font-weight:600;">Browse the freelance page →</a></div>';
-  }
+  // The services marketplace was retired in the Jobs pivot. These grids now
+  // point at the jobs board instead of calling the removed /services API.
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">Browse verified professionals on the jobs board. <a href="/jobs" style="color:var(--violet);font-weight:600;">Find real jobs →</a></div>';
 }
 
 // ═══════════════════════════════════════════════════════
@@ -577,7 +539,7 @@ window.placeOrder = async function() {
   if (data.success) {
     closeModal('serviceModal');
     showToast('Order placed successfully! Check your orders.', 'success');
-    setTimeout(() => window.location.href = '/feed', 1500);
+    setTimeout(() => window.location.href = '/circle', 1500);
   } else {
     showToast(data.message || 'Failed to place order', 'error');
   }
@@ -772,7 +734,7 @@ if (path.includes('barter')) {
         } else {
           notif.querySelector('.match-notif-title').textContent = 'Post an exchange to get AI-matched';
           notif.querySelector('.match-notif-sub').textContent = 'Our AI finds people who offer what you need and need what you offer.';
-          if (btn) { btn.textContent = 'Post exchange'; btn.onclick = () => location.href = '/feed'; }
+          if (btn) { btn.textContent = 'Post exchange'; btn.onclick = () => location.href = '/circle'; }
         }
       }
     }).catch(() => {});
@@ -948,9 +910,9 @@ var _obRole = '';
 
 function goToDashboard(user, isNewSignup) {
   if (isNewSignup && user && user.onboardingComplete === false && window.GritOnboarding) {
-    window.GritOnboarding.open({ user: user, onDone: function () { window.location.href = '/feed'; } });
+    window.GritOnboarding.open({ user: user, onDone: function () { window.location.href = '/circle'; } });
   } else {
-    window.location.href = '/feed';
+    window.location.href = '/circle';
   }
 }
 
@@ -1009,7 +971,7 @@ async function skipFullOnboarding() {
     if (data.success && data.data && data.data.user) sU(data.data.user);
   } catch (e) { /* ignore */ }
   closeModal('welcomeSplashModal');
-  window.location.href = '/feed';
+  window.location.href = '/circle';
 }
 
 async function submitOnboarding() {
@@ -1054,7 +1016,7 @@ async function submitOnboarding() {
     sU(user);
     closeModal('onboardingModal');
     showToast('Profile setup complete!', 'success');
-    setTimeout(function() { window.location.href = '/feed'; }, 600);
+    setTimeout(function() { window.location.href = '/circle'; }, 600);
   } else {
     if (err) { err.textContent = data.message || 'Something went wrong. Please try again.'; err.style.display = 'block'; }
   }

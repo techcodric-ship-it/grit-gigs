@@ -108,14 +108,14 @@
 <div class="toast" id="toast"></div>
 
 <header class="topnav">
-  <a class="nav-logo" href="/feed" title="Grit&Gigs home"><div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div><span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span></a>
+  <a class="nav-logo" href="/circle" title="Grit&Gigs home"><div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div><span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span></a>
   <div class="searchwrap">
       <div class="searchbox"><input id="navSearch" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="navSearchDrop" aria-autocomplete="list" placeholder="Search gigs, projects, barter…"/></div>
       <div class="searchdrop" id="navSearchDrop" role="listbox" aria-label="Search suggestions"></div>
     </div>
   <div class="icons">
-    <a href="/feed" title="Feed"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.7V21h14V9.7"/></svg></a>
-    <a href="/explore.html" title="Explore"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.3 16.3 4.2 4.2"/></svg></a>
+    <a href="/circle" title="Feed"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.7V21h14V9.7"/></svg></a>
+    <a href="/jobs" title="Explore"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.3 16.3 4.2 4.2"/></svg></a>
     <a class="badge" href="/messages.html" title="Messages"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/></svg><span class="cnt" id="msgBadge" style="display:none;">0</span></a>
     <a href="/notifications.html" class="badge" title="Inbox"><svg viewBox="0 0 24 24"><path d="M12 20.3 4.9 13a4.7 4.7 0 0 1 6.6-6.6l.5.5.5-.5A4.7 4.7 0 0 1 19 13Z"/></svg><span class="cnt" id="notifBadge" style="display:none;">0</span></a>
     <a href="/orders.html" title="Orders"><svg viewBox="0 0 24 24"><path d="M21 8.2 12 3 3 8.2v7.6L12 21l9-5.2Z"/><path d="M3.3 8.3 12 13.3l8.7-5"/><path d="M12 13.3V21"/></svg></a>
@@ -191,17 +191,6 @@
       <div class="pcard" id="pReviewsCard" style="display:none;">
         <div class="pctitle">Ratings &amp; reviews</div>
         <div id="pReviews"></div>
-      </div>
-
-      <!-- Own-profile only. Gigs live here, so this is where a seller can
-           actually act on the offer instead of just reading about it. -->
-      <div class="pcard pspot" id="pSpotCard" style="display:none;">
-        <div class="pspot-head">
-          <div class="pspot-eyebrow"><span class="pspot-star">&#10022;</span> Spotlight</div>
-          <div class="pspot-title">Get your gigs in front of people already searching</div>
-        </div>
-        <div id="pSpotList"></div>
-        <a class="pspot-more" href="/spotlight-boost">How it works and what it costs</a>
       </div>
 
       <div class="prof-caption">
@@ -380,7 +369,7 @@
 
   var navSearch = $('navSearch');
   navSearch.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' && navSearch.value.trim()) location.href = '/explore.html?q=' + encodeURIComponent(navSearch.value.trim());
+    if (e.key === 'Enter' && navSearch.value.trim()) location.href = '/jobs?q=' + encodeURIComponent(navSearch.value.trim());
   });
 
   var grid = $('grid');
@@ -409,13 +398,6 @@
       ((kind === 'REEL' || (med && med.type === 'video')) ? '<span class="reel-ic">▶</span>' : '') +
       '<button class="tile-share" data-share="' + c.esc(p.id) + '" title="Share">↗</button>' +
       '<div class="over"><span>♥ ' + Number(p.likeCount || 0) + '</span><span>💬 ' + Number(p.commentCount || 0) + '</span></div>';
-    var spotRib = '';
-    if (row.spotlight) spotRib = '<span class="spot-ribbon">✦ BOOSTED</span>';
-    else if (row.mySpotlight) {
-      var spH = Math.max(1, Math.ceil((new Date(row.mySpotlight.expiresAt).getTime() - Date.now()) / 3600e3));
-      spotRib = '<span class="spot-ribbon mine">✦ ' + (spH >= 24 ? Math.floor(spH / 24) + 'd' : spH + 'h') + ' left</span>';
-    }
-    if (spotRib) div.insertAdjacentHTML('afterbegin', spotRib);
     div.addEventListener('click', function () { c.openPost(p.id); });
     var tb = div.querySelector('.tile-share');
     if (tb) tb.addEventListener('click', function (e) { e.stopPropagation(); c.share(p.id); });
@@ -430,78 +412,6 @@
       try { grid.appendChild(tile(row)); } catch (e) {}
     });
     if (!grid.children.length) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1;"><h3>' + emptyMsg + '</h3></div>'; }
-    renderSpotPanel(posts);
-  }
-
-  // Lists the seller's own boostable posts with a one-click Boost button and
-  // the real weekly search count for that gig's keywords. Only renders on your
-  // own profile, and only for posts that can actually be boosted.
-  function renderSpotPanel(posts) {
-    var card = $('pSpotCard');
-    var lm = liveMe();
-    if (!card || !lm || lm.id !== profId) return;
-    var mine = posts.filter(function (r) {
-      // Ownership matters, not just kind. This panel is also fed by the LIKED
-      // and COMMENTED tabs, which return other people's posts, so a kind-only
-      // filter offered a Boost button on someone else's gig. The API rejects
-      // that with 403, but the button should never have been offered at all.
-      return r.post.userId === lm.id &&
-        (r.post.kind === 'GIG' || r.post.kind === 'PROJECT');
-    });
-    if (!mine.length) { card.style.display = 'none'; return; }
-    card.style.display = '';
-
-    var list = $('pSpotList');
-    list.innerHTML = mine.map(function (r) {
-      var p = r.post;
-      // Community posts have no title column: the caption is the text buyers
-      // scan, so use it and keep it to one line.
-      var label = String(p.content || '').replace(/\s+/g, ' ').trim().slice(0, 70);
-      if (!label) label = (p.kind === 'PROJECT' ? 'Project' : 'Gig') + ' with no description';
-      var live = r.mySpotlight;
-      var meta;
-      if (live) {
-        var h = Math.max(1, Math.ceil((new Date(live.expiresAt).getTime() - Date.now()) / 3600e3));
-        meta = '<span class="psp-live"><i></i>Live &middot; ' + (h >= 24 ? Math.floor(h / 24) + 'd' : h + 'h') + ' left</span>' +
-               '<span class="psp-dot">&middot;</span>' +
-               '<span>' + Number(live.reach || 0) + ' reached</span>' +
-               '<span class="psp-dot">&middot;</span>' +
-               '<span>' + Number(live.clicks || 0) + ' opened</span>';
-      } else {
-        meta = '<span class="psp-demand" data-psd="' + c.esc(p.id) + '"></span>';
-      }
-      return '<div class="psp-row">' +
-        '<div class="psp-main">' +
-          '<div class="psp-name">' + c.esc(label) + '</div>' +
-          '<div class="psp-meta"><span class="psp-chip">' + (p.kind === 'PROJECT' ? 'Project' : 'Gig') + '</span>' + meta + '</div>' +
-        '</div>' +
-        (live
-          ? '<button class="psp-btn ghost" data-spext="' + c.esc(p.id) + '">Extend</button>'
-          : '<button class="psp-btn" data-spboost="' + c.esc(p.id) + '">Boost</button>') +
-        '</div>';
-    }).join('');
-
-    list.querySelectorAll('[data-spboost]').forEach(function (b) {
-      b.addEventListener('click', function () { c.openSpotlightModal({ id: b.getAttribute('data-spboost') }); });
-    });
-    list.querySelectorAll('[data-spext]').forEach(function (b) {
-      b.addEventListener('click', function () { c.extendSpotlight({ id: b.getAttribute('data-spext') }); });
-    });
-
-    // Demand per gig, so the seller compares real numbers instead of guessing.
-    mine.forEach(function (r) {
-      var slot = list.querySelector('[data-psd="' + r.post.id + '"]');
-      if (!slot) return;
-      var tags = r.post.tags || [];
-      if (!tags.length) { slot.textContent = 'No keywords yet — add tags so buyers can find you'; return; }
-      c.api('/community/spotlight/demand?tags=' + encodeURIComponent(tags.join(','))).then(function (res) {
-        if (!slot.isConnected || !(res && res.ok && res.d && res.d.data)) return;
-        var n = res.d.data.totalSearches || 0;
-        slot.innerHTML = n > 0
-          ? '<b>' + n + '</b> search' + (n === 1 ? '' : 'es') + ' this week for these keywords'
-          : 'No searches for these keywords this week';
-      });
-    });
   }
 
   var activeTab = 'posts';
@@ -511,7 +421,7 @@
     activeTab = tab;
     if (tab === 'liked') { url = '/community/me/liked-posts?limit=30'; emptyMsg = 'No liked posts yet.'; }
     else if (tab === 'commented') { url = '/community/me/commented-posts?limit=30'; emptyMsg = 'No commented posts yet.'; }
-    else { url = '/community/feed?authorId=' + encodeURIComponent(profId) + '&limit=30'; emptyMsg = 'No posts yet.'; }
+    else { url = '/community/circle?authorId=' + encodeURIComponent(profId) + '&limit=30'; emptyMsg = 'No posts yet.'; }
     grid.innerHTML = '<div class="empty" style="grid-column:1/-1;"><h3>Loading\u2026</h3></div>';
     c.api(url).then(function (fr) { renderPostList(fr, emptyMsg); }, function () { renderPostList(null, emptyMsg); });
   }

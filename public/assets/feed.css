@@ -177,7 +177,7 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
 .grid .tile .reel-ic { position: absolute; top: 8px; right: 8px; color: #fff; font-size: 20px; text-shadow: 0 1px 4px rgba(0,0,0,.5); }
 .grid .tile .kindtag { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,.6); color: #fff; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; }
 /* Barter/project work tiles on Explore: status badge under the kind tag, caption at the foot. */
-.grid .tile .spot-ribbon.work { top: 30px; left: 8px; background: #0E8A5F; }
+
 .grid .tile .over.work { inset: auto 0 0 0; top: auto; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 2px; padding: 10px; background: linear-gradient(transparent, rgba(0,0,0,.72)); color: #fff; text-align: left; font-weight: 700; font-size: 12.5px; }
 .grid .tile .over.work span:first-child { line-height: 1.25; }
 .grid .tile .over.work span + span { font-weight: 500; font-size: 11px; opacity: .85; }
@@ -363,95 +363,7 @@ h4.sub-title { font-size: 14px; font-weight: 600; margin: 20px 0 12px; }
   .exploresearch .searchdrop { top: calc(100% + 6px); }
 }
 
-.card.spotlight { box-shadow: 0 0 0 1.5px #6C3FE8, 0 6px 18px rgba(108, 63, 232, .10); }
-.spot-promo { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 16px 0; font-size: 11px; font-weight: 800; letter-spacing: .07em; color: #6C3FE8; text-transform: uppercase; }
-.spot-promo-sub { font-weight: 600; letter-spacing: 0; text-transform: none; color: #9a9db0; font-size: 11.5px; }
-.spot-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 16px 10px; padding: 9px 12px; border-radius: 10px; background: #f4f1ff; color: #4a2fb0; font-size: 12.5px; font-weight: 600; }
-.spot-bar.idle span { color: #7a68c8; font-weight: 500; }
-.spot-bar button { margin-left: auto; flex: none; border: none; background: #6C3FE8; color: #fff; border-radius: 8px; padding: 7px 12px; font-size: 12px; font-weight: 700; cursor: pointer; transition: .15s; }
-.spot-bar button:hover { background: #5a34c6; }
-.spot-metrics { display: flex; align-items: baseline; gap: 4px; font-size: 12px; font-weight: 500; color: #6a5aa8; }
-.spot-metrics b { font-size: 13.5px; font-weight: 800; color: #4a2fb0; margin-left: 6px; }
-.spot-metrics b:first-child { margin-left: 0; }
-.spot-packs { display: grid; gap: 8px; }
-.spot-note { margin: -2px 0 14px; padding: 10px 12px; border-radius: 10px; background: #fbfaff; border: 1px solid #e9e4fb; font-size: 12.5px; color: #5b5680; line-height: 1.5; }
-.spot-note b { color: #3c2a7a; font-weight: 700; }
-/* ── Spotlight: profile panel + feed sidebar card ────────────────────────────
-   Built on the app's own tokens (--line, --ink-2, --radius, #6C3FE8) so these
-   read as part of the product instead of a bolted-on widget. */
-.pspot { padding: 0; }
-.pspot-head { padding: 15px 20px 13px; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, #FBFAFF, #fff); border-radius: 16px 16px 0 0; }
-.pspot-eyebrow { display: flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #6C3FE8; margin-bottom: 5px; }
-.pspot-star { font-size: 11px; line-height: 1; }
-.pspot-title { font-size: 15px; font-weight: 700; line-height: 1.35; color: #17171a; letter-spacing: -.01em; }
-.pspot-more { display: block; padding: 12px 20px 15px; border-top: 1px solid var(--line); font-size: 12.5px; font-weight: 600; color: #6C3FE8; text-decoration: none; }
-.pspot-more:hover { background: #FAF8FF; }
-
-.psp-row { display: flex; align-items: center; gap: 14px; padding: 13px 20px; border-bottom: 1px solid #F0F0F2; }
-.psp-row:last-child { border-bottom: none; }
-.psp-main { flex: 1 1 auto; min-width: 0; }
-.psp-name { font-size: 14px; font-weight: 600; line-height: 1.35; color: #17171a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.psp-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 5px; font-size: 12px; line-height: 1.3; color: #6b6b70; }
-.psp-chip { flex: none; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #5b5b62; background: #F2F2F5; border-radius: 5px; padding: 2px 6px; }
-.psp-dot { color: #C9C9CF; }
-.psp-live { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; color: #1F9254; }
-.psp-live i { width: 6px; height: 6px; border-radius: 50%; background: #1F9254; box-shadow: 0 0 0 3px rgba(31,146,84,.15); }
-.psp-demand b { font-weight: 800; color: #4a2fb0; }
-.psp-btn { flex: none; align-self: center; border: 1px solid transparent; background: #6C3FE8; color: #fff; border-radius: 9px; padding: 8px 18px; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .15s ease; }
-.psp-btn:hover { background: #5a34c6; }
-.psp-btn.ghost { background: #F4F1FF; color: #4a2fb0; border-color: #E4DEFB; }
-.psp-btn.ghost:hover { background: #EAE4FF; }
-
-.spcard { background: linear-gradient(180deg, #FBFAFF 0%, #F6F3FF 100%); border-color: #E4DEFB; }
-.spcard-eyebrow { display: flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #6C3FE8; margin-bottom: 7px; }
-.spcard-star { font-size: 11px; line-height: 1; }
-.spcard-title { font-size: 14.5px; font-weight: 700; line-height: 1.35; color: #17171a; letter-spacing: -.01em; }
-.spcard-sub { margin: 7px 0 11px; font-size: 12.5px; line-height: 1.5; color: #55555c; }
-/* Stacked, not side by side. A numeral beside its sentence works in a wide
-   box, but the sidebar is only ~215px of content, so the explanation gets its
-   own full-width line and only the number leads. */
-.spcard-stat { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; background: #fff; border: 1px solid #E7E2FA; border-radius: 10px; padding: 10px 12px; margin-bottom: 11px; }
-.spc-num { display: flex; align-items: baseline; gap: 5px; }
-.spc-num b { font-size: 21px; font-weight: 800; line-height: 1.1; color: #4a2fb0; letter-spacing: -.02em; }
-.spc-num span { font-size: 11.5px; font-weight: 600; color: #55555c; }
-.spc-note { font-size: 11.5px; line-height: 1.45; color: #55555c; }
-.spcard-stat.zero { background: #FFFCF7; border-color: #F0DFCC; }
-.spcard-stat.zero .spc-num b { color: #8A5A2B; }
-/* Empty state gets a quiet badge, never display type. */
-.spcard-stat.empty { background: #FBFBFC; border-style: dashed; border-color: #DEDEDF; }
-.spc-flag { display: inline-flex; align-items: center; font-size: 10px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #6B6B72; background: #EFEFF2; border-radius: 5px; padding: 3px 7px; margin-bottom: 2px; }
-.spcard-prices { display: flex; gap: 6px; margin-bottom: 12px; }
-.spcard-prices div { flex: 1; text-align: center; background: #fff; border: 1px solid #E7E2FA; border-radius: 9px; padding: 8px 2px; }
-.spcard-prices b { display: block; font-size: 14px; font-weight: 800; color: #4a2fb0; line-height: 1.1; }
-.spcard-prices span { display: block; font-size: 10.5px; color: #6b6b70; margin-top: 2px; }
-.spcard-cta { width: 100%; border: none; background: #6C3FE8; color: #fff; border-radius: 10px; padding: 10px 12px; font-size: 13.5px; font-weight: 700; cursor: pointer; transition: background .15s ease; }
-.spcard-cta:hover { background: #5a34c6; }
-.spcard-more { display: block; text-align: center; margin-top: 9px; font-size: 11.5px; font-weight: 600; color: #6C3FE8; text-decoration: none; }
-.spcard-more:hover { text-decoration: underline; }
-/* Gig card + boost dialog demand readouts. */
-.spot-demand { flex-basis: 100%; margin-top: 2px; font-size: 11.5px; font-weight: 500; color: #6a5fb0; line-height: 1.45; }
-.spot-demand b { font-weight: 800; color: #4a2fb0; }
-.spot-demand a { color: #6C3FE8; font-weight: 600; }
-.spot-demand-box { margin: 0 0 14px; padding: 11px 13px; border-radius: 12px; border: 1px solid #e4defa; background: linear-gradient(180deg, #faf8ff, #f6f3ff); display: flex; flex-direction: column; gap: 5px; }
-.spot-demand-box > b { font-size: 13px; font-weight: 700; color: #3c2a7a; }
-.spot-demand-box > span { font-size: 11.5px; color: #6b648f; line-height: 1.5; }
-.spot-demand-box i { font-style: normal; font-weight: 700; color: #4a2fb0; }
-.spot-demand-box.zero { border-color: #f0d9c8; background: linear-gradient(180deg, #fffaf5, #fff6ee); }
-.spot-demand-box.zero > b { color: #8a5a2b; }
-.spot-pack { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 11px 13px; border-radius: 12px; border: 1.5px solid #e3e0f2; background: #fff; cursor: pointer; text-align: left; transition: .15s; }
-.spot-pack:hover { border-color: #b6a8f0; }
-.spot-pack.on { border-color: #6C3FE8; background: #f6f3ff; box-shadow: 0 0 0 1px #6C3FE8 inset; }
-.sp-main { display: flex; flex-direction: column; gap: 2px; }
-.sp-main b { font-size: 13.5px; font-weight: 700; color: #1c1b22; }
-.sp-main small { font-size: 11.5px; color: #8b8fa3; font-weight: 500; }
-.sp-price { display: flex; flex-direction: column; align-items: flex-end; font-size: 15px; font-weight: 800; color: #4a2fb0; }
-.sp-price small { font-size: 11px; font-weight: 600; color: #8b8fa3; }
-.spot-chips { display: flex; flex-wrap: wrap; gap: 7px; }
-.spot-chip { border: 1px solid #d9d3f2; background: #fff; color: #4a2fb0; border-radius: 999px; padding: 6px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: .15s; }
-.spot-chip:hover { border-color: #6C3FE8; }
-.spot-chip.on { background: #6C3FE8; border-color: #6C3FE8; color: #fff; }
 .tile { position: relative; }
-.tile .spot-ribbon { position: absolute; top: 7px; left: 7px; z-index: 3; background: #6C3FE8; color: #fff; font-size: 9.5px; font-weight: 800; letter-spacing: .06em; padding: 4px 8px; border-radius: 999px; box-shadow: 0 2px 6px rgba(0, 0, 0, .25); }
 
 /* ── KYC verification form ───────────────────────────────────────── */
 .kycdesc { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; margin-bottom: 6px; }

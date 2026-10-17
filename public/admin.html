@@ -331,13 +331,11 @@ a{text-decoration:none;color:inherit;}
   <div class="sg" id="statsGrid">
     <div class="sc"><div class="sl">Total Users</div><div class="sv" data-k="users">—</div></div>
     <div class="sc"><div class="sl">Services</div><div class="sv" data-k="services">—</div></div>
-    <div class="sc"><div class="sl">Projects</div><div class="sv" data-k="projects">—</div></div>
     <div class="sc"><div class="sl">Barter Requests</div><div class="sv" data-k="barters">—</div></div>
     <div class="sc"><div class="sl">Orders</div><div class="sv" data-k="orders">—</div></div>
     <div class="sc"><div class="sl">Order GMV</div><div class="sv" data-k="gmv" data-inr="1">—</div></div>
     <div class="sc"><div class="sl">Wallet Top-ups</div><div class="sv" data-k="topups" data-inr="1">—</div></div>
     <div class="sc"><div class="sl">Commissions Earned</div><div class="sv" data-k="commissionsPaid" data-inr="1">—</div></div>
-    <div class="sc"><div class="sl">Boost Earnings</div><div class="sv" data-k="spotlightEarnings" data-inr="1">—</div></div>
     <div class="sc"><div class="sl">User Wallet Balance</div><div class="sv" data-k="walletBalance" data-inr="1">—</div></div>
     <div class="sc"><div class="sl">Total Withdrawn</div><div class="sv" data-k="totalWithdrawn" data-inr="1">—</div></div>
     <div class="sc"><div class="sl">Pending Withdrawals</div><div class="sv" data-k="pendingWithdrawals">—</div></div>
@@ -1460,7 +1458,6 @@ function renderUserHeader(u) {
     <div class="tabs" id="userTabs">
       <button class="tab active" data-utab="overview">Overview</button>
       <button class="tab" data-utab="services">Services</button>
-      <button class="tab" data-utab="projects">Projects</button>
       <button class="tab" data-utab="barters">Barters</button>
       <button class="tab" data-utab="orders">Orders</button>
       <button class="tab" data-utab="wallet">Wallet</button>
@@ -1474,7 +1471,6 @@ function renderUserHeader(u) {
     <div id="userTabContent">
       <div class="tp active" id="ut-overview"></div>
       <div class="tp" id="ut-services"></div>
-      <div class="tp" id="ut-projects"></div>
       <div class="tp" id="ut-barters"></div>
       <div class="tp" id="ut-orders"></div>
       <div class="tp" id="ut-wallet"></div>
@@ -1507,7 +1503,6 @@ async function renderUserTab(name) {
   if (!el) return;
   if (name === 'overview') renderOverviewTab(el, u);
   else if (name === 'services') renderServicesTab(el, u.id);
-  else if (name === 'projects') renderProjectsTab(el, u.id);
   else if (name === 'barters') renderBartersTab(el, u.id);
   else if (name === 'orders') renderOrdersTab(el, u.id);
   else if (name === 'wallet') renderWalletTab(el, u.id, u.wallet);
@@ -1540,7 +1535,6 @@ function renderOverviewTab(el, u) {
     ${u.languages?.length ? `<div style="margin-top:4px;"><strong style="font-size:.76rem;">Languages:</strong> <span style="font-size:.76rem;color:var(--sec)">${esc(u.languages.join(', '))}</span></div>` : ''}
     ${u.stats ? `<div class="stat-mini-grid">
       <div class="smc"><div class="n">${u.stats.services}</div><div class="l">Services</div></div>
-      <div class="smc"><div class="n">${u.stats.projects}</div><div class="l">Projects</div></div>
       <div class="smc"><div class="n">${u.stats.barters}</div><div class="l">Barters</div></div>
       <div class="smc"><div class="n">${u.stats.orders}</div><div class="l">Orders</div></div>
       <div class="smc"><div class="n">${u.stats.disputes}</div><div class="l">Disputes</div></div>
@@ -1597,25 +1591,6 @@ async function renderServicesTab(el, uid) {
     {label:'Rating', val:r => r.ratingAvg?`★${r.ratingAvg}`:'—'},
     {label:'', val:r => `<button class="btn bs btn-xs" data-title="${esc(r.title||'this')}" onclick="deleteService(this,'${r.id}','${uid}')">Delete</button>`},
   ]);
-}
-
-async function renderProjectsTab(el, uid) {
-  const rows = await fetchTabData(`/admin/users/${uid}/projects`);
-  el.innerHTML = '';
-  if (!rows||!rows.length) { el.innerHTML = `<div class="empty"><div class="empty-sub">No projects</div></div>`; return; }
-  const wrap = document.createElement('div');
-  wrap.className = 'tbl-wrap';
-  wrap.style.maxHeight = '400px';
-  wrap.style.overflowY = 'auto';
-  wrap.innerHTML = `<table class="tbl"><thead><tr><th>Title</th><th>Budget</th><th>Status</th><th>Bids</th><th>Created</th><th></th></tr></thead><tbody>${rows.slice(0,50).map(p => `<tr>
-    <td class="tdt">${esc(p.title||'—')}</td>
-    <td>₹${p.budgetMin||0}–₹${p.budgetMax||0}</td>
-    <td>${badge(p.status)}</td>
-    <td>${p.bids?.length||0}</td>
-    <td style="font-size:.7rem">${p.createdAt?new Date(p.createdAt).toLocaleDateString():'—'}</td>
-    <td><button class="btn bs btn-xs" onclick='confirmAction("Delete project?",()=>api("/admin/projects/${p.id}",{method:"DELETE"}).then(()=>{notify("Project deleted");renderProjectsTab(document.getElementById("ut-projects"),"${uid}")}))'>Delete</button></td>
-  </tr>`).join('')}</tbody></table>`;
-  el.appendChild(wrap);
 }
 
 async function renderBartersTab(el, uid) {
@@ -2162,11 +2137,10 @@ async function loadReferrals() {
       VOIDED: '<span style="background:var(--errl);color:var(--err);padding:3px 10px;border-radius:99px;font-size:.68rem;font-weight:700;">✕ Voided</span>',
     };
     el.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr>
-      <th>Referrer</th><th>Referred User</th><th>Signed Up</th><th>Project Posted</th><th>Reward</th><th>Status</th><th></th>
+      <th>Referrer</th><th>Referred User</th><th>Signed Up</th><th>Reward</th><th>Status</th><th></th>
     </tr></thead><tbody>${rows.map(w => {
       const ref = w.referrer || {};
       const ru = w.referredUser || {};
-      const proj = w.projectTitle ? esc(w.projectTitle) : (w.status === 'PAID' ? '—' : '<span style="color:var(--muted);">Not yet</span>');
       const act = w.status === 'PENDING'
         ? `<button class="btn bp btn-xs" onclick="payReferral('${w.id}')">✓ Pay ₹${Number(w.rewardAmount||500).toLocaleString('en-IN')}</button>
            <button class="btn bs btn-xs" style="margin-left:4px;" onclick="voidReferral('${w.id}')">Void</button>`
@@ -2177,7 +2151,6 @@ async function loadReferrals() {
         <td class="tdt">${esc(ref.firstName+' '+ref.lastName)}<div style="font-size:.65rem;color:var(--muted);">${esc(ref.email||'')}</div></td>
         <td class="tdt">${esc(ru.firstName+' '+ru.lastName)}<div style="font-size:.65rem;color:var(--muted);">${esc(ru.email||'')}</div></td>
         <td style="font-size:.7rem;color:var(--muted);">${new Date(w.createdAt).toLocaleDateString()}</td>
-        <td style="font-size:.78rem;">${proj}</td>
         <td><strong>₹${Number(w.rewardAmount||500).toLocaleString('en-IN')}</strong></td>
         <td>${statusPill[w.status]||statusPill.PENDING}</td>
         <td style="white-space:nowrap;">${act}</td>
