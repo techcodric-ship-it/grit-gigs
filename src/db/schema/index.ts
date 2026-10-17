@@ -1,4 +1,4 @@
-﻿export * from "./users";
+export * from "./users";
 export * from "./wallet";
 export * from "./barter";
 export * from "./services";
@@ -14,3 +14,4 @@ export * from "./squads";
 export * from "./waitlist-leads";
 export * from "./community";
 export * from "./prep";
+export * from "./profile-views";

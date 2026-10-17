@@ -1,4 +1,4 @@
-﻿import { Router, type IRouter } from "express";
+import { Router, type IRouter } from "express";
 import healthRouter from "./health";
 import authRouter from "./auth";
 import usersRouter from "./users";
@@ -26,6 +26,7 @@ import squadsRouter from "./squads";
 import aiSupportRouter from "./ai-support";
 import companionRouter from "./companion";
 import prepRouter from "./prep";
+import profileViewsRouter from "./profile-views";
 import portfolioRouter from "./portfolio";
 import waitlistRouter from "./waitlist";
 import communityRouter from "./community";
@@ -59,9 +60,11 @@ router.use(squadsRouter);
 router.use(aiSupportRouter);
 router.use(companionRouter);
 router.use(prepRouter);
+router.use(profileViewsRouter);
 router.use(portfolioRouter);
 router.use(waitlistRouter);
 router.use(communityRouter);
+
 router.use(adminRouter);
 
 router.use((_req: any, res: any) => {

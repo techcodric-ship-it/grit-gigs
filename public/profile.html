@@ -188,6 +188,13 @@
         <div class="kycwrap" id="kycBody"></div>
       </div>
 
+      <div class="pcard" id="pViewersCard" style="display:none;">
+        <div class="pctitle">Who viewed me</div>
+        <div class="plabel n" id="pViewersCount" style="padding:8px 22px 0;font-size:.75rem;color:var(--text-muted);">—</div>
+        <div id="pViewers" style="padding:8px 22px 18px;"></div>
+        <div class="pempty n" id="pViewersEmpty" style="display:none;">No profile views yet.</div>
+      </div>
+
       <div class="pcard" id="pReviewsCard" style="display:none;">
         <div class="pctitle">Ratings &amp; reviews</div>
         <div id="pReviews"></div>
@@ -650,6 +657,36 @@
     });
   }
 
+  function loadViewers() {
+    var card = $('pViewersCard');
+    if (!card || !c.token()) return;
+    c.api('/me/profile-views').then(function (r) {
+      if (!r.ok) return;
+      var d = r.d.data || {};
+      var vs = d.viewers || [];
+      $('pViewersCount').textContent = (d.total || 0) + ' view' + (d.total === 1 ? '' : 's') + ' · ' + (d.signedIn || 0) + ' signed-in · ' + (d.anonymous || 0) + ' guest';
+      var box = $('pViewers');
+      if (!vs.length) {
+        box.innerHTML = '';
+        $('pViewersEmpty').style.display = '';
+        card.style.display = '';
+        return;
+      }
+      $('pViewersEmpty').style.display = 'none';
+      card.style.display = '';
+      box.innerHTML = vs.slice(0, 10).map(function (v) {
+        var av = v.profilePhoto
+          ? (String(v.profilePhoto).indexOf('http') === 0 ? v.profilePhoto : 'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(v.name) + '&background=6C3FE8&text=fff')
+          : 'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(v.name) + '&background=6C3FE8&text=fff';
+        return '<a class="fl-row" style="padding:8px 0;text-decoration:none;color:inherit;" href="/profile.html?id=' + c.esc(v.id) + '">' +
+          '<span class="fl-av"><img src="' + c.esc(av) + '" alt=""/></span>' +
+          '<span class="fl-nm"><b>' + c.esc(v.name) + '</b>' +
+          '<span style="font-size:.72rem;color:var(--text-muted);">' + c.esc(v.city || 'Location not set') + ' · ' + v.views + ' view' + (v.views === 1 ? '' : 's') + ' · ' + c.esc(c.timeAgo(v.lastViewedAt)) + '</span>' +
+          '</span></a>';
+      }).join('');
+    });
+  }
+
   function loadProfile() {
     if (!profId) { $('loading').textContent = 'No profile selected.'; return; }
     $('loading').style.display = 'block';
@@ -716,6 +753,7 @@
             loadPosts(el.getAttribute('data-ptab'));
           });
         });
+        loadViewers();
       }
       var btn = $('pBtn');
       var msgBtn = $('pMsgBtn');

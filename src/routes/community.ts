@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and, desc, count, countDistinct, sql, inArray, or, ilike, gt, gte, ne, not, type SQL } from "drizzle-orm";
-import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable, conversationsTable, messagesTable, communityOrdersTable, communityOrderDeliveriesTable, communityOrderReviewsTable, transactionsTable, freelanceWalletsTable, postBoostsTable, searchLogsTable, barterMatchesTable, barterRequestsTable } from "../db";
+import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable, conversationsTable, messagesTable, communityOrdersTable, communityOrderDeliveriesTable, communityOrderReviewsTable, transactionsTable, freelanceWalletsTable, postBoostsTable, searchLogsTable, barterMatchesTable, barterRequestsTable, profileViewsTable } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { logger } from "../lib/logger";
 import { uploadToSupabase } from "../lib/storage";
@@ -1029,6 +1029,13 @@ router.get("/community/users/:id", optionalAuth, async (req: Request, res: Respo
   if (!user) {
     res.status(404).json({ success: false, message: "User not found" });
     return;
+  }
+
+  // Record the profile view (skip self-views; fire-and-forget).
+  if (req.user?.id !== user.id) {
+    db.insert(profileViewsTable)
+      .values({ viewerId: req.user?.id ?? null, viewedId: user.id })
+      .catch(() => {});
   }
 
   const [postStats] = await db
