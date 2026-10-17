@@ -2,19 +2,348 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Redirecting… · Grit&amp;Gigs</title>
-<script>
-(function () {
-  var q = new URLSearchParams(location.search);
-  q.set("kind", "BARTER");
-  location.replace("/jobs" + q.toString());
-})();
-</script>
-<noscript><meta http-equiv="refresh" content="0;url=/barter"/></noscript>
-<link rel="icon" href="/favicon.ico?v=8"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=8"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=8"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=8"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Barter — Grit&amp;Gigs</title>
+<meta name="description" content="Trade skills on Grit&amp;Gigs. Post what you offer, what you need, and match with people across India — no cash involved."/>
+<link rel="icon" href="/favicon.ico?v=8"/>
+<link rel="stylesheet" href="/css/main.css"/>
+<link rel="stylesheet" href="/assets/companion.css"/>
+<script src="/assets/ui.js" defer></script>
+<script src="/assets/companion.js" defer></script>
+<link rel="canonical" href="https://www.gritandgigs.in/barter"/>
+<style>
+  .barter-toolbar { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: end; margin: var(--space-5) 0 var(--space-4); }
+  .barter-toolbar .field { display: flex; flex-direction: column; gap: var(--space-1); flex: 1 1 160px; }
+  .barter-toolbar label { font-size: var(--fs-13); font-weight: var(--fw-600); color: var(--text-secondary); }
+  .barter-card-offer { font-size: var(--fs-15); font-weight: var(--fw-600); color: var(--text); }
+  .barter-card-need { font-size: var(--fs-15); font-weight: var(--fw-600); color: var(--primary); }
+  .barter-swap { color: var(--text-muted); font-weight: 700; }
+  .form-group { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-3); }
+  .form-group label { font-size: var(--fs-13); font-weight: var(--fw-600); color: var(--text-secondary); }
+  textarea.form-input { min-height: 90px; resize: vertical; }
+  .modal-msg { font-size: var(--fs-13); margin-bottom: var(--space-3); display: none; }
+  .modal-msg.error { color: #dc2626; display: block; }
+  .modal-msg.ok { color: #16a34a; display: block; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+  @media (max-width: 640px) { .form-row { grid-template-columns: 1fr; } }
+</style>
 </head>
 <body>
-<p style="font-family:system-ui,sans-serif;padding:24px;">Redirecting… <a href="/barter">Continue to barters</a></p>
+<nav class="nav" aria-label="Main">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo" aria-label="Grit and Gigs home">
+      <div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div>
+      <span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span>
+    </a>
+    <div class="nav-links">
+      <a href="/jobs">Jobs</a>
+      <a href="/barter">Barter</a>
+      <a href="/circle">Circle</a>
+      <a href="/blog">Blog</a>
+    </div>
+    <div class="nav-actions" id="navActions">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="location.href='/?login=1'">Sign in</button>
+      <button class="btn btn-primary btn-sm" type="button" onclick="location.href='/?signup=1'">Join free</button>
+    </div>
+    <button class="nav-hamburger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="mobile-menu" data-ui="menu-toggle" data-ui-target="mobile-menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="/jobs">Jobs</a>
+    <a href="/barter">Barter</a>
+    <a href="/circle">Circle</a>
+    <a href="/blog">Blog</a>
+    <button class="btn btn-secondary" type="button" onclick="location.href='/?login=1'">Sign in</button>
+    <button class="btn btn-primary" type="button" onclick="location.href='/?signup=1'">Join free</button>
+  </div>
+</nav>
+
+<main class="container">
+  <div class="section-sm">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+      <div>
+        <h1>Barter</h1>
+        <p class="sg-lead">Trade skills directly — no cash, no commission. Post what you offer and what you need.</p>
+      </div>
+      <button class="btn btn-primary" type="button" id="btnPostBarter" hidden>Post an exchange</button>
+    </div>
+
+    <form class="barter-toolbar" id="searchForm">
+      <div class="field">
+        <label for="qInput">Search</label>
+        <input class="form-input" id="qInput" type="search" placeholder="Skill offered, needed or description"/>
+      </div>
+      <div class="field">
+        <label for="cityInput">City</label>
+        <input class="form-input" id="cityInput" type="text" placeholder="e.g. Mumbai"/>
+      </div>
+      <button class="btn btn-secondary" type="submit">Search</button>
+    </form>
+
+    <div id="barterState" class="empty-state" aria-live="polite">
+      <span class="spinner" role="status" aria-label="Loading exchanges"></span>
+    </div>
+    <div id="barterList" class="barter-cards-grid" hidden></div>
+  </div>
+</main>
+
+<div class="modal-overlay" id="postModal" role="dialog" aria-modal="true" aria-labelledby="postModalTitle">
+  <div class="modal" style="max-width:520px;">
+    <button class="modal-close" type="button" data-close="postModal" aria-label="Close">&times;</button>
+    <h2 id="postModalTitle">Post an exchange</h2>
+    <p class="modal-sub">Say what you'll give and what you want. People send you match requests.</p>
+    <p class="modal-msg" id="postMsg"></p>
+    <form id="postForm">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="pOffer">I can offer</label>
+          <input class="form-input" id="pOffer" type="text" maxlength="120" required placeholder="e.g. Logo design"/>
+        </div>
+        <div class="form-group">
+          <label for="pNeed">I need</label>
+          <input class="form-input" id="pNeed" type="text" maxlength="120" required placeholder="e.g. Video editing"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="pOfferCat">Offer category</label>
+          <input class="form-input" id="pOfferCat" type="text" maxlength="100" placeholder="e.g. Design"/>
+        </div>
+        <div class="form-group">
+          <label for="pNeedCat">Need category</label>
+          <input class="form-input" id="pNeedCat" type="text" maxlength="100" placeholder="e.g. Video"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="pCity">City (optional)</label>
+          <input class="form-input" id="pCity" type="text" maxlength="100"/>
+        </div>
+        <div class="form-group">
+          <label for="pTimeline">Timeline (optional)</label>
+          <input class="form-input" id="pTimeline" type="text" maxlength="100" placeholder="e.g. 2 weeks"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="pDesc">Details</label>
+        <textarea class="form-input" id="pDesc" maxlength="2000" placeholder="What the exchange looks like, scope, expectations."></textarea>
+      </div>
+      <div class="form-group">
+        <label for="pImage">Reference image (optional)</label>
+        <input class="form-input" id="pImage" type="file" accept="image/*"/>
+      </div>
+      <button class="btn btn-primary" type="submit" id="postSubmit" style="width:100%;">Post exchange</button>
+    </form>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="nav-logo">
+        <div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div>
+        <span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span>
+      </div>
+      <p>Jobs, barter and honest community — built in India.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Product</h4>
+      <a href="/jobs">Jobs</a>
+      <a href="/barter">Barter</a>
+      <a href="/circle">Circle</a>
+      <a href="/faq">FAQ</a>
+    </div>
+    <div class="footer-col">
+      <h4>Company</h4>
+      <a href="/about">About</a>
+      <a href="/blog">Blog</a>
+      <a href="/contact">Contact</a>
+    </div>
+    <div class="footer-col">
+      <h4>Legal</h4>
+      <a href="/terms">Terms of service</a>
+      <a href="/privacy">Privacy policy</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>&copy; 2026 Grit&amp;Gigs Technologies Pvt. Ltd.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function token() { try { return localStorage.getItem("se_token") || ""; } catch (e) { return ""; } }
+  function user() { try { return JSON.parse(localStorage.getItem("se_user") || "null"); } catch (e) { return null; } }
+  function openModal(id) { var el = document.getElementById(id); if (el) el.classList.add("open"); }
+  function closeModal(id) { var el = document.getElementById(id); if (el) el.classList.remove("open"); }
+  document.addEventListener("click", function (e) {
+    var t = e.target;
+    if (t && t.getAttribute && t.getAttribute("data-close")) closeModal(t.getAttribute("data-close"));
+    if (t && t.classList && t.classList.contains("modal-overlay")) t.classList.remove("open");
+  });
+  function msg(id, text, ok) {
+    var el = document.getElementById(id);
+    el.textContent = text || "";
+    el.className = "modal-msg" + (text ? (ok ? " ok" : " error") : "");
+  }
+  function fmtDate(iso) {
+    if (!iso) return "";
+    try { return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }); }
+    catch (e) { return ""; }
+  }
+  function initials(name) {
+    return String(name || "?").split(/\s+/).slice(0, 2).map(function (w) { return w.charAt(0).toUpperCase(); }).join("");
+  }
+
+  var state = { q: "", city: "" };
+
+  function renderNav() {
+    if (!user()) return;
+    var box = document.getElementById("navActions");
+    box.innerHTML = "";
+    var post = document.createElement("button");
+    post.className = "btn btn-primary btn-sm";
+    post.type = "button";
+    post.textContent = "Post an exchange";
+    post.onclick = function () { openModal("postModal"); };
+    box.appendChild(post);
+    var dash = document.createElement("a");
+    dash.className = "btn btn-secondary btn-sm";
+    dash.href = "/dashboard";
+    dash.textContent = user().firstName || "Profile";
+    box.appendChild(dash);
+    document.getElementById("btnPostBarter").hidden = false;
+  }
+  document.getElementById("btnPostBarter").addEventListener("click", function () { openModal("postModal"); });
+
+  function card(r) {
+    var el = document.createElement("article");
+    el.className = "card card-hover";
+    var who = r.user ? (r.user.firstName + " " + (r.user.lastName || "")).trim() : "Member";
+    var meta = [];
+    if (r.user && r.user.city) meta.push('<span class="badge badge-status">' + esc(r.user.city) + "</span>");
+    if (r.city) meta.push('<span class="badge badge-status">' + esc(r.city) + "</span>");
+    if (r.isRemote) meta.push('<span class="badge badge-status">Remote OK</span>');
+    if (r.timeline) meta.push('<span class="badge badge-status">' + esc(r.timeline) + "</span>");
+    el.innerHTML =
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">' +
+      '<div class="avatar" style="width:36px;height:36px;border-radius:50%;background:var(--bg-subtle);display:grid;place-items:center;font-weight:700;color:var(--text-secondary);overflow:hidden;">' +
+      (r.user && r.user.profilePhoto ? '<img src="' + esc(r.user.profilePhoto) + '" alt="" style="width:100%;height:100%;object-fit:cover;"/>' : esc(initials(who))) +
+      "</div>" +
+      '<div><strong style="font-size:14px;">' + esc(who) + '</strong><div style="font-size:12px;color:var(--text-muted);">' + esc(r.user && r.user.city ? r.user.city : "") + "</div></div>" +
+      "</div>" +
+      '<div class="barter-card-offer">' + esc(r.skillOffered) + ' <span class="barter-swap">⇄</span></div>' +
+      '<div class="barter-card-need">' + esc(r.skillNeeded) + "</div>" +
+      (r.description ? '<p class="job-desc" style="margin-top:8px;">' + esc(r.description.slice(0, 200)) + (r.description.length > 200 ? "…" : "") + "</p>" : "") +
+      '<div class="card-job-meta" style="margin-top:8px;">' + meta.join("") + "</div>" +
+      '<div class="card-job-foot" style="margin-top:10px;">' +
+      '<span class="badge badge-source">Posted ' + fmtDate(r.createdAt) + "</span>" +
+      '<button class="btn btn-primary btn-sm" type="button" data-match="' + esc(r.id) + '">Request match</button>' +
+      "</div>";
+    return el;
+  }
+
+  function load() {
+    var st = document.getElementById("barterState");
+    var list = document.getElementById("barterList");
+    st.hidden = false; list.hidden = true;
+    st.className = "empty-state";
+    st.innerHTML = '<span class="spinner" role="status" aria-label="Loading exchanges"></span>';
+    var qs = [];
+    if (state.q) qs.push("q=" + encodeURIComponent(state.q));
+    if (state.city) qs.push("city=" + encodeURIComponent(state.city));
+    fetch("/api/barter/requests?limit=24" + (qs.length ? "&" + qs.join("&") : ""))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var rows = (d && d.data && d.data.requests) || [];
+        list.innerHTML = "";
+        if (!rows.length) {
+          st.hidden = false; st.className = "empty-state";
+          st.innerHTML = "<h3>No exchanges found</h3><p>Post what you offer and what you need — matches will come to you.</p>";
+          return;
+        }
+        st.hidden = true; list.hidden = false;
+        rows.forEach(function (r) { list.appendChild(card(r)); });
+      })
+      .catch(function () {
+        st.hidden = false; st.className = "error-state";
+        st.innerHTML = "<h3>Could not load exchanges</h3><p>Something went wrong. Try again.</p>";
+      });
+  }
+
+  document.getElementById("searchForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    state.q = document.getElementById("qInput").value.trim();
+    state.city = document.getElementById("cityInput").value.trim();
+    load();
+  });
+
+  document.addEventListener("click", function (e) {
+    var t = e.target;
+    if (!t || !t.getAttribute) return;
+    var matchId = t.getAttribute("data-match");
+    if (!matchId) return;
+    if (!token()) { location.href = "/?login=1"; return; }
+    if (window.GritCompanion) {
+      window.GritCompanion.confirm("Send a match request for this exchange", function () { doMatch(matchId); });
+    } else if (window.confirm("Send a match request for this exchange?")) {
+      doMatch(matchId);
+    }
+  });
+  function doMatch(id) {
+    fetch("/api/barter/matches", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token() },
+      body: JSON.stringify({ targetRequestId: id }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.success) { alert(d.message || "Could not send match request"); return; }
+        alert("Match request sent!");
+      })
+      .catch(function () { alert("Network error. Try again."); });
+  }
+
+  document.getElementById("postForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (!token()) { location.href = "/?login=1"; return; }
+    var btn = document.getElementById("postSubmit");
+    btn.disabled = true; btn.textContent = "Posting…";
+    msg("postMsg", "");
+    var fd = new FormData();
+    fd.append("skillOffered", document.getElementById("pOffer").value.trim());
+    fd.append("skillNeeded", document.getElementById("pNeed").value.trim());
+    fd.append("offerCategory", document.getElementById("pOfferCat").value.trim());
+    fd.append("needCategory", document.getElementById("pNeedCat").value.trim());
+    fd.append("city", document.getElementById("pCity").value.trim());
+    fd.append("timeline", document.getElementById("pTimeline").value.trim());
+    fd.append("description", document.getElementById("pDesc").value.trim());
+    fd.append("isRemote", "true");
+    var img = document.getElementById("pImage").files[0];
+    if (img) fd.append("image", img);
+    fetch("/api/barter/requests", { method: "POST", headers: { Authorization: "Bearer " + token() }, body: fd })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.success) throw new Error(d.message || "Could not post");
+        msg("postMsg", "Exchange posted.", true);
+        e.target.reset();
+        setTimeout(function () { closeModal("postModal"); btn.disabled = false; btn.textContent = "Post exchange"; load(); }, 700);
+      })
+      .catch(function (err) {
+        msg("postMsg", err.message || "Could not post the exchange.");
+        btn.disabled = false; btn.textContent = "Post exchange";
+      });
+  });
+
+  renderNav();
+  load();
+})();
+</script>
 </body>
 </html>
