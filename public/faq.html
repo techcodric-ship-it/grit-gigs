@@ -7,6 +7,7 @@
 <title>FAQ — Grit&Gigs | India's Skill Marketplace</title>
 <meta name="description" content="Frequently asked questions about Grit&Gigs — India's platform for skill barter, freelancing, escrow payments, and project collaboration."/>
 <link rel="stylesheet" href="css/main.css"/>
+<script src="/assets/ui.js" defer></script>
 <link rel="canonical" href="https://www.gritandgigs.in/faq"/>
 <meta property="og:type" content="website"/>
 <meta property="og:url" content="https://www.gritandgigs.in/faq"/>
@@ -139,9 +140,9 @@
 </head>
 <body>
 
-<nav class="nav">
+<nav class="nav" aria-label="Main">
   <div class="nav-inner">
-    <a href="/" class="nav-logo">
+    <a href="/" class="nav-logo" aria-label="Grit and Gigs home">
       <div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div>
       <span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span>
     </a>
@@ -179,9 +180,18 @@
         };
       }
     </script>
-    <div class="nav-hamburger" aria-label="Menu">
+    <button class="nav-hamburger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="mobile-menu" data-ui="menu-toggle" data-ui-target="mobile-menu">
       <span></span><span></span><span></span>
-    </div>
+    </button>
+  </div>
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="/#how-it-works">How it works</a>
+    <a href="/#barter">Skill Exchange</a>
+    <a href="/#freelance">Freelance</a>
+    <a href="/explore?kind=PROJECT">Browse Projects</a>
+    <a href="/about">About</a>
+    <button class="btn btn-secondary" type="button" onclick="location.href='/?login=1'">Sign in</button>
+    <button class="btn btn-primary" type="button" onclick="location.href='/?signup=1'">Join free</button>
   </div>
 </nav>
 
@@ -246,7 +256,7 @@
     <div class="footer-brand">
      <div class="nav-logo">
       <div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div>
-      <div class="nav-logo-text"><span class="logo-text-black" style="color:black;">Grit</span><span class="logo-text-blue">&amp;Gigs</span></div>
+        <div class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></div>
      </div>
       <p>India's all-in-one skill marketplace — freelance, barter, and build projects with escrow protection.</p>
     </div>
