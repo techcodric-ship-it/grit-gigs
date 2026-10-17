@@ -1,15 +1,15 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and, desc } from "drizzle-orm";
-import { db, reportsTable, servicesTable, barterRequestsTable, projectsTable, usersTable } from "../db";
+import { db, reportsTable, servicesTable, barterRequestsTable, usersTable } from "../db";
 import { authenticate } from "../middlewares/authenticate";
 
 const router: IRouter = Router();
 
-// POST /reports — submit a report (targetType: USER|SERVICE|BARTER|PROJECT, targetId, reason)
+// POST /reports — submit a report (targetType: USER|SERVICE|BARTER, targetId, reason)
 router.post("/reports", authenticate, async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
   const { targetType, targetId, reason } = req.body;
-  if (!["USER", "SERVICE", "BARTER", "PROJECT"].includes(targetType) || !targetId || !reason?.trim()) {
+  if (!["USER", "SERVICE", "BARTER"].includes(targetType) || !targetId || !reason?.trim()) {
     res.status(400).json({ success: false, message: "targetType, targetId, and reason are required" }); return;
   }
   if (targetType === "USER" && targetId === userId) {
@@ -56,19 +56,12 @@ router.get("/reports/mine", authenticate, async (req: Request, res: Response): P
     .where(and(eq(reportsTable.targetType, "BARTER"), eq(barterRequestsTable.userId, userId)))
     .orderBy(desc(reportsTable.createdAt));
 
-  const projectRows = await db
-    .select({ report: reportsTable, targetTitle: projectsTable.title })
-    .from(reportsTable)
-    .innerJoin(projectsTable, eq(reportsTable.targetId, projectsTable.id))
-    .where(and(eq(reportsTable.targetType, "PROJECT"), eq(projectsTable.userId, userId)))
-    .orderBy(desc(reportsTable.createdAt));
-
-  // Build "received" array with target details
+  // Build "received" array with target details. Project reports were archived
+  // with the Jobs pivot, so no PROJECT rows are joined.
   const received = [
     ...againstUser.map(r => ({ ...r, direction: "received", targetDetails: { type: "USER", title: "Your Profile", id: userId } })),
     ...serviceRows.map(r => ({ ...r.report, direction: "received", targetDetails: { type: "SERVICE", title: r.targetTitle, id: r.report.targetId } })),
     ...barterRows.map(r => ({ ...r.report, direction: "received", targetDetails: { type: "BARTER", title: r.targetTitle + " ↔ " + r.targetSub, id: r.report.targetId } })),
-    ...projectRows.map(r => ({ ...r.report, direction: "received", targetDetails: { type: "PROJECT", title: r.targetTitle, id: r.report.targetId } })),
   ];
 
   // Enrich submitted reports with target details
@@ -93,14 +86,6 @@ router.get("/reports/mine", authenticate, async (req: Request, res: Response): P
         owner = o;
       }
       targetDetails = b ? { type: "BARTER", title: b.skillOffered + " ↔ " + b.skillNeeded, id: b.id, owner } : null;
-    } else if (r.targetType === "PROJECT") {
-      const [p] = await db.select({ id: projectsTable.id, title: projectsTable.title, userId: projectsTable.userId }).from(projectsTable).where(eq(projectsTable.id, r.targetId)).limit(1);
-      let owner: Record<string, any> | null = null;
-      if (p) {
-        const [o] = await db.select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto }).from(usersTable).where(eq(usersTable.id, p.userId)).limit(1);
-        owner = o;
-      }
-      targetDetails = p ? { type: "PROJECT", title: p.title, id: p.id, owner } : null;
     }
     return { ...r, direction: "submitted", targetDetails };
   }));

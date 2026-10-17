@@ -5,7 +5,6 @@ import {
   usersTable, notificationsTable,
   freelanceWalletsTable, transactionsTable, withdrawalRequestsTable,
   servicesTable, servicePackagesTable,
-  projectsTable, projectBidsTable,
   barterRequestsTable, barterMatchesTable, barterDeliveriesTable,
   ordersTable, orderDeliveriesTable, reviewsTable,
   savedItemsTable,
@@ -14,7 +13,6 @@ import {
   kycDocumentsTable,
   userSubscriptionsTable,
   invitesTable,
-  projectMilestonesTable,
   conversationsTable,
   messagesTable,
   clientReviewsTable,
@@ -22,7 +20,7 @@ import {
   referralsTable,
   jobsTable, jobApplicationsTable,
   squadsTable, squadMembersTable, squadInvitesTable, squadServicesTable,
-  communityPostsTable, postBoostsTable,
+  communityPostsTable,
   communityOrdersTable,
 } from "../db";
 import jwt from "jsonwebtoken";
@@ -185,7 +183,6 @@ router.get("/admin/users/:id", async (req: Request, res: Response) => {
   const [kyc] = await db.select().from(kycDocumentsTable).where(eq(kycDocumentsTable.userId, user.id)).limit(1);
 
   const [{ services }] = await db.select({ services: sql<number>`count(*)` }).from(servicesTable).where(eq(servicesTable.sellerId, user.id));
-  const [{ projects }] = await db.select({ projects: sql<number>`count(*)` }).from(projectsTable).where(eq(projectsTable.userId, user.id));
   const [{ barters }] = await db.select({ barters: sql<number>`count(*)` }).from(barterRequestsTable).where(eq(barterRequestsTable.userId, user.id));
   const [{ orders }] = await db.select({ orders: sql<number>`count(*)` }).from(ordersTable).where(or(eq(ordersTable.buyerId, user.id), eq(ordersTable.sellerId, user.id)));
   const [{ disputes }] = await db.select({ disputes: sql<number>`count(*)` }).from(disputesTable).where(eq(disputesTable.raisedById, user.id));
@@ -198,7 +195,7 @@ router.get("/admin/users/:id", async (req: Request, res: Response) => {
       wallet: wallet || null,
       subscription: subscription || null,
       kyc: kyc || null,
-      stats: { services, projects, barters, orders, disputes },
+      stats: { services, barters, orders, disputes },
     },
   });
 });
@@ -249,15 +246,13 @@ router.delete("/admin/users/:id", async (req: Request, res: Response) => {
   const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
-  // Get user's orders, conversations, barter matches, projects
-  const [userOrders, userConvs, userProjects] = await Promise.all([
+  // Get user's orders, conversations and barter matches
+  const [userOrders, userConvs] = await Promise.all([
     db.select({ id: ordersTable.id }).from(ordersTable).where(or(eq(ordersTable.buyerId, userId), eq(ordersTable.sellerId, userId))),
     db.select({ id: conversationsTable.id }).from(conversationsTable).where(or(eq(conversationsTable.user1Id, userId), eq(conversationsTable.user2Id, userId))),
-    db.select({ id: projectsTable.id }).from(projectsTable).where(eq(projectsTable.userId, userId)),
   ]);
   const orderIds = userOrders.map(o => o.id);
   const convIds = userConvs.map(c => c.id);
-  const projectIds = userProjects.map(p => p.id);
   const [userBarterMatches] = await Promise.all([
     db.select({ id: barterMatchesTable.id }).from(barterMatchesTable).where(or(eq(barterMatchesTable.user1Id, userId), eq(barterMatchesTable.user2Id, userId))),
   ]);
@@ -273,16 +268,10 @@ router.delete("/admin/users/:id", async (req: Request, res: Response) => {
     await db.delete(reviewsTable).where(or(inArray(reviewsTable.orderId, orderIds), eq(reviewsTable.reviewerId, userId), eq(reviewsTable.revieweeId, userId)));
     await db.delete(ordersTable).where(inArray(ordersTable.id, orderIds));
   }
-  if (projectIds.length) {
-    await db.delete(projectBidsTable).where(inArray(projectBidsTable.projectId, projectIds));
-    await db.delete(projectMilestonesTable).where(inArray(projectMilestonesTable.projectId, projectIds));
-    await db.delete(projectsTable).where(inArray(projectsTable.id, projectIds));
-  }
   if (barterMatchIds.length) {
     await db.delete(barterDeliveriesTable).where(inArray(barterDeliveriesTable.matchId, barterMatchIds));
     await db.delete(barterMatchesTable).where(inArray(barterMatchesTable.id, barterMatchIds));
   }
-  await db.delete(projectBidsTable).where(eq(projectBidsTable.userId, userId));
   await db.delete(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, userId));
   await db.delete(withdrawalRequestsTable).where(eq(withdrawalRequestsTable.userId, userId));
   await db.delete(kycDocumentsTable).where(eq(kycDocumentsTable.userId, userId));
@@ -296,7 +285,6 @@ router.delete("/admin/users/:id", async (req: Request, res: Response) => {
   await db.delete(savedItemsTable).where(eq(savedItemsTable.userId, userId));
   await db.delete(reportsTable).where(or(eq(reportsTable.reportedById, userId), and(eq(reportsTable.targetType, 'USER'), eq(reportsTable.targetId, userId))));
   await db.delete(invitesTable).where(or(eq(invitesTable.fromUserId, userId), eq(invitesTable.toUserId, userId)));
-  await db.delete(projectMilestonesTable).where(inArray(projectMilestonesTable.projectId, projectIds));
   await db.delete(servicesTable).where(eq(servicesTable.sellerId, userId));
 
   await db.delete(usersTable).where(eq(usersTable.id, userId));
@@ -307,16 +295,6 @@ router.delete("/admin/users/:id", async (req: Request, res: Response) => {
 router.get("/admin/users/:id/services", async (req: Request, res: Response) => {
   const rows = await       db.select().from(servicesTable).where(eq(servicesTable.sellerId, req.params.id as string)).orderBy(desc(servicesTable.createdAt));
   res.json({ success: true, data: rows });
-});
-
-// ── User's projects ──
-router.get("/admin/users/:id/projects", async (req: Request, res: Response) => {
-  const rows = await db.select().from(projectsTable).where(eq(projectsTable.userId, req.params.id as string)).orderBy(desc(projectsTable.createdAt));
-  const data = await Promise.all(rows.map(async (p) => {
-    const bids = await db.select().from(projectBidsTable).where(eq(projectBidsTable.projectId, p.id));
-    return { ...p, bids };
-  }));
-  res.json({ success: true, data });
 });
 
 // ── User's barters ──
@@ -425,12 +403,6 @@ router.delete("/admin/services/:id", async (req: Request, res: Response) => {
   res.json({ success: true, message: "Service deleted" });
 });
 
-// ── Delete any project ──
-router.delete("/admin/projects/:id", async (req: Request, res: Response) => {
-  await db.delete(projectsTable).where(eq(projectsTable.id, req.params.id as string));
-  res.json({ success: true, message: "Project deleted" });
-});
-
 // ── Delete any barter ──
 router.delete("/admin/barters/:id", async (req: Request, res: Response) => {
   await db.delete(barterRequestsTable).where(eq(barterRequestsTable.id, req.params.id as string));
@@ -448,23 +420,11 @@ router.put("/admin/services/:id", async (req: Request, res: Response) => {
   res.json({ success: true, data: updated });
 });
 
-// ── Edit any project ──
-const ALLOWED_PROJECT_FIELDS = ["title", "description", "category", "skills", "budgetMin", "budgetMax", "status", "deadline", "imageUrl"];
-router.put("/admin/projects/:id", async (req: Request, res: Response) => {
-  const updates: Record<string, unknown> = { updatedAt: new Date() };
-  for (const key of ALLOWED_PROJECT_FIELDS) {
-    if (key in req.body) updates[key] = req.body[key];
-  }
-  const [updated] = await db.update(projectsTable).set(updates).where(eq(projectsTable.id, req.params.id as string)).returning();
-  res.json({ success: true, data: updated });
-});
-
 // ── Dashboard stats ──
-router.get("/admin/stats", async (req: Request, res: Response) => {
-  const [[{ users }], [{ services }], [{ projects }], [{ barters }], [{ orders }], [{ disputes }], [{ kycPending }], [{ gmv }], [{ topups }], [{ commissionsPaid }], [{ walletBalance }], [{ totalWithdrawn }], [{ pendingWithdrawals }], [{ activeSubs }], [{ communityPosts }], [{ spotlightEarnings }]] = await Promise.all([
+router.get("/admin/stats", async (req: Request, res: Response): Promise<void> => {
+  const [[{ users }], [{ services }], [{ barters }], [{ orders }], [{ disputes }], [{ kycPending }], [{ gmv }], [{ topups }], [{ commissionsPaid }], [{ walletBalance }], [{ totalWithdrawn }], [{ pendingWithdrawals }], [{ activeSubs }], [{ communityPosts }]] = await Promise.all([
     db.select({ users: sql<number>`count(*)` }).from(usersTable),
     db.select({ services: sql<number>`count(*)` }).from(servicesTable),
-    db.select({ projects: sql<number>`count(*)` }).from(projectsTable),
     db.select({ barters: sql<number>`count(*)` }).from(barterRequestsTable),
     db.select({ orders: sql<number>`count(*)` }).from(ordersTable),
     db.select({ disputes: sql<number>`count(*)` }).from(disputesTable),
@@ -477,14 +437,13 @@ router.get("/admin/stats", async (req: Request, res: Response) => {
     db.select({ pendingWithdrawals: sql<number>`count(*)` }).from(withdrawalRequestsTable).where(eq(withdrawalRequestsTable.status, "PENDING")),
     db.select({ activeSubs: sql<number>`count(*)` }).from(userSubscriptionsTable).where(and(sql`${userSubscriptionsTable.planId} <> 'starter'`, sql`${userSubscriptionsTable.expiresAt} > NOW()`)),
     db.select({ communityPosts: sql<number>`count(*)` }).from(communityPostsTable),
-    db.select({ spotlightEarnings: sql<number>`COALESCE(SUM(${transactionsTable.amount}), 0)` }).from(transactionsTable).where(and(eq(transactionsTable.type, "SERVICE_PAYMENT"), eq(transactionsTable.status, "COMPLETED"), sql`${transactionsTable.description} LIKE 'Spotlight%'`)),
   ]);
   res.json({
     success: true,
     data: {
-      users, services, projects, barters, orders, disputes, kycPending,
+      users, services, barters, orders, disputes, kycPending,
       gmv, topups, commissionsPaid, walletBalance, totalWithdrawn,
-      pendingWithdrawals, activeSubs, communityPosts, spotlightEarnings,
+      pendingWithdrawals, activeSubs, communityPosts,
     },
   });
 });
@@ -1059,11 +1018,9 @@ router.get("/admin/referrals", adminAuth, async (req: Request, res: Response): P
           .from(usersTable)
           .where(eq(usersTable.id, r.referredUserId))
           .limit(1);
-        let projectTitle: string | null = null;
-        if (r.projectId) {
-          const [p] = await db.select({ title: projectsTable.title }).from(projectsTable).where(eq(projectsTable.id, r.projectId)).limit(1);
-          projectTitle = p?.title || null;
-        }
+        // Projects were archived in the Jobs pivot: legacy referral rows keep
+        // their raw project_id, but the title no longer resolves.
+        const projectTitle: string | null = null;
         return { ...r, referrer: referrer || null, referredUser: referredUser || null, projectTitle };
       })
     );
@@ -1127,9 +1084,6 @@ router.post("/admin/referrals/:id/void", adminAuth, async (req: Request, res: Re
     await db.transaction(async (tx) => {
       if (ref.status === "PAID") {
         await reverseReferrerReward(tx, ref.referrerId, amount, "Referral reward reversed (voided by admin)");
-        if (ref.projectId) {
-          await tx.update(projectsTable).set({ zeroCommission: false, updatedAt: new Date() }).where(eq(projectsTable.id, ref.projectId));
-        }
       }
       await tx
         .update(referralsTable)
@@ -1527,47 +1481,7 @@ router.get("/admin/activity", async (req: Request, res: Response): Promise<void>
           amount: r.priceInr,
           at: r.createdAt,
           actor: who(r as unknown as Record<string, unknown>),
-          link: `/explore?q=${encodeURIComponent(r.id)}`,
-        }));
-      },
-    },
-    {
-      // Bids placed on client projects.
-      key: "bids",
-      run: async () => {
-        const rows = await db
-          .select({
-            id: projectBidsTable.id,
-            amount: projectBidsTable.amount,
-            status: projectBidsTable.status,
-            deliveryDays: projectBidsTable.deliveryDays,
-            createdAt: projectBidsTable.createdAt,
-            proposal: projectBidsTable.proposal,
-            projectId: projectBidsTable.projectId,
-            projectTitle: projectsTable.title,
-            projectBudgetMin: projectsTable.budgetMin,
-            projectBudgetMax: projectsTable.budgetMax,
-            user: {
-              firstName: nameCols.first,
-              lastName: nameCols.last,
-              email: nameCols.email,
-            },
-          })
-          .from(projectBidsTable)
-          .leftJoin(usersTable, eq(projectBidsTable.userId, usersTable.id))
-          .leftJoin(projectsTable, eq(projectBidsTable.projectId, projectsTable.id))
-          .orderBy(desc(projectBidsTable.createdAt))
-          .limit(limit);
-        return rows.map((r) => ({
-          id: r.id,
-          type: "BID",
-          title: r.projectTitle ? `Bid on "${summarize(r.projectTitle, "PROJECT")}"` : "Bid placed",
-          meta: bidMeta(r.deliveryDays, r.projectBudgetMin, r.projectBudgetMax),
-          status: r.status,
-          amount: r.amount,
-          at: r.createdAt,
-          actor: who(r as unknown as Record<string, unknown>),
-          link: r.projectId ? `/projects/${r.projectId}` : null,
+          link: `/circle`,
         }));
       },
     },
@@ -1737,11 +1651,10 @@ router.get("/admin/activity", async (req: Request, res: Response): Promise<void>
 
   const counts = {
     posts: settled[0].length,
-    bids: settled[1].length,
-    barter: settled[2].length,
-    orders: settled[3].length,
-    wallet: settled[4].length,
-    bundles: settled[5].length,
+    barter: settled[1].length,
+    orders: settled[2].length,
+    wallet: settled[3].length,
+    bundles: settled[4].length,
   };
 
   res.json({ success: true, data: { items: items.slice(0, limit * 3), counts, errors } });

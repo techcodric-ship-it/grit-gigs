@@ -4,7 +4,6 @@ export * from "./barter";
 export * from "./services";
 export * from "./orders";
 export * from "./messages";
-export * from "./projects";
 export * from "./client-reviews";
 export * from "./plans";
 export * from "./extras";

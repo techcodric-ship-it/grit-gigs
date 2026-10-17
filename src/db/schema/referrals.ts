@@ -7,7 +7,6 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
-import { projectsTable } from "./projects";
 
 export const referralStatusEnum = pgEnum("referral_status", [
   "PENDING",
@@ -24,9 +23,10 @@ export const referralsTable = pgTable("referrals", {
     .notNull()
     .unique()
     .references(() => usersTable.id, { onDelete: "cascade" }),
-  projectId: uuid("project_id").references(() => projectsTable.id, {
-    onDelete: "set null",
-  }),
+  // Legacy reference: the project this referral bonus paid out on. Projects
+  // were archived in the Jobs pivot; the raw id stays so the money trail
+  // remains readable, but it is no longer a foreign key.
+  projectId: uuid("project_id"),
   status: referralStatusEnum("status").default("PENDING").notNull(),
   rewardAmount: real("reward_amount").default(500).notNull(),
   zeroCommissionApplied: boolean("zero_commission_applied")

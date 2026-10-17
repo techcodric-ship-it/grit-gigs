@@ -9,7 +9,6 @@ import {
 import { usersTable } from "./users";
 import { ordersTable } from "./orders";
 import { barterMatchesTable } from "./barter";
-import { projectBidsTable } from "./projects";
 import { squadsTable } from "./squads";
 import { squadOrdersTable } from "./squads";
 
@@ -27,7 +26,10 @@ export const conversationsTable = pgTable("conversations", {
   orderId: uuid("order_id").unique().references(() => ordersTable.id),
   squadOrderId: uuid("squad_order_id").unique().references(() => squadOrdersTable.id, { onDelete: "cascade" }),
   matchId: uuid("match_id").unique().references(() => barterMatchesTable.id),
-  projectBidId: uuid("project_bid_id").references(() => projectBidsTable.id),
+  // Legacy reference to a project bid conversation. The projects feature was
+  // removed in the Jobs pivot; the column is kept so old conversations stay
+  // readable, but it is no longer a foreign key.
+  projectBidId: uuid("project_bid_id"),
   lastMessageAt: timestamp("last_message_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

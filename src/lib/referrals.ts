@@ -4,7 +4,6 @@ import {
   db,
   usersTable,
   referralsTable,
-  projectsTable,
   freelanceWalletsTable,
   transactionsTable,
   notificationsTable,
@@ -116,91 +115,3 @@ export async function reverseReferrerReward(tx: Tx, referrerId: string, amount: 
   });
 }
 
-/**
- * Grants the ₹500 referral reward + 0% commission on the referred user's FIRST
- * real payment (first approved milestone) — not when they merely post a
- * project. Runs inside the caller's transaction so nothing is granted if the
- * payment later fails. Anti-abuse guards:
- *   - the referred user AND the referrer must both be KYC-verified,
- *   - referrer and referred must have different phone numbers,
- *   - the referrer must be under MAX_REFERRAL_REWARDS_PER_USER paid referrals.
- * Returns true when the reward was granted (0% commission now applies).
- */
-export async function maybeGrantReferralOnFirstPayment(
-  tx: Tx,
-  userId: string,
-  projectId: string,
-  currentMilestoneId: string
-): Promise<boolean> {
-  const [user] = await tx.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
-  if (!user || !user.referredBy) return false;
-
-  const [refRow] = await tx
-    .select()
-    .from(referralsTable)
-    .where(eq(referralsTable.referredUserId, userId))
-    .limit(1);
-  if (!refRow || refRow.status !== "PENDING") return false;
-
-  // Only the first approved milestone (a real payment) qualifies.
-  const prior = (await tx.execute(
-    sql`SELECT count(*)::int AS c FROM project_milestones ms INNER JOIN projects p ON p.id = ms.project_id WHERE p.user_id = ${userId} AND ms.status = 'APPROVED' AND ms.id <> ${currentMilestoneId}`
-  )) as { rows: { c: number }[] };
-  if (Number(prior?.rows?.[0]?.c ?? 0) > 0) return false;
-
-  const [referrer] = await tx
-    .select({ kycVerified: usersTable.kycVerified, phone: usersTable.phone })
-    .from(usersTable)
-    .where(eq(usersTable.id, refRow.referrerId))
-    .limit(1);
-  if (!referrer || !referrer.kycVerified || !user.kycVerified) return false;
-  if (!referrer.phone || !user.phone || referrer.phone === user.phone) return false;
-
-  const paid = (await tx.execute(
-    sql`SELECT count(*)::int AS c FROM referrals WHERE referrer_id = ${refRow.referrerId} AND status = 'PAID'`
-  )) as { rows: { c: number }[] };
-  if (Number(paid?.rows?.[0]?.c ?? 0) >= MAX_REFERRAL_REWARDS_PER_USER) return false;
-
-  const [proj] = await tx
-    .select({ title: projectsTable.title })
-    .from(projectsTable)
-    .where(eq(projectsTable.id, projectId))
-    .limit(1);
-
-  const [claimed] = await tx
-    .update(referralsTable)
-    .set({ status: "PAID", projectId, zeroCommissionApplied: true, updatedAt: new Date() })
-    .where(and(eq(referralsTable.id, refRow.id), eq(referralsTable.status, "PENDING")))
-    .returning();
-  if (!claimed) return false;
-
-  await tx
-    .update(projectsTable)
-    .set({ zeroCommission: true, updatedAt: new Date() })
-    .where(eq(projectsTable.id, projectId));
-
-  const amount = Number(claimed.rewardAmount) || REFERRAL_REWARD;
-  await creditReferrerReward(
-    tx,
-    claimed.referrerId,
-    amount,
-    `Referral reward — ${user.firstName} ${user.lastName} made their first hire${proj ? ` on "${proj.title}"` : ""}`
-  );
-
-  await tx.insert(notificationsTable).values({
-    userId: user.referredBy,
-    type: "REFERRAL_REWARD",
-    title: "Referral reward earned! 🎉",
-    message: `You earned ₹${amount} in platform credit — ${user.firstName} ${user.lastName} made their first hire. Use it on any service or project.`,
-    linkUrl: "/dashboard.html?tab=refer",
-  });
-  await tx.insert(notificationsTable).values({
-    userId,
-    type: "REFERRAL_BENEFIT",
-    title: "0% commission on your first hire! 🎉",
-    message: "As a referred member, your first hire has 0% platform commission.",
-    linkUrl: "/dashboard.html#my-projects",
-  });
-
-  return true;
-}

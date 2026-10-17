@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, count, and, or, sql } from "drizzle-orm";
-import { db, notificationsTable, transactionsTable, userSubscriptionsTable, projectBidsTable } from "../db";
+import { db, notificationsTable, transactionsTable, userSubscriptionsTable } from "../db";
 import { authenticate } from "../middlewares/authenticate";
 import { PLANS, getPlan, getOrCreateSubscription, PLATFORM_COMMISSION_PCT, type PlanConfig } from "../lib/subscriptions";
 
@@ -77,11 +77,9 @@ router.get("/subscriptions/my-plan", authenticate, async (req: Request, res: Res
     ? Math.max(0, Math.ceil((sub.expiresAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
     : null;
 
-  const [bidCount] = await db
-    .select({ value: count() })
-    .from(projectBidsTable)
-    .where(and(eq(projectBidsTable.userId, req.user!.id), eq(projectBidsTable.status, "PENDING")));
-
+  // Pending bid counts disappeared with the Projects feature; the response
+  // keeps the field shape (0) so old clients do not break, but nothing here
+  // invents a number.
   res.json({
     success: true,
     data: {
@@ -96,7 +94,7 @@ router.get("/subscriptions/my-plan", authenticate, async (req: Request, res: Res
         maxGigsThisCycle: plan.maxActiveGigs,
         projectsCreatedThisCycle: sub.projectsCreatedThisCycle,
         maxProjectsThisCycle: plan.maxActiveProjects,
-        pendingBids: bidCount.value,
+        pendingBids: 0,
       },
     },
   });
