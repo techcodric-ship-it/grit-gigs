@@ -7,6 +7,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { removedRedirectMiddleware } from "./lib/redirect-map";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -84,9 +85,10 @@ app.get("/dashboard/orders", (_req, res) => {
 app.get("/dashboard/:tab", (req, res) => {
   res.redirect(302, "/dashboard.html?tab=" + encodeURIComponent(String(req.params.tab)));
 });
-app.get("/services/:_id", (_req, res) => {
-  res.redirect(302, "/explore?kind=GIG");
-});
+
+// Pivot 301s for removed surfaces (Spotlight / Projects / Gigs) — must run
+// before express.static so /projects, /feed, /explore?kind=… never serve files.
+app.use(removedRedirectMiddleware);
 
 app.use(express.static(publicPath));
 

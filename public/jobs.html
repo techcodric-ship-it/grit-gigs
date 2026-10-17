@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Jobs — Grit&amp;Gigs</title>
+<meta name="description" content="Browse jobs on Grit&amp;Gigs. Direct employer posts with honest source labels and real listings from our job index."/>
+<link rel="icon" href="/favicon.ico?v=8"/>
+<link rel="stylesheet" href="/css/main.css"/>
+<script src="/assets/ui.js" defer></script>
+<link rel="canonical" href="https://www.gritandgigs.in/jobs"/>
+</head>
+<body>
+<nav class="nav" aria-label="Main">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo" aria-label="Grit and Gigs home">
+      <div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div>
+      <span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span>
+    </a>
+    <div class="nav-links">
+      <a href="/jobs">Jobs</a>
+      <a href="/barter">Barter</a>
+      <a href="/blog">Blog</a>
+      <a href="/about">About</a>
+    </div>
+    <div class="nav-actions">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="location.href='/?login=1'">Sign in</button>
+      <button class="btn btn-primary btn-sm" type="button" onclick="location.href='/?signup=1'">Join free</button>
+    </div>
+    <button class="nav-hamburger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="mobile-menu" data-ui="menu-toggle" data-ui-target="mobile-menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="/jobs">Jobs</a>
+    <a href="/barter">Barter</a>
+    <a href="/blog">Blog</a>
+    <a href="/about">About</a>
+    <button class="btn btn-secondary" type="button" onclick="location.href='/?login=1'">Sign in</button>
+    <button class="btn btn-primary" type="button" onclick="location.href='/?signup=1'">Join free</button>
+  </div>
+</nav>
+
+<main class="container">
+  <div class="section-sm">
+    <h1>Jobs</h1>
+    <p class="sg-lead">Real listings from the job index. Every card shows its source.</p>
+
+    <div id="jobsState" class="empty-state" aria-live="polite">
+      <span class="spinner" role="status" aria-label="Loading jobs"></span>
+    </div>
+    <div id="jobsList" class="barter-cards-grid" hidden></div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="nav-logo">
+        <div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div>
+        <div class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></div>
+      </div>
+      <p>Jobs, barter and honest community — built in India.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Product</h4>
+      <a href="/jobs">Jobs</a>
+      <a href="/barter">Barter</a>
+      <a href="/faq">FAQ</a>
+    </div>
+    <div class="footer-col">
+      <h4>Company</h4>
+      <a href="/about">About</a>
+      <a href="/blog">Blog</a>
+      <a href="/contact">Contact</a>
+    </div>
+    <div class="footer-col">
+      <h4>Legal</h4>
+      <a href="/terms">Terms of service</a>
+      <a href="/privacy">Privacy policy</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>&copy; 2026 Grit&amp;Gigs Technologies Pvt. Ltd.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  var state = document.getElementById("jobsState");
+  var list = document.getElementById("jobsList");
+  fetch("/api/jobs").then(function (r) { return r.json(); }).then(function (j) {
+    var rows = (j && j.data) || [];
+    state.innerHTML = "";
+    if (!rows.length) {
+      state.className = "empty-state";
+      state.innerHTML = '<h3>No jobs listed yet</h3><p>New postings appear here as soon as employers add them.</p>';
+      return;
+    }
+    state.hidden = true;
+    list.hidden = false;
+    rows.forEach(function (job) {
+      var card = document.createElement("article");
+      card.className = "card card-hover card-job";
+      var meta = [];
+      if (job.location) meta.push('<span class="badge badge-status">' + esc(job.location) + "</span>");
+      if (job.type) meta.push('<span class="badge badge-status">' + esc(job.type) + "</span>");
+      if (job.salaryRange) meta.push('<span class="badge badge-status">' + esc(job.salaryRange) + "</span>");
+      card.innerHTML =
+        '<div class="card-job-head"><div>' +
+        '<h2 class="card-job-title">' + esc(job.title) + "</h2>" +
+        '<span class="card-job-company">' + esc(job.company) + "</span></div></div>" +
+        '<div class="card-job-meta">' + meta.join("") + "</div>" +
+        '<div class="card-job-foot"><span class="badge badge-source">Source: Grit&amp;Gigs</span></div>';
+      list.appendChild(card);
+    });
+  }).catch(function () {
+    state.className = "error-state";
+    state.innerHTML = '<h3>Could not load jobs</h3><p>Something went wrong. Try again.</p><button class="btn btn-secondary" type="button" onclick="location.reload()">Retry</button>';
+  });
+})();
+</script>
+</body>
+</html>
