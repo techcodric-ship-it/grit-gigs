@@ -470,12 +470,6 @@
   </div>
 </div>
 
-<!-- Service detail modal (populated by openServiceModal from js/main.js) -->
-<div class="modal-overlay service-modal" id="serviceModal">
-  <div class="modal" style="max-width:620px;">
-    <button class="modal-close" onclick="closeModal('serviceModal')">&times;</button>
-    <div style="padding:20px 0;color:var(--text-muted);font-size:0.88rem;">Loading…</div>
-  </div>
 </div>
 
 <div id="toast" class="toast"></div>
@@ -493,38 +487,17 @@
   var note = document.getElementById('ldGridNote');
 
   function card(s) {
-    var fn = s.seller && s.seller.firstName ? s.seller.firstName : '?';
-    var ln = s.seller && s.seller.lastName  ? s.seller.lastName  : '';
-    var initials = ((fn || '?')[0] + (ln || '')[0]).toUpperCase();
-    var pp = (s.seller && s.seller.profilePhoto) || '';
-    var ppEnc = encodeURIComponent(pp);
-    var img = (s.images && s.images[0]) || getDefaultImg(s.category);
-    var price = s.packages && s.packages[0] ? s.packages[0].priceInr : 0;
-    var sellerName = (fn + ' ' + ln).trim() || 'Freelancer';
-    var levelBadge = s.orderCount > 200 ? 'Top Rated' : s.orderCount > 50 ? 'Level 2' : s.orderCount > 10 ? 'Level 1' : 'New';
-    var levelClass = levelBadge === 'Top Rated' ? 'badge-violet' : levelBadge === 'Level 2' ? 'badge-gold' : 'badge-surface';
-    var titleEsc = s.title ? s.title.replace(/'/g, "\\'") : '';
-    var sellerAv = pp
-      ? '<img src="' + escAttr(pp) + '" alt="' + escAttr(sellerName) + '" style="width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;"/>'
-      : '<div class="avatar-placeholder avatar-v" style="width:24px;height:24px;font-size:10px;">' + escHtml(initials) + '</div>';
-    return '<div class="service-card" onclick="openServiceModal(\'' + s.id + '\',\'' + titleEsc + '\',' + price + ',\'' + ppEnc + '\',\'' + (sellerName.replace(/'/g, "\\'")) + '\')">' +
-      '<div class="service-card-img"><img src="' + escAttr(img) + '" alt="' + escAttr(s.title) + '" loading="lazy"/></div>' +
+    var meta = [];
+    if (s.location) meta.push(escHtml(s.location));
+    if (s.type) meta.push(escHtml(s.type));
+    if (s.salaryRange) meta.push(escHtml(s.salaryRange));
+    return '<a class="service-card" href="/jobs?q=' + encodeURIComponent(s.title || '') + '" style="text-decoration:none;color:inherit;display:block;">' +
       '<div class="service-card-body">' +
-        '<div class="service-card-seller">' + sellerAv +
-          '<span class="service-card-seller-name">' + escHtml(sellerName) + kycBadge(s.seller && s.seller.kycVerified) + planBadge(s.seller && s.seller.planBadge) + '</span>' +
-          '<span class="badge ' + levelClass + '" style="font-size:0.68rem;padding:2px 7px;">' + levelBadge + '</span>' +
-        '</div>' +
         '<div class="service-card-title">' + escHtml(s.title) + '</div>' +
-        '<div class="service-card-footer">' +
-          '<div class="service-card-rating">' +
-            '<svg width="12" height="12" viewBox="0 0 24 24" fill="#F59E0B"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>' +
-            (s.ratingAvg ? s.ratingAvg.toFixed(1) : 'New') +
-            '<span style="color:var(--text-muted);font-weight:400;">(' + (s.reviewCount || 0) + ')</span>' +
-          '</div>' +
-          '<div class="service-card-price">From ₹' + price.toLocaleString('en-IN') + '</div>' +
-        '</div>' +
+        '<div class="service-card-seller-name">' + escHtml(s.company || '') + '</div>' +
+        (meta.length ? '<div class="service-card-footer"><span style="font-size:0.8rem;color:var(--text-muted);">' + meta.join(' &middot; ') + '</span><span class="badge badge-source" style="font-size:0.68rem;">Source: job_listing</span></div>' : '') +
       '</div>' +
-    '</div>';
+    '</a>';
   }
 
   function render(svcs, query) {
@@ -544,16 +517,11 @@
     var all = [];
     var byId = function(s) { if (!seen[s.id]) { seen[s.id] = true; all.push(s); } };
     try {
-      var d = await api('/services?category=' + encodeURIComponent(CATEGORY) + (q ? '&q=' + encodeURIComponent(q) : '') + '&limit=6&sort=rating');
-      if (d && d.success && d.data.services) d.data.services.forEach(byId);
+      var term = (q || CATEGORY || '').trim();
+    var d = await api('/jobs' + (term ? '?q=' + encodeURIComponent(term) : ''));
+      if (d && d.success && Array.isArray(d.data)) d.data.slice(0, 6).forEach(byId);
     } catch (e) {}
-    if (all.length < 4) {
-      try {
-        var fb = await api('/services?limit=6&sort=rating');
-        if (fb && fb.success && fb.data.services) fb.data.services.forEach(byId);
-      } catch (e) {}
-    }
-    if (all.length) { render(all.slice(0, 6), q); return; }
+        if (all.length) { render(all.slice(0, 6), q); return; }
     render(null, q);
   };
 
@@ -572,9 +540,7 @@
 
   window.loadCatServices('');
 
-  var svcId = new URLSearchParams(window.location.search).get('id');
-  if (svcId) { window.openServiceModal(svcId); }
-})();
+  })();
 
 function sendForgotPw() {
   var btn = document.getElementById('forgotPwBtn');
