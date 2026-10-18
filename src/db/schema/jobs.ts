@@ -30,9 +30,6 @@ export const jobsTable = pgTable("jobs", {
   postedById: uuid("posted_by_id").references(() => usersTable.id, { onDelete: "set null" }),
   // Admin can pause a job (hide from public listing) without deleting it.
   isActive: boolean("is_active").default(true).notNull(),
-  // Provenance of the listing: "job_listing" (posted directly) or "ai_drafted"
-  // (AI-drafted by the poster before publishing).
-  source: text("source").default("job_listing").notNull(),
   applicationDeadline: timestamp("application_deadline"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

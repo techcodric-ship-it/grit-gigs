@@ -1,6 +1,7 @@
 import { pgTable, pgEnum, text, boolean, integer, real, timestamp, uuid } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
 import { orderStatusEnum } from "./orders";
+import { projectsTable } from "./projects";
 
 export const squadRoleEnum = pgEnum("squad_role", ["LEADER", "MEMBER"]);
 export const squadInviteStatusEnum = pgEnum("squad_invite_status", ["PENDING", "ACCEPTED", "DECLINED"]);
@@ -129,11 +130,9 @@ export const squadReviewsTable = pgTable("squad_reviews", {
   rating: integer("rating").notNull(),
   reviewText: text("review_text"),
   source: text("source").notNull(),
-  // Legacy reference: the project a squad review was earned on. Projects were
-  // archived in the Jobs pivot; the raw id stays so history stays readable,
-  // but it is no longer a foreign key.
   projectId: uuid("project_id")
-    .unique(),
+    .unique()
+    .references(() => projectsTable.id, { onDelete: "set null" }),
   squadOrderId: uuid("squad_order_id")
     .unique()
     .references(() => squadOrdersTable.id, { onDelete: "set null" }),

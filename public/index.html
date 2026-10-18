@@ -4,8 +4,8 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="robots" content="index, follow, max-image-preview:large"/>
-<title>Grit&Gigs - Real Jobs, Skill Barter & Interview Prep in India</title>
-<meta name="description" content="Browse real jobs from direct employers, trade skills through free barter exchanges, practise interview answers and join Grit Circles. India's skill marketplace - sign up free."/>
+<title>Grit&Gigs — India's Skill Marketplace · Barter, Freelance & Earn</title>
+<meta name="description" content="Trade skills for free, freelance for real income, barter instead of buying, and prove your earnings. Skill barter, freelancing and verified income — one platform for India's gig workforce."/>
 <link rel="canonical" href="https://www.gritandgigs.in/"/>
 <link rel="icon" href="/favicon.ico?v=8"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=8"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=8"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=8"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2"/>
 <meta property="og:type" content="website"/>
@@ -14,13 +14,13 @@
 <meta property="og:image:height" content="630"/>
 <meta name="twitter:image" content="https://www.gritandgigs.in/logo-og.png?v=3"/>
 <meta property="og:url" content="https://www.gritandgigs.in/"/>
-<meta property="og:title" content="Grit&Gigs - Real Jobs, Skill Barter & Interview Prep"/>
-<meta property="og:description" content="Real jobs, free skill barter and honest interview practice in one place. Sign up free with Grit&Gigs."/>
+<meta property="og:title" content="Grit&Gigs — India's Skill Marketplace"/>
+<meta property="og:description" content="Trade skills for free, freelance for real income, barter instead of buying. Skill barter, freelancing and verified income — sign up free with Google."/>
 <meta property="og:site_name" content="Grit&Gigs"/>
 <meta property="og:locale" content="en_IN"/>
 <meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="Grit&Gigs - Real Jobs, Skill Barter & Interview Prep"/>
-<meta name="twitter:description" content="Real jobs, skill barter and verified income proof for India's workforce. Sign up free with Grit&Gigs."/>
+<meta name="twitter:title" content="Grit&Gigs — India's Skill Marketplace"/>
+<meta name="twitter:description" content="Skill barter, freelancing and verified income proof for India's gig workforce. Sign up free with Google."/>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -30,7 +30,7 @@
       "@id": "https://www.gritandgigs.in/#organization",
       "name": "Grit&Gigs",
       "url": "https://www.gritandgigs.in/",
-      "description": "Real jobs from direct employers, free skill barter, and interview practice — prove your earnings with a verified Income Passport.",
+      "description": "India's skill marketplace — barter skills for free, freelance for real income, and prove your earnings with a verified Income Passport.",
       "foundingDate": "2025",
       "areaServed": "IN",
       "founder": { "@type": "Person", "name": "Amuthavanan", "jobTitle": "Founder" },
@@ -56,7 +56,7 @@
   "mainEntity": [
     { "@type": "Question", "name": "What is skill barter on Grit&Gigs?", "acceptedAnswer": { "@type": "Answer", "text": "Skill barter is trading your skill for another person's skill — no money involved. Post what you offer and what you need, get AI-matched with the right person, and trade directly." } },
     { "@type": "Question", "name": "How do freelancers get paid on Grit&Gigs?", "acceptedAnswer": { "@type": "Answer", "text": "Buyers pay into a secure credit-based escrow (1 credit = ₹100). Money is released only when you deliver, and you withdraw directly to your bank account." } },
-    { "@type": "Question", "name": "What is the Income Passport?", "acceptedAnswer": { "@type": "Answer", "text": "Your UPI credits, client payouts and invoices become a verified income document — useful for rental agreements, loans and visa applications." } }
+    { "@type": "Question", "name": "What is the Income Passport?", "acceptedAnswer": { "@type": "Answer", "text": "Your UPI credits, gig payouts and invoices become a verified income document — useful for rental agreements, loans and visa applications." } }
   ]
 }
 </script>
@@ -113,6 +113,8 @@
     transition:all .25s ease;
   }
   .nav-logo:hover .nav-logo-mark{transform:translateY(-1px);border-color:rgba(108,63,232,.35);box-shadow:0 6px 20px rgba(108,63,232,.16);}
+  .logo-g-black{color:#0A0A0F;}
+  .logo-g-blue{color:#6C3FE8;}
   .nav-logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;letter-spacing:-.04em;display:flex;align-items:center;}
   .logo-text-black{color:#0A0A0F;}
   .logo-text-blue{color:#6C3FE8;margin-left:3px;}
@@ -422,72 +424,6 @@
     .dash-body{grid-template-columns:1fr;}
     .dash-side{display:none;}
   }
-
-  /* sticky header */
-  header.site{
-    position:sticky;top:0;z-index:50;
-    background:rgba(250,248,255,.86);
-    -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
-    border-bottom:1px solid transparent;
-    transition:border-color .2s ease, box-shadow .2s ease;
-  }
-  header.site.scrolled{border-bottom-color:var(--line);box-shadow:0 8px 30px rgba(91,38,182,.07);}
-
-  /* mobile nav toggle */
-  .nav-toggle{
-    display:none;width:42px;height:42px;padding:0;
-    border:1.5px solid var(--line);background:var(--card);border-radius:12px;cursor:pointer;
-    flex-direction:column;align-items:center;justify-content:center;gap:4px;
-  }
-  .nav-toggle span{width:16px;height:2px;background:var(--ink);border-radius:2px;transition:transform .2s ease,opacity .2s ease;}
-  .nav-toggle.open span:nth-child(1){transform:translateY(6px) rotate(45deg);}
-  .nav-toggle.open span:nth-child(2){opacity:0;}
-  .nav-toggle.open span:nth-child(3){transform:translateY(-6px) rotate(-45deg);}
-
-  .hero-how{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:600;color:var(--purple);text-decoration:none;margin-top:16px;}
-  .hero-how:hover{text-decoration:underline;text-underline-offset:3px;}
-  .hero-how svg{width:12px;height:12px;stroke-width:2.2;}
-
-  /* platform tiles */
-  .tile-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
-  .tile{
-    display:flex;flex-direction:column;gap:10px;text-decoration:none;
-    border:1px solid var(--line);border-radius:18px;background:var(--card);padding:22px 20px;
-    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-  }
-  .tile:hover{transform:translateY(-4px);box-shadow:var(--shadow-sm);border-color:rgba(124,58,237,.35);}
-  .tile-icon{
-    width:44px;height:44px;border-radius:14px;background:var(--tint);color:var(--purple);
-    display:flex;align-items:center;justify-content:center;
-  }
-  .tile-icon svg{width:21px;height:21px;stroke-width:1.8;}
-  .tile h3{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;letter-spacing:-.01em;color:var(--ink);}
-  .tile p{font-size:.84rem;color:var(--ink-2);flex:1;}
-  .tile .tile-go{font-family:'Space Mono',monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--purple);}
-
-  .btn-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
-
-  @media(max-width:880px){
-    .nav-toggle{display:flex;}
-    .nav{
-      display:none;width:100%;flex-direction:column;align-items:stretch;gap:0;
-      background:var(--card);border:1px solid var(--line);border-radius:16px;
-      padding:8px;margin-top:10px;box-shadow:var(--shadow-sm);
-    }
-    .nav.open{display:flex;}
-    .nav a{padding:11px 14px;border-radius:10px;font-size:.92rem;}
-    .nav a:hover{background:var(--tint);}
-    .nav .btn-link{text-align:center;margin-top:6px;}
-    .tile-grid{grid-template-columns:repeat(2,1fr);}
-  }
-  @media(max-width:560px){
-    .tile-grid{grid-template-columns:1fr;}
-  }
-  @media (prefers-reduced-motion: reduce){
-    .trust-track,.blob{animation:none;}
-    html{scroll-behavior:auto;}
-    .tile:hover,.how-card:hover,.x-card:hover,.svc-card:hover,.blog-card:hover,.btn-pill:hover{transform:none;}
-  }
 </style>
 </head>
 <body>
@@ -495,23 +431,18 @@
 <div class="blob blob-v"></div>
 <div class="blob blob-p"></div>
 
-<header class="site">
+<header>
   <div class="wrap bar">
     <a class="nav-logo" href="/" aria-label="Grit&Gigs home">
       <div class="nav-logo-mark"><img src="/logo.svg" alt="" width="32" height="32"></div>
       <span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span>
     </a>
-    <button class="nav-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="mainNav">
-      <span></span><span></span><span></span>
-    </button>
-    <nav class="nav" id="mainNav" aria-label="Main">
-      <a href="#how">How it works</a>
-      <a href="/jobs">Jobs</a>
-      <a href="/barter">Skill Exchange</a>
-      <a href="/prep">Interview Prep</a>
-      <a href="/circle">Grit Circles</a>
-      <a href="/?login=1">Sign in</a>
-      <a href="/?signup=1" class="btn-link">Join free</a>
+    <nav class="nav" aria-label="Main">
+      <a href="#how" class="link">How it works</a>
+      <a href="#barter" class="link">Skill Exchange</a>
+      <a href="#freelance" class="link">Freelance</a>
+      <a href="#blog" class="link">Blog</a>
+      <a href="#barter" class="btn-link">Join free</a>
     </nav>
   </div>
 </header>
@@ -521,17 +452,16 @@
   <section class="hero-wrap">
     <div class="split">
       <div class="left">
-        <p class="eyebrow">Jobs · Skill Barter · Interview Prep</p>
-        <h1>Real jobs.<br/><span class="grad">Real skill trades.</span></h1>
+        <p class="eyebrow">India's skill marketplace</p>
+        <h1>Barter skills.<br/><span class="grad">Freelance for real money.</span></h1>
         <p class="lead">
-          Browse direct employer posts and apply in minutes, or trade your skill for someone else's.
-          Either way, <strong>prove every rupee you earn</strong> with a verified Income Passport.
+          No cash? Trade your skill for someone else's. Want income? Get hired, get paid securely, and
+          <strong>prove every rupee you earn</strong> with a verified Income Passport.
         </p>
         <div class="hero-links">
-          <a class="btn-pill primary" href="/?signup=1">Create free account</a>
-          <a class="btn-pill ghost" href="/jobs">Browse jobs</a>
+          <a class="btn-pill primary" href="#barter">Start for free</a>
+          <a class="btn-pill ghost" href="#how">See how it works</a>
         </div>
-        <a class="hero-how" href="#how">See how it works <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg></a>
         <div class="stats">
           <div class="stat"><b>28,000+</b><span>Active members</span></div>
           <div class="stat"><b>9,400+</b><span>Skills exchanged</span></div>
@@ -541,10 +471,10 @@
           <div class="mock-screen">
             <div class="mock-top">
               <span class="mock-nav">hustle/<span class="n">feed</span></span>
-              <span class="mock-nav">+ jobs · barter</span>
+              <span class="mock-nav">+ freelance · barter</span>
             </div>
             <div class="mock-post">
-              <div class="m-ph"><span class="chip">₹499 · design job</span></div>
+              <div class="m-ph"><span class="chip">₹499 · design gig</span></div>
               <div class="m-actions"><span>♥ 1.2k</span><span>comments 214</span><span>share 89</span></div>
               <div class="m-bar"><i></i></div>
               <div class="m-caption"><b>@ak.dzn</b> — Logo for a cafe startup, done in 6 hours. HustleScore +8.</div>
@@ -645,57 +575,21 @@
       <div class="how-card">
         <span class="badge badge-g">Earn real money</span>
         <span class="how-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M8 11h8M8 15h5"/></svg></span>
-        <h3>Real Jobs</h3>
-        <p>Browse real jobs from direct employers, apply with your profile, and skip the bidding wars. Honest listings with source labels.</p>
-        <div class="how-step"><i>1</i><span>Find roles that match your skills</span></div>
-        <div class="how-step"><i>2</i><span>Apply straight to the employer</span></div>
-        <div class="how-step"><i>3</i><span>Get hired and get paid securely</span></div>
+        <h3>Freelance Marketplace</h3>
+        <p>List your services, get hired by thousands of buyers, and get paid through secure credit-based escrow you can withdraw anytime.</p>
+        <div class="how-step"><i>1</i><span>Create your service in 5 minutes</span></div>
+        <div class="how-step"><i>2</i><span>Buyers pay into escrow (1 credit = ₹100)</span></div>
+        <div class="how-step"><i>3</i><span>Deliver, get paid, withdraw to bank</span></div>
       </div>
       <div class="how-card">
         <span class="badge badge-c">Income proof</span>
         <span class="how-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg></span>
         <h3>Income Passport</h3>
-        <p>Every UPI credit, client payout and invoice becomes a verified income document — accepted by landlords, banks and visa officers.</p>
+        <p>Every UPI credit, gig payout and invoice becomes a verified income document — accepted by landlords, banks and visa officers.</p>
         <div class="how-step"><i>1</i><span>Work, trade and get paid on-platform</span></div>
         <div class="how-step"><i>2</i><span>Earnings auto-verified in real time</span></div>
         <div class="how-step"><i>3</i><span>Download your Income Passport anytime</span></div>
       </div>
-    </div>
-  </section>
-
-  <!-- PLATFORM TILES -->
-  <section class="wrap section" id="platform">
-    <div class="sec-head">
-      <span class="sec-num">THE PLATFORM</span>
-      <h2>Everything you need in one place</h2>
-      <span class="rule"></span>
-    </div>
-    <p class="sec-sub">Four surfaces, one free account — hunt roles, trade skills, prep for interviews and stay accountable with your circle.</p>
-    <div class="tile-grid">
-      <a class="tile" href="/jobs">
-        <span class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/></svg></span>
-        <h3>Jobs</h3>
-        <p>Fresh roles from direct employers, every listing labelled with its source. Apply straight to the hiring team — no bidding wars.</p>
-        <span class="tile-go">Browse jobs →</span>
-      </a>
-      <a class="tile" href="/barter">
-        <span class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16V4m0 0L3 8m4-4 4 4M17 8v12m0 0 4-4m-4 4-4-4"/></svg></span>
-        <h3>Skill Barter</h3>
-        <p>Trade what you're good at for what you need. AI matches you with the right person — zero fees, no cash involved.</p>
-        <span class="tile-go">Open barter →</span>
-      </a>
-      <a class="tile" href="/prep">
-        <span class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H7l-4 3V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"/><path d="M9 12l2 2 4-4"/></svg></span>
-        <h3>Interview Prep</h3>
-        <p>Practise real questions with instant feedback across six tracks, and walk into the room knowing your answers land.</p>
-        <span class="tile-go">Start practising →</span>
-      </a>
-      <a class="tile" href="/circle">
-        <span class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/><path d="M15 3.13a4 4 0 0 1 0 7.75"/></svg></span>
-        <h3>Grit Circles</h3>
-        <p>Small peer groups that keep you shipping — weekly check-ins, honest feedback and people chasing the same goals.</p>
-        <span class="tile-go">Join a circle →</span>
-      </a>
     </div>
   </section>
 
@@ -733,7 +627,7 @@
           </div>
           <div class="x-foot"><span class="x-ago">Posted 1 day ago</span><a class="x-cta" href="#barter">Match me</a></div>
         </div>
-        <a class="x-card" href="/barter" style="text-decoration:none;color:inherit;">
+        <a class="x-card" href="/explore?kind=BARTER" style="text-decoration:none;color:inherit;">
           <span class="badge badge-v" style="align-self:flex-start;">Browse all</span>
           <h3 style="font-family:'Syne',sans-serif;font-size:1.05rem;">9,400+ exchanges completed</h3>
           <p style="font-size:.86rem;color:var(--ink-2);">Zero fees. Pure skill trade. Post your exchange and get matched in minutes.</p>
@@ -746,11 +640,11 @@
   <!-- FREELANCE -->
   <section class="wrap section" id="freelance">
     <div class="sec-head">
-      <span class="sec-num">REAL JOBS</span>
+      <span class="sec-num">FREELANCE MARKETPLACE</span>
       <h2>Hire a skilled professional</h2>
       <span class="rule"></span>
     </div>
-    <p class="sec-sub">Real jobs from direct employers plus skilled professionals ready to hire — across India.</p>
+    <p class="sec-sub">Browse verified services from talented Indian professionals — escrow-protected payments on every order.</p>
     <div class="cat-pills">
       <span class="cat-pill on">All</span>
       <span class="cat-pill">Design &amp; Creative</span>
@@ -795,7 +689,7 @@
       </a>
     </div>
     <div style="text-align:center;margin-top:26px;">
-      <a class="btn-pill ghost" href="/jobs">Find real jobs →</a>
+      <a class="btn-pill ghost" href="/explore?kind=GIG">View 2,000+ services →</a>
     </div>
   </section>
 
@@ -897,11 +791,11 @@
   <!-- CTA -->
   <section class="wrap">
     <div class="cta-card">
-      <h2>Find your next job or trade a skill. It's completely free.</h2>
+      <h2>Start bartering today. It's completely free.</h2>
       <p>No credit card. No hidden fees. Just sign up and start trading your skills for things you actually need — or start earning real money.</p>
-      <div class="btn-row">
-        <a class="btn-pill primary" href="/?signup=1">Create free account</a>
-        <a class="btn-pill ghost" href="/jobs">Browse jobs</a>
+      <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+        <a class="btn-pill primary" href="#barter">Create free account</a>
+        <a class="btn-pill ghost" href="#how">Learn more</a>
       </div>
     </div>
   </section>
@@ -914,14 +808,13 @@
         <div class="nav-logo-mark"><img src="/logo.svg" alt="" width="32" height="32"></div>
         <span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span>
       </a>
-      <p>Real jobs from direct employers, free skill barter, and interview practice — prove every rupee you earn.</p>
+      <p>India's skill marketplace — barter skills for free, freelance for real income, and prove every rupee you earn.</p>
     </div>
     <div class="foot-col">
       <h4>Platform</h4>
-      <a href="/jobs">Browse jobs</a>
-      <a href="/barter">Skill Exchange</a>
-      <a href="/prep">Interview Prep</a>
-      <a href="/circle">Grit Circles</a>
+      <a href="/explore?kind=BARTER">Skill Exchange</a>
+      <a href="/explore?kind=GIG">Freelance</a>
+      <a href="/explore?kind=PROJECT">Browse projects</a>
       <a href="rate-calculator.html">Rate calculator</a>
       <a href="refer-and-earn.html">Refer &amp; earn</a>
     </div>
@@ -950,30 +843,6 @@
 
 <script>
 (function () {
-  var header = document.querySelector("header.site");
-  var toggle = document.querySelector(".nav-toggle");
-  var nav = document.getElementById("mainNav");
-  function onScroll() { if (header) header.classList.toggle("scrolled", window.scrollY > 8); }
-  window.addEventListener("scroll", onScroll, { passive: true });
-  onScroll();
-  if (toggle && nav) {
-    toggle.addEventListener("click", function () {
-      var open = nav.classList.toggle("open");
-      toggle.classList.toggle("open", open);
-      toggle.setAttribute("aria-expanded", open ? "true" : "false");
-    });
-    nav.addEventListener("click", function (e) {
-      if (e.target && e.target.tagName === "A") {
-        nav.classList.remove("open");
-        toggle.classList.remove("open");
-        toggle.setAttribute("aria-expanded", "false");
-      }
-    });
-  }
-})();
-</script>
-<script>
-(function () {
   var API = '/api';
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]; }); }
@@ -997,7 +866,7 @@
   var qs = new URLSearchParams(window.location.search);
   var wantLogin = qs.get('login') === '1';
   var wantSignup = qs.get('signup') === '1';
-  var nextPath = qs.get('next') || '/circle';
+  var nextPath = qs.get('next') || '/feed';
   if (read('se_token')) {
     location.replace(nextPath);
     return;

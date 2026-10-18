@@ -1,0 +1,297 @@
+import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+// The Spotlight explainer page shipped laid out sideways because it defined a
+// `.wrap` class and feed.css also defines `.wrap` as a flex row. Nothing in the
+// test suite or the deploy script looked at CSS, so a 200 response and a green
+// build both said "fine". These tests treat the static pages as part of the
+// product: a collision or a stale cache-buster is a build failure.
+
+const ROOT = resolve(__dirname, "..", "..");
+const html = (p: string) => readFileSync(resolve(ROOT, "public", p), "utf8");
+const css = () => readFileSync(resolve(ROOT, "public", "assets", "feed.css"), "utf8");
+const js = () => readFileSync(resolve(ROOT, "public", "assets", "feed-app.js"), "utf8");
+
+const FEED_PAGES = [
+  "feed.html",
+  "profile.html",
+  "explore.html",
+  "spotlight-boost.html",
+  "buy-more.html",
+  "messages.html",
+  "notifications.html",
+  "orders.html",
+  "settings.html",
+  "wallet.html",
+];
+
+// Selectors defined outside any scoped wrapper. feed.css is a global
+// stylesheet, so anything a page adds under one of these names silently
+// inherits whatever feed.css already decided.
+function stripComments(cssText: string): string {
+  return cssText.replace(/\/\*[\s\S]*?\*\//g, "");
+}
+
+function styleBlocks(source: string): string[] {
+  return [...source.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map((m) => stripComments(m[1]));
+}
+
+function unscopedClasses(source: string): Set<string> {
+  const out = new Set<string>();
+  for (const cssText of styleBlocks(source)) {
+    for (const m of cssText.matchAll(/(^|[},])\s*\.([a-zA-Z][\w-]*)\s*[,{]/g)) {
+      out.add(m[2]);
+    }
+  }
+  return out;
+}
+
+function feedCssClasses(): Set<string> {
+  const out = new Set<string>();
+  for (const m of css().matchAll(/(^|[},])\s*\.([a-zA-Z][\w-]*)\s*[,{]/g)) out.add(m[2]);
+  return out;
+}
+
+describe("static page CSS isolation", () => {
+  it("the explainer page defines no class that feed.css also defines", () => {
+    // This is the exact bug: both sides owned ".wrap".
+    const collide = [...unscopedClasses(html("spotlight-boost.html"))].filter((c) =>
+      feedCssClasses().has(c),
+    );
+    expect(collide).toEqual([]);
+  });
+
+  it("the explainer page wraps every rule in its own namespace", () => {
+    const blocks = styleBlocks(html("spotlight-boost.html"));
+    expect(blocks.length).toBeGreaterThan(0);
+    // Comments are stripped first: they name the classes that used to collide,
+    // and they are documentation rather than selectors.
+    for (const rule of blocks.join("\n").matchAll(/(^|[};])\s*([^{};@]+?)\s*\{/g)) {
+      const selector = rule[2].trim();
+      if (selector.startsWith("@")) continue;
+      expect(selector.startsWith(".sboost")).toBe(true);
+    }
+  });
+
+  it("the explainer page resets display on its own wrapper", () => {
+    // Belt and braces: if someone reintroduces flex here the page dies sideways
+    // again, and this catches it even if the class name is unique.
+    expect(html("spotlight-boost.html")).toMatch(/\.sboost\s*\{[^}]*display:\s*block/);
+  });
+});
+
+describe("Spotlight markup hooks", () => {
+  it("reads live counters with the exact field names the API returns", () => {
+    // renderPosts() sends reach/impressions/clicks. The profile card used to
+    // read reachCount/clickCount, which no payload has ever contained, so the
+    // counter rendered a permanent "0 reached · 0 opened" over real rows.
+    const profile = html("profile.html");
+    expect(profile).toMatch(/live\.reach\s*\|\|\s*0/);
+    expect(profile).toMatch(/live\.clicks\s*\|\|\s*0/);
+    expect(profile).not.toContain("reachCount");
+    expect(profile).not.toContain("clickCount");
+  });
+
+  it("keeps feed-app.js and profile.html on the same counter names", () => {
+    const feed = readFileSync(resolve(ROOT, "public", "assets", "feed-app.js"), "utf8");
+    for (const name of ["reach", "impressions", "clicks"]) {
+      expect(feed).toContain(name);
+    }
+    // Anything shaped like *Count has never been part of the API contract.
+    expect(feed).not.toMatch(/sp\.\w+Count/);
+  });
+
+  it("only offers Boost on your own posts, not ones you liked", () => {
+    // renderSpotPanel() is fed by renderPostList() on every tab. LIKED and
+    // COMMENTED return other people's posts, so a kind-only filter put a live
+    // Boost button on someone else's gig. Ownership must be part of the filter.
+    const profile = html("profile.html");
+    expect(profile).toMatch(/r\.post\.userId\s*===\s*lm\.id/);
+    // The ownership check has to sit in the same filter as the kind check.
+    expect(profile).toMatch(/userId\s*===\s*lm\.id\s*&&\s*\n?\s*\(r\.post\.kind/);
+  });
+
+  it("reads gig text from content, because community_posts has no title", () => {
+    // `p.title` is always undefined here and rendered as "Untitled".
+    const profile = html("profile.html");
+    expect(profile).toContain("p.content");
+    expect(profile).not.toMatch(/p\.title\s*\|\|\s*'/);
+  });
+
+  it("gives every profile row a text column and a button column", () => {
+    const profile = html("profile.html");
+    expect(profile).toContain('class="psp-main"');
+    expect(profile).toContain('class="psp-meta"');
+    expect(profile).toContain('class="psp-chip"');
+  });
+
+  it("ships CSS for every Spotlight class the pages reference", () => {
+    // A renamed class in markup with no matching rule renders unstyled, which
+    // is how the old panel looked misaligned.
+    const styles = css();
+    const needed = [
+      ".pspot-head",
+      ".pspot-eyebrow",
+      ".pspot-title",
+      ".pspot-more",
+      ".psp-row",
+      ".psp-main",
+      ".psp-name",
+      ".psp-meta",
+      ".psp-chip",
+      ".psp-live",
+      ".psp-btn",
+      ".spcard-eyebrow",
+      ".spcard-title",
+      ".spcard-sub",
+      ".spcard-stat",
+      ".spcard-prices",
+      ".spcard-cta",
+      ".spcard-more",
+      ".spot-demand",
+      ".spot-demand-box",
+    ];
+    for (const sel of needed) {
+      expect(styles.includes(sel), `feed.css is missing ${sel}`).toBe(true);
+    }
+  });
+
+  it("has left no dead selectors from earlier iterations", () => {
+    // Removed when the cards were rebuilt; keeping them invites reuse-by-accident.
+    const styles = css();
+    for (const dead of [".psp-txt", ".psp-kind", ".psp-stats", ".spc-body", ".spc-prices", ".spc-cta", ".spot-promo-card"]) {
+      expect(styles.includes(dead), `dead selector ${dead} is still in feed.css`).toBe(false);
+    }
+  });
+});
+
+describe("sticky sidebar reachability", () => {
+  // The Spotlight card made the feed sidebar taller than the viewport. A sticky
+  // element sticks by its top edge, so the overflow below the fold scrolls up
+  // out of view and can never be reached again: at maximum page scroll the
+  // footer sat 404px above the fold and the user rail was unreachable. Capping
+  // the height and scrolling inside the sidebar is what makes it reachable.
+  it("caps a sticky sidebar to the viewport and lets it scroll", () => {
+    const rule = css().match(/\.sidebar\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(rule).toMatch(/position:\s*sticky/);
+    expect(rule, "sticky sidebar must be height-limited or its overflow is unreachable").toMatch(
+      /max-height:[^;]*vh/,
+    );
+    expect(rule).toMatch(/overflow-y:\s*auto/);
+  });
+
+  it("leaves no uncapped sticky rule in the shared stylesheet", () => {
+    // Scoped to feed.css on purpose. A sticky element only becomes unreachable
+    // when its height grows with its content, which CSS text cannot tell apart
+    // from a short fixed nav bar, so sweeping every page would just flag the
+    // harmless topbars in admin.html and the design pages. feed.css is shared by
+    // every feed-family page and is where a tall sticky container would be added.
+    const sticky = [...css().matchAll(/([.#][\w-]+)\s*\{([^}]*position:\s*sticky[^}]*)\}/g)];
+    expect(sticky.length).toBeGreaterThan(0);
+    for (const [, selector, body] of sticky) {
+      expect(body, `feed.css ${selector} is sticky with no height bound`).toMatch(
+        /(max-height|height):[^;]*(vh|px)/,
+      );
+    }
+  });
+});
+
+describe("asset cache versioning", () => {
+  it("points every feed page at the same feed.css version", () => {
+    // One page left behind serves old CSS against new markup and looks broken.
+    const versions = new Map<string, string[]>();
+    for (const page of FEED_PAGES) {
+      const v = html(page).match(/feed\.css\?v=(\d+)/)?.[1];
+      expect(v, `${page} does not pin a feed.css version`).toBeTruthy();
+      versions.set(v!, [...(versions.get(v!) ?? []), page]);
+    }
+    expect(versions.size).toBe(1);
+  });
+
+  it("points every feed page at the same feed-app.js version", () => {
+    const versions = new Set(
+      FEED_PAGES.map((page) => html(page).match(/feed-app\.js\?v=(\d+)/)?.[1]),
+    );
+    expect([...versions].filter(Boolean).length).toBe(1);
+  });
+});
+
+describe("Spotlight honesty", () => {
+  it("states plainly that views and leads are not guaranteed", () => {
+    const boost = html("spotlight-boost.html");
+    expect(boost).toMatch(/No guaranteed view/i);
+    expect(boost).toMatch(/No guaranteed leads/i);
+    expect(boost).toMatch(/reaches no one/i);
+  });
+
+  it("never turns a disclaimer into a promise", () => {
+    // "No guaranteed views" is a disclaimer and must stay allowed; what must
+    // never appear is a number attached to a guarantee.
+    const boost = html("spotlight-boost.html");
+    expect(boost).not.toMatch(/guarantee[sd]?\s+\d/i);
+    expect(boost).not.toMatch(/\d+\s*\+?\s*(views?|reach|reached|opens?|clicks?|leads?)\s+(every|guaranteed)/i);
+    expect(boost).not.toMatch(/\bup to \d+\s*\+?\s*(views?|leads?)/i);
+  });
+
+  it("prices the packs exactly as the server charges", () => {
+    const boost = html("spotlight-boost.html");
+    expect(boost).toContain("&#8377;50");
+    expect(boost).toContain("&#8377;199");
+    expect(boost).toContain("&#8377;499");
+  });
+
+  it("gives the empty demand state its own treatment, not the number layout", () => {
+    // A phrase must never occupy the numeral slot. The stat box is a
+    // number-and-label layout in a 215px column, so 20px display type beside a
+    // sentence is what made the empty state look broken.
+    const feed = html("feed.html");
+    expect(feed).toContain('class="spc-flag"');
+    expect(feed).toContain('class="spc-note"');
+    expect(feed).not.toMatch(/<b>[^<]*[Pp]ost a gig/);
+    expect(css()).toMatch(/\.spcard-stat\.empty\s*\{[^}]*border-style:\s*dashed/);
+  });
+
+  it("shows an honest zero instead of a fabricated number", () => {
+    const feed = html("feed.html");
+    expect(feed).toContain("Post a gig first");
+    expect(feed).toContain("Check the number before you pay");
+  });
+
+  it("reads the signed-in user's own gig tags, not the first card's", () => {
+    const feed = html("feed.html");
+    // Ownership must be scoped. Reading the first GIG/PROJECT card on the page
+    // returned another person's keywords.
+    expect(feed).not.toMatch(/querySelector\('\.card\[data-kind="GIG"\]/);
+    expect(feed).toMatch(/\[data-mine="1"\]\[data-kind="GIG"\]/);
+    // renderPost has to actually set it.
+    expect(js()).toMatch(/if \(isMine\) el\.dataset\.mine\s*=\s*'1'/);
+  });
+
+  it("distinguishes no gigs from gigs that have no keywords", () => {
+    const feed = html("feed.html");
+    // Someone who already posted a gig must not be told to post one. The panel
+    // used one branch for both, so a gig with no tags read as "no gigs yet".
+    expect(feed).toMatch(/if \(!info\.hasGig\)/);
+    expect(feed).toMatch(/if \(!tags\.length\)/);
+    expect(feed).toContain("No keywords yet");
+    expect(feed).toMatch(/Add keywords to your gig/);
+    // The no-gigs branch must still exist and stay the hasGig one.
+    expect(feed).toContain("No gigs yet");
+  });
+  it("re-runs the demand promo after the feed renders, not just on page load", () => {
+    const feed = html("feed.html");
+    // The promo reads .card elements out of the DOM. Called inline at the bottom
+    // of the IIFE it ran before the feed fetch resolved, found no cards, and
+    // told every signed-in user they had no gigs.
+    const start = feed.indexOf("function loadFeed(");
+    // Bound the search to loadFeed's own body: the page-load call further down
+    // would otherwise satisfy the check on its own.
+    const body = feed.slice(start, feed.indexOf("function loadSuggest(", start));
+    const renderIdx = body.indexOf("c.renderPost(row)");
+    const promoIdx = body.indexOf("loadSpotPromo()", renderIdx);
+    expect(start).toBeGreaterThan(-1);
+    expect(renderIdx).toBeGreaterThan(-1);
+    expect(promoIdx, "loadSpotPromo must run after renderPost inside loadFeed").toBeGreaterThan(renderIdx);
+  });
+});

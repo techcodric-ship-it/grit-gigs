@@ -1,4 +1,4 @@
-import { db, conversationsTable, communityOrdersTable, ordersTable, barterMatchesTable } from "../db";
+import { db, conversationsTable, communityOrdersTable, ordersTable, barterMatchesTable, projectBidsTable, projectsTable } from "../db";
 import { eq, and, or, inArray, ne, sql } from "drizzle-orm";
 
 const COMMUNITY_ACCEPTED = ["IN_PROGRESS", "DELIVERED", "REVISION", "COMPLETED"];
@@ -39,6 +39,20 @@ export async function hasAcceptedDeal(a: string, b: string): Promise<boolean> {
     ))
     .limit(1);
   if (m) return true;
+
+  const [pb] = await db
+    .select({ id: projectBidsTable.id })
+    .from(projectBidsTable)
+    .innerJoin(projectsTable, eq(projectBidsTable.projectId, projectsTable.id))
+    .where(and(
+      eq(projectBidsTable.status, "ACCEPTED"),
+      or(
+        and(eq(projectBidsTable.userId, a), eq(projectsTable.userId, b)),
+        and(eq(projectBidsTable.userId, b), eq(projectsTable.userId, a)),
+      ),
+    ))
+    .limit(1);
+  if (pb) return true;
 
   return false;
 }

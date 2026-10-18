@@ -13,10 +13,11 @@ const ROOT = resolve(__dirname, "..", "..");
 const html = (p: string) => readFileSync(resolve(ROOT, "public", p), "utf8");
 const css = () => readFileSync(resolve(ROOT, "public", "assets", "feed.css"), "utf8");
 
-// Every page that renders the top-bar icon row. (feed.html and explore.html
-// were removed in the Jobs pivot; their URLs now 301 to /circle and /jobs.)
+// Every page that renders the top-bar icon row.
 const PAGES = [
   "buy-more.html",
+  "explore.html",
+  "feed.html",
   "messages.html",
   "notifications.html",
   "orders.html",

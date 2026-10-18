@@ -21,14 +21,14 @@
 <div class="toast" id="toast"></div>
 
 <header class="topnav">
-  <a class="nav-logo" href="/circle" title="Grit&Gigs home"><div class="nav-logo-mark"><img src="/logo.svg" alt="" width="32" height="32"></div><span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span></a>
+  <a class="nav-logo" href="/feed" title="Grit&Gigs home"><div class="nav-logo-mark"><img src="/logo.svg" alt="" width="32" height="32"></div><span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span></a>
   <div class="searchwrap">
       <div class="searchbox"><input id="navSearch" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="navSearchDrop" aria-autocomplete="list" placeholder="Search gigs, projects, barter…"/></div>
       <div class="searchdrop" id="navSearchDrop" role="listbox" aria-label="Search suggestions"></div>
     </div>
   <div class="icons">
-    <a href="/circle" title="Feed"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.7V21h14V9.7"/></svg></a>
-    <a href="/jobs" title="Explore"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.3 16.3 4.2 4.2"/></svg></a>
+    <a href="/feed" title="Feed"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.7V21h14V9.7"/></svg></a>
+    <a href="/explore.html" title="Explore"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.3 16.3 4.2 4.2"/></svg></a>
     <a class="badge" href="/messages.html" title="Messages"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/></svg><span class="cnt" id="msgBadge" style="display:none;">0</span></a>
     <a href="/notifications.html" class="badge on" title="Inbox"><svg viewBox="0 0 24 24"><path d="M12 20.3 4.9 13a4.7 4.7 0 0 1 6.6-6.6l.5.5.5-.5A4.7 4.7 0 0 1 19 13Z"/></svg><span class="cnt" id="notifBadge" style="display:none;">0</span></a>
     <a href="/orders.html" title="Orders"><svg viewBox="0 0 24 24"><path d="M21 8.2 12 3 3 8.2v7.6L12 21l9-5.2Z"/><path d="M3.3 8.3 12 13.3l8.7-5"/><path d="M12 13.3V21"/></svg></a>
@@ -117,35 +117,11 @@
 
   var navSearch = $('navSearch');
   navSearch.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' && navSearch.value.trim()) location.href = '/jobs?q=' + encodeURIComponent(navSearch.value.trim());
+    if (e.key === 'Enter' && navSearch.value.trim()) location.href = '/explore.html?q=' + encodeURIComponent(navSearch.value.trim());
   });
 
   var list = $('ntfList');
-  var svg = function (paths, extra) {
-    return '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' + (extra || '') + '>' + paths + '</svg>';
-  };
-  var ICO_HEART = svg('<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l8.8 8.9 8.8-8.9a5.5 5.5 0 0 0 0-7.8z"/>');
-  var ICO_CHAT = svg('<path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.9-.9L3 21l2-4.9A8.4 8.4 0 0 1 12 3.1a8.4 8.4 0 0 1 9 8.4z"/>');
-  var ICO_USERPLUS = svg('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>');
-  var ICO_SWAP = svg('<path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/>');
-  var ICO_BRIEFCASE = svg('<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>');
-  var ICO_STAR = svg('<polygon points="12 2 15.1 8.3 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.3"/>');
-  var ICO_BELL = svg('<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>');
-  var ico = {
-    COMMUNITY_LIKE: ICO_HEART,
-    COMMUNITY_COMMENT: ICO_CHAT,
-    COMMUNITY_FOLLOW: ICO_USERPLUS,
-    COMMUNITY_ORDER: ICO_SWAP,
-    COMMUNITY_ORDER_ACCEPTED: ICO_SWAP,
-    COMMUNITY_ORDER_DELIVERED: ICO_SWAP,
-    COMMUNITY_ORDER_COMPLETED: ICO_SWAP,
-    COMMUNITY_ORDER_REVISION: ICO_SWAP,
-    COMMUNITY_ORDER_CANCELLED: ICO_SWAP,
-    REVIEW_RECEIVED: ICO_STAR,
-    JOB_APPLICATION: ICO_BRIEFCASE,
-    JOB_APPLICATION_UPDATE: ICO_BRIEFCASE,
-    OTHER: ICO_BELL,
-  };
+  var ico = { COMMUNITY_LIKE: '❤', COMMUNITY_COMMENT: '💬', COMMUNITY_FOLLOW: '👤', ORDER: '📦', PROJECT: '📋', BARTER: '⟷', OTHER: '🔔' };
   function load() {
     if (!c.token()) { list.innerHTML = '<div class="empty"><h3>Sign in to see activity</h3><button class="pbtn" id="here">Sign in</button></div>'; var h = $('here'); if (h) h.addEventListener('click', function () { c.openLogin(); }); return; }
     list.innerHTML = '<div class="loading">Loading…</div>';
@@ -154,7 +130,7 @@
       var d = r.d.data;
       var items = d.notifications || [];
       $('readAll').style.display = items.length ? '' : 'none';
-      if (!items.length) { list.innerHTML = '<div class="empty"><h3>Nothing yet.</h3><p>Likes, comments, follows, job applications and orders will show here.</p></div>'; return; }
+      if (!items.length) { list.innerHTML = '<div class="empty"><h3>Nothing yet.</h3><p>Likes, comments, follows and orders will show here.</p></div>'; return; }
       list.innerHTML = '';
       items.forEach(function (n) {
         var el = document.createElement('div');

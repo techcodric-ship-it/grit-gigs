@@ -16,8 +16,8 @@ export interface QuotaUsage {
 }
 
 export const QUOTA_PLANS = {
-  gigs5: { id: "gigs5", label: "Legacy post bundle", priceInr: 80, gigBonus: 5, propBonus: 0 },
-  props5: { id: "props5", label: "5 more barter offers", priceInr: 60, gigBonus: 0, propBonus: 5 },
+  gigs5: { id: "gigs5", label: "5 more gig posts", priceInr: 80, gigBonus: 5, propBonus: 0 },
+  props5: { id: "props5", label: "5 more proposals", priceInr: 60, gigBonus: 0, propBonus: 5 },
 } as const;
 
 export type QuotaPlanId = keyof typeof QUOTA_PLANS;

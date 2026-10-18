@@ -1,26 +1,30 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and, desc, or } from "drizzle-orm";
-import { db, disputesTable, ordersTable, barterRequestsTable, servicesTable, usersTable, notificationsTable } from "../db";
+import { db, disputesTable, ordersTable, projectsTable, barterRequestsTable, servicesTable, usersTable, notificationsTable } from "../db";
 import { authenticate } from "../middlewares/authenticate";
 
 const router: IRouter = Router();
 
-// POST /disputes — raise a dispute on an order or barter
-// body: { targetType: 'ORDER'|'BARTER', targetId, reason }
+// POST /disputes — raise a dispute on an order or project
+// body: { targetType: 'ORDER'|'PROJECT', targetId, reason }
 router.post("/disputes", authenticate, async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
   const { targetType, targetId, reason } = req.body;
-  if (!["ORDER", "BARTER"].includes(targetType) || !targetId || !reason?.trim()) {
+  if (!["ORDER", "PROJECT", "BARTER"].includes(targetType) || !targetId || !reason?.trim()) {
     res.status(400).json({ success: false, message: "targetType, targetId and reason are required" }); return;
   }
 
-  // Verify the caller is a party to this order/barter
+  // Verify the caller is a party to this order/project
   let otherPartyId: string | null = null;
   if (targetType === "ORDER") {
     const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, targetId)).limit(1);
     if (!order) { res.status(404).json({ success: false, message: "Order not found" }); return; }
     if (order.buyerId !== userId && order.sellerId !== userId) { res.status(403).json({ success: false, message: "You are not party to this order" }); return; }
     otherPartyId = order.buyerId === userId ? order.sellerId : order.buyerId;
+  } else if (targetType === "PROJECT") {
+    const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, targetId)).limit(1);
+    if (!project) { res.status(404).json({ success: false, message: "Project not found" }); return; }
+    if (project.userId !== userId) { res.status(403).json({ success: false, message: "Only the project owner can raise a project dispute" }); return; }
   } else if (targetType === "BARTER") {
     const [barter] = await db.select().from(barterRequestsTable).where(eq(barterRequestsTable.id, targetId)).limit(1);
     if (!barter) { res.status(404).json({ success: false, message: "Barter request not found" }); return; }
@@ -45,7 +49,7 @@ router.post("/disputes", authenticate, async (req: Request, res: Response): Prom
   res.status(201).json({ success: true, message: "Dispute raised. Our team will review within 24–48 hours.", data: { dispute } });
 });
 
-// GET /disputes/my-items — user's items that can be disputed (type: ORDER|BARTER)
+// GET /disputes/my-items — user's items that can be disputed (type: ORDER|PROJECT|BARTER)
 router.get("/disputes/my-items", authenticate, async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
   const type = (req.query.type as string || "").toUpperCase();
@@ -58,6 +62,13 @@ router.get("/disputes/my-items", authenticate, async (req: Request, res: Respons
       .where(or(eq(ordersTable.buyerId, userId), eq(ordersTable.sellerId, userId)))
       .orderBy(desc(ordersTable.createdAt));
     items = orders.map(o => ({ id: o.id, title: o.title }));
+  } else if (type === "PROJECT") {
+    const projects = await db
+      .select({ id: projectsTable.id, title: projectsTable.title })
+      .from(projectsTable)
+      .where(eq(projectsTable.userId, userId))
+      .orderBy(desc(projectsTable.createdAt));
+    items = projects.map(p => ({ id: p.id, title: p.title }));
   } else if (type === "BARTER") {
     const barters = await db
       .select({ id: barterRequestsTable.id, skillOffered: barterRequestsTable.skillOffered, skillNeeded: barterRequestsTable.skillNeeded })

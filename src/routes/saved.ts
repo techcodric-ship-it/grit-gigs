@@ -5,6 +5,7 @@ import {
   savedItemsTable,
   savedSearchesTable,
   servicesTable,
+  projectsTable,
   barterRequestsTable,
   notificationsTable,
 } from "../db";
@@ -12,27 +13,27 @@ import { authenticate } from "../middlewares/authenticate";
 
 const router: IRouter = Router();
 
-// GET /saved — list the current user's saved gigs and barters.
-// Project saves are gone with the Jobs pivot: legacy PROJECT rows are archived
-// and never returned.
+// GET /saved — list the current user's saved gigs, projects & barters
 router.get("/saved", authenticate, async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
   const items = await db.select().from(savedItemsTable).where(eq(savedItemsTable.userId, userId)).orderBy(desc(savedItemsTable.createdAt));
 
   const serviceIds = items.filter((i) => i.itemType === "SERVICE").map((i) => i.itemId);
+  const projectIds = items.filter((i) => i.itemType === "PROJECT").map((i) => i.itemId);
   const barterIds = items.filter((i) => i.itemType === "BARTER").map((i) => i.itemId);
 
   const services = serviceIds.length ? await db.select().from(servicesTable).where(inArray(servicesTable.id, serviceIds)) : [];
+  const projects = projectIds.length ? await db.select().from(projectsTable).where(inArray(projectsTable.id, projectIds)) : [];
   const barters = barterIds.length ? await db.select().from(barterRequestsTable).where(inArray(barterRequestsTable.id, barterIds)) : [];
 
-  res.json({ success: true, data: { services, barters } });
+  res.json({ success: true, data: { services, projects, barters } });
 });
 
-// POST /saved — body: { itemType: 'SERVICE'|'BARTER', itemId }
+// POST /saved — body: { itemType: 'SERVICE'|'PROJECT'|'BARTER', itemId }
 router.post("/saved", authenticate, async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
   const { itemType, itemId } = req.body;
-  if (!["SERVICE", "BARTER"].includes(itemType) || !itemId) {
+  if (!["SERVICE", "PROJECT", "BARTER"].includes(itemType) || !itemId) {
     res.status(400).json({ success: false, message: "itemType and itemId are required" });
     return;
   }
@@ -81,12 +82,35 @@ router.delete("/saved-searches/:id", authenticate, async (req: Request, res: Res
   res.json({ success: true, message: "Deleted" });
 });
 
-// POST /saved-searches/check — used to run every saved search against OPEN
-// projects. Projects were archived in the Jobs pivot, so there is nothing to
-// match yet: the endpoint reports a real zero until job matching lands with
-// the Jobs index, and never invents a count.
+// POST /saved-searches/check — runs every saved search against current OPEN
+// projects, notifies the user of new matches since they last checked, and
+// updates lastSeenCount. Cheap, no cron needed — call this from the
+// dashboard on load (this app has no email service, so "alerts" are in-app).
 router.post("/saved-searches/check", authenticate, async (req: Request, res: Response): Promise<void> => {
-  res.json({ success: true, data: { newMatches: 0 } });
+  const searches = await db.select().from(savedSearchesTable).where(eq(savedSearchesTable.userId, req.user!.id));
+  let newMatchesTotal = 0;
+  for (const s of searches) {
+    const all = await db.select().from(projectsTable).where(eq(projectsTable.status, "OPEN"));
+    const matched = all.filter((p) => {
+      if (s.category && p.category !== s.category) return false;
+      if (s.q && !p.title.toLowerCase().includes(s.q.toLowerCase()) && !p.description.toLowerCase().includes(s.q.toLowerCase())) return false;
+      if (s.budgetMin && (p.budgetMax ?? 0) < s.budgetMin) return false;
+      return true;
+    });
+    const newCount = matched.length - s.lastSeenCount;
+    if (newCount > 0) {
+      newMatchesTotal += newCount;
+      await db.insert(notificationsTable).values({
+        userId: req.user!.id,
+        type: "SAVED_SEARCH_MATCH",
+        title: `${newCount} new project${newCount > 1 ? "s" : ""} for "${s.label}"`,
+        message: `New projects matching your saved search are ready to view.`,
+        linkUrl: "/dashboard.html?tab=browse-projects",
+      });
+      await db.update(savedSearchesTable).set({ lastSeenCount: matched.length }).where(eq(savedSearchesTable.id, s.id));
+    }
+  }
+  res.json({ success: true, data: { newMatches: newMatchesTotal } });
 });
 
 export default router;

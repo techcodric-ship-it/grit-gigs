@@ -41,7 +41,7 @@
       <a href="/#how-it-works">How it works</a>
       <a href="/#barter">Skill Exchange</a>
       <a href="/#freelance">Freelance</a>
-      <a href="/jobs">Browse Jobs</a>
+      <a href="/explore?kind=PROJECT">Browse Projects</a>
       <a href="/#about">About</a>
     </div>
     <div class="nav-actions" id="siteNavActions">
@@ -56,7 +56,7 @@
           var u = t && (function () { try { return JSON.parse(localStorage.getItem('se_user') || 'null'); } catch (e) { return null; } })();
           var el = document.getElementById('siteNavActions');
           if (u && u.firstName && el) {
-            el.innerHTML = '<a href="/circle" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
+            el.innerHTML = '<a href="/feed" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
               '<button class="btn btn-primary btn-sm" onclick="window.doLogout && window.doLogout()">Sign out</button>';
           }
         } catch (e) {}
@@ -198,7 +198,7 @@
 <p>Post 2-3 times per week about your skill. Share tips, case studies, and results. Clients will start reaching out to you within 3-6 months.</p>
 
 <h3>Method 3: Post Your Gig on Grit&Gigs (Easiest)</h3>
-<p>Create a service listing on <a href="https://www.gritandgigs.in/jobs">Grit&Gigs</a>. Tell clients what you do, show your samples, and set your price. Clients searching for your skill will find you.</p>
+<p>Create a service listing on <a href="https://www.gritandgigs.in/explore?kind=GIG">Grit&Gigs</a>. Tell clients what you do, show your samples, and set your price. Clients searching for your skill will find you.</p>
 
 <p>The difference: on Upwork, you compete with 500 freelancers. On Grit&Gigs, you're one of a few verified professionals in your category.</p>
 
@@ -314,7 +314,7 @@
 
 <p>Start now. Your future self will thank you.</p>
 
-<p style="text-align:center;margin:32px 0;"><a href="https://www.gritandgigs.in/jobs" style="display:inline-block;background:#6C3FE0;color:#fff;font-weight:600;font-size:1rem;padding:14px 36px;border-radius:10px;text-decoration:none;">Join Grit&Gigs Free →</a></p>
+<p style="text-align:center;margin:32px 0;"><a href="https://www.gritandgigs.in/explore?kind=GIG" style="display:inline-block;background:#6C3FE0;color:#fff;font-weight:600;font-size:1rem;padding:14px 36px;border-radius:10px;text-decoration:none;">Join Grit&Gigs Free →</a></p>
 
 <hr style="margin:40px 0;border:none;border-top:1px solid #e5e7eb;"/>
 

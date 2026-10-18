@@ -69,7 +69,7 @@ export const PLANS: PlanConfig[] = [
     walletLimit: -1,
     squadMembers: 1,
     badge: "PRO",
-    description: "Unlimited applications and barter offers, a verified badge on your profile.",
+    description: "Unlimited gigs and bids, a verified badge on your profile.",
   },
   {
     id: "squad",
@@ -85,7 +85,7 @@ export const PLANS: PlanConfig[] = [
     walletLimit: -1,
     squadMembers: 6,
     badge: "SQUAD",
-    description: "Everything in Pro, up to 6 circle members, and 8 featured offers a month.",
+    description: "Everything in Pro, up to 6 squad members, and 8 featured proposals a month.",
   },
 ];
 

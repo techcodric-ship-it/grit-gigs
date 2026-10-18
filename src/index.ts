@@ -853,29 +853,6 @@ app.set("io", io);
           CREATE INDEX IF NOT EXISTS idx_squad_invites_squad ON squad_invites(squad_id);
           CREATE INDEX IF NOT EXISTS idx_squad_invites_user ON squad_invites(invited_user_id);
           CREATE INDEX IF NOT EXISTS idx_squad_services_squad ON squad_services(squad_id);
-
-          CREATE TABLE IF NOT EXISTS prep_sessions (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            track TEXT NOT NULL,
-            question TEXT NOT NULL,
-            answer TEXT NOT NULL,
-            feedback TEXT,
-            score INTEGER,
-            source TEXT NOT NULL DEFAULT 'ai_estimate',
-            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-          );
-          CREATE INDEX IF NOT EXISTS idx_prep_sessions_user ON prep_sessions(user_id, created_at DESC);
-
-          CREATE TABLE IF NOT EXISTS profile_views (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            viewer_id UUID REFERENCES users(id) ON DELETE SET NULL,
-            viewed_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-          );
-          CREATE INDEX IF NOT EXISTS idx_profile_views_viewed ON profile_views(viewed_id, created_at DESC);
-
-          ALTER TABLE jobs ADD COLUMN IF NOT EXISTS source text DEFAULT 'job_listing';
         `);
       } catch (e: unknown) {
         logger.error({ err: e }, "migrate: table creation failed");

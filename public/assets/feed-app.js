@@ -143,7 +143,7 @@
       });
     }
     if (posts.length) {
-      html += '<div class="sd-group">Posts</div>';
+      html += '<div class="sd-group">Gigs and projects</div>';
       posts.forEach(function (p) {
         var i = f.items.length;
         f.items.push({ type: 'post', value: p.id, kind: p.kind });
@@ -170,8 +170,8 @@
     rows[i].scrollIntoView({ block: 'nearest' });
   }
   function choose(item, q) {
-    if (!item) { location.href = '/jobs?q=' + encodeURIComponent(q); return; }
-    if (item.type === 'term') location.href = '/jobs?q=' + encodeURIComponent(item.value);
+    if (!item) { location.href = '/explore.html?q=' + encodeURIComponent(q); return; }
+    if (item.type === 'term') location.href = '/explore.html?q=' + encodeURIComponent(item.value);
     else openPost(item.value);
   }
   function bindSearch(def) {
@@ -560,15 +560,42 @@
     el.className = 'card' + (kind === 'REEL' ? ' reel-card' : '');
     el.dataset.id = p.id;
     el.dataset.kind = kind;
-    // Tags stay on the element for callers that need them.
+    // Tags drive boost demand, so keep them on the element for callers that
+    // need to ask "how many people searched for this?".
     if (p.tags && p.tags.length) {
       try { el.dataset.tags = JSON.stringify(p.tags); } catch (e) { /* non-fatal */ }
     }
-    // Marks this card as the signed-in user's own.
+    // Marks this card as the signed-in user's own. The spotlight demand promo
+    // needs "my gig's keywords", and it used to read the first GIG/PROJECT card
+    // on the page regardless of author, so it silently showed another person's
+    // tags - or, with no cards rendered yet, reported "no gigs yet".
     if (isMine) el.dataset.mine = '1';
+    if (row.spotlight) el.classList.add('spotlight');
 
-    var spotFlag = '';
+    var spotFlag = row.spotlight ? '<div class="spot-promo"><span>✦ BOOSTED</span><span class="spot-promo-sub">Promoted</span></div>' : '';
     var spotCtl = '';
+    if (isMine && (kind === 'GIG' || kind === 'PROJECT')) {
+      // Keywords are what the demand number is measured against, and the boost
+      // picker's keywords only apply to the boost. Without this control the only
+      // way to add them to a gig was to delete it and post again.
+      spotCtl += '<div class="spot-bar idle" data-kw-row="' + esc(p.id) + '">' +
+        '<span class="spot-txt">' + (p.tags && p.tags.length
+          ? 'Keywords: <b>' + esc(p.tags.join(', ')) + '</b>'
+          : '<b>No keywords yet</b> \u2014 add them to see how many people search for this') + '</span>' +
+        '<button data-kw-edit="' + esc(p.id) + '">' + (p.tags && p.tags.length ? 'Edit keywords' : 'Add keywords') + '</button>' +
+        '</div>';
+      if (row.mySpotlight) {
+        spotCtl += spotStatsBar(row.mySpotlight, p);
+      } else {
+        // Named and priced, so the seller can act on this without hunting for
+        // a Boost menu. The demand line below fills in why it is worth it.
+        spotCtl += '<div class="spot-bar idle" data-spot-row="' + esc(p.id) + '">' +
+          '<span class="spot-txt">Get seen by people searching for your skills</span>' +
+          '<button data-spot="' + esc(p.id) + '">Boost from \u20B950</button>' +
+          '<div class="spot-demand" data-demand="' + esc(p.id) + '"></div>' +
+          '</div>';
+      }
+    }
 
     var followBtn = '';
     if (token && !isMine) {
@@ -590,6 +617,8 @@
         mediaHtml = '<div class="card-media"' + (mArr.length > 1 ? '' : '') + '>' +
           '<img src="' + esc(med.url) + '" loading="lazy" onerror="this.style.display=\'none\'" style="' + (kind === 'BARTER' || kind === 'GIG' ? 'aspect-ratio:1/1;object-fit:cover;' : '') + '"/>' +
           '<span class="kind-stamp">' + kind + '</span>' +
+          (kind === 'GIG' && p.priceInr ? '<span class="price-stamp">₹<b>' + Number(p.priceInr).toLocaleString('en-IN') + '</b>' + (p.deliveryDays ? ' · ' + p.deliveryDays + 'd' : '') + '</span>' : '') +
+          (kind === 'PROJECT' && p.priceInr ? '<span class="price-stamp">Budget ₹' + Number(p.priceInr).toLocaleString('en-IN') + (p.priceMaxInr ? '–₹' + Number(p.priceMaxInr).toLocaleString('en-IN') : '') + '</span>' : '') +
           (kind === 'BARTER' ? '<span class="price-stamp">⟷ ' + (p.wantText ? esc(p.wantText) : 'Barter') + '</span>' : '') +
           '<div class="pv-overlay" style="position:absolute;inset:0;cursor:pointer;" data-open="' + esc(p.id) + '"></div></div>';
       }
@@ -605,13 +634,19 @@
 
     // optional action buttons below media (for GIG/PROJECT/BARTER)
     var cta = '';
+    if (kind === 'GIG' && token && !isMine) cta = '<button class="big-cta" data-order="' + esc(p.id) + '">Send order</button>';
+    if (kind === 'PROJECT' && token && !isMine) {
+      cta = ws && ws.closed
+        ? '<div class="big-cta closed-cta">' + esc(ws.cta) + '</div>'
+        : '<button class="big-cta" data-bid="' + esc(p.id) + '">Bid on project</button>';
+    }
     if (kind === 'BARTER' && token && !isMine) {
       cta = ws && ws.closed
         ? '<div class="big-cta closed-cta">' + esc(ws.cta) + '</div>'
         : '<button class="big-cta" data-offer="' + esc(p.id) + '">Make an offer</button>';
     }
 
-    var tagsHtml = (p.tags && p.tags.length) ? p.tags.map(function (t) { return '<a href="/jobs?q=' + encodeURIComponent(t) + '">#' + esc(t) + '</a> '; }).join('') : '';
+    var tagsHtml = (p.tags && p.tags.length) ? p.tags.map(function (t) { return '<a href="/explore.html?q=' + encodeURIComponent(t) + '">#' + esc(t) + '</a> '; }).join('') : '';
 
     var capText = p.content || '';
     var cutAt = capText.length;
@@ -729,9 +764,35 @@
     });
 
     // order / bid / offer → open dedicated composer child
+    var order = el.querySelector('[data-order]');
+    if (order) order.addEventListener('click', function () { if (!token) { openLogin(); return; } openOrderModal('GIG', p); });
+    var bid = el.querySelector('[data-bid]');
+    if (bid) bid.addEventListener('click', function () { if (!token) { openLogin(); return; } openOrderModal('PROJECT', p); });
     var offer = el.querySelector('[data-offer]');
     if (offer) offer.addEventListener('click', function () { if (!token) { openLogin(); return; } openOrderModal('BARTER', p); });
 
+    var spStart = el.querySelector('[data-spot]');
+    if (spStart) spStart.addEventListener('click', function () { if (!token) { openLogin(); return; } openSpotlightModal(p); });
+    var spExt = el.querySelector('[data-spot-extend]');
+    if (spExt) spExt.addEventListener('click', function () { if (!token) { openLogin(); return; } extendSpotlight(p); });
+    // A viewer opening a boosted post is the click the owner is paying for.
+    if (row.spotlight && row.spotlight.boostId && token) {
+      var bid = row.spotlight.boostId;
+      el.addEventListener('click', function () {
+        api('/community/boosts/' + bid + '/click', { method: 'POST' }).catch(function () {});
+      });
+    }
+    // Only the owner gets mySpotlight back from the server, so this is the
+    // "you have a live boost" signal. Nudge the numbers once so a boost that
+    // just started doesn't sit on zeros until the next manual reload.
+    if (row.mySpotlight) {
+      (function (pid) { setTimeout(function () { pollSpotStats(pid); }, 2500); })(p.id);
+    }
+    // For an unboosted gig, show how many real searches its keywords matched
+    // this week. This is the seller's own audience, not a marketing figure.
+    if (spotCtl.indexOf('data-demand') > -1 && p.tags && p.tags.length) {
+      loadSpotDemand(p.id, p.tags);
+    }
 
     // expand long caption
     var more = el.querySelector('[data-more]');
@@ -772,7 +833,7 @@
   }
 
   function shareUrlFor(pid) {
-    return location.origin + '/circle';
+    return location.origin + '/explore.html?post=' + encodeURIComponent(pid);
   }
 
   function copyText(text) {
@@ -903,6 +964,421 @@
       if (kind !== 'PROJECT') amt.value = '';
     }
     m.classList.add('open');
+  }
+
+  // ── spotlight (paid pin) ──
+  function spotLeftText(hs) {
+    var ms = new Date(hs).getTime() - Date.now();
+    if (ms <= 0) return 'expired';
+    var h = Math.ceil(ms / 3600e3);
+    if (h >= 24) return Math.floor(h / 24) + 'd ' + (h % 24) + 'h left';
+    return h + 'h left';
+  }
+
+  var SPOT_PACKS = null;   // loaded from /community/spotlight/packs on first use
+  var chosenPack = 'day1';
+
+  function spotPack(id) {
+    var list = SPOT_PACKS || [];
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return { id: 'day1', label: 'Quick boost', hours: 24, priceInr: 50, duration: '24 hours', perDay: 50 };  }
+
+  function loadSpotPacks(cb) {
+    if (SPOT_PACKS) { cb(); return; }
+    api('/community/spotlight/packs').then(function (r) {
+      if (r && r.ok && r.d && r.d.data && r.d.data.packs) SPOT_PACKS = r.d.data.packs;
+      else SPOT_PACKS = [];
+      cb();
+    }).catch(function () { SPOT_PACKS = []; cb(); });
+  }
+
+  // Per-day rate is shown as plain arithmetic only. Do not mark it as a saving:
+  // day3 and week currently cost MORE per day than day1, so a "save" badge here
+  // would be a false claim. Prices are rounded to whole rupees so the payment
+  // screen never shows "₹66.33".
+  function packRowHtml(pk, sel) {
+    var per = Math.round(Number(pk.perDay || 0));
+    return '<button type="button" class="spot-pack' + (sel ? ' on' : '') + '" data-pack="' + esc(pk.id) + '">' +
+      '<span class="sp-main"><b>' + esc(pk.duration) + '</b><small>' + esc(pk.label) + '</small></span>' +
+      '<span class="sp-price">₹' + formatInr(pk.priceInr) + '<small>₹' + per + '/day</small></span>' +
+      '</button>';
+  }
+
+  function formatInr(n) { return String(Math.round(Number(n) || 0)); }
+
+  var DEMAND_CACHE = {};
+
+  /**
+   * Fills the demand line on an unboosted gig card.
+   *
+   * These are real searches from the last 7 days, so the copy never promises an
+   * outcome. Zero searches renders a plain "no recent searches" rather than a
+   * fabricated number: if nobody is looking, the seller should not buy.
+   */
+  function loadSpotDemand(postId, tags) {
+    var key = String(tags).toLowerCase().split(',').sort().join(',');
+    var slot = function () { return document.querySelector('[data-demand="' + postId + '"]'); };
+    function paint(d) {
+      var el = slot();
+      if (!el) return;
+      if (d.totalSearches > 0) {
+        var hits = (d.terms || []).filter(function (t) { return t.searches > 0; }).slice(0, 2);
+        var best = hits.length ? hits.map(function (t) { return t.term; }).join(', ') : 'your keywords';
+        el.innerHTML = '<b>' + d.totalSearches + '</b> search' + (d.totalSearches === 1 ? '' : 'es') +
+          ' matched ' + esc(best) + ' in the last 7 days. Boosting puts you in front of them.';
+      } else {
+        el.innerHTML = 'No one searched these keywords this week. <a href="/spotlight-boost">How boosting works</a>';
+      }
+    }
+    if (DEMAND_CACHE[key]) { paint(DEMAND_CACHE[key]); return; }
+    api('/community/spotlight/demand?tags=' + encodeURIComponent(tags.join(','))).then(function (r) {
+      if (!(r && r.ok && r.d && r.d.data)) return;
+      DEMAND_CACHE[key] = r.d.data;
+      paint(r.d.data);
+    }).catch(function () {});
+  }
+
+  /**
+   * Builds the demand block inside the boost dialog.
+   *
+   * Every line here is checkable by the buyer: the count is real searches, the
+   * match rule is the same one that decides who sees the boost, and the price
+   * is the price. No reach guarantee, because we cannot promise one.
+   */
+  function spotDemandPanel(d) {
+    if (!d) return '';
+    if (!(d.totalSearches > 0)) {
+      return '<div class="spot-demand-box zero">' +
+        '<b>No one has searched these keywords this week.</b>' +
+        '<span>A boost can only reach people already searching. Try broader or more common terms, or wait until demand picks up.</span>' +
+        '</div>';
+    }
+    var rows = (d.terms || []).filter(function (t) { return t.searches > 0; });
+    return '<div class="spot-demand-box">' +
+      '<b>' + d.totalSearches + ' search' + (d.totalSearches === 1 ? '' : 'es') + ' matched your keywords this week</b>' +
+      '<span>' + rows.slice(0, 4).map(function (t) {
+        return '<i>' + esc(t.term) + '</i> <b>' + t.searches + '</b>';
+      }).join(' · ') + '</span>' +
+      '<span>How many actually open it varies. You will see the real number as it happens.</span>' +
+      '</div>';
+  }
+
+  /**
+   * Live numbers for the boost owner. Reach is distinct viewers and clicks are
+   * people who opened the post, so both stay honest under repeated refreshes.
+   */
+  function spotStatsBar(sp, p) {
+    var reach = Number(sp.reach || 0), imp = Number(sp.impressions || 0), clicks = Number(sp.clicks || 0);
+    var ctr = imp > 0 ? (Math.round(clicks / imp * 1000) / 10) : 0;
+    var parts = '<span class="spot-metrics">' +
+      '<b>' + reach + '</b> reached' +
+      '<b>' + clicks + '</b> opened' +
+      (imp > 0 ? '<b>' + ctr + '%</b> opened' : '') +
+      '</span>';
+    return '<div class="spot-bar spot-stats-bar"><span class="spot-txt">✦ Boost active · ' + spotLeftText(sp.expiresAt) + '</span>' +
+      parts +
+      '<button data-spot-extend="' + esc(p.id) + '">Extend</button></div>';
+  }
+
+  /** The boost row inside a card.
+   *  Own gig cards render a keyword row above the boost row and both carry
+   *  .spot-bar for styling, so a bare first-match .spot-bar would resolve to
+   *  the keyword row and wipe the Add keywords button as soon as a boost poll
+   *  landed. Scope to the rows that are actually the boost UI. */
+  function boostBarIn(card) {
+    if (!card) return null;
+    return card.querySelector('[data-spot-row], .spot-stats-bar');
+  }
+
+  function refreshSpotBars(postId, expiresAt) {
+    document.querySelectorAll('.card[data-id="' + postId + '"]').forEach(function (card) {
+      card.classList.add('spotlight');
+      if (!card.querySelector('.spot-promo')) {
+        card.insertAdjacentHTML('afterbegin', '<div class="spot-promo"><span>✦ SPOTLIGHT</span><span class="spot-promo-sub">Promoted</span></div>');
+      }
+      var bar = boostBarIn(card);
+      if (!bar) return;
+      bar.classList.remove('idle');
+      bar.innerHTML = '<span>✦ Spotlight active · ' + spotLeftText(expiresAt) + '</span><button data-spot-extend="' + esc(postId) + '">Extend</button>';
+      var btn = bar.querySelector('button');
+      if (btn) btn.addEventListener('click', function () { if (!token) { openLogin(); return; } openExtendModal({ id: postId }); });
+    });
+  }
+
+  /** Re-pulls stats so the owner sees reach/clicks climb during the boost. */
+  function pollSpotStats(postId) {
+    api('/community/posts/' + postId + '/spotlight/stats').then(function (r) {
+      if (!(r && r.ok && r.d && r.d.data && r.d.data.stats)) return;
+      var st = r.d.data.stats;
+      var bar = boostBarIn(document.querySelector('.card[data-id="' + postId + '"]'));
+      if (!bar) return;
+      var post = { id: postId };
+      bar.classList.remove('idle');
+      bar.innerHTML = spotStatsBar({
+        expiresAt: st.expiresAt, reach: st.reach, impressions: st.impressions, clicks: st.clicks
+      }, post);
+      var b = bar.querySelector('button');
+      if (b) b.addEventListener('click', function () { openExtendModal(post); });
+    });
+  }
+
+  function openExtendModal(p) {
+    loadSpotPacks(function () {
+      var m = document.getElementById('spotExtModal');
+      if (!m) {
+        m = document.createElement('div');
+        m.id = 'spotExtModal';
+        m.className = 'modal-backdrop';
+        m.innerHTML = '<div class="modal" style="max-width:430px;"></div>';
+        document.body.appendChild(m);
+        m.addEventListener('click', function (e) { if (e.target === m) m.classList.remove('open'); });
+      }
+      var body = m.querySelector('.modal');
+      chosenPack = 'day3';
+      body.innerHTML =
+        '<h3>✦ Extend boost</h3>' +
+        '<div class="sub">Pick how much longer to stay visible. One payment from your wallet, no auto-renewal.</div>' +
+        '<div class="spot-packs" id="spotExtPacks"></div>' +
+        '<div class="err" id="spotExtErr"></div>' +
+        '<div class="row"><button type="button" id="spotExtCancel" style="padding:11px 18px;border-radius:10px;border:1px solid var(--line,#e3e0f2);background:#fff;font-weight:600;cursor:pointer;">Cancel</button><button type="button" id="spotExtGo" style="padding:11px 18px;border-radius:10px;border:none;background:#6C3FE8;color:#fff;font-weight:700;cursor:pointer;">Extend</button></div>';
+      m.classList.add('open');
+      function draw() {
+        var wrap = body.querySelector('#spotExtPacks');
+        wrap.innerHTML = (SPOT_PACKS && SPOT_PACKS.length ? SPOT_PACKS : [spotPack('day1')])
+          .map(function (pk) { return packRowHtml(pk, pk.id === chosenPack); }).join('');
+        wrap.querySelectorAll('[data-pack]').forEach(function (b) {
+          b.addEventListener('click', function () { chosenPack = b.getAttribute('data-pack'); draw(); });
+        });
+        var go = body.querySelector('#spotExtGo');
+        go.textContent = 'Pay ₹' + formatInr(spotPack(chosenPack).priceInr) + ' · extend ' + spotPack(chosenPack).duration;
+      }
+      draw();
+      body.querySelector('#spotExtCancel').addEventListener('click', function () { m.classList.remove('open'); });
+      body.querySelector('#spotExtGo').addEventListener('click', function () {
+        var btn = this;
+        var err = body.querySelector('#spotExtErr');
+        var pk = spotPack(chosenPack);
+        btn.disabled = true;
+        btn.textContent = 'Extending…';
+        api('/community/posts/' + p.id + '/spotlight/extend', { method: 'POST', body: { planId: pk.id } }).then(function (r) {
+        btn.disabled = false;
+        btn.textContent = 'Pay ₹' + formatInr(pk.priceInr) + ' · extend ' + pk.duration;
+          if (!r.ok) { err.textContent = (r.d && r.d.message) || 'Could not extend boost'; return; }
+          m.classList.remove('open');
+          toast('Boost extended by ' + pk.duration);
+          refreshSpotBars(p.id, r.d.data.boost.expiresAt);
+          setTimeout(function () { pollSpotStats(p.id); }, 1200);
+        });
+      });
+    });
+  }
+
+  /**
+   * Add or change the keywords on your own gig/project. These are the words the
+   * spotlight demand number is measured against, and they are separate from the
+   * boost modal's targeting keywords, which only affect that one boost.
+   */
+  function openKeywordModal(postId) {
+    var card = document.querySelector('.card[data-id="' + postId + '"]');
+    if (!card) return;
+    var current = [];
+    if (card.dataset.tags) {
+      try { current = JSON.parse(card.dataset.tags); } catch (e) { current = []; }
+    }
+    var m = document.getElementById('kwModal');
+    if (!m) {
+      m = document.createElement('div');
+      m.id = 'kwModal';
+      m.className = 'modal-backdrop';
+      m.innerHTML = '<div class="modal" style="max-width:430px;"></div>';
+      document.body.appendChild(m);
+      m.addEventListener('click', function (e) { if (e.target === m) m.classList.remove('open'); });
+    }
+    var body = m.querySelector('.modal');
+    body.innerHTML =
+      '<h3>Your keywords</h3>' +
+      '<div class="sub">These are the words buyers search for. We use them to show you how many people are looking for what you offer.</div>' +
+      '<div class="fld"><label>Keywords (up to 5, comma separated)</label>' +
+      '<input id="kwInput" maxlength="160" value="' + esc(current.join(', ')) + '" placeholder="e.g. social media, instagram management"/></div>' +
+      '<div class="err" id="kwErr"></div>' +
+      '<div class="row"><button type="button" id="kwCancel" style="padding:11px 18px;border-radius:10px;border:1px solid var(--line,#e3e0f2);background:#fff;font-weight:600;cursor:pointer;">Cancel</button>' +
+      '<button type="button" id="kwSave" style="padding:11px 18px;border-radius:10px;border:none;background:#6C3FE8;color:#fff;font-weight:700;cursor:pointer;">Save</button></div>';
+    m.classList.add('open');
+
+    var input = body.querySelector('#kwInput');
+    var err = body.querySelector('#kwErr');
+    input.focus();
+    body.querySelector('#kwCancel').addEventListener('click', function () { m.classList.remove('open'); });
+    body.querySelector('#kwSave').addEventListener('click', function () {
+      var tags = input.value.split(',')
+        .map(function (t) { return t.trim().replace(/^#/, '').slice(0, 30); })
+        .filter(Boolean)
+        .filter(function (t, i, a) { return a.indexOf(t) === i; })
+        .slice(0, 5);
+      var btn = this;
+      btn.disabled = true;
+      api('/community/posts/' + postId, { method: 'PUT', body: { tags: tags } }).then(function (r) {
+        btn.disabled = false;
+        if (!(r && r.ok)) {
+          err.textContent = (r && r.d && r.d.message) || 'Could not save keywords.';
+          return;
+        }
+        m.classList.remove('open');
+        // Reflect it on the card without a full reload, then let the sidebar
+        // promo re-read the tags it just gained.
+        card.dataset.tags = JSON.stringify(tags);
+        var txt = card.querySelector('[data-kw-row] .spot-txt');
+        var edit = card.querySelector('[data-kw-edit]');
+        if (txt) {
+          txt.innerHTML = tags.length
+            ? 'Keywords: <b>' + esc(tags.join(', ')) + '</b>'
+            : '<b>No keywords yet</b> \u2014 add them to see how many people search for this';
+        }
+        if (edit) edit.textContent = tags.length ? 'Edit keywords' : 'Add keywords';
+        var row = card.querySelector('[data-kw-row]');
+        if (row) row.classList.toggle('idle', !tags.length);
+        if (tags.length) loadSpotDemand(postId, tags);
+        if (typeof window.refreshSpotPromo === 'function') window.refreshSpotPromo();
+      });
+    });
+  }
+
+  function extendSpotlight(p) { openExtendModal(p); }
+
+  function openSpotlightModal(p) {
+    var m = document.getElementById('spotModal');
+    if (!m) {
+      m = document.createElement('div');
+      m.id = 'spotModal';
+      m.className = 'modal-backdrop';
+      m.innerHTML = '<div class="modal" style="max-width:470px;"></div>';
+      document.body.appendChild(m);
+      m.addEventListener('click', function (e) { if (e.target === m) m.classList.remove('open'); });
+    }
+    var body = m.querySelector('.modal');
+    var sel = {};
+    var initial = (p.tags && p.tags.length ? p.tags : []).slice(0, 5);
+    initial.forEach(function (t) { sel[String(t).toLowerCase().replace(/^#/, '')] = true; });
+    var trendList = [];
+    var noun = p.kind === 'PROJECT' ? 'project' : 'gig';
+    body.innerHTML =
+      '<h3>✦ Boost this ' + noun + '</h3>' +
+      '<div class="sub">Your ' + noun + ' is shown at the top of the feed to people searching for your keywords. You can see exactly how many people it reached and opened.</div>' +
+      '<div class="fld"><label>Choose how long</label><div class="spot-packs" id="spotPacks"></div></div>' +
+      '<div class="spot-note" id="spotNote"></div>' +
+      '<div id="spotDemand"></div>' +
+      '<div class="fld"><label>Target keywords (up to 5)</label><div class="spot-chips" id="spotChips"></div></div>' +
+      '<div class="fld" id="spotTrendWrap" style="display:none;"><label>What people are searching for</label><div class="spot-chips" id="spotTrend"></div></div>' +
+      '<div class="fld"><label>Add your own keyword</label><div style="display:flex;gap:8px;"><input id="spotTagIn" placeholder="e.g. logo design" maxlength="30" style="flex:1;"/><button type="button" id="spotTagAdd" style="padding:10px 14px;border-radius:10px;border:1px solid var(--line,#e3e0f2);background:var(--bg-alt,#f4f1ff);color:#6C3FE8;font-weight:600;cursor:pointer;">Add</button></div></div>' +
+      '<div class="err" id="spotErr"></div>' +
+      '<div class="row"><button type="button" id="spotCancel" style="padding:11px 18px;border-radius:10px;border:1px solid var(--line,#e3e0f2);background:#fff;font-weight:600;cursor:pointer;">Cancel</button><button type="button" id="spotGo" style="padding:11px 18px;border-radius:10px;border:none;background:#6C3FE8;color:#fff;font-weight:700;cursor:pointer;">✦ Boost</button></div>';
+    m.classList.add('open');
+
+    function drawPacks() {
+      var wrap = body.querySelector('#spotPacks');
+      if (!wrap) return;
+      var list = (SPOT_PACKS && SPOT_PACKS.length) ? SPOT_PACKS : [spotPack('day1')];
+      wrap.innerHTML = list.map(function (pk) { return packRowHtml(pk, pk.id === chosenPack); }).join('');
+      wrap.querySelectorAll('[data-pack]').forEach(function (b) {
+        b.addEventListener('click', function () { chosenPack = b.getAttribute('data-pack'); drawPacks(); });
+      });
+      var pk = spotPack(chosenPack);
+      var go = body.querySelector('#spotGo');
+      if (go) go.textContent = '✦ Pay ₹' + formatInr(pk.priceInr) + ' · boost ' + pk.duration;
+      // State the total and the wallet debit before the buyer commits, so the
+      // amount charged is never a surprise.
+      var note = body.querySelector('#spotNote');
+      if (note) {
+        note.innerHTML = '<b>₹' + formatInr(pk.priceInr) + '</b> from your wallet for <b>' + esc(pk.duration) +
+          '</b>. Charged once, no auto-renewal. You can see your reach and clicks while it runs.</div>';
+      }
+    }
+    drawPacks();
+    loadSpotPacks(function () { drawPacks(); });
+
+    function drawTrend() {
+      var wrap = body.querySelector('#spotTrend');
+      if (!trendList.length || !wrap) return;
+      var tw = body.querySelector('#spotTrendWrap');
+      if (tw) tw.style.display = '';
+      wrap.innerHTML = trendList.map(function (t) { return '<button type="button" class="spot-chip' + (sel[t] ? ' on' : '') + '" data-tr="' + esc(t) + '">#' + esc(t) + '</button>'; }).join('');
+      wrap.querySelectorAll('[data-tr]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var k = b.getAttribute('data-tr');
+          if (sel[k]) delete sel[k];
+          else if (Object.keys(sel).length >= 5) { body.querySelector('#spotErr').textContent = 'Max 5 keywords'; return; }
+          else sel[k] = true;
+          drawChips();
+        });
+      });
+    }
+    function drawChips() {
+      var wrap = body.querySelector('#spotChips');
+      var keys = Object.keys(sel);
+      wrap.innerHTML = keys.length
+        ? keys.map(function (t) { return '<button type="button" class="spot-chip on" data-chip="' + esc(t) + '">#' + esc(t) + ' ✕</button>'; }).join('')
+        : '<span style="font-size:12.5px;color:var(--dusk,#8a8fa3);">No keywords yet — add one below.</span>';
+      wrap.querySelectorAll('[data-chip]').forEach(function (b) {
+        b.addEventListener('click', function () { delete sel[b.getAttribute('data-chip')]; drawChips(); });
+      });
+      drawTrend();
+      drawDemand();
+    }
+
+    // Demand is re-fetched as keywords change, so the seller can compare terms
+    // on real numbers before paying.
+    function drawDemand() {
+      var slot = body.querySelector('#spotDemand');
+      if (!slot) return;
+      var keys = Object.keys(sel);
+      if (!keys.length) { slot.innerHTML = ''; return; }
+      api('/community/spotlight/demand?tags=' + encodeURIComponent(keys.join(','))).then(function (r) {
+        var el = body.querySelector('#spotDemand');
+        if (!el) return;
+        if (!(r && r.ok && r.d && r.d.data)) { el.innerHTML = ''; return; }
+        el.innerHTML = spotDemandPanel(r.d.data);
+      }).catch(function () {});
+    }
+    drawChips();
+    api('/community/spotlight/suggestions').then(function (r) {
+      trendList = ((r.ok && r.d.data && r.d.data.trending) || []).filter(function (t) { return !(t in sel); }).slice(0, 10);
+      drawTrend();
+    });
+    body.querySelector('#spotTagAdd').addEventListener('click', function () {
+      var inp = body.querySelector('#spotTagIn');
+      var err = body.querySelector('#spotErr');
+      var k = inp.value.toLowerCase().replace(/^#+/, '').trim().slice(0, 30);
+      err.textContent = '';
+      if (k.length < 2) { err.textContent = 'Keyword needs at least 2 characters'; return; }
+      if (k in sel) { err.textContent = 'Already added'; return; }
+      if (Object.keys(sel).length >= 5) { err.textContent = 'Max 5 keywords'; return; }
+      sel[k] = true;
+      inp.value = '';
+      drawChips();
+    });
+    body.querySelector('#spotTagIn').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); body.querySelector('#spotTagAdd').click(); }
+    });
+    body.querySelector('#spotCancel').addEventListener('click', function () { m.classList.remove('open'); });
+    body.querySelector('#spotGo').addEventListener('click', function () {
+      var btn = this;
+      var err = body.querySelector('#spotErr');
+      var tags = Object.keys(sel);
+      var pk = spotPack(chosenPack);
+      err.textContent = '';
+      if (!tags.length) { err.textContent = 'Pick at least one keyword'; return; }
+      btn.disabled = true;
+      btn.textContent = 'Boosting…';
+      api('/community/posts/' + p.id + '/spotlight', { method: 'POST', body: { tags: tags, planId: pk.id } }).then(function (r) {
+        btn.disabled = false;
+        btn.textContent = '✦ Pay ₹' + formatInr(pk.priceInr) + ' · boost ' + pk.duration;
+        if (!r.ok) { err.textContent = (r.d && r.d.message) || 'Could not start boost'; return; }
+        m.classList.remove('open');
+        toast('Boost live for ' + pk.duration + '. Track reach and clicks below.');
+        refreshSpotBars(p.id, r.d.data.boost.expiresAt);
+        setTimeout(function () { pollSpotStats(p.id); }, 1200);
+      });
+    });
   }
 
   // ── login / register / verify flows ──
@@ -1049,7 +1525,7 @@
       });
       var lo2 = menu.querySelector('#ddLogout');
       if (lo2) lo2.addEventListener('click', function () {
-        clearSession(); toast('Logged out'); refreshAuthedUI(); if (location.pathname === '/circle' || location.pathname === '/circle.html') location.reload();
+        clearSession(); toast('Logged out'); refreshAuthedUI(); if (location.pathname === '/feed' || location.pathname === '/feed.html') location.reload();
       });
     } else {
       menu.innerHTML = '<button class="dd-item" id="ddSignIn">Sign in</button>';
@@ -1070,7 +1546,7 @@
           '<a class="top-item" href="/profile.html?id=' + esc(me.id) + '"><img class="av" src="' + esc(avatarFor(me)) + '" alt=""/><div><div class="nm">' + esc(me.firstName || 'Hustler') + '</div><div class="ct">' + esc(handleFor(me)) + '</div></div></a>' +
           '<button style="width:100%;margin-top:10px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;font-weight:600;" id="logoutBtn">Log out</button>';
         var lo = document.getElementById('logoutBtn');
-        if (lo) lo.addEventListener('click', function () { clearSession(); toast('Logged out'); refreshAuthedUI(); if (location.pathname === '/circle' || location.pathname === '/circle.html') location.reload(); });
+        if (lo) lo.addEventListener('click', function () { clearSession(); toast('Logged out'); refreshAuthedUI(); if (location.pathname === '/feed' || location.pathname === '/feed.html') location.reload(); });
       } else {
         rail.innerHTML = '<p style="font-size:14px;color:var(--ink-2);margin:0 0 12px;">Join the hustle — like, comment, hire, and grow.</p><button style="width:100%;background:var(--ink);color:#fff;border:none;border-radius:8px;padding:9px;font-weight:600;" id="railSignIn">Sign in</button>';
         var si = document.getElementById('railSignIn');
@@ -1131,6 +1607,8 @@
     googleLogin: googleLogin,
     setupProfile: setupProfile,
     openOnboarding: openOnboarding,
+    openSpotlightModal: openSpotlightModal,
+    extendSpotlight: extendSpotlight,
   };
 
   document.addEventListener('click', function (e) {
@@ -1158,6 +1636,12 @@
     if (msgBtn) {
       e.preventDefault();
       location.href = '/messages.html?to=' + encodeURIComponent(msgBtn.getAttribute('data-msg'));
+    }
+    var kwBtn = e.target.closest('[data-kw-edit]');
+    if (kwBtn) {
+      e.preventDefault();
+      if (!token) { openLogin(); return; }
+      openKeywordModal(kwBtn.getAttribute('data-kw-edit'));
     }
     var bd = e.target.closest('.modal-backdrop');
     if (bd && bd.id !== 'phoneModal' && bd.id !== 'kwModal' && e.target === bd) bd.classList.remove('open');

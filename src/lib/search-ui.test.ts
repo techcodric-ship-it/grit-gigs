@@ -17,6 +17,8 @@ const app = () => readFileSync(resolve(ROOT, "public", "assets", "feed-app.js"),
 const route = () => readFileSync(resolve(ROOT, "src", "routes", "community.ts"), "utf8");
 
 const SEARCH_PAGES = [
+  "feed.html",
+  "explore.html",
   "notifications.html",
   "profile.html",
   "orders.html",
@@ -110,11 +112,72 @@ describe("nav search typeahead", () => {
   });
 });
 
+describe("explore search sits above the filter tabs on mobile", () => {
+  const explore = () => html("explore.html");
+
+  it("puts the inline bar directly before the filter tabs", () => {
+    const s = explore();
+    const bar = s.indexOf('class="exploresearch"');
+    const tabs = s.indexOf('class="ex-tabs"');
+    expect(bar).toBeGreaterThan(-1);
+    expect(tabs).toBeGreaterThan(bar);
+    // Only the field's own markup may sit between them: no grid, no other card.
+    const between = s.slice(bar, tabs);
+    expect(between).not.toMatch(/id="grid"/);
+    expect(between).not.toMatch(/class="card/);
+    expect((between.match(/<input/g) || []).length).toBe(1);
+  });
+
+  it("gives the inline bar its own field, not a duplicate id", () => {
+    const s = explore();
+    expect(s).toContain('id="exploreSearch"');
+    expect(s).toContain('id="exploreSearchDrop"');
+    expect((s.match(/id="exploreSearch"/g) || []).length).toBe(1);
+    expect((s.match(/id="exploreSearchDrop"/g) || []).length).toBe(1);
+    // The nav field still exists for desktop.
+    expect(s).toContain('id="navSearch"');
+  });
+
+  it("is marked so CSS can target Explore alone", () => {
+    expect(explore()).toMatch(/<body class="explorepage">/);
+  });
+
+  it("shows only the Explore bar on a phone, and never on desktop", () => {
+    const styles = css();
+    expect(styles).toMatch(/\.exploresearch \{ display: none; \}/);
+    const mobile = styles.slice(styles.indexOf("@media (max-width: 600px)"));
+    expect(mobile).toMatch(/\.exploresearch \{ display: block;/);
+    expect(mobile).toMatch(/body\.explorepage \.exploresearch \{ display: block;/);
+  });
+
+  it("gives the inline field the full column width", () => {
+    const styles = css();
+    const mobile = styles.slice(styles.indexOf("@media (max-width: 600px)"));
+    expect(mobile).toMatch(/\.exploresearch \.searchwrap \{ width: 100%; max-width: none;/);
+  });
+
+  it("leaves no stray feed bar behind", () => {
+    expect(html("feed.html")).not.toContain("feedsearch");
+    expect(html("feed.html")).not.toContain("feedSearch");
+    expect(html("feed.html")).not.toContain('class="feedpage"');
+    expect(css()).not.toContain(".feedsearch");
+  });
+
+  it("binds both fields through the shared typeahead", () => {
+    const js = app();
+    expect(js).toMatch(/inputId: 'navSearch'/);
+    expect(js).toMatch(/inputId: 'exploreSearch'/);
+    expect(js).toMatch(/SEARCH_FIELDS\.forEach\(bindSearch\)/);
+    // Separate state per field, so one cannot overwrite the other's results.
+    expect(js).not.toMatch(/var searchState/);
+  });
+});
+
 describe("suggestions endpoint", () => {
   it("never writes to search_logs", () => {
     // A typeahead fires one request per few keystrokes. Logging them would
-    // record "w", "we", "web" as real searches and corrupt the trend data
-    // behind the search suggestions.
+    // record "w", "we", "web" as real searches and inflate the Spotlight
+    // demand numbers that are sold to sellers.
     const src = route();
     const start = src.indexOf('"/community/search/suggest"');
     expect(start).toBeGreaterThan(-1);

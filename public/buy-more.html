@@ -40,14 +40,14 @@ h1{font-size:1.5rem;margin:0 0 2px;}
 </head>
 <body>
 <header class="topnav">
-  <a class="nav-logo" href="/circle" title="Grit&Gigs home"><div class="nav-logo-mark"><img src="/logo.svg" alt="" width="32" height="32"></div><span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span></a>
+  <a class="nav-logo" href="/feed" title="Grit&Gigs home"><div class="nav-logo-mark"><img src="/logo.svg" alt="" width="32" height="32"></div><span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span></a>
   <div class="searchwrap">
       <div class="searchbox"><input id="navSearch" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="navSearchDrop" aria-autocomplete="list" placeholder="Search gigs, projects, barter..."/></div>
       <div class="searchdrop" id="navSearchDrop" role="listbox" aria-label="Search suggestions"></div>
     </div>
   <div class="icons">
-    <a href="/circle" title="Feed"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.7V21h14V9.7"/></svg></a>
-    <a href="/jobs" title="Explore"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.3 16.3 4.2 4.2"/></svg></a>
+    <a href="/feed" title="Feed"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.7V21h14V9.7"/></svg></a>
+    <a href="/explore.html" title="Explore"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.3 16.3 4.2 4.2"/></svg></a>
     <a class="badge" href="/messages.html" title="Messages"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/></svg><span class="cnt" id="msgBadge" style="display:none;">0</span></a>
     <a href="/notifications.html" class="badge" title="Inbox"><svg viewBox="0 0 24 24"><path d="M12 20.3 4.9 13a4.7 4.7 0 0 1 6.6-6.6l.5.5.5-.5A4.7 4.7 0 0 1 19 13Z"/></svg><span class="cnt" id="notifBadge" style="display:none;">0</span></a>
     <a href="/orders.html" title="Orders"><svg viewBox="0 0 24 24"><path d="M21 8.2 12 3 3 8.2v7.6L12 21l9-5.2Z"/><path d="M3.3 8.3 12 13.3l8.7-5"/><path d="M12 13.3V21"/></svg></a>
@@ -64,7 +64,7 @@ h1{font-size:1.5rem;margin:0 0 2px;}
     if (!r) return 'Network error';
     return (r.d && (r.d.message || r.d.error)) || (r.ok === false ? 'Request failed' : 'Something went wrong');
   }
-  var chosen = 'props5';
+  var chosen = 'gigs5';
 
   function pick(k) {
     chosen = k;
@@ -73,10 +73,9 @@ h1{font-size:1.5rem;margin:0 0 2px;}
   }
   window.pick = pick;
 
-  var ICO_OFFER = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>';
   function qCard(name, lbl, now, total, ic) {
     var pct = total > 0 ? Math.min(100, Math.round((now / total) * 100)) : 0;
-    return '<div class="quota"><div class="q-top"><div><div class="q-name">' + (ic || '') + esc(name) + '</div>' +
+    return '<div class="quota"><div class="q-top"><div><div class="q-name">' + esc(ic + ' ' + name) + '</div>' +
       '<div class="q-free">' + esc(lbl) + '</div></div>' +
       '<div class="q-num">' + now + '<small> / ' + total + '</small></div></div>' +
       '<div class="bar"><i style="width:' + pct + '%"></i></div>' +
@@ -86,20 +85,26 @@ h1{font-size:1.5rem;margin:0 0 2px;}
   function renderQuota(d) {
     var el = $('quotaWrap');
     if (!d) { el.innerHTML = '<div class="empty">Quota unavailable.</div>'; return; }
+    var gig = d.gigPosts || {};
     var prop = d.proposals || {};
     // `free` is already the REMAINING free allowance (limit - used), so it must
     // not be reduced by `used` again. Total is the monthly limit plus bonuses.
+    var gigBonus = Number(gig.bonus || 0);
     var propBonus = Number(prop.bonus || 0);
+    var gigRemain = Number(gig.free || 0) + gigBonus;
     var propRemain = Number(prop.free || 0) + propBonus;
+    var gigTotal = Number(gig.limit || 0) + gigBonus;
     var propTotal = Number(prop.limit || 0) + propBonus;
+    var gigLbl = gigBonus > 0 ? gigRemain + ' left · incl. ' + gigBonus + ' bought' : 'free this month';
     var propLbl = propBonus > 0 ? propRemain + ' left · incl. ' + propBonus + ' bought' : 'free this month';
     el.innerHTML = '<div class="quota-grid">' +
-      qCard('Barter offers', propLbl, propRemain, propTotal, ICO_OFFER) +
+      qCard('Gig posts', gigLbl, gigRemain, gigTotal, '\ud83d\udce2') +
+      qCard('Proposals', propLbl, propRemain, propTotal, '\ud83d\udca1') +
       '</div>';
   }
 
   function load() {
-    if (!(c.token && c.token())) { window.location.href = '/circle'; return; }
+    if (!(c.token && c.token())) { window.location.href = '/feed'; return; }
     api('/community/quota').then(function (r) {
       if (!(r && r.ok && r.d && r.d.success)) { $('quotaWrap').innerHTML = '<div class="empty">Could not load quota - sign in and try again.</div>'; return; }
       renderQuota(r.d.data);
@@ -117,7 +122,7 @@ h1{font-size:1.5rem;margin:0 0 2px;}
       document.head.appendChild(s);
       return;
     }
-    var amt = Number(order.amount || 6000);
+    var amt = Number(order.amount || (chosen === 'props5' ? 6000 : 8000));
     var rz = new Razorpay({
       key: keyMetadata.key,
       amount: amt,

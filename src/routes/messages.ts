@@ -16,6 +16,8 @@ import {
   barterMatchesTable,
   ordersTable,
   communityOrdersTable,
+  projectBidsTable,
+  projectsTable,
   squadsTable,
   squadMembersTable,
 } from "../db";
@@ -148,8 +150,40 @@ router.get("/messages/conversations", authenticate, async (req, res): Promise<vo
     convIds.length ? db.select({ conversationId: conversationParticipantsTable.conversationId, userId: conversationParticipantsTable.userId }).from(conversationParticipantsTable).where(inArray(conversationParticipantsTable.conversationId, convIds)) : [],
   ]);
 
-  // Legacy project team chats keep listing, but the client label that used to
-  // be resolved through the removed projects table is no longer attached.
+  // For project team chats, resolve the client (project owner) so the squad can
+  // always see who hired them.
+  const projectBidIdByConv = new Map<string, string>();
+  for (const c of conversations) {
+    if (c.isGroup && c.projectBidId) projectBidIdByConv.set(c.id, c.projectBidId);
+  }
+  let projectUserByConvId = new Map<string, { userId: string; user: { id: string; firstName: string; lastName: string | null; profilePhoto: string | null; kycVerified: boolean } | null }>();
+  if (projectBidIdByConv.size) {
+    const projRows = await db
+      .select({ projectId: projectsTable.id, userId: projectsTable.userId, title: projectsTable.title })
+      .from(projectsTable);
+    const clientIdByBid = new Map<string, string>();
+    for (const pr of projRows) clientIdByBid.set(pr.projectId, pr.userId);
+    const bidsRows = await db
+      .select({ id: projectBidsTable.id, projectId: projectBidsTable.projectId })
+      .from(projectBidsTable)
+      .where(inArray(projectBidsTable.id, [...projectBidIdByConv.values()]));
+    const clientIdByProjectBid = new Map<string, string>();
+    for (const b of bidsRows) clientIdByProjectBid.set(b.id, clientIdByBid.get(b.projectId) ?? "");
+    const clientIds = [...new Set(bidsRows.map(b => clientIdByBid.get(b.projectId)).filter(Boolean) as string[])];
+    const clientUsers = clientIds.length
+      ? await db
+          .select({ id: usersTable.id, firstName: usersTable.firstName, lastName: usersTable.lastName, profilePhoto: usersTable.profilePhoto, kycVerified: usersTable.kycVerified })
+          .from(usersTable)
+          .where(inArray(usersTable.id, clientIds))
+      : [];
+    const clientUserMap = new Map(clientUsers.map(u => [u.id, u]));
+    projectUserByConvId = new Map(
+      [...projectBidIdByConv.entries()].map(([convId, bidId]) => {
+        const clientId = clientIdByProjectBid.get(bidId) ?? "";
+        return [convId, { userId: clientId, user: clientUserMap.get(clientId) ?? null }] as const;
+      })
+    );
+  }
 
   const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
   const adminId2 = admin?.id ?? "";
@@ -174,14 +208,15 @@ router.get("/messages/conversations", authenticate, async (req, res): Promise<vo
   const result = conversations.map(c => {
     if (c.isGroup) {
       const members = (participantsByConv.get(c.id) ?? []).map(p => participantUserMap.get(p.userId)).filter(Boolean);
+      const teamProj = c.projectBidId ? projectUserByConvId.get(c.id) ?? null : null;
       return {
         ...c,
         otherUser: null,
         isGroup: true,
         groupName: c.groupName ?? "Circle Chat",
         members,
-        clientId: null,
-        client: null,
+        clientId: teamProj ? teamProj.userId : null,
+        client: teamProj ? teamProj.user : null,
         isAdminConv: false,
         lastMessage: lastMsgMap.get(c.id) ?? null,
         unreadCount: unreadMap.get(c.id) ?? 0,
@@ -269,16 +304,28 @@ router.post("/messages/conversations/with/:userId", authenticate, async (req, re
 
   // When a specific context is provided, look up or verify the relationship
   if (reqBidId) {
-    // Project bidding was removed in the Jobs pivot. A conversation already
-    // tied to a legacy bid stays reachable; no new bid chat can be opened.
     const [byBid] = await db.select().from(conversationsTable).where(eq(conversationsTable.projectBidId, reqBidId)).limit(1);
     if (byBid) { res.json({ success: true, data: { conversation: byBid } }); return; }
-    res.status(400).json({ success: false, message: "Project bidding was removed. Existing project chats stay readable, but no new ones can be opened." });
-    return;
+
+    const [bid] = await db
+      .select()
+      .from(projectBidsTable)
+      .where(and(eq(projectBidsTable.id, reqBidId), eq(projectBidsTable.status, "ACCEPTED")))
+      .limit(1);
+    if (!bid) { res.status(403).json({ success: false, message: "Invalid or unaccepted bid" }); return; }
+    const [proj] = await db
+      .select({ userId: projectsTable.userId })
+      .from(projectsTable)
+      .where(eq(projectsTable.id, bid.projectId))
+      .limit(1);
+    if (!proj) { res.status(403).json({ success: false, message: "Project not found" }); return; }
+    if (!((bid.userId === req.user!.id && proj.userId === otherId) || (bid.userId === otherId && proj.userId === req.user!.id))) {
+      res.status(403).json({ success: false, message: "You are not involved in this bid" }); return;
+    }
   }
 
   if (!(await hasAcceptedDeal(req.user!.id, otherId))) {
-    res.status(403).json({ success: false, code: "NOT_CONNECTED", message: "You can start chatting after an order or barter is accepted." });
+    res.status(403).json({ success: false, code: "NOT_CONNECTED", message: "You can start chatting after a project, proposal or barter is accepted." });
     return;
   }
 

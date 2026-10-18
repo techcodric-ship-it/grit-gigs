@@ -50,7 +50,7 @@
       <a href="/#how-it-works">How it works</a>
       <a href="/#barter">Skill Exchange</a>
       <a href="/#freelance">Freelance</a>
-      <a href="/jobs">Browse Jobs</a>
+      <a href="/explore?kind=PROJECT">Browse Projects</a>
       <a href="/#about">About</a>
     </div>
     <div class="nav-actions" id="siteNavActions">
@@ -65,7 +65,7 @@
           var u = t && (function () { try { return JSON.parse(localStorage.getItem('se_user') || 'null'); } catch (e) { return null; } })();
           var el = document.getElementById('siteNavActions');
           if (u && u.firstName && el) {
-            el.innerHTML = '<a href="/circle" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
+            el.innerHTML = '<a href="/feed" class="btn btn-secondary btn-sm">Hi, ' + u.firstName + '</a>' +
               '<button class="btn btn-primary btn-sm" onclick="window.doLogout && window.doLogout()">Sign out</button>';
           }
         } catch (e) {}
@@ -98,7 +98,7 @@
     <h3><a href="/blog-post-project-gets-replies" style="color:#6C3DE0;">Why Your Project Post Gets Zero Replies — and the 8 Fixes</a></h3>
     <div class="meta">October 3, 2026 &middot; 8 min read</div>
     <p>It is almost never the budget. Most silent posts are written from the client's side of the table, leaving a freelancer to guess the scope and take on the risk. The 8 changes that turn a dead post into one people actually reply to — plus why the second post you write is always cheaper than the first.</p>
-    <p style="margin:14px 0 0;"><a href="/blog-post-project-gets-replies" class="btn btn-primary btn-sm">Read the 8 fixes →</a> <a href="/?signup=1" class="btn btn-secondary btn-sm" style="margin-left:6px;">Post a job</a></p>
+    <p style="margin:14px 0 0;"><a href="/blog-post-project-gets-replies" class="btn btn-primary btn-sm">Read the 8 fixes →</a> <a href="/?signup=1" class="btn btn-secondary btn-sm" style="margin-left:6px;">Post a project free</a></p>
   </div>
 
   <div class="blog-card" style="border:2px solid #0F766E;background:linear-gradient(180deg,#f6fffb,#fff);position:relative;">
@@ -113,7 +113,7 @@
     <h3><a href="/blog-ai-fake-proposals-india" style="color:#6C3DE0;">AI Agents Are Now Applying to Your Job Posts — 8 Ways to Hire a Real Human in 2026</a></h3>
     <div class="meta">September 19, 2026 &middot; 8 min read</div>
     <p>LLMs write better proposals than most humans — and bots now flood open job boards. Here are the 8 red flags that expose AI-generated applications, the 5 green flags of a real human, and why escrow-locked payments (not video interviews) are the only verification you can't fake.</p>
-    <p style="margin:14px 0 0;"><a href="/blog-ai-fake-proposals-india" class="btn btn-primary btn-sm">Read the 8 red flags →</a> <a href="/circle" class="btn btn-secondary btn-sm" style="margin-left:6px;">Post a job</a></p>
+    <p style="margin:14px 0 0;"><a href="/blog-ai-fake-proposals-india" class="btn btn-primary btn-sm">Read the 8 red flags →</a> <a href="/feed" class="btn btn-secondary btn-sm" style="margin-left:6px;">Post a project free</a></p>
   </div>
 
   <div class="blog-card" style="border:2px solid #e74c3c;background:linear-gradient(180deg,#fff5f5,#fff);position:relative;">
@@ -121,7 +121,7 @@
     <h3><a href="/blog-fake-freelancer-scam-india" style="color:#e74c3c;">The 50% Advance Trap: How Fake Freelancers Scam Indian Businesses (&amp; the 6 Rules That Make It Impossible)</a></h3>
     <div class="meta">September 16, 2026 &middot; 8 min read</div>
     <p>₹40,000 gone in one UPI transfer. Fake freelancers on WhatsApp ask for an advance and vanish — here are the 8 red flags, the 5 green flags, and the KYC + escrow system that makes it impossible to lose a rupee.</p>
-    <p style="margin:14px 0 0;"><a href="/blog-fake-freelancer-scam-india" class="btn btn-primary btn-sm" style="background:#e74c3c;border-color:#e74c3c;">Read the 6 rules →</a> <a href="/circle" class="btn btn-secondary btn-sm" style="margin-left:6px;">Post a job</a></p>
+    <p style="margin:14px 0 0;"><a href="/blog-fake-freelancer-scam-india" class="btn btn-primary btn-sm" style="background:#e74c3c;border-color:#e74c3c;">Read the 6 rules →</a> <a href="/feed" class="btn btn-secondary btn-sm" style="margin-left:6px;">Post a project free</a></p>
   </div>
 
   <div class="blog-card" style="border:2px solid #1a7a5e;background:linear-gradient(180deg,#f0faf4,#fff);position:relative;">
@@ -129,7 +129,7 @@
     <h3><a href="/blog-client-trust-india" style="color:#1a7a5e;">Why 1,000+ Indian Clients Trust Grit&Gigs With Their Projects — Real Trust, Not Marketing</a></h3>
     <div class="meta">September 15, 2026 &middot; 7 min read</div>
     <p>KYC-verified freelancers. Razorpay escrow. 48-hour dispute resolution. Zero commission on first hire. Here's how Grit&Gigs built the trust system that protects every client rupee.</p>
-    <p style="margin:14px 0 0;"><a href="/blog-client-trust-india" class="btn btn-primary btn-sm" style="background:#1a7a5e;border-color:#1a7a5e;">See the trust system →</a> <a href="/circle" class="btn btn-secondary btn-sm" style="margin-left:6px;">Post a job</a></p>
+    <p style="margin:14px 0 0;"><a href="/blog-client-trust-india" class="btn btn-primary btn-sm" style="background:#1a7a5e;border-color:#1a7a5e;">See the trust system →</a> <a href="/feed" class="btn btn-secondary btn-sm" style="margin-left:6px;">Post a project free</a></p>
   </div>
 
   <div class="blog-card" style="border:2px solid #6C3DE0;background:linear-gradient(180deg,#faf8ff,#fff);position:relative;">
@@ -144,8 +144,8 @@
     <div style="display:inline-block;background:#e74c3c;color:#fff;font-size:0.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:4px 12px;border-radius:20px;margin-bottom:12px;">Save 3x</div>
     <h3><a href="/blog-stop-overpaying-agencies-hire-freelancers-india-2026" style="color:#e74c3c;">Stop Paying 3x for Agencies — Hire Indian Freelancers Direct in 24 Hours (2026)</a></h3>
     <div class="meta">August 29, 2026 &middot; 7 min read</div>
-    <p>Agencies charge 3-5x for work Indian freelancers do at a fraction of the cost. Post a job and get multiple vetted bids within 24 hours — no agency markup, no chasing. Real price comparison inside.</p>
-    <p style="margin:14px 0 0;"><a href="/blog-stop-overpaying-agencies-hire-freelancers-india-2026" class="btn btn-primary btn-sm" style="background:#e74c3c;border-color:#e74c3c;">Stop overpaying →</a> <a href="/circle" class="btn btn-secondary btn-sm" style="margin-left:6px;">Post a job</a></p>
+    <p>Agencies charge 3-5x for work Indian freelancers do at a fraction of the cost. Post a project free and get multiple vetted bids within 24 hours — no agency markup, no chasing. Real price comparison inside.</p>
+    <p style="margin:14px 0 0;"><a href="/blog-stop-overpaying-agencies-hire-freelancers-india-2026" class="btn btn-primary btn-sm" style="background:#e74c3c;border-color:#e74c3c;">Stop overpaying →</a> <a href="/feed" class="btn btn-secondary btn-sm" style="margin-left:6px;">Post a project free</a></p>
   </div>
 
   <div class="blog-card" style="border:2px solid #6C3DE0;background:linear-gradient(180deg,#faf8ff,#fff);position:relative;">

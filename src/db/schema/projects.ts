@@ -1,0 +1,92 @@
+import {
+  pgTable,
+  pgEnum,
+  text,
+  boolean,
+  integer,
+  timestamp,
+  uuid,
+  numeric,
+} from "drizzle-orm/pg-core";
+import { usersTable } from "./users";
+
+export const projectStatusEnum = pgEnum("project_status", [
+  "OPEN",
+  "IN_PROGRESS",
+  "DELIVERED",
+  "REVISION_REQUESTED",
+  "COMPLETED",
+  "CANCELLED",
+]);
+
+export const projectTypeEnum = pgEnum("project_type", [
+  "INDIVIDUAL",
+  "SQUAD",
+]);
+
+export const bidStatusEnum = pgEnum("bid_status", [
+  "PENDING",
+  "ACCEPTED",
+  "REJECTED",
+]);
+
+export const projectsTable = pgTable("projects", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull(),
+  skills: text("skills"),
+  budgetMin: integer("budget_min"),
+  budgetMax: integer("budget_max"),
+  deadline: timestamp("deadline"),
+  imageUrl: text("image_url"),
+  projectType: projectTypeEnum("project_type").default("INDIVIDUAL").notNull(),
+  status: projectStatusEnum("status").default("OPEN").notNull(),
+  acceptedBidId: uuid("accepted_bid_id"),
+  zeroCommission: boolean("zero_commission").default(false).notNull(),
+  squadSplitMembers: uuid("squad_split_members").array().default([]).notNull(),
+  // Escrow: the client's wallet is debited when a bid is accepted, so the
+  // agreed amount is genuinely committed and cannot be spent on another bid.
+  // release-payment skips the deduction when escrowHeldAt is set, and a
+  // cancelled project refunds escrowAmount back to the client.
+  escrowAmount: integer("escrow_amount").default(0).notNull(),
+  escrowHeldAt: timestamp("escrow_held_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const projectBidsTable = pgTable("project_bids", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id")
+    .notNull()
+    .references(() => projectsTable.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  amount: integer("amount").notNull(),
+  proposal: text("proposal").notNull(),
+  deliveryDays: integer("delivery_days"),
+  revisions: integer("revisions").default(2).notNull(),
+  status: bidStatusEnum("status").default("PENDING").notNull(),
+  isHighlighted: boolean("is_highlighted").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const projectDeliveriesTable = pgTable("project_deliveries", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id")
+    .notNull()
+    .references(() => projectsTable.id, { onDelete: "cascade" }),
+  deliveryNote: text("delivery_note"),
+  link: text("link"),
+  revisionNumber: integer("revision_number").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type Project = typeof projectsTable.$inferSelect;
+export type ProjectBid = typeof projectBidsTable.$inferSelect;
+export type ProjectDelivery = typeof projectDeliveriesTable.$inferSelect;

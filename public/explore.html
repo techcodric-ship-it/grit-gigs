@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>try{if(!localStorage.getItem('se_token')){location.replace('/');}}catch(e){}</script>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="robots" content="noindex, follow"/>
+<title>Explore — Grit&Gigs</title>
+<link rel="icon" href="/favicon.ico?v=8"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=8"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=8"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=8"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2"/>
+<link rel="stylesheet" href="/assets/feed.css?v=36"/>
+</head>
+<body class="explorepage">
+<div class="toast" id="toast"></div>
+
+<header class="topnav">
+  <a class="nav-logo" href="/feed" title="Grit&Gigs home"><div class="nav-logo-mark"><img src="/logo.svg" alt="" width="32" height="32"></div><span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span></a>
+  <div class="searchwrap">
+      <div class="searchbox"><input id="navSearch" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="navSearchDrop" aria-autocomplete="list" placeholder="Search gigs, projects, barter…"/></div>
+      <div class="searchdrop" id="navSearchDrop" role="listbox" aria-label="Search suggestions"></div>
+    </div>
+  <div class="icons">
+    <a href="/feed" title="Feed"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.7V21h14V9.7"/></svg></a>
+    <a href="/explore.html" title="Explore" class="on"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.3 16.3 4.2 4.2"/></svg></a>
+    <a class="badge" href="/messages.html" title="Messages"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/></svg><span class="cnt" id="msgBadge" style="display:none;">0</span></a>
+    <a href="/notifications.html" class="badge" title="Inbox"><svg viewBox="0 0 24 24"><path d="M12 20.3 4.9 13a4.7 4.7 0 0 1 6.6-6.6l.5.5.5-.5A4.7 4.7 0 0 1 19 13Z"/></svg><span class="cnt" id="notifBadge" style="display:none;">0</span></a>
+    <a href="/orders.html" title="Orders"><svg viewBox="0 0 24 24"><path d="M21 8.2 12 3 3 8.2v7.6L12 21l9-5.2Z"/><path d="M3.3 8.3 12 13.3l8.7-5"/><path d="M12 13.3V21"/></svg></a>
+    <a href="/profile.html" id="navProfile" title="Profile"><img id="navAv" class="avatar" src="https://api.dicebear.com/9.x/initials/svg?seed=grit&backgroundColor=f0f0f0&textColor=262626" alt=""/></a>
+  </div>
+</header>
+
+<div class="wrap">
+  <main style="width:100%;max-width:935px;">
+    <div class="exploresearch">
+      <div class="searchwrap">
+        <div class="searchbox"><input id="exploreSearch" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="exploreSearchDrop" aria-autocomplete="list" placeholder="Search gigs, projects, barter."/></div>
+        <div class="searchdrop" id="exploreSearchDrop" role="listbox" aria-label="Search suggestions"></div>
+      </div>
+    </div>
+    <div class="ex-tabs" id="kindPad">
+      <button class="on" data-k="">All</button>
+      <button data-k="GIG">Gigs</button>
+      <button data-k="BARTER">Barter</button>
+      <button data-k="WIN">Wins</button>
+      <button data-k="TIPS">Tips</button>
+      <button data-k="POST">Posts</button>
+      <button data-k="REEL">Clips</button>
+      <button data-k="PROJECT">Projects</button>
+    </div>
+    <div class="grid" id="grid"></div>
+  </main>
+</div>
+
+<!-- login modal -->
+<div class="modal-backdrop" id="loginModal">
+  <div class="modal">
+    <h3>Sign in</h3>
+    <div class="fld"><label>Email</label><input type="email" id="loginEmail" placeholder="you@email.com"/></div>
+    <div class="fld"><label>Password</label><input type="password" id="loginPass" placeholder="••••••••"/></div>
+    <div class="err" id="loginErr"></div>
+    <div class="actions"><button class="primary" id="loginSubmit">Sign in</button></div>
+    <div class="note">No account? <a href="#" id="gotoRegister">Create one here</a></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="registerModal">
+  <div class="modal">
+    <h3>Create your Grit&amp;Gigs account</h3>
+    <div class="fld-row">
+      <div class="fld"><label>First name</label><input type="text" id="regFirst" placeholder="Arjun"/></div>
+      <div class="fld"><label>Last name</label><input type="text" id="regLast" placeholder="Kumar"/></div>
+    </div>
+    <div class="fld"><label>Email</label><input type="email" id="regEmail" placeholder="you@email.com"/></div>
+    <div class="fld"><label>Phone (WhatsApp)</label><input type="tel" id="regPhone" placeholder="+91 98765 43210"/></div>
+    <div class="fld"><label>Password (8+ chars)</label><input type="password" id="regPass" placeholder="••••••••"/></div>
+    <div class="err" id="regErr"></div>
+    <div class="actions">
+      <button class="ghost" id="regCancel">Cancel</button>
+      <button class="primary" id="regSubmit">Create account</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="verifyModal">
+  <div class="modal">
+    <h3>Verify your email</h3>
+    <p class="note" id="verifyEmail"></p>
+    <div class="fld"><label>6-digit code</label><input type="text" id="verifyOtp" maxlength="6" placeholder="123456"/></div>
+    <div class="err" id="verifyErr"></div>
+    <div class="actions">
+      <button class="ghost" id="verifyCancel">Cancel</button>
+      <button class="primary" id="verifySubmit">Verify</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="postModal" style="overflow-y:auto;">
+  <div class="modal" style="max-width:900px;"></div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=39"></script>
+<script>
+(function () {
+  var c = window.community;
+  function $(x) { return document.getElementById(x); }
+  var params = new URLSearchParams(location.search);
+  var kind = params.get('kind') || '';
+  var q0 = params.get('q') || '';
+  var q = q0;
+
+  if (kind) {
+    $('kindPad').querySelectorAll('button').forEach(function (b) {
+      b.classList.toggle('on', b.dataset.k === kind);
+    });
+  }
+
+  // nav
+  window.onAuthed = function () {
+    var me = c.me();
+    if (me && me.id) {
+      var p = $('navProfile'); if (p) p.setAttribute('href', '/profile.html?id=' + encodeURIComponent(me.id));
+      var av = $('navAv'); if (av) av.src = c.avatarFor(me);
+    }
+  };
+  var me0 = c.me();
+  if (me0 && me0.id) { var av = $('navAv'); if (av) av.src = c.avatarFor(me0); var pp = $('navProfile'); if (pp) pp.href = '/profile.html?id=' + encodeURIComponent(me0.id); }
+
+  if ($('gotoRegister')) $('gotoRegister').addEventListener('click', function (e) { e.preventDefault(); c.openRegister(); });
+  if ($('regCancel')) $('regCancel').addEventListener('click', function () { $('registerModal').classList.remove('open'); });
+  if ($('verifyCancel')) $('verifyCancel').addEventListener('click', function () { $('verifyModal').classList.remove('open'); });
+  if ($('loginModal')) $('loginModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+  if ($('registerModal')) $('registerModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+
+  var ns = $('navSearch');
+  if (q0) ns.value = q0;
+  ns.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      q = ns.value.trim();
+      loadGrid();
+    }
+  });
+
+  $('kindPad').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    $('kindPad').querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); });
+    b.classList.add('on');
+    kind = b.dataset.k;
+    loadGrid();
+  });
+
+  var grid = $('grid');
+  function loadGrid() {
+    grid.innerHTML = '<div class="loading" style="grid-column:1/-1;">Exploring…</div>';
+    var url = '/community/feed?limit=48';
+    if (kind) url += '&kind=' + encodeURIComponent(kind);
+    if (q) url += '&q=' + encodeURIComponent(q);
+
+    // Gigs/Wins/Tips/Posts/Reels come from the feed. Barter and Project also show
+    // real work — completed and in-progress exchanges and projects — which lives
+    // outside the feed, so ask for it too. Each keeps its own bucket; none of it
+    // is merged into Gigs.
+    var wantsWork = !kind || kind === 'BARTER' || kind === 'PROJECT';
+    var aUrl = '/community/activity?limit=24';
+    if (kind) aUrl += '&kind=' + encodeURIComponent(kind);
+
+    Promise.all([
+      c.api(url),
+      wantsWork ? c.api(aUrl).catch(function () { return { ok: false }; }) : Promise.resolve({ ok: false })
+    ]).then(function (res) {
+      var r = res[0], ar = res[1];
+      if (!r.ok) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1;"><h3>Could not load</h3></div>'; return; }
+      var posts = (r.d.data && r.d.data.posts) || [];
+      var work = (ar && ar.ok && ar.d.data && ar.d.data.activity) || [];
+      if (!posts.length && !work.length) {
+        grid.innerHTML = '<div class="empty" style="grid-column:1/-1;"><h3>Nothing found' + (q ? ' for "' + c.esc(q) + '"' : '') + '.</h3><p>Try a different search or tab.</p></div>';
+        return;
+      }
+      grid.innerHTML = '';
+      posts.forEach(function (row) { grid.appendChild(tile(row)); });
+      work.forEach(function (a) { grid.appendChild(workTile(a)); });
+    }).catch(function () { grid.innerHTML = '<div class="empty" style="grid-column:1/-1;"><h3>Network error</h3></div>'; });
+  }
+
+  var WORK_LABEL = {
+    PENDING: 'Matched', ACCEPTED: 'Accepted', IN_PROGRESS: 'In progress',
+    DELIVERED: 'Delivered', COMPLETED: 'Completed', REVISION_REQUESTED: 'Revisions',
+    OPEN: 'Open'
+  };
+
+  function workTile(a) {
+    var div = document.createElement('div');
+    div.className = 'tile';
+    var isBarter = a.type === 'BARTER';
+    var img = a.imageUrl
+      ? '<img src="' + c.esc(a.imageUrl) + '" loading="lazy"/>'
+      : '<div style="position:absolute;inset:0;display:grid;place-items:center;background:#efefef;font-size:30px;">' + (isBarter ? '🔁' : '🗂') + '</div>';
+    var who = a.partner ? ((a.partner.firstName || '') + ' ' + (a.partner.lastName || '')).trim() : null;
+    var sub = a.subtitle || (who ? 'with ' + who : '');
+    div.innerHTML =
+      img +
+      '<span class="kindtag">' + (isBarter ? 'BARTER' : 'PROJECT') + '</span>' +
+      '<span class="spot-ribbon work">' + c.esc(WORK_LABEL[a.status] || String(a.status || 'Active')) + '</span>' +
+      '<div class="over work"><span>' + c.esc((a.title || 'Untitled').slice(0, 60)) + '</span>' + (sub ? '<span>' + c.esc(String(sub).slice(0, 40)) + '</span>' : '') + '</div>';
+    if (a.linkUrl) div.addEventListener('click', function () { location.href = a.linkUrl; });
+    return div;
+  }
+
+  function tile(row) {
+    var p = row.post;
+    var a = row.author || {};
+    var med = c.primeMedia(row);
+    var kind = c.kindCode(p.kind);
+    // Status of the real work behind a BARTER / PROJECT post, so nobody bids on
+    // something already finished or underway. GIG posts are untouched.
+    var ws = (kind === 'BARTER' || kind === 'PROJECT') ? c.workStatusInfo(row.workStatus) : null;
+    var div = document.createElement('div');
+    div.className = 'tile';
+    var img;
+    if (med && med.url) {
+      if (kind === 'REEL' && med.type === 'video') {
+        img = '<video src="' + c.esc(med.url) + '" muted loop playsinline preload="metadata"></video>';
+        div.classList.add('long');
+      } else {
+        img = '<img src="' + c.esc(med.url) + '" loading="lazy"/>';
+      }
+    } else {
+      img = '<div style="position:absolute;inset:0;display:grid;place-items:center;background:#efefef;font-size:30px;">' + (kind === 'REEL' ? '▶' : '💬') + '</div>';
+    }
+    div.innerHTML =
+      img +
+      '<span class="kindtag">' + kind + '</span>' +
+      (kind === 'REEL' ? '<span class="reel-ic">▶</span>' : '') +
+      '<button class="tile-share" data-share="' + c.esc(p.id) + '" title="Share">↗</button>' +
+      '<div class="over"><span>♥ ' + Number(p.likeCount || 0) + '</span><span>💬 ' + Number(p.commentCount || 0) + '</span></div>';
+    var spotRib = '';
+    if (row.spotlight) spotRib = '<span class="spot-ribbon">✦ BOOSTED</span>';
+    else if (row.mySpotlight) {
+      var spH = Math.max(1, Math.ceil((new Date(row.mySpotlight.expiresAt).getTime() - Date.now()) / 3600e3));
+      spotRib = '<span class="spot-ribbon mine">✦ ' + (spH >= 24 ? Math.floor(spH / 24) + 'd' : spH + 'h') + ' left</span>';
+    }
+    if (spotRib) div.insertAdjacentHTML('afterbegin', spotRib);
+    // Work-status ribbon on the tile itself, so it reads without opening the post.
+    if (ws) div.insertAdjacentHTML('afterbegin', '<span class="work-ribbon ' + ws.cls + '">' + c.esc(ws.label) + '</span>');
+    // A viewer opening a boosted tile is the click the boost owner is paying
+    // for, so fire the beacon before the post modal opens. Fire-and-forget:
+    // never let analytics delay or block opening the post.
+    div.addEventListener('click', function () {
+      if (row.spotlight && row.spotlight.boostId && c.token()) {
+        try {
+          c.api('/community/boosts/' + row.spotlight.boostId + '/click', { method: 'POST' }).catch(function () {});
+        } catch (e) {}
+      }
+      c.openPost(p.id);
+    });
+    var tb = div.querySelector('.tile-share');
+    if (tb) tb.addEventListener('click', function (e) { e.stopPropagation(); c.share(p.id); });
+    return div;
+  }
+
+  loadGrid();
+
+  var openPostId = new URLSearchParams(location.search).get('post');
+  if (openPostId) c.openPost(decodeURIComponent(openPostId));
+})();
+</script>
+</body>
+</html>

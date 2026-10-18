@@ -1,15 +1,15 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and, desc } from "drizzle-orm";
-import { db, invitesTable, servicesTable, barterRequestsTable, usersTable, notificationsTable } from "../db";
+import { db, invitesTable, projectsTable, servicesTable, barterRequestsTable, usersTable, notificationsTable } from "../db";
 import { authenticate } from "../middlewares/authenticate";
 
 const router: IRouter = Router();
 
-// POST /invites — send invite (targetType: SERVICE|BARTER, targetId, toUserId, message?)
+// POST /invites — send invite (targetType: PROJECT|SERVICE|BARTER, targetId, toUserId, message?)
 router.post("/invites", authenticate, async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
   const { targetType, targetId, toUserId, message } = req.body;
-  if (!["SERVICE", "BARTER"].includes(targetType) || !targetId || !toUserId) {
+  if (!["PROJECT", "SERVICE", "BARTER"].includes(targetType) || !targetId || !toUserId) {
     res.status(400).json({ success: false, message: "targetType, targetId, and toUserId are required" }); return;
   }
   if (toUserId === userId) { res.status(400).json({ success: false, message: "You cannot invite yourself" }); return; }
@@ -23,7 +23,12 @@ router.post("/invites", authenticate, async (req: Request, res: Response): Promi
   if (existing) { res.status(400).json({ success: false, message: "Already invited this user" }); return; }
 
   let title = "You've been invited!";
-  if (targetType === "SERVICE") {
+  if (targetType === "PROJECT") {
+    const [proj] = await db.select().from(projectsTable).where(eq(projectsTable.id, targetId)).limit(1);
+    if (!proj) { res.status(404).json({ success: false, message: "Project not found" }); return; }
+    if (proj.userId !== userId) { res.status(403).json({ success: false, message: "You can only invite users to your own projects" }); return; }
+    title = `Invited to bid on "${proj.title}"`;
+  } else if (targetType === "SERVICE") {
     const [svc] = await db.select().from(servicesTable).where(eq(servicesTable.id, targetId)).limit(1);
     if (!svc) { res.status(404).json({ success: false, message: "Service not found" }); return; }
     if (svc.sellerId !== userId) { res.status(403).json({ success: false, message: "You can only invite users to your own services" }); return; }
@@ -56,7 +61,10 @@ router.get("/invites/mine", authenticate, async (req: Request, res: Response): P
   const invites = await db.select().from(invitesTable).where(eq(invitesTable.toUserId, req.user!.id)).orderBy(desc(invitesTable.createdAt));
   const enriched = await Promise.all(invites.map(async (inv) => {
     let target: any = null;
-    if (inv.targetType === "SERVICE") {
+    if (inv.targetType === "PROJECT") {
+      const [p] = await db.select().from(projectsTable).where(eq(projectsTable.id, inv.targetId)).limit(1);
+      target = p;
+    } else if (inv.targetType === "SERVICE") {
       const [s] = await db.select().from(servicesTable).where(eq(servicesTable.id, inv.targetId)).limit(1);
       target = s;
     } else if (inv.targetType === "BARTER") {

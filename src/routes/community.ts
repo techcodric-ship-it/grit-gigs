@@ -1,12 +1,16 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and, desc, count, countDistinct, sql, inArray, or, ilike, gt, gte, ne, not, type SQL } from "drizzle-orm";
-import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable, conversationsTable, messagesTable, communityOrdersTable, communityOrderDeliveriesTable, communityOrderReviewsTable, transactionsTable, freelanceWalletsTable, postBoostsTable, searchLogsTable, barterMatchesTable, barterRequestsTable, profileViewsTable } from "../db";
+import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable, conversationsTable, messagesTable, communityOrdersTable, communityOrderDeliveriesTable, communityOrderReviewsTable, transactionsTable, freelanceWalletsTable, postBoostsTable, searchLogsTable, projectsTable, projectBidsTable, barterMatchesTable, barterRequestsTable } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { logger } from "../lib/logger";
+import {
+  SPOTLIGHT_PACK_LIST, SPOTLIGHT_DEFAULT_PACK,
+  getSpotlightPack, isKnownSpotlightPack,   buildSpotlightStats, packPerDay, spotSuggestions,
+} from "../lib/spotlight";
 import { uploadToSupabase } from "../lib/storage";
 import { likeTerm, rankTerms } from "../lib/search-suggest";
 import { PROJECT_ROOT } from "../lib/root";
-import { getCommunityQuota, consumeProposal, grantQuotaBundle, QUOTA_PLANS, FREE_GIG_POSTS, FREE_PROPOSALS, type QuotaPlanId } from "../lib/community-quota";
+import { getCommunityQuota, consumeGigPost, consumeProposal, grantQuotaBundle, QUOTA_PLANS, FREE_GIG_POSTS, FREE_PROPOSALS, type QuotaPlanId } from "../lib/community-quota";
 import { resolveGigAmount, canAfford } from "../lib/wallet-guards";
 import { areConnected } from "../lib/connections";
 import { PLATFORM_COMMISSION_PCT } from "../lib/subscriptions";
@@ -123,6 +127,7 @@ router.get("/community/quota", authenticate, async (req, res): Promise<void> => 
       proposals: { used: usage.proposalsUsed, free: usage.proposalsFree, bonus: usage.proposalsBonus, limit: FREE_PROPOSALS },
       resetsInMs: usage.resetsInMs,
       plans: [
+        { id: QUOTA_PLANS.gigs5.id, label: QUOTA_PLANS.gigs5.label, priceInr: QUOTA_PLANS.gigs5.priceInr },
         { id: QUOTA_PLANS.props5.id, label: QUOTA_PLANS.props5.label, priceInr: QUOTA_PLANS.props5.priceInr },
       ],
     },
@@ -134,10 +139,6 @@ router.post("/community/quota/order", authenticate, async (req, res): Promise<vo
   const planId = String(req.body?.planId ?? "");
   if (!(planId in QUOTA_PLANS)) {
     res.status(400).json({ success: false, message: "Unknown quota bundle" });
-    return;
-  }
-  if (planId === "gigs5") {
-    res.status(400).json({ success: false, message: "This bundle is no longer available." });
     return;
   }
   if (!razorpayConfigured()) {
@@ -249,7 +250,7 @@ router.post("/community/quota/verify", authenticate, async (req, res): Promise<v
 
 // â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function kindWhitelist(kind: string | undefined, fallback: string): string {
-  const allowed = ["POST", "BARTER", "WIN", "TIPS", "REEL"];
+  const allowed = ["POST", "GIG", "BARTER", "WIN", "TIPS", "REEL", "PROJECT"];
   if (kind && allowed.includes(kind)) return kind;
   return fallback;
 }
@@ -319,6 +320,25 @@ interface PostRowShape {
   // freelancer before they bid on something already finished or underway.
   // null for every other kind.
   workStatus: "OPEN" | "PENDING" | "IN_PROGRESS" | "REVISION" | "DELIVERED" | "COMPLETED" | null;
+  spotlight?: {
+    expiresAt: string;
+    tags: string[];
+    boostId: string;
+    reach: number;
+    impressions: number;
+    clicks: number;
+  };
+  mySpotlight?: {
+    expiresAt: string;
+    tags: string[];
+    extendCount: number;
+    boostId: string;
+    planId: string;
+    amount: number;
+    reach: number;
+    impressions: number;
+    clicks: number;
+  };
 }
 
 async function loadCommentCounts(postIds: string[]): Promise<Record<string, { count: number; rows: (typeof communityCommentsTable.$inferSelect)[] }>> {
@@ -379,15 +399,15 @@ async function loadCommentAuthors(commentRows: (typeof communityCommentsTable.$i
   return map;
 }
 
-// ── work status for BARTER posts ────────────────────────────────────────────
-// A barter post is a standing ask for work. Freelancers were reaching out to
-// things that were already finished or already underway, so each post now
+// ── work status for BARTER / PROJECT posts ─────────────────────────────────
+// A project or barter post is a standing ask for work. Freelancers were bidding
+// on things that were already finished or already underway, so each post now
 // reports the state of the work behind it and the client shows it on the post.
 //
 // States come from community_orders for that post: the most recently updated
-// live order wins, so a post that is live again (a new offer) reads as open
+// live order wins, so a post that is live again (a new proposal) reads as open
 // even if an earlier order on it completed, and a post with work underway never
-// looks open for offers. A post with no live order is still open for offers.
+// looks biddable. A post with no live order is still open for offers.
 type WorkStatus = "OPEN" | "PENDING" | "IN_PROGRESS" | "REVISION" | "DELIVERED" | "COMPLETED";
 const WORK_LIVE: Record<string, WorkStatus> = {
   PENDING: "PENDING",
@@ -401,7 +421,7 @@ async function loadWorkStatus(
   posts: typeof communityPostsTable.$inferSelect[],
 ): Promise<Map<string, WorkStatus>> {
   const out = new Map<string, WorkStatus>();
-  const ids = posts.filter((p) => p.kind === "BARTER").map((p) => p.id);
+  const ids = posts.filter((p) => p.kind === "BARTER" || p.kind === "PROJECT").map((p) => p.id);
   // No orders at all is the normal state for a fresh post: it is open for offers.
   for (const id of ids) out.set(id, "OPEN");
   if (!ids.length) return out;
@@ -486,7 +506,94 @@ async function renderPosts(rawPosts: typeof communityPostsTable.$inferSelect[], 
     };
   });
 
+  if (currentUserId) {
+    const myIds = rows.filter((r) => r.post.userId === currentUserId).map((r) => r.post.id);
+    if (myIds.length) {
+      try {
+        const myBoosts = await db
+          .select()
+          .from(postBoostsTable)
+          .where(and(inArray(postBoostsTable.postId, myIds), gt(postBoostsTable.expiresAt, new Date())));
+        const boostByPost = new Map(myBoosts.map((b) => [b.postId, b]));
+        const mineEng = await boostEngagementFor(myBoosts.map((b) => b.id));
+        for (const r of rows) {
+          const b = boostByPost.get(r.post.id);
+          if (!b) continue;
+          // Owners always see the live numbers on their own card, which is what
+          // makes a boost worth re-buying.
+          const e = mineEng.get(b.id) ?? { reach: 0, impressions: 0, clicks: 0 };
+          r.mySpotlight = {
+            expiresAt: b.expiresAt.toISOString(),
+            tags: b.tags,
+            extendCount: b.extendCount,
+            boostId: b.id,
+            planId: b.planId ?? SPOTLIGHT_DEFAULT_PACK,
+            amount: Number(b.amount) || 0,
+            reach: e.reach,
+            impressions: e.impressions,
+            clicks: e.clicks,
+          };
+        }
+      } catch (err) {
+        logger.warn({ err }, "renderPosts: mySpotlight lookup failed");
+      }
+    }
+  }
   return rows;
+}
+
+/**
+ * Records that `viewerId` was shown `boostId`. Upsert keeps one row per pair so
+ * reach stays a distinct-person count, while `views` accumulates render events.
+ * Fire-and-forget: analytics must never fail a feed request.
+ */
+async function recordBoostImpression(boostIds: string[], viewerId: string): Promise<void> {
+  if (!boostIds.length || !viewerId) return;
+  try {
+    for (const bid of boostIds) {
+      await db.execute(
+        sql`INSERT INTO boost_impressions (boost_id, user_id, viewed_at, views)
+            VALUES (${bid}::uuid, ${viewerId}::uuid, NOW(), 1)
+            ON CONFLICT (boost_id, user_id)
+            DO UPDATE SET views = boost_impressions.views + 1`,
+      );
+    }
+  } catch (err) {
+    logger.warn({ err }, "recordBoostImpression failed");
+  }
+}
+
+/** Aggregate reach/impressions/clicks for a set of boosts in one round trip. */
+async function boostEngagementFor(boostIds: string[]): Promise<Map<string, { reach: number; impressions: number; clicks: number }>> {
+  const out = new Map<string, { reach: number; impressions: number; clicks: number }>();
+  if (!boostIds.length) return out;
+  try {
+    const rows = await db.execute(
+      sql`SELECT boost_id,
+                 count(*)::int AS reach,
+                 COALESCE(SUM(views), 0)::int AS impressions,
+                 count(clicked_at)::int AS clicks
+          FROM boost_impressions
+          WHERE boost_id IN (${sql.join(boostIds.map((b) => sql`${b}::uuid`))})
+          GROUP BY boost_id`,
+    );
+    const list = ((rows as { rows?: unknown[] }).rows ?? []) as {
+      boost_id: string; reach: number; impressions: number; clicks: number;
+    }[];
+    for (const r of list) {
+      out.set(r.boost_id, {
+        reach: Number(r.reach) || 0,
+        impressions: Number(r.impressions) || 0,
+        clicks: Number(r.clicks) || 0,
+      });
+    }
+  } catch (err) {
+    logger.warn({ err }, "boostEngagementFor failed");
+  }
+  for (const b of boostIds) {
+    if (!out.has(b)) out.set(b, { reach: 0, impressions: 0, clicks: 0 });
+  }
+  return out;
 }
 
 /**
@@ -544,6 +651,405 @@ async function viewerSearchSignature(userId: string): Promise<string[]> {
   return trend.map((r) => normalizeSpotTerm(r.term)).filter((t) => t.length >= 3);
 }
 
+async function loadSpotlightPins(viewerId: string, kindFilter: string): Promise<PostRowShape[]> {
+  try {
+    const conds: SQL[] = [gt(postBoostsTable.expiresAt, new Date()), ne(communityPostsTable.userId, viewerId)];
+    if (kindFilter) conds.push(eq(communityPostsTable.kind, kindFilter as typeof communityPostsTable.$inferSelect.kind));
+    const active = await db
+      .select({ boost: postBoostsTable, post: communityPostsTable })
+      .from(postBoostsTable)
+      .innerJoin(communityPostsTable, eq(postBoostsTable.postId, communityPostsTable.id))
+      .where(and(...conds))
+      .orderBy(desc(postBoostsTable.expiresAt))
+      .limit(25);
+    if (!active.length) return [];
+    const signature = await viewerSearchSignature(viewerId);
+    const matched: { boost: typeof postBoostsTable.$inferSelect; post: typeof communityPostsTable.$inferSelect }[] = [];
+    const seen = new Set<string>();
+    for (const a of active) {
+      if (seen.has(a.post.id)) continue;
+      const tags = a.boost.tags && a.boost.tags.length ? a.boost.tags : a.post.tags || [];
+      if (tags.some((t) => tagMatchesSignature(t, signature))) {
+        seen.add(a.post.id);
+        matched.push(a);
+        if (matched.length >= 3) break;
+      }
+    }
+    if (!matched.length) return [];
+    // Count the pin itself as the impression, then attach the numbers so the
+    // post owner can see what the boost is doing.
+    await recordBoostImpression(
+      matched.map((m) => m.boost.id),
+      viewerId,
+    );
+    const eng = await boostEngagementFor(matched.map((m) => m.boost.id));
+    const rows = await renderPosts(
+      matched.map((m) => m.post),
+      viewerId,
+    );
+    rows.forEach((r, i) => {
+      const b = matched[i];
+      const e = eng.get(b.boost.id) ?? { reach: 0, impressions: 0, clicks: 0 };
+      r.spotlight = {
+        expiresAt: b.boost.expiresAt.toISOString(),
+        tags: b.boost.tags,
+        boostId: b.boost.id,
+        reach: e.reach,
+        impressions: e.impressions,
+        clicks: e.clicks,
+      };
+    });
+    return rows;
+  } catch (err) {
+    logger.warn({ err }, "loadSpotlightPins failed");
+    return [];
+  }
+}
+
+router.get("/community/spotlight/packs", (_req: Request, res: Response): void => {
+  res.json({
+    success: true,
+    data: {
+      packs: SPOTLIGHT_PACK_LIST.map((p) => ({
+        id: p.id,
+        label: p.label,
+        hours: p.hours,
+        priceInr: p.priceInr,
+        duration: p.duration,
+        perDay: packPerDay(p),
+      })),
+      defaultPack: SPOTLIGHT_DEFAULT_PACK,
+    },
+  });
+});
+
+router.get("/community/posts/:id/spotlight/stats", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const meId = req.user!.id;
+  const postId = String(req.params.id);
+  const [post] = await db
+    .select({ id: communityPostsTable.id, userId: communityPostsTable.userId })
+    .from(communityPostsTable)
+    .where(eq(communityPostsTable.id, postId))
+    .limit(1);
+  if (!post) {
+    res.status(404).json({ success: false, message: "Post not found" });
+    return;
+  }
+  if (post.userId !== meId) {
+    res.status(403).json({ success: false, message: "You can only see stats for your own boosts" });
+    return;
+  }
+  const [boost] = await db
+    .select()
+    .from(postBoostsTable)
+    .where(eq(postBoostsTable.postId, postId))
+    .orderBy(desc(postBoostsTable.createdAt))
+    .limit(1);
+  if (!boost) {
+    res.json({ success: true, data: { stats: null, packs: SPOTLIGHT_PACK_LIST.map((p) => ({ ...p, perDay: packPerDay(p) })) } });
+    return;
+  }
+  const eng = await boostEngagementFor([boost.id]);
+  const e = eng.get(boost.id) ?? { reach: 0, impressions: 0, clicks: 0 };
+  res.json({
+    success: true,
+    data: {
+      stats: buildSpotlightStats({
+        planId: boost.planId ?? SPOTLIGHT_DEFAULT_PACK,
+        amount: Number(boost.amount) || 0,
+        reach: e.reach,
+        impressions: e.impressions,
+        clicks: e.clicks,
+        startsAt: boost.startsAt,
+        expiresAt: boost.expiresAt,
+      }),
+      packs: SPOTLIGHT_PACK_LIST.map((p) => ({ ...p, perDay: packPerDay(p) })),
+    },
+  });
+});
+
+/**
+ * Records that a viewer opened a boosted post. Upserts rather than UPDATEs so
+ * an open via a share/direct link is never silently dropped, and `clicked_at`
+ * is only stamped once so repeat opens cannot inflate the click count.
+ * Owner clicks are ignored, since the buyer can't be their own customer.
+ */
+router.post("/community/boosts/:boostId/click", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const meId = req.user!.id;
+  const boostId = String(req.params.boostId);
+  try {
+    const [boost] = await db
+      .select({ id: postBoostsTable.id, userId: postBoostsTable.userId, postId: postBoostsTable.postId })
+      .from(postBoostsTable)
+      .where(eq(postBoostsTable.id, boostId))
+      .limit(1);
+    if (!boost || boost.userId === meId) {
+      res.json({ success: true });
+      return;
+    }
+    await db.execute(
+      sql`INSERT INTO boost_impressions (boost_id, user_id, viewed_at, clicked_at, views)
+          VALUES (${boost.id}::uuid, ${meId}::uuid, NOW(), NOW(), 1)
+          ON CONFLICT (boost_id, user_id)
+          DO UPDATE SET clicked_at = COALESCE(boost_impressions.clicked_at, NOW())`,
+    );
+    res.json({ success: true });
+  } catch (err) {
+    logger.warn({ err }, "boost click tracking failed");
+    res.json({ success: true });
+  }
+});
+
+router.post("/community/posts/:id/spotlight", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const meId = req.user!.id;
+  if (req.body?.planId != null && !isKnownSpotlightPack(req.body.planId)) {
+    res.status(400).json({ success: false, message: "Unknown boost pack" });
+    return;
+  }
+  const pack = getSpotlightPack(req.body?.planId);
+  const [post] = await db
+    .select()
+    .from(communityPostsTable)
+    .where(eq(communityPostsTable.id, String(req.params.id)))
+    .limit(1);
+  if (!post) {
+    res.status(404).json({ success: false, message: "Post not found" });
+    return;
+  }
+  if (post.userId !== meId) {
+    res.status(403).json({ success: false, message: "You can only boost your own posts" });
+    return;
+  }
+  if (post.kind !== "GIG" && post.kind !== "PROJECT") {
+    res.status(400).json({ success: false, message: "Only gigs and projects can be boosted" });
+    return;
+  }
+  const existing = await db
+    .select({ id: postBoostsTable.id })
+    .from(postBoostsTable)
+    .where(and(eq(postBoostsTable.postId, post.id), gt(postBoostsTable.expiresAt, new Date())))
+    .limit(1);
+  if (existing.length) {
+    res.status(409).json({ success: false, message: "This post is already boosted — extend it instead", _active: true });
+    return;
+  }
+  const tags = cleanTags(req.body?.tags).map((t) => t.toLowerCase());
+  if (!tags.length) {
+    res.status(400).json({ success: false, message: "Choose at least one keyword so the right people find you" });
+    return;
+  }
+  try {
+    const boost = await db.transaction(async (tx) => {
+      const [wallet] = await tx.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, meId));
+      if (!wallet || Number(wallet.balance) < pack.priceInr) throw new Error("INSUFFICIENT_SPOTLIGHT");
+      const deductResult = await tx.execute(
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${pack.priceInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.id} = ${wallet.id} AND balance >= ${pack.priceInr}`,
+      );
+      if (deductResult.rowCount === 0) throw new Error("INSUFFICIENT_SPOTLIGHT");
+      await tx.insert(transactionsTable).values({
+        userId: meId,
+        type: "SERVICE_PAYMENT",
+        amount: pack.priceInr,
+        description: `Featured boost · ${pack.duration} (post ${post.id})`,
+        status: "COMPLETED",
+      });
+      const [created] = await tx
+        .insert(postBoostsTable)
+        .values({
+          postId: post.id,
+          userId: meId,
+          tags,
+          amount: pack.priceInr,
+          planId: pack.id,
+          startsAt: new Date(),
+          expiresAt: new Date(Date.now() + pack.hours * 3600e3),
+        })
+        .returning();
+      return created;
+    });
+    res.status(201).json({
+      success: true,
+      message: `Your boost is live for ${pack.duration}!`,
+      data: {
+        boost: {
+          id: boost.id,
+          expiresAt: boost.expiresAt,
+          tags: boost.tags,
+          extendCount: boost.extendCount,
+          planId: pack.id,
+          amount: pack.priceInr,
+        },
+        packs: SPOTLIGHT_PACK_LIST.map((p) => ({ ...p, perDay: packPerDay(p) })),
+      },
+    });
+  } catch (e) {
+    if (e instanceof Error && e.message === "INSUFFICIENT_SPOTLIGHT") {
+      res.status(400).json({
+        success: false,
+        message: `Insufficient balance (₹${pack.priceInr} required). Add money to your wallet first.`,
+        _spotlightFailed: true,
+      });
+      return;
+    }
+    throw e;
+  }
+});
+
+router.post("/community/posts/:id/spotlight/extend", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const meId = req.user!.id;
+  if (req.body?.planId != null && !isKnownSpotlightPack(req.body.planId)) {
+    res.status(400).json({ success: false, message: "Unknown boost pack" });
+    return;
+  }
+  const pack = getSpotlightPack(req.body?.planId);
+  const [post] = await db
+    .select()
+    .from(communityPostsTable)
+    .where(eq(communityPostsTable.id, String(req.params.id)))
+    .limit(1);
+  if (!post) {
+    res.status(404).json({ success: false, message: "Post not found" });
+    return;
+  }
+  if (post.userId !== meId) {
+    res.status(403).json({ success: false, message: "You can only extend your own boost" });
+    return;
+  }
+  const [boost] = await db
+    .select()
+    .from(postBoostsTable)
+    .where(and(eq(postBoostsTable.postId, post.id), gt(postBoostsTable.expiresAt, new Date())))
+    .limit(1);
+  if (!boost) {
+    res.status(409).json({ success: false, message: "No active boost — start a new one", _active: false });
+    return;
+  }
+  try {
+    const updated = await db.transaction(async (tx) => {
+      const [wallet] = await tx.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, meId));
+      if (!wallet || Number(wallet.balance) < pack.priceInr) throw new Error("INSUFFICIENT_SPOTLIGHT");
+      const deductResult = await tx.execute(
+        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${pack.priceInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.id} = ${wallet.id} AND balance >= ${pack.priceInr}`,
+      );
+      if (deductResult.rowCount === 0) throw new Error("INSUFFICIENT_SPOTLIGHT");
+      await tx.insert(transactionsTable).values({
+        userId: meId,
+        type: "SERVICE_PAYMENT",
+        amount: pack.priceInr,
+        description: `Boost extension · ${pack.duration} (post ${post.id})`,
+        status: "COMPLETED",
+      });
+      // Longer packs replace the plan on the row, so stats report what the buyer
+      // actually paid for rather than the cheapest tier they started on.
+      const [u] = await tx
+        .update(postBoostsTable)
+        .set({
+          expiresAt: new Date(boost.expiresAt.getTime() + pack.hours * 3600e3),
+          extendCount: boost.extendCount + 1,
+          planId: pack.id,
+          amount: pack.priceInr,
+        })
+        .where(eq(postBoostsTable.id, boost.id))
+        .returning();
+      return u;
+    });
+    res.json({
+      success: true,
+      message: `Boost extended by ${pack.duration}`,
+      data: {
+        boost: {
+          id: updated.id,
+          expiresAt: updated.expiresAt,
+          tags: updated.tags,
+          extendCount: updated.extendCount,
+          planId: pack.id,
+          amount: pack.priceInr,
+        },
+        packs: SPOTLIGHT_PACK_LIST.map((p) => ({ ...p, perDay: packPerDay(p) })),
+      },
+    });
+  } catch (e) {
+    if (e instanceof Error && e.message === "INSUFFICIENT_SPOTLIGHT") {
+      res.status(400).json({
+        success: false,
+        message: `Insufficient balance (₹${pack.priceInr} required). Add money to your wallet first.`,
+        _spotlightFailed: true,
+      });
+      return;
+    }
+    throw e;
+  }
+});
+
+/**
+ * Real demand for a set of keywords, counted from search_logs.
+ *
+ * This is the honest version of "people want this": a boost only reaches
+ * viewers whose recent searches match its tags, so the number of matching
+ * searches IS the addressable audience. No invented figures, no "127 people are
+ * viewing" theatre — if nobody searched, it says zero and the seller should not
+ * buy.
+ */
+router.get("/community/spotlight/demand", optionalAuth, async (req: Request, res: Response): Promise<void> => {
+  const raw = String(req.query.tags ?? "");
+  const tags = spotSuggestions(raw.split(",").map((t) => ({ term: t, n: 1 })));
+  if (!tags.length) {
+    res.json({ success: true, data: { windowDays: 7, terms: [], totalSearches: 0, uniqueSearchers: 0 } });
+    return;
+  }
+  try {
+    const since = new Date(Date.now() - 7 * 864e5);
+    const rows = await db
+      .select({ term: searchLogsTable.term, userId: searchLogsTable.userId })
+      .from(searchLogsTable)
+      .where(gte(searchLogsTable.createdAt, since))
+      .limit(5000);
+    const perTerm: { term: string; searches: number }[] = [];
+    const matchedSearchers = new Set<string>();
+    let totalSearches = 0;
+    for (const tag of tags) {
+      // Same matching rule loadSpotlightPins() uses, so the count reflects the
+      // audience a boost with this tag would actually reach.
+      let n = 0;
+      for (const r of rows) {
+        if (!tagMatchesSignature(tag, [normalizeSpotTerm(r.term)])) continue;
+        n += 1;
+        // Only count people who actually searched this tag, so the number shown
+        // to the buyer is the reach ceiling, not a site-wide vanity metric.
+        if (r.userId) matchedSearchers.add(r.userId);
+      }
+      perTerm.push({ term: tag, searches: n });
+      totalSearches += n;
+    }
+    res.json({
+      success: true,
+      data: {
+        windowDays: 7,
+        terms: perTerm.sort((a, b) => b.searches - a.searches),
+        totalSearches,
+        uniqueSearchers: matchedSearchers.size,
+      },
+    });
+  } catch {
+    res.json({ success: true, data: { windowDays: 7, terms: [], totalSearches: 0, uniqueSearchers: 0 } });
+  }
+});
+
+router.get("/community/spotlight/suggestions", optionalAuth, async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const trend = await db
+      .select({ term: searchLogsTable.term, n: count() })
+      .from(searchLogsTable)
+      .where(gte(searchLogsTable.createdAt, new Date(Date.now() - 14 * 864e5)))
+      .groupBy(searchLogsTable.term)
+      .orderBy(desc(count()))
+      .limit(40);
+    res.json({ success: true, data: { trending: spotSuggestions(trend) } });
+  } catch {
+    res.json({ success: true, data: { trending: [] } });
+  }
+});
+
 /**
  * GET /community/search/suggest?q=
  *
@@ -554,7 +1060,7 @@ async function viewerSearchSignature(userId: string): Promise<string[]> {
  * Deliberately never writes to search_logs. /community/feed logs every query,
  * and a typeahead fires one request per few keystrokes, so reusing the feed
  * endpoint would record "w", "we", "web", "web d" as genuine searches and
- * quietly corrupt the trend data that feeds the search suggestions.
+ * quietly inflate the Spotlight demand numbers that are sold to sellers.
  */
 router.get("/community/search/suggest", optionalAuth, async (req: Request, res: Response): Promise<void> => {
   const q = String(req.query.q || "")
@@ -709,14 +1215,23 @@ router.get("/community/feed", optionalAuth, async (req: Request, res: Response):
       .limit(limit);
   }
 
-  const rows = await renderPosts(basePosts, meId);
+  let rows = await renderPosts(basePosts, meId);
+  if (meId && !authorId && !q && filter === "for-you") {
+    const pins = await loadSpotlightPins(meId, kind);
+    if (pins.length) {
+      const pinIds = new Set(pins.map((r) => r.post.id));
+      rows = [...pins, ...rows.filter((r) => !pinIds.has(r.post.id))];
+    }
+  }
   res.status(200).json({ success: true, data: { posts: rows } });
 });
 
 // ── GET /community/activity ────────────────────────────────────────────────
-// Real barter WORK, as opposed to posts asking for it. Activity used to list
-// only posts, so a completed barter was invisible.
-//   ?kind=BARTER|ALL   &limit=..   &authorId=..
+// Real barter + project WORK, as opposed to posts asking for it. Explore used to
+// list only posts, so a completed barter or a finished project was invisible.
+// Barter and project activity is returned in its own buckets — never folded
+// into the Gigs bucket, because a barter is not a gig and a project is not a gig.
+//   ?kind=BARTER|PROJECT|ALL   &limit=..   &authorId=..
 // Completed, in-progress and open work is included; only states that represent
 // nothing happening (cancelled / rejected / declined) are left out.
 router.get("/community/activity", optionalAuth, async (req: Request, res: Response): Promise<void> => {
@@ -784,6 +1299,65 @@ router.get("/community/activity", optionalAuth, async (req: Request, res: Respon
     }
   }
 
+  if (wantKind === "PROJECT" || wantKind === "ALL") {
+    const rows = await db
+      .select({
+        id: projectsTable.id,
+        title: projectsTable.title,
+        description: projectsTable.description,
+        category: projectsTable.category,
+        status: projectsTable.status,
+        budgetMin: projectsTable.budgetMin,
+        budgetMax: projectsTable.budgetMax,
+        imageUrl: projectsTable.imageUrl,
+        userId: projectsTable.userId,
+        acceptedBidId: projectsTable.acceptedBidId,
+        createdAt: projectsTable.createdAt,
+        updatedAt: projectsTable.updatedAt,
+      })
+      .from(projectsTable)
+      .where(
+        and(
+          not(eq(projectsTable.status, "CANCELLED")),
+          ...(authorId ? [eq(projectsTable.userId, authorId)] : []),
+        ) as SQL
+      )
+      .orderBy(desc(projectsTable.updatedAt))
+      .limit(limit);
+
+    const winnerIds = rows.map((r) => r.acceptedBidId).filter(Boolean) as string[];
+    let winners: Record<string, any> = {};
+    const bidById = new Map<string, string>();
+    if (winnerIds.length) {
+      const bids = await db
+        .select({ id: projectBidsTable.id, userId: projectBidsTable.userId })
+        .from(projectBidsTable)
+        .where(inArray(projectBidsTable.id, winnerIds));
+      for (const b of bids) bidById.set(b.id, b.userId);
+      winners = await people(bids.map((b) => b.userId));
+    }
+    const owners = await people(rows.map((r) => r.userId));
+
+    for (const r of rows) {
+      const winnerId = r.acceptedBidId ? bidById.get(r.acceptedBidId) : null;
+      activity.push({
+        type: "PROJECT",
+        id: r.id,
+        status: r.status,
+        title: r.title,
+        subtitle: r.category,
+        description: r.description,
+        budgetMin: r.budgetMin,
+        budgetMax: r.budgetMax,
+        imageUrl: r.imageUrl,
+        partner: (winnerId ? winners[winnerId] : null) ?? owners[r.userId] ?? null,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+        linkUrl: `/projects/${r.id}`,
+      });
+    }
+  }
+
   activity.sort((a, b) => new Date(b.updatedAt ?? b.createdAt).getTime() - new Date(a.updatedAt ?? a.createdAt).getTime());
   res.status(200).json({ success: true, data: { activity: activity.slice(0, limit) } });
 });
@@ -805,7 +1379,7 @@ router.get("/community/posts/:id", optionalAuth, async (req: Request, res: Respo
 
 // â”€â”€ POST /community/posts â€” create a post â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post("/community/posts", authenticate, async (req: Request, res: Response): Promise<void> => {
-  const { kind, content, tags, media, priceMaxInr, deliveryDays, revisions, wantInr, wantText, coverUrl, location, isRemote } = req.body ?? {};
+  const { kind, content, tags, media, priceInr, priceMaxInr, deliveryDays, revisions, wantInr, wantText, coverUrl, location, isRemote } = req.body ?? {};
 
   const k = kindWhitelist(String(kind || "POST"), "POST");
   if (!content || !String(content).trim()) {
@@ -813,15 +1387,15 @@ router.post("/community/posts", authenticate, async (req: Request, res: Response
     return;
   }
 
-  // Gig and project listings were removed in the Jobs pivot. New listings of
-  // those kinds are rejected outright rather than silently downgraded.
-  const rawKind = String(kind || "POST").toUpperCase();
-  if (rawKind === "GIG" || rawKind === "PROJECT") {
-    res.status(400).json({ success: false, message: "Gig and project listings are no longer accepted. Use Jobs for roles, or share a barter offer instead." });
-    return;
+  let price: number | null = null;
+  if (k === "GIG" || k === "PROJECT") {
+    const p = Number(priceInr);
+    if (!Number.isFinite(p) || p <= 0) {
+      res.status(400).json({ success: false, message: "Gig and project posts need a price in ₹" });
+      return;
+    }
+    price = Math.round(p);
   }
-
-  const price: number | null = null;
 
   const cleanMedia: { type: "image" | "video" | "embed"; url: string }[] = Array.isArray(media)
     ? (media as { url?: string; type?: string }[])
@@ -839,6 +1413,19 @@ router.post("/community/posts", authenticate, async (req: Request, res: Response
     return;
   }
 
+  if (k === "GIG") {
+    const q = await consumeGigPost(req.user!.id);
+    if (!q.allowed) {
+      res.status(402).json({
+        success: false,
+        code: "QUOTA_GIG",
+        message: `You've used all ${FREE_GIG_POSTS} free gig posts this month. 5 more = just ₹80.`,
+        usage: { gigPosts: { used: q.usage.gigPostsUsed, free: q.usage.gigPostsFree, bonus: q.usage.gigPostsBonus, limit: FREE_GIG_POSTS } },
+      });
+      return;
+    }
+  }
+
   try {
     const [post] = await db
       .insert(communityPostsTable)
@@ -852,7 +1439,7 @@ router.post("/community/posts", authenticate, async (req: Request, res: Response
         priceInr: price,
         priceMaxInr: Number.isFinite(Number(priceMaxInr)) && Number(priceMaxInr) > 0 ? Math.round(Number(priceMaxInr)) : null,
         deliveryDays: Number.isFinite(Number(deliveryDays)) && Number(deliveryDays) > 0 ? Math.round(Number(deliveryDays)) : null,
-        revisions: k === "BARTER" ? Math.max(0, Math.min(10, Math.round(Number(revisions) || 0))) : 0,
+        revisions: k === "GIG" || k === "BARTER" || k === "PROJECT" ? Math.max(0, Math.min(10, Math.round(Number(revisions) || 0))) : 0,
         wantInr: k === "BARTER" && Number.isFinite(Number(wantInr)) && Number(wantInr) > 0 ? Math.round(Number(wantInr)) : null,
         wantText: k === "BARTER" && wantText ? String(wantText).trim().slice(0, 200) : null,
         location: location ? String(location).trim().slice(0, 100) : req.user!.city ?? null,
@@ -1032,13 +1619,6 @@ router.get("/community/users/:id", optionalAuth, async (req: Request, res: Respo
   if (!user) {
     res.status(404).json({ success: false, message: "User not found" });
     return;
-  }
-
-  // Record the profile view (skip self-views; fire-and-forget).
-  if (req.user?.id !== user.id) {
-    db.insert(profileViewsTable)
-      .values({ viewerId: req.user?.id ?? null, viewedId: user.id })
-      .catch(() => {});
   }
 
   const [postStats] = await db
@@ -1346,8 +1926,8 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
     res.status(404).json({ success: false, message: "Post not found" });
     return;
   }
-  if (post.kind !== "BARTER") {
-    res.status(400).json({ success: false, message: "Only barter posts can take requests. Gig and project listings were removed." });
+  if (post.kind !== "GIG" && post.kind !== "PROJECT" && post.kind !== "BARTER") {
+    res.status(400).json({ success: false, message: "Only gig, project and barter posts can take requests." });
     return;
   }
   if (post.userId === meId) {
@@ -1355,8 +1935,9 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
     return;
   }
 
-  // Barter offers draw from the monthly proposal quota (freelancer quota).
-  {
+// Requesting a gig never costs a proposal quota; bids/proposals on projects and
+  // barter offers draw from the monthly proposal quota (freelancer quota).
+  if (post.kind === "PROJECT" || post.kind === "BARTER") {
     const q = await consumeProposal(meId);
     if (!q.allowed) {
       res.status(402).json({
@@ -1369,8 +1950,9 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
     }
   }
 
-  // A client can only order if their wallet can cover it. A barter offer never
-  // stores a monetary amount, so this check resolves to null and is skipped.
+// A client can only order a gig if their wallet can cover it. resolveGigAmount is
+  // shared with the unit tests so the amount we check is exactly the amount we
+  // store — a client cannot lower one without lowering the other.
   const gigPrice = resolveGigAmount(post.kind, post.priceInr, amount);
   if (gigPrice !== null && gigPrice > 0) {
     const [buyerWallet] = await db
@@ -1383,7 +1965,7 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
       res.status(400).json({
         success: false,
         code: "INSUFFICIENT_FUNDS",
-        message: `You need ₹${Number(gigPrice).toLocaleString("en-IN")} in your wallet to place this request. You have ₹${Number(walletBalance).toLocaleString("en-IN")}. Please add funds first.`,
+        message: `You need ₹${Number(gigPrice).toLocaleString("en-IN")} in your wallet to order this gig. You have ₹${Number(walletBalance).toLocaleString("en-IN")}. Please add funds first.`,
       });
       return;
     }
@@ -1400,8 +1982,16 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
     return;
   }
 
-  // Barter is free by definition, so it never stores a monetary amount.
-  const finalAmount = null;
+  // GIG posts have a fixed price on the post. PROJECT proposals carry a bid.
+  // BARTER is free by definition, so it never stores a monetary amount.
+const finalAmount =
+      post.kind === "GIG"
+? gigPrice
+: post.kind === "BARTER"
+? null
+: Number.isFinite(amount) && amount > 0
+          ? Math.round(amount)
+          : null;
 
   try {
     const [order] = await db
@@ -1410,7 +2000,7 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
         postId: post.id,
         buyerId: meId,
         sellerId: post.userId,
-        kind: post.kind as "BARTER",
+        kind: post.kind as "GIG" | "PROJECT" | "BARTER",
         status: "PENDING",
         requirements: content,
         amount: finalAmount,
@@ -1423,7 +2013,7 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
     notify(
       author.id,
       "COMMUNITY_ORDER",
-      `New barter offer`,
+      `New ${post.kind === "GIG" ? "gig order" : post.kind === "PROJECT" ? "project proposal" : "barter offer"}`,
       `${req.user!.firstName} sent you a request: ${snippet}`,
       `/orders`,
     );
@@ -1595,7 +2185,7 @@ router.put("/community/orders/:id/accept", authenticate, async (req: Request, re
       .values({ user1Id: order.buyerId, user2Id: order.sellerId, lastMessageAt: new Date() })
       .returning();
   }
-  const chatLabel = order.kind === "BARTER" ? "✅ Barter offer accepted" : "✅ Order accepted";
+  const chatLabel = order.kind === "GIG" ? "✅ Gig order accepted" : order.kind === "PROJECT" ? "✅ Proposal accepted" : "✅ Barter offer accepted";
   await db
     .insert(messagesTable)
     .values({
@@ -1682,7 +2272,7 @@ router.post("/community/orders/:id/review", authenticate, async (req: Request, r
     .insert(communityOrderReviewsTable)
     .values({ orderId: order.id, reviewerId: meId, revieweeId, rating, review: review || null })
     .returning();
-  notify(revieweeId, "REVIEW_RECEIVED", "New review", `${req.user!.firstName} rated their order with you ${rating}/5.`, `/orders`);
+  notify(revieweeId, "REVIEW_RECEIVED", "New review", `${req.user!.firstName} rated their gig order with you ${rating}/5.`, `/orders`);
   emitToRoom(req, `user:${revieweeId}`, "profile:updated", { userId: revieweeId });
   res.status(201).json({ success: true, data: { review: created } });
 });

@@ -10,6 +10,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
+import { projectsTable, projectBidsTable } from "./projects";
 import { ordersTable } from "./orders";
 import { barterRequestsTable } from "./barter";
 
@@ -24,12 +25,40 @@ export const savedItemsTable = pgTable("saved_items", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// ── Invite status (shared by the generic invites table) ────────────────────
+// ── Direct project invites (client invites a specific freelancer to bid) ──
 export const inviteStatusEnum = pgEnum("invite_status", ["PENDING", "ACCEPTED", "DECLINED"]);
 
-// project_invites and project_milestones were archived and dropped by the
-// Jobs pivot migration (migrate-pivot-removal.ts); their money history lives
-// in the archived copies and in wallet transactions.
+export const projectInvitesTable = pgTable("project_invites", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
+  clientId: uuid("client_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  freelancerId: uuid("freelancer_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  message: text("message"),
+  status: inviteStatusEnum("status").default("PENDING").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// ── Project milestones (split a project's accepted bid into paid stages) ──
+export const milestoneStatusEnum = pgEnum("milestone_status", [
+  "PENDING",
+  "IN_PROGRESS",
+  "DELIVERED",
+  "APPROVED",
+]);
+
+export const projectMilestonesTable = pgTable("project_milestones", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
+  bidId: uuid("bid_id").notNull().references(() => projectBidsTable.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 200 }).notNull(),
+  amount: real("amount").notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  status: milestoneStatusEnum("status").default("PENDING").notNull(),
+  deliveryNote: text("delivery_note"),
+  deliveredAt: timestamp("delivered_at"),
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
 // ── Disputes (orders, projects or barter) ──────────────────────────────────
 export const disputeStatusEnum = pgEnum("dispute_status", ["OPEN", "UNDER_REVIEW", "RESOLVED_BUYER", "RESOLVED_SELLER", "CLOSED"]);
@@ -104,6 +133,8 @@ export const savedSearchesTable = pgTable("saved_searches", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 export type SavedItem = typeof savedItemsTable.$inferSelect;
+export type ProjectInvite = typeof projectInvitesTable.$inferSelect;
+export type ProjectMilestone = typeof projectMilestonesTable.$inferSelect;
 export type Dispute = typeof disputesTable.$inferSelect;
 export type KycDocument = typeof kycDocumentsTable.$inferSelect;
 export type SavedSearch = typeof savedSearchesTable.$inferSelect;
