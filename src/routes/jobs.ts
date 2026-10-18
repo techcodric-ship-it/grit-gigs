@@ -8,6 +8,7 @@ import {
   usersTable,
 } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
+import { draftJobs } from "../lib/ai-draft";
 import {
   JOB_TYPES,
   MAX_DESCRIPTION_LEN,
@@ -34,6 +35,7 @@ function jobToClientJson(
     description: job.description,
     skills: job.skills,
     link: job.link ?? null,
+    source: job.source || "job_listing",
     applicationDeadline: job.applicationDeadline,
     createdAt: job.createdAt,
     isActive: job.isActive,
@@ -180,6 +182,63 @@ router.post("/jobs", authenticate, async (req: Request, res: Response): Promise<
     .returning();
 
   res.status(201).json({ success: true, message: "Job posted", data: jobToClientJson(job) });
+});
+
+// POST /jobs/generate — AI-drafts listings (Gemini when configured, Groq fallback)
+// and publishes them immediately as the caller's own postings.
+const generateHits = new Map<string, { windowStart: number; n: number }>();
+router.post("/jobs/generate", authenticate, async (req: Request, res: Response): Promise<void> => {
+  const body = req.body || {};
+  const skill = typeof body.skill === "string" ? body.skill.trim() : "";
+  if (!skill || skill.length > 120) {
+    res.status(400).json({ success: false, message: "Describe the skill or role to draft (max 120 characters)." });
+    return;
+  }
+  const count = Math.min(3, Math.max(1, Number(body.count) || 1));
+
+  const now = Date.now();
+  const WINDOW_MS = 10 * 60 * 1000;
+  const hit = generateHits.get(req.user!.id);
+  if (hit && now - hit.windowStart < WINDOW_MS && hit.n >= 6) {
+    res.status(429).json({ success: false, message: "AI drafting limit reached for now. Try again in a few minutes." });
+    return;
+  }
+  if (generateHits.size > 5000) generateHits.clear();
+
+  try {
+    const drafts = await draftJobs({
+      skill,
+      company: typeof body.company === "string" ? body.company : null,
+      location: typeof body.location === "string" ? body.location : null,
+      count,
+    });
+    const inserted = await db
+      .insert(jobsTable)
+      .values(
+        drafts.map((d) => ({
+          ...d,
+          postedById: req.user!.id,
+          source: "ai_drafted",
+        })),
+      )
+      .returning();
+
+    const current = generateHits.get(req.user!.id);
+    if (current && now - current.windowStart < WINDOW_MS) {
+      generateHits.set(req.user!.id, { windowStart: current.windowStart, n: current.n + 1 });
+    } else {
+      generateHits.set(req.user!.id, { windowStart: now, n: 1 });
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `${inserted.length} job${inserted.length === 1 ? "" : "s"} drafted and published`,
+      data: inserted.map((j) => jobToClientJson(j)),
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "AI drafting failed. Try again.";
+    res.status(502).json({ success: false, message });
+  }
 });
 
 // GET /jobs/:id — single job detail (caller-aware).

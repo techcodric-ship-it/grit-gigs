@@ -39,6 +39,9 @@
   .modal-msg { font-size: var(--fs-13); margin-bottom: var(--space-3); display: none; }
   .modal-msg.error { color: var(--danger, #dc2626); display: block; }
   .modal-msg.ok { color: var(--success, #16a34a); display: block; }
+  .page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+  .page-head-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .page-eyebrow { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
   @media (max-width: 640px) { .form-row { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -46,14 +49,15 @@
 <nav class="nav" aria-label="Main">
   <div class="nav-inner">
     <a href="/" class="nav-logo" aria-label="Grit and Gigs home">
-      <div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div>
+      <div class="nav-logo-mark"><img src="/logo.svg" alt="" width="32" height="32"></div>
       <span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span>
     </a>
     <div class="nav-links">
       <a href="/jobs">Jobs</a>
       <a href="/barter">Barter</a>
+      <a href="/prep">Prep</a>
+      <a href="/circle">Circle</a>
       <a href="/blog">Blog</a>
-      <a href="/about">About</a>
     </div>
     <div class="nav-actions" id="navActions">
       <button class="btn btn-secondary btn-sm" type="button" onclick="location.href='/?login=1'">Sign in</button>
@@ -66,8 +70,9 @@
   <div class="mobile-menu" id="mobile-menu">
     <a href="/jobs">Jobs</a>
     <a href="/barter">Barter</a>
+    <a href="/prep">Prep</a>
+    <a href="/circle">Circle</a>
     <a href="/blog">Blog</a>
-    <a href="/about">About</a>
     <button class="btn btn-secondary" type="button" onclick="location.href='/?login=1'">Sign in</button>
     <button class="btn btn-primary" type="button" onclick="location.href='/?signup=1'">Join free</button>
   </div>
@@ -75,12 +80,16 @@
 
 <main class="container">
   <div class="section-sm">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+    <div class="page-head">
       <div>
+        <p class="page-eyebrow">Direct employers · Source-labelled</p>
         <h1>Jobs</h1>
         <p class="sg-lead">Real roles posted by employers on Grit&amp;Gigs. Every card shows its source.</p>
       </div>
-      <button class="btn btn-primary" type="button" id="btnPostJob" hidden>Post a job</button>
+      <div class="page-head-actions">
+        <button class="btn btn-secondary" type="button" id="btnAiDraft" hidden>Draft with AI</button>
+        <button class="btn btn-primary" type="button" id="btnPostJob" hidden>Post a job</button>
+      </div>
     </div>
 
     <div class="jobs-tabs" role="tablist" aria-label="Jobs sections">
@@ -200,6 +209,38 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="aiModal" role="dialog" aria-modal="true" aria-labelledby="aiModalTitle">
+  <div class="modal" style="max-width:480px;">
+    <button class="modal-close" type="button" data-close="aiModal" aria-label="Close">&times;</button>
+    <h2 id="aiModalTitle">Draft jobs with AI</h2>
+    <p class="modal-sub">Describe the skill or role. AI drafts realistic listings and publishes them as your posts &mdash; edit, close or delete them any time from My jobs. Always review before sharing.</p>
+    <p class="modal-msg" id="aiMsg"></p>
+    <div class="form-group">
+      <label for="aiSkill">Skill or role</label>
+      <input class="form-input" id="aiSkill" type="text" maxlength="120" placeholder="e.g. React developer, video editor, maths tutor"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="aiCompany">Company (optional)</label>
+        <input class="form-input" id="aiCompany" type="text" maxlength="120" placeholder="Confidential"/>
+      </div>
+      <div class="form-group">
+        <label for="aiLocation">Location (optional)</label>
+        <input class="form-input" id="aiLocation" type="text" maxlength="120" placeholder="Remote (India)"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="aiCount">How many drafts</label>
+      <select class="form-input" id="aiCount">
+        <option value="1">1 job</option>
+        <option value="2">2 jobs</option>
+        <option value="3">3 jobs</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" type="button" id="aiSubmit" style="width:100%;">Generate &amp; publish</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="applicantsModal" role="dialog" aria-modal="true" aria-labelledby="applicantsTitle">
   <div class="modal" style="max-width:640px;">
     <button class="modal-close" type="button" data-close="applicantsModal" aria-label="Close">&times;</button>
@@ -214,7 +255,7 @@
   <div class="footer-grid">
     <div class="footer-brand">
       <div class="nav-logo">
-        <div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div>
+        <div class="nav-logo-mark"><img src="/logo.svg" alt="" width="32" height="32"></div>
         <span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span>
       </div>
       <p>Jobs, barter and honest community — built in India.</p>
@@ -307,6 +348,7 @@
       dash.textContent = u.firstName || "Profile";
       box.appendChild(dash);
       document.getElementById("btnPostJob").hidden = false;
+      document.getElementById("btnAiDraft").hidden = false;
       document.getElementById("tabApplied").hidden = false;
       document.getElementById("tabMine").hidden = false;
     }
@@ -344,7 +386,8 @@
     meta.push('<span class="badge badge-status">' + (Number(job.applicants) || 0) + " applicant" + (Number(job.applicants) === 1 ? "" : "s") + "</span>");
     if (job.applicationDeadline) meta.push('<span class="badge badge-status">Closes ' + fmtDate(job.applicationDeadline) + "</span>");
     var skills = (job.skills || []).map(function (s) { return '<span class="badge badge-source">' + esc(s) + "</span>"; }).join("");
-    var foot = '<div class="card-job-foot"><span class="badge badge-source">Source: job_listing</span>';
+    var srcLabel = job.source === "ai_drafted" ? "Source: ai_drafted (member-posted)" : "Source: " + (job.source || "job_listing");
+    var foot = '<div class="card-job-foot"><span class="badge badge-source">' + esc(srcLabel) + "</span>";
     if (opts.mine) {
       foot += '<div class="job-actions">' +
         '<button class="btn btn-secondary btn-sm" type="button" data-applicants="' + esc(job.id) + '">Applicants' + (job.pending ? " (" + job.pending + " new)" : "") + "</button>" +
@@ -520,6 +563,37 @@
     }).catch(function (err) {
       msg("postMsg", err.message || "Could not post the job.");
       btn.disabled = false; btn.textContent = "Post job";
+    });
+  });
+
+  // ---- AI draft jobs
+  document.getElementById("btnAiDraft").addEventListener("click", function () {
+    if (!token()) { location.href = "/?login=1"; return; }
+    msg("aiMsg", "");
+    openModal("aiModal");
+  });
+  document.getElementById("aiSubmit").addEventListener("click", function () {
+    var btn = this;
+    var skill = document.getElementById("aiSkill").value.trim();
+    if (!skill) { msg("aiMsg", "Describe the skill or role first."); return; }
+    btn.disabled = true; btn.textContent = "Drafting…";
+    msg("aiMsg", "");
+    api("/jobs/generate", {
+      method: "POST",
+      body: {
+        skill: skill,
+        company: document.getElementById("aiCompany").value.trim(),
+        location: document.getElementById("aiLocation").value.trim(),
+        count: Number(document.getElementById("aiCount").value) || 1,
+      },
+    }).then(function (d) {
+      btn.disabled = false; btn.textContent = "Generate & publish";
+      document.getElementById("aiSkill").value = "";
+      msg("aiMsg", (d.data || []).length + " draft(s) published to My jobs.", true);
+      setTimeout(function () { closeModal("aiModal"); showTab("mine"); }, 900);
+    }).catch(function (err) {
+      btn.disabled = false; btn.textContent = "Generate & publish";
+      msg("aiMsg", err.message || "Drafting failed. Try again.");
     });
   });
 

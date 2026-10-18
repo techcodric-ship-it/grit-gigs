@@ -393,3 +393,4 @@ h4.sub-title { font-size: 14px; font-weight: 600; margin: 20px 0 12px; }
 .kycbtn:hover:not(:disabled) { background: #5a2fd4; box-shadow: 0 2px 8px rgba(108, 63, 232, .28); }
 .kycbtn:disabled { opacity: .6; cursor: default; }
 @media (max-width: 620px) { .kycfields { grid-template-columns: 1fr; } }
+.nav-logo-mark img{width:26px;height:26px;object-fit:contain;display:block;border-radius:7px;}

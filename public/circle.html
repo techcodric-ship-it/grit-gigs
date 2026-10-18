@@ -11,18 +11,27 @@
 <script src="/assets/ui.js" defer></script>
 <script src="/assets/companion.js" defer></script>
 <link rel="canonical" href="https://www.gritandgigs.in/circle"/>
+<style>
+  .page-eyebrow { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
+  .ctabs { display: flex; gap: var(--space-2); border-bottom: 1px solid var(--bd); margin: var(--space-4) 0 var(--space-5); }
+  .ctab { background: none; border: none; padding: 12px 16px; font: inherit; font-weight: 600; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; }
+  .ctab.active { color: var(--text); border-bottom-color: var(--primary); }
+  .teams-intro { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .teams-intro p { font-size: 14px; color: var(--text-muted); max-width: 520px; }
+</style>
 </head>
 <body>
 <nav class="nav" aria-label="Main">
   <div class="nav-inner">
     <a href="/" class="nav-logo" aria-label="Grit and Gigs home">
-      <div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div>
+      <div class="nav-logo-mark"><img src="/logo.svg" alt="" width="32" height="32"></div>
       <span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span>
     </a>
     <div class="nav-links">
       <a href="/jobs">Jobs</a>
-      <a href="/circle">Circle</a>
       <a href="/barter">Barter</a>
+      <a href="/prep">Prep</a>
+      <a href="/circle">Circle</a>
       <a href="/blog">Blog</a>
     </div>
     <div class="nav-actions">
@@ -35,8 +44,9 @@
   </div>
   <div class="mobile-menu" id="mobile-menu">
     <a href="/jobs">Jobs</a>
-    <a href="/circle">Circle</a>
     <a href="/barter">Barter</a>
+    <a href="/prep">Prep</a>
+    <a href="/circle">Circle</a>
     <a href="/blog">Blog</a>
     <button class="btn btn-secondary" type="button" onclick="location.href='/?login=1'">Sign in</button>
     <button class="btn btn-primary" type="button" onclick="location.href='/?signup=1'">Join free</button>
@@ -45,12 +55,13 @@
 
 <main class="container">
   <div class="section-sm">
+    <p class="page-eyebrow">Discussions · Wins · Teams</p>
     <h1>Grit Circle</h1>
     <p class="sg-lead">Community discussions, wins and interview experiences — plus Grit Circles, small teams that take on work together.</p>
 
-    <div class="jobs-tabs" role="tablist" aria-label="Circle sections" style="display:flex;gap:12px;border-bottom:1px solid var(--bd);margin:16px 0;">
-      <button type="button" role="tab" class="active" data-ctab="feed" aria-selected="true" style="background:none;border:none;padding:12px 16px;font:inherit;font-weight:600;color:var(--text);cursor:pointer;border-bottom:2px solid var(--primary);">Feed</button>
-      <button type="button" role="tab" data-ctab="teams" aria-selected="false" style="background:none;border:none;padding:12px 16px;font:inherit;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;">Grit Circles</button>
+    <div class="ctabs" role="tablist" aria-label="Circle sections">
+      <button type="button" role="tab" class="ctab active" data-ctab="feed" aria-selected="true">Feed</button>
+      <button type="button" role="tab" class="ctab" data-ctab="teams" aria-selected="false">Grit Circles</button>
     </div>
 
     <section id="panelFeed" role="tabpanel">
@@ -61,8 +72,8 @@
     </section>
 
     <section id="panelTeams" role="tabpanel" hidden>
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
-        <p style="font-size:14px;color:var(--text-muted);max-width:520px;">A Grit Circle is a team of up to 6 members led by a leader. Circles apply to jobs together and split earnings. Starting a circle needs the Squad plan.</p>
+      <div class="teams-intro">
+        <p>A Grit Circle is a team of up to 6 members led by a leader. Circles apply to jobs together and split earnings. Starting a circle needs the Squad plan.</p>
         <button class="btn btn-primary" type="button" id="btnStartCircle" hidden>Start a circle</button>
       </div>
       <div id="myCircleBox" hidden style="margin-bottom:20px;"></div>
@@ -104,7 +115,7 @@
   <div class="footer-grid">
     <div class="footer-brand">
       <div class="nav-logo">
-        <div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div>
+        <div class="nav-logo-mark"><img src="/logo.svg" alt="" width="32" height="32"></div>
         <div class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></div>
       </div>
       <p>Jobs, barter and honest community — built in India.</p>
@@ -191,8 +202,6 @@
         var on = x === b;
         x.classList.toggle("active", on);
         x.setAttribute("aria-selected", on ? "true" : "false");
-        x.style.color = on ? "var(--text)" : "var(--text-muted)";
-        x.style.borderBottomColor = on ? "var(--primary)" : "transparent";
       });
       document.getElementById("panelFeed").hidden = name !== "feed";
       document.getElementById("panelTeams").hidden = name !== "teams";

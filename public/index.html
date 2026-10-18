@@ -64,6 +64,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Sora:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <style>
+.nav-logo-mark img{width:26px;height:26px;object-fit:contain;display:block;border-radius:7px;}
   :root{
     --bg:#FAF8FF;
     --card:#FFFFFF;
@@ -112,8 +113,6 @@
     transition:all .25s ease;
   }
   .nav-logo:hover .nav-logo-mark{transform:translateY(-1px);border-color:rgba(108,63,232,.35);box-shadow:0 6px 20px rgba(108,63,232,.16);}
-  .logo-g-black{color:#0A0A0F;}
-  .logo-g-blue{color:#6C3FE8;}
   .nav-logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;letter-spacing:-.04em;display:flex;align-items:center;}
   .logo-text-black{color:#0A0A0F;}
   .logo-text-blue{color:#6C3FE8;margin-left:3px;}
@@ -423,6 +422,72 @@
     .dash-body{grid-template-columns:1fr;}
     .dash-side{display:none;}
   }
+
+  /* sticky header */
+  header.site{
+    position:sticky;top:0;z-index:50;
+    background:rgba(250,248,255,.86);
+    -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+    border-bottom:1px solid transparent;
+    transition:border-color .2s ease, box-shadow .2s ease;
+  }
+  header.site.scrolled{border-bottom-color:var(--line);box-shadow:0 8px 30px rgba(91,38,182,.07);}
+
+  /* mobile nav toggle */
+  .nav-toggle{
+    display:none;width:42px;height:42px;padding:0;
+    border:1.5px solid var(--line);background:var(--card);border-radius:12px;cursor:pointer;
+    flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  }
+  .nav-toggle span{width:16px;height:2px;background:var(--ink);border-radius:2px;transition:transform .2s ease,opacity .2s ease;}
+  .nav-toggle.open span:nth-child(1){transform:translateY(6px) rotate(45deg);}
+  .nav-toggle.open span:nth-child(2){opacity:0;}
+  .nav-toggle.open span:nth-child(3){transform:translateY(-6px) rotate(-45deg);}
+
+  .hero-how{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:600;color:var(--purple);text-decoration:none;margin-top:16px;}
+  .hero-how:hover{text-decoration:underline;text-underline-offset:3px;}
+  .hero-how svg{width:12px;height:12px;stroke-width:2.2;}
+
+  /* platform tiles */
+  .tile-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+  .tile{
+    display:flex;flex-direction:column;gap:10px;text-decoration:none;
+    border:1px solid var(--line);border-radius:18px;background:var(--card);padding:22px 20px;
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .tile:hover{transform:translateY(-4px);box-shadow:var(--shadow-sm);border-color:rgba(124,58,237,.35);}
+  .tile-icon{
+    width:44px;height:44px;border-radius:14px;background:var(--tint);color:var(--purple);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .tile-icon svg{width:21px;height:21px;stroke-width:1.8;}
+  .tile h3{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;letter-spacing:-.01em;color:var(--ink);}
+  .tile p{font-size:.84rem;color:var(--ink-2);flex:1;}
+  .tile .tile-go{font-family:'Space Mono',monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--purple);}
+
+  .btn-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+
+  @media(max-width:880px){
+    .nav-toggle{display:flex;}
+    .nav{
+      display:none;width:100%;flex-direction:column;align-items:stretch;gap:0;
+      background:var(--card);border:1px solid var(--line);border-radius:16px;
+      padding:8px;margin-top:10px;box-shadow:var(--shadow-sm);
+    }
+    .nav.open{display:flex;}
+    .nav a{padding:11px 14px;border-radius:10px;font-size:.92rem;}
+    .nav a:hover{background:var(--tint);}
+    .nav .btn-link{text-align:center;margin-top:6px;}
+    .tile-grid{grid-template-columns:repeat(2,1fr);}
+  }
+  @media(max-width:560px){
+    .tile-grid{grid-template-columns:1fr;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .trust-track,.blob{animation:none;}
+    html{scroll-behavior:auto;}
+    .tile:hover,.how-card:hover,.x-card:hover,.svc-card:hover,.blog-card:hover,.btn-pill:hover{transform:none;}
+  }
 </style>
 </head>
 <body>
@@ -430,18 +495,23 @@
 <div class="blob blob-v"></div>
 <div class="blob blob-p"></div>
 
-<header>
+<header class="site">
   <div class="wrap bar">
     <a class="nav-logo" href="/" aria-label="Grit&Gigs home">
-      <div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div>
+      <div class="nav-logo-mark"><img src="/logo.svg" alt="" width="32" height="32"></div>
       <span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span>
     </a>
-    <nav class="nav" aria-label="Main">
-      <a href="#how" class="link">How it works</a>
-      <a href="#barter" class="link">Skill Exchange</a>
-      <a href="#freelance" class="link">Freelance</a>
-      <a href="#blog" class="link">Blog</a>
-      <a href="#barter" class="btn-link">Join free</a>
+    <button class="nav-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="mainNav">
+      <span></span><span></span><span></span>
+    </button>
+    <nav class="nav" id="mainNav" aria-label="Main">
+      <a href="#how">How it works</a>
+      <a href="/jobs">Jobs</a>
+      <a href="/barter">Skill Exchange</a>
+      <a href="/prep">Interview Prep</a>
+      <a href="/circle">Grit Circles</a>
+      <a href="/?login=1">Sign in</a>
+      <a href="/?signup=1" class="btn-link">Join free</a>
     </nav>
   </div>
 </header>
@@ -451,16 +521,17 @@
   <section class="hero-wrap">
     <div class="split">
       <div class="left">
-        <p class="eyebrow">India's skill marketplace</p>
+        <p class="eyebrow">Jobs · Skill Barter · Interview Prep</p>
         <h1>Real jobs.<br/><span class="grad">Real skill trades.</span></h1>
         <p class="lead">
           Browse direct employer posts and apply in minutes, or trade your skill for someone else's.
           Either way, <strong>prove every rupee you earn</strong> with a verified Income Passport.
         </p>
         <div class="hero-links">
-          <a class="btn-pill primary" href="#barter">Start for free</a>
-          <a class="btn-pill ghost" href="#how">See how it works</a>
+          <a class="btn-pill primary" href="/?signup=1">Create free account</a>
+          <a class="btn-pill ghost" href="/jobs">Browse jobs</a>
         </div>
+        <a class="hero-how" href="#how">See how it works <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg></a>
         <div class="stats">
           <div class="stat"><b>28,000+</b><span>Active members</span></div>
           <div class="stat"><b>9,400+</b><span>Skills exchanged</span></div>
@@ -589,6 +660,42 @@
         <div class="how-step"><i>2</i><span>Earnings auto-verified in real time</span></div>
         <div class="how-step"><i>3</i><span>Download your Income Passport anytime</span></div>
       </div>
+    </div>
+  </section>
+
+  <!-- PLATFORM TILES -->
+  <section class="wrap section" id="platform">
+    <div class="sec-head">
+      <span class="sec-num">THE PLATFORM</span>
+      <h2>Everything you need in one place</h2>
+      <span class="rule"></span>
+    </div>
+    <p class="sec-sub">Four surfaces, one free account — hunt roles, trade skills, prep for interviews and stay accountable with your circle.</p>
+    <div class="tile-grid">
+      <a class="tile" href="/jobs">
+        <span class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/></svg></span>
+        <h3>Jobs</h3>
+        <p>Fresh roles from direct employers, every listing labelled with its source. Apply straight to the hiring team — no bidding wars.</p>
+        <span class="tile-go">Browse jobs →</span>
+      </a>
+      <a class="tile" href="/barter">
+        <span class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16V4m0 0L3 8m4-4 4 4M17 8v12m0 0 4-4m-4 4-4-4"/></svg></span>
+        <h3>Skill Barter</h3>
+        <p>Trade what you're good at for what you need. AI matches you with the right person — zero fees, no cash involved.</p>
+        <span class="tile-go">Open barter →</span>
+      </a>
+      <a class="tile" href="/prep">
+        <span class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H7l-4 3V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"/><path d="M9 12l2 2 4-4"/></svg></span>
+        <h3>Interview Prep</h3>
+        <p>Practise real questions with instant feedback across six tracks, and walk into the room knowing your answers land.</p>
+        <span class="tile-go">Start practising →</span>
+      </a>
+      <a class="tile" href="/circle">
+        <span class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/><path d="M15 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+        <h3>Grit Circles</h3>
+        <p>Small peer groups that keep you shipping — weekly check-ins, honest feedback and people chasing the same goals.</p>
+        <span class="tile-go">Join a circle →</span>
+      </a>
     </div>
   </section>
 
@@ -792,9 +899,9 @@
     <div class="cta-card">
       <h2>Find your next job or trade a skill. It's completely free.</h2>
       <p>No credit card. No hidden fees. Just sign up and start trading your skills for things you actually need — or start earning real money.</p>
-      <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
-        <a class="btn-pill primary" href="#barter">Create free account</a>
-        <a class="btn-pill ghost" href="#how">Learn more</a>
+      <div class="btn-row">
+        <a class="btn-pill primary" href="/?signup=1">Create free account</a>
+        <a class="btn-pill ghost" href="/jobs">Browse jobs</a>
       </div>
     </div>
   </section>
@@ -804,16 +911,17 @@
   <div class="wrap foot">
     <div class="foot-brand">
       <a class="nav-logo" href="/" aria-label="Grit&Gigs home">
-        <div class="nav-logo-mark"><span class="logo-g-black">G</span><span class="logo-g-blue">&amp;G</span></div>
+        <div class="nav-logo-mark"><img src="/logo.svg" alt="" width="32" height="32"></div>
         <span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span>
       </a>
       <p>Real jobs from direct employers, free skill barter, and interview practice — prove every rupee you earn.</p>
     </div>
     <div class="foot-col">
       <h4>Platform</h4>
-      <a href="/barter">Skill Exchange</a>
-      <a href="/jobs">Freelance</a>
       <a href="/jobs">Browse jobs</a>
+      <a href="/barter">Skill Exchange</a>
+      <a href="/prep">Interview Prep</a>
+      <a href="/circle">Grit Circles</a>
       <a href="rate-calculator.html">Rate calculator</a>
       <a href="refer-and-earn.html">Refer &amp; earn</a>
     </div>
@@ -840,6 +948,30 @@
   </div>
 </footer>
 
+<script>
+(function () {
+  var header = document.querySelector("header.site");
+  var toggle = document.querySelector(".nav-toggle");
+  var nav = document.getElementById("mainNav");
+  function onScroll() { if (header) header.classList.toggle("scrolled", window.scrollY > 8); }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+  if (toggle && nav) {
+    toggle.addEventListener("click", function () {
+      var open = nav.classList.toggle("open");
+      toggle.classList.toggle("open", open);
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+    nav.addEventListener("click", function (e) {
+      if (e.target && e.target.tagName === "A") {
+        nav.classList.remove("open");
+        toggle.classList.remove("open");
+        toggle.setAttribute("aria-expanded", "false");
+      }
+    });
+  }
+})();
+</script>
 <script>
 (function () {
   var API = '/api';

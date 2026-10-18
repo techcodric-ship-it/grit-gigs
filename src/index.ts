@@ -874,6 +874,8 @@ app.set("io", io);
             created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
           );
           CREATE INDEX IF NOT EXISTS idx_profile_views_viewed ON profile_views(viewed_id, created_at DESC);
+
+          ALTER TABLE jobs ADD COLUMN IF NOT EXISTS source text DEFAULT 'job_listing';
         `);
       } catch (e: unknown) {
         logger.error({ err: e }, "migrate: table creation failed");

@@ -1053,3 +1053,4 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
   .container { padding: 0 var(--space-4); }
   .toast { left: var(--space-4); right: var(--space-4); max-width: none; }
 }
+.nav-logo-mark img{width:26px;height:26px;object-fit:contain;display:block;border-radius:7px;}
