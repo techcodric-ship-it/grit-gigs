@@ -1,0 +1,68 @@
+/* Prep (Company Report) — uses the site's existing tokens, no redesign. */
+:root {
+  --prep-violet: #6C3FE8;
+  --prep-violet-deep: #5430C9;
+  --prep-violet-light: #F0ECFD;
+  --prep-ink: #0A0A0F;
+  --prep-ink-2: #1C1C2E;
+  --prep-muted: #6B7280;
+  --prep-line: #E6E4EE;
+  --prep-card: #FFFFFF;
+  --prep-bg: #FAFAFC;
+}
+.prep-wrap { max-width: 720px; margin: 0 auto; padding: 28px 16px 64px; }
+.prep-card {
+  background: var(--prep-card);
+  border: 1px solid var(--prep-line);
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 1px 2px rgba(10, 10, 15, 0.04);
+}
+.prep-card + .prep-card { margin-top: 16px; }
+.prep-h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; color: var(--prep-ink); margin: 0 0 6px; }
+.prep-sub { font-size: 0.92rem; line-height: 1.5; color: var(--prep-muted); margin: 0 0 18px; }
+.prep-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.prep-field label { font-size: 0.8rem; font-weight: 700; color: var(--prep-ink-2); letter-spacing: 0.01em; }
+.prep-field input, .prep-field select {
+  border: 1px solid var(--prep-line);
+  border-radius: 10px;
+  padding: 11px 12px;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--prep-ink);
+  background: #fff;
+}
+.prep-field input:focus, .prep-field select:focus {
+  outline: none;
+  border-color: var(--prep-violet);
+  box-shadow: 0 0 0 3px rgba(108, 63, 232, 0.14);
+}
+.prep-btn {
+  border: none;
+  background: var(--prep-violet);
+  color: #fff;
+  border-radius: 10px;
+  padding: 11px 18px;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.prep-btn:hover { background: var(--prep-violet-deep); }
+.prep-btn:focus-visible { outline: 3px solid rgba(108, 63, 232, 0.35); outline-offset: 2px; }
+.prep-empty { text-align: center; padding: 18px 8px; color: var(--prep-muted); font-size: 0.9rem; }
+.prep-empty b { display: block; color: var(--prep-ink); font-size: 1rem; margin-bottom: 4px; }
+.prep-err { color: #C0392B; font-size: 0.85rem; margin-top: 8px; min-height: 1.1em; }
+.prep-matches { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.prep-matches li a {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  border: 1px solid var(--prep-line); border-radius: 10px; padding: 10px 12px;
+  text-decoration: none; color: var(--prep-ink); font-weight: 600; font-size: 0.92rem;
+}
+.prep-matches li a:hover { border-color: var(--prep-violet); background: var(--prep-violet-light); }
+.prep-chip {
+  font-size: 0.68rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+  border-radius: 999px; padding: 3px 8px; background: var(--prep-violet-light); color: var(--prep-violet-deep);
+}
+.prep-chip.pending { background: #FDF3E0; color: #8A5A2B; }

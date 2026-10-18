@@ -7,6 +7,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { prepRouter } from "./prep/router";
+import { makePrepPages } from "./prep/pages";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -72,6 +74,8 @@ app.use("/uploads", (_req, res, next) => { res.set("X-Robots-Tag", "noindex"); n
 app.use("/uploads", express.static(path.join(rootDir, "uploads")));
 
 app.use("/api", router);
+// Prep (Company Report) — new namespaced feature, gated by FEATURE_PREP.
+app.use("/api/prep", prepRouter);
 
 // Serve frontend static files (public/ folder next to server)
 const publicPath = path.join(rootDir, "public");
@@ -120,6 +124,10 @@ app.get(
 app.get(["/spotlight-boost", "/spotlight"], (_req, res) => {
   res.redirect(302, "/feed");
 });
+
+// Prep pages: redirect to /feed while FEATURE_PREP is off, otherwise serve
+// public/prep/* with extensionless URLs. Registered before static.
+app.use("/prep", makePrepPages(publicPath));
 
 app.use(express.static(publicPath));
 
