@@ -69,7 +69,7 @@ export const PLANS: PlanConfig[] = [
     walletLimit: -1,
     squadMembers: 1,
     badge: "PRO",
-    description: "Unlimited gigs and bids, a verified badge on your profile.",
+    description: "Unlimited barter offer credits, a verified badge on your profile.",
   },
   {
     id: "squad",

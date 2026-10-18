@@ -109,7 +109,7 @@ describe("Spotlight markup hooks", () => {
     const profile = html("profile.html");
     expect(profile).toMatch(/r\.post\.userId\s*===\s*lm\.id/);
     // The ownership check has to sit in the same filter as the kind check.
-    expect(profile).toMatch(/userId\s*===\s*lm\.id\s*&&\s*\n?\s*\(r\.post\.kind/);
+    expect(profile).toMatch(/userId\s*===\s*lm\.id\s*&&\s*\n?\s*r\.post\.kind/);
   });
 
   it("reads gig text from content, because community_posts has no title", () => {
@@ -254,30 +254,30 @@ describe("Spotlight honesty", () => {
 
   it("shows an honest zero instead of a fabricated number", () => {
     const feed = html("feed.html");
-    expect(feed).toContain("Post a gig first");
+    expect(feed).toContain("Post a barter first");
     expect(feed).toContain("Check the number before you pay");
   });
 
-  it("reads the signed-in user's own gig tags, not the first card's", () => {
+  it("reads the signed-in user's own barter tags, not the first card's", () => {
     const feed = html("feed.html");
-    // Ownership must be scoped. Reading the first GIG/PROJECT card on the page
+    // Ownership must be scoped. Reading the first card on the page
     // returned another person's keywords.
     expect(feed).not.toMatch(/querySelector\('\.card\[data-kind="GIG"\]/);
-    expect(feed).toMatch(/\[data-mine="1"\]\[data-kind="GIG"\]/);
+    expect(feed).toMatch(/\[data-mine="1"\]\[data-kind="BARTER"\]/);
     // renderPost has to actually set it.
     expect(js()).toMatch(/if \(isMine\) el\.dataset\.mine\s*=\s*'1'/);
   });
 
-  it("distinguishes no gigs from gigs that have no keywords", () => {
+  it("distinguishes no barters from barters that have no keywords", () => {
     const feed = html("feed.html");
-    // Someone who already posted a gig must not be told to post one. The panel
-    // used one branch for both, so a gig with no tags read as "no gigs yet".
-    expect(feed).toMatch(/if \(!info\.hasGig\)/);
+    // Someone who already posted a barter must not be told to post one. The panel
+    // used one branch for both, so a barter with no tags read as "no barters yet".
+    expect(feed).toMatch(/if \(!info\.hasBarter\)/);
     expect(feed).toMatch(/if \(!tags\.length\)/);
     expect(feed).toContain("No keywords yet");
-    expect(feed).toMatch(/Add keywords to your gig/);
-    // The no-gigs branch must still exist and stay the hasGig one.
-    expect(feed).toContain("No gigs yet");
+    expect(feed).toMatch(/Add keywords to your barter/);
+    // The no-barters branch must still exist and stay the hasBarter one.
+    expect(feed).toContain("No barter posts yet");
   });
   it("re-runs the demand promo after the feed renders, not just on page load", () => {
     const feed = html("feed.html");

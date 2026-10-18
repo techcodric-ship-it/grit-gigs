@@ -38,13 +38,11 @@
     </div>
     <div class="ex-tabs" id="kindPad">
       <button class="on" data-k="">All</button>
-      <button data-k="GIG">Gigs</button>
       <button data-k="BARTER">Barter</button>
       <button data-k="WIN">Wins</button>
       <button data-k="TIPS">Tips</button>
       <button data-k="POST">Posts</button>
       <button data-k="REEL">Clips</button>
-      <button data-k="PROJECT">Projects</button>
     </div>
     <div class="grid" id="grid"></div>
   </main>
@@ -97,13 +95,15 @@
   <div class="modal" style="max-width:900px;"></div>
 </div>
 
-<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=40"></script>
+<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=41"></script>
 <script>
 (function () {
   var c = window.community;
   function $(x) { return document.getElementById(x); }
-  var params = new URLSearchParams(location.search);
-  var kind = params.get('kind') || '';
+var params = new URLSearchParams(location.search);
+// Gig and project listings are retired — old ?kind= links fall back to All.
+var kind = params.get('kind') || '';
+if (kind === 'GIG' || kind === 'PROJECT') kind = '';
   var q0 = params.get('q') || '';
   var q = q0;
 
@@ -155,13 +155,11 @@
     if (kind) url += '&kind=' + encodeURIComponent(kind);
     if (q) url += '&q=' + encodeURIComponent(q);
 
-    // Gigs/Wins/Tips/Posts/Reels come from the feed. Barter and Project also show
-    // real work — completed and in-progress exchanges and projects — which lives
-    // outside the feed, so ask for it too. Each keeps its own bucket; none of it
-    // is merged into Gigs.
-    var wantsWork = !kind || kind === 'BARTER' || kind === 'PROJECT';
-    var aUrl = '/community/activity?limit=24';
-    if (kind) aUrl += '&kind=' + encodeURIComponent(kind);
+    // Wins/Tips/Posts/Reels come from the feed. Barter also shows real work —
+    // completed and in-progress exchanges — which lives outside the feed, so
+    // ask for that too.
+    var wantsWork = !kind || kind === 'BARTER';
+    var aUrl = '/community/activity?limit=24&kind=BARTER';
 
     Promise.all([
       c.api(url),
@@ -190,15 +188,14 @@
   function workTile(a) {
     var div = document.createElement('div');
     div.className = 'tile';
-    var isBarter = a.type === 'BARTER';
     var img = a.imageUrl
       ? '<img src="' + c.esc(a.imageUrl) + '" loading="lazy"/>'
-      : '<div style="position:absolute;inset:0;display:grid;place-items:center;background:#efefef;font-size:30px;">' + (isBarter ? '🔁' : '🗂') + '</div>';
+      : '<div style="position:absolute;inset:0;display:grid;place-items:center;background:#efefef;font-size:30px;">🔁</div>';
     var who = a.partner ? ((a.partner.firstName || '') + ' ' + (a.partner.lastName || '')).trim() : null;
     var sub = a.subtitle || (who ? 'with ' + who : '');
     div.innerHTML =
       img +
-      '<span class="kindtag">' + (isBarter ? 'BARTER' : 'PROJECT') + '</span>' +
+      '<span class="kindtag">BARTER</span>' +
       '<span class="spot-ribbon work">' + c.esc(WORK_LABEL[a.status] || String(a.status || 'Active')) + '</span>' +
       '<div class="over work"><span>' + c.esc((a.title || 'Untitled').slice(0, 60)) + '</span>' + (sub ? '<span>' + c.esc(String(sub).slice(0, 40)) + '</span>' : '') + '</div>';
     if (a.linkUrl) div.addEventListener('click', function () { location.href = a.linkUrl; });
@@ -210,9 +207,9 @@
     var a = row.author || {};
     var med = c.primeMedia(row);
     var kind = c.kindCode(p.kind);
-    // Status of the real work behind a BARTER / PROJECT post, so nobody bids on
-    // something already finished or underway. GIG posts are untouched.
-    var ws = (kind === 'BARTER' || kind === 'PROJECT') ? c.workStatusInfo(row.workStatus) : null;
+    // Status of the real work behind a BARTER post, so nobody requests
+    // something already finished or underway.
+    var ws = kind === 'BARTER' ? c.workStatusInfo(row.workStatus) : null;
     var div = document.createElement('div');
     div.className = 'tile';
     var img;

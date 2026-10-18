@@ -11,11 +11,9 @@ import {
 } from "../db";
 import { eq, ilike, or, and, desc, ne, sql, asc, count, inArray } from "drizzle-orm";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
-import { getActivePlanForUser, getOrCreateSubscription, consumeGigCreation } from "../lib/subscriptions";
 import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
 import { uploadToSupabase } from "../lib/storage";
 import { PROJECT_ROOT } from "../lib/root";
-import { notifyAllUsersNewListing } from "../lib/email";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -215,95 +213,10 @@ router.get("/services/:id", optionalAuth, async (req, res): Promise<void> => {
 });
 
 router.post("/services", authenticate, upload.array("images", 5), async (req, res): Promise<void> => {
-  const { title, category, subcategory, description, tags, packages } = req.body;
-
-  if (!title || !category || !description) {
-    res.status(400).json({ success: false, message: "Title, category, and description are required" });
-    return;
-  }
-  if (!packages) {
-    res.status(400).json({ success: false, message: "At least one package is required" });
-    return;
-  }
-
-  let parsedPackages: Array<{ packageType: string; priceInr: number; description: string; deliveryDays: number; revisions?: number; features?: string[] }>;
-  try {
-    parsedPackages = typeof packages === "string" ? JSON.parse(packages) : packages;
-  } catch {
-    res.status(400).json({ success: false, message: "Invalid packages format" });
-    return;
-  }
-
-  if (!Array.isArray(parsedPackages) || parsedPackages.length === 0) {
-    res.status(400).json({ success: false, message: "At least one package required" });
-    return;
-  }
-
-  let parsedTags: string[] = [];
-  try {
-    parsedTags = tags ? (typeof tags === "string" ? JSON.parse(tags) : tags) : [];
-  } catch {
-    parsedTags = tags ? [tags] : [];
-  }
-
-  // ── Plan-based monthly gig creation quota ───────────────────────────────
-  const plan = await getActivePlanForUser(req.user!.id);
-  const gigAllowed = await consumeGigCreation(req.user!.id, plan.maxActiveGigs);
-  if (!gigAllowed) {
-    res.status(403).json({
-      success: false,
-      message: `Your ${plan.name} plan allows ${plan.maxActiveGigs} new gig${plan.maxActiveGigs === 1 ? '' : 's'} per month and this month's quota is used up. It resets every 30 days, or upgrade your plan to get more.`,
-      _planLimitExceeded: true,
-    });
-    return;
-  }
-
-  const files = (req.files as Express.Multer.File[]) ?? [];
-  const imageUrls: string[] = [];
-  for (const f of files) {
-    const url = await uploadToSupabase(fs.readFileSync(f.path), f.originalname, "services");
-    if (!url) {
-      imageUrls.push(`/uploads/services/${f.filename}`);
-    } else {
-      imageUrls.push(url);
-    }
-  }
-
-  try {
-    const [service] = await db
-      .insert(servicesTable)
-      .values({ sellerId: req.user!.id, title: String(title).trim(), category, subcategory: subcategory ?? null, description: String(description).trim(), images: imageUrls, tags: parsedTags })
-      .returning();
-
-    await db.insert(servicePackagesTable).values(
-      parsedPackages.map((p) => ({
-        serviceId: service.id,
-        packageType: p.packageType ?? "basic",
-        priceInr: Number(p.priceInr),
-        description: p.description,
-        deliveryDays: Number(p.deliveryDays),
-        revisions: Number(p.revisions ?? 2),
-        features: Array.isArray(p.features) ? p.features : [],
-      })),
-    );
-
-    const pkgs = await db.select().from(servicePackagesTable).where(eq(servicePackagesTable.serviceId, service.id));
-    notifyAllUsersNewListing("service", service.title, req.user!.firstName, "/freelance", req.user!.email);
-    res.status(201).json({ success: true, message: "Service created!", data: { service: { ...service, packages: pkgs } } });
-  } catch (err) {
-    // Give the gig-creation slot back if the insert failed, so a failed
-    // request doesn't waste the user's monthly quota.
-    try {
-      const sub = await getOrCreateSubscription(req.user!.id);
-      if (sub.gigsCreatedThisCycle > 0) {
-        await db.execute(
-          sql`UPDATE ${userSubscriptionsTable} SET gigs_created_this_cycle = GREATEST(gigs_created_this_cycle - 1, 0), updated_at = NOW() WHERE ${userSubscriptionsTable}.id = ${sub.id}`
-        );
-      }
-    } catch {}
-    console.error("Error creating service:", err);
-    res.status(500).json({ success: false, message: "Failed to create service. Please try again." });
-  }
+  // The gig marketplace is retired. Reads stay live so existing listings and
+  // their orders still resolve, but nothing new can be published.
+  res.status(403).json({ success: false, message: "Service listings are no longer available on Grit&Gigs." });
+  return;
 });
 
 router.post("/services/:id/images", authenticate, upload.array("images", 5), async (req, res): Promise<void> => {
@@ -350,6 +263,11 @@ router.put("/services/:id", authenticate, async (req, res): Promise<void> => {
   if (description) updates.description = description;
   if (tags) updates.tags = Array.isArray(tags) ? tags : [tags];
   if (status && service.status !== status) {
+    // Retired marketplace: a listing may be paused, but never re-published.
+    if (status === "ACTIVE") {
+      res.status(403).json({ success: false, message: "Service listings are no longer available on Grit&Gigs." });
+      return;
+    }
     updates.status = status;
   }
 
@@ -379,9 +297,12 @@ router.put("/services/:id/toggle", authenticate, async (req, res): Promise<void>
   const [service] = await db.select().from(servicesTable).where(eq(servicesTable.id, String(req.params.id)));
   if (!service) { res.status(404).json({ success: false, message: "Service not found" }); return; }
   if (service.sellerId !== req.user!.id) { res.status(403).json({ success: false, message: "Forbidden" }); return; }
-  const newStatus = service.status === "ACTIVE" ? "PAUSED" : "ACTIVE";
-  await db.update(servicesTable).set({ status: newStatus }).where(eq(servicesTable.id, service.id));
-  res.json({ success: true, data: { status: newStatus }, message: `Service ${newStatus === "ACTIVE" ? "activated" : "paused"}` });
+  if (service.status !== "ACTIVE") {
+    res.status(403).json({ success: false, message: "Service listings are no longer available on Grit&Gigs." });
+    return;
+  }
+  await db.update(servicesTable).set({ status: "PAUSED" }).where(eq(servicesTable.id, service.id));
+  res.json({ success: true, data: { status: "PAUSED" }, message: "Service paused" });
 });
 
 export default router;

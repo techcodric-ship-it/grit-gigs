@@ -14,7 +14,7 @@ import { isEscrowHeld, escrowRefundAmount } from '../lib/wallet-guards';
 import { attachPlanBadge, attachPlanBadges } from '../lib/planBadge';
 import { uploadToSupabase } from '../lib/storage';
 import { PROJECT_ROOT } from '../lib/root';
-import { notifyAllUsersNewListing, sendNotificationEmail } from '../lib/email';
+import { sendNotificationEmail } from '../lib/email';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -348,224 +348,14 @@ router.get('/projects/:id', optionalAuth, async (req: Request, res: Response) =>
 
 // ── POST /projects — create a project ────────────────────────────────────────
 router.post('/projects', authenticate, async (req: Request, res: Response) => {
-  const userId = (req as any).user?.id;
-  if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
-
-  const { title, description, category, skills, budgetMin, budgetMax, deadline, imageUrl } = req.body;
-  if (!title || !description || !category) {
-    return res.status(400).json({ success: false, message: 'Title, description, and category are required' });
-  }
-  const projectType = (req.body.projectType === 'SQUAD' || req.body.projectType === 'squad') ? 'SQUAD' : 'INDIVIDUAL';
-
-  // Subscription plan: check monthly project creation quota
-  const plan = await getActivePlanForUser(userId);
-  const projectAllowed = await consumeProjectCreation(userId, plan.maxActiveProjects);
-  if (!projectAllowed) {
-    return res.status(403).json({
-      success: false,
-      message: `Your ${plan.name} plan allows ${plan.maxActiveProjects} new project${plan.maxActiveProjects === 1 ? '' : 's'} per month and this month's quota is used up. It resets every 30 days, or upgrade your plan to post more.`,
-      _planLimitExceeded: true,
-    });
-  }
-
-  try {
-    const [project] = await db
-      .insert(projectsTable)
-      .values({
-        userId,
-        title: String(title).trim(),
-        description: String(description).trim(),
-        category,
-        skills: skills || null,
-        deadline: (() => { const _dl = deadline; if (!_dl || typeof _dl !== 'string' || !_dl.trim() || _dl === 'dd-mm-yyyy' || _dl === 'mm/dd/yyyy') return null; const _d1 = new Date(_dl.trim()); if (!isNaN(_d1.getTime())) return _d1; const _m = _dl.trim().match(/^(\d{2})-(\d{2})-(\d{4})$/); if (_m) { const _d2 = new Date(_m[3]+'-'+_m[2]+'-'+_m[1]); if (!isNaN(_d2.getTime())) return _d2; } return null; })(),
-        budgetMin: toPositiveInt(budgetMin),
-        budgetMax: toPositiveInt(budgetMax),
-        imageUrl: typeof imageUrl === 'string' && imageUrl.trim() ? imageUrl.trim() : null,
-        projectType,
-      })
-      .returning();
-
-    notifyAllUsersNewListing("project", project.title, req.user!.firstName, "/projects", req.user!.email);
-    return res.status(201).json({ success: true, data: { project } });
-  } catch (err) {
-    // Give the project-creation slot back if the insert failed, so a failed
-    // request doesn't waste the user's monthly quota.
-    try {
-      const sub = await getOrCreateSubscription(userId);
-      if (sub.projectsCreatedThisCycle > 0) {
-        await db.execute(
-          sql`UPDATE ${userSubscriptionsTable} SET projects_created_this_cycle = GREATEST(projects_created_this_cycle - 1, 0), updated_at = NOW() WHERE ${userSubscriptionsTable}.id = ${sub.id}`
-        );
-      }
-    } catch {}
-    console.error('Error creating project:', err);
-    return res.status(500).json({ success: false, message: 'Failed to create project. Please try again.' });
-  }
+  // Project listings are retired. Reads stay live so existing listings and
+  // their bids still resolve, but nothing new can be posted.
+  return res.status(403).json({ success: false, message: 'Project listings are no longer available on Grit&Gigs.' });
 });
 
 // ── POST /projects/:id/bids — submit a bid ───────────────────────────────────
 router.post('/projects/:id/bids', authenticate, async (req: Request, res: Response) => {
-  const userId = (req as any).user?.id;
-  if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
-
-  const projectId = req.params.id as string as string;
-  const [project] = await db
-    .select()
-    .from(projectsTable)
-    .where(eq(projectsTable.id, projectId))
-    .limit(1);
-
-  if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
-  if (project.status !== 'OPEN') return res.status(400).json({ success: false, message: 'Project is no longer accepting bids' });
-  if (project.userId === userId) return res.status(400).json({ success: false, message: 'Cannot bid on your own project' });
-
-  // Check if already bid
-  const [existing] = await db
-    .select()
-    .from(projectBidsTable)
-    .where(and(eq(projectBidsTable.projectId, project.id), eq(projectBidsTable.userId, userId)))
-    .limit(1);
-
-  if (existing) return res.status(400).json({ success: false, message: 'You already submitted a bid on this project' });
-
-  // Squad projects (projectType === 'SQUAD') may only be bidded on by a member
-  // of an active Grit Circle that has at least 4 members.
-  if (project.projectType === 'SQUAD') {
-    const memberSquads = await db
-      .select({
-        squadId: squadMembersTable.squadId,
-        memberCount: sql<number>`(SELECT count(*) FROM ${squadMembersTable} WHERE ${squadMembersTable.squadId} = ${squadsTable.id})`,
-      })
-      .from(squadMembersTable)
-      .innerJoin(squadsTable, eq(squadsTable.id, squadMembersTable.squadId))
-      .where(and(eq(squadMembersTable.userId, userId), eq(squadsTable.isActive, true)));
-    const hasTeam = memberSquads.some((s) => Number(s.memberCount) >= 4);
-    if (!hasTeam) {
-      return res.status(403).json({ success: false, message: 'Squad projects can only be bid on by a Grit Circle with at least 4 members. Grow your circle to unlock squad project bids.' });
-    }
-  }
-
-  const { amount, proposal, deliveryDays, revisions, highlight } = req.body;
-  const bidAmount = toPositiveInt(amount);
-  const deliveryEstimate = toPositiveInt(deliveryDays);
-  const revisionsIncluded = revisions === undefined || revisions === null ? 2 : Math.max(0, Math.min(10, Math.round(Number(revisions))));
-  if (!bidAmount || !proposal?.trim()) {
-    return res.status(400).json({ success: false, message: 'Amount and proposal are required' });
-  }
-
-  // Truelancer rule: only ONE highlighted bid per project
-  if (highlight) {
-    const [existingHighlight] = await db
-      .select()
-      .from(projectBidsTable)
-      .where(and(eq(projectBidsTable.projectId, project.id), eq(projectBidsTable.isHighlighted, true)))
-      .limit(1);
-    if (existingHighlight) {
-      return res.status(400).json({
-        success: false,
-        message: 'This project already has a highlighted proposal. Only one highlighted proposal is allowed per project.',
-      });
-    }
-  }
-
-  let isHighlighted = false;
-  let _highlightWallet: any = null;
-  const HIGHLIGHT_FEE = 50;
-  const sub = await getOrCreateSubscription(userId);
-  if (highlight) {
-    const [wallet] = await db
-      .select()
-      .from(freelanceWalletsTable)
-      .where(eq(freelanceWalletsTable.userId, userId));
-    if (!wallet || Number(wallet.balance) < HIGHLIGHT_FEE) {
-      return res.status(400).json({
-        success: false,
-        message: `Insufficient balance for highlight (₹${HIGHLIGHT_FEE} required). Add funds to your wallet first.`,
-        _highlightFailed: true,
-      });
-    }
-    _highlightWallet = wallet;
-    isHighlighted = true;
-  }
-
-  // Subscription plan: deduct a project-bid credit (skip when unlimited)
-  if (sub.proposalCreditsRemaining !== -1) {
-    if (sub.proposalCreditsRemaining <= 0) {
-      return res.status(403).json({
-        success: false,
-        message: "You've used all your project bids for this week. Upgrade your plan for unlimited bids.",
-        _creditsExhausted: true,
-      });
-    }
-  }
-
-  let bid;
-  try {
-    await db.transaction(async (tx) => {
-      [bid] = await tx
-        .insert(projectBidsTable)
-        .values({
-          projectId: project.id,
-          userId,
-          amount: bidAmount,
-          proposal: proposal.trim(),
-          deliveryDays: deliveryEstimate,
-          revisions: revisionsIncluded,
-          isHighlighted,
-        })
-        .returning();
-
-      if (isHighlighted && _highlightWallet) {
-        const deductResult = await tx.execute(
-          sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${HIGHLIGHT_FEE}, updated_at = NOW() WHERE ${freelanceWalletsTable.id} = ${_highlightWallet.id} AND balance >= ${HIGHLIGHT_FEE}`
-        );
-        if (deductResult.rowCount === 0) {
-          throw new Error("INSUFFICIENT_HIGHLIGHT");
-        }
-        await tx.insert(transactionsTable).values({
-          userId,
-          type: 'SERVICE_PAYMENT',
-          amount: HIGHLIGHT_FEE,
-          description: `Bid highlight fee (bid ${bid.id})`,
-          status: 'COMPLETED',
-        });
-      }
-
-      if (sub.proposalCreditsRemaining !== -1) {
-        await tx
-          .update(userSubscriptionsTable)
-          .set({
-            proposalCreditsRemaining: sub.proposalCreditsRemaining - 1,
-            updatedAt: new Date(),
-          })
-          .where(eq(userSubscriptionsTable.id, sub.id));
-      }
-    });
-  } catch (e) {
-    if (e instanceof Error && e.message === "INSUFFICIENT_HIGHLIGHT") {
-      return res.status(400).json({
-        success: false,
-        message: `Insufficient balance for highlight (₹${HIGHLIGHT_FEE} required). Add funds to your wallet first.`,
-        _highlightFailed: true,
-      });
-    }
-    throw e;
-  }
-
-  await db.insert(notificationsTable).values({
-    userId: project.userId,
-    type: 'PROJECT_BID_RECEIVED',
-    title: 'New project proposal',
-    message: `A freelancer submitted a proposal for "${project.title}".`,
-    linkUrl: '/dashboard.html#my-projects',
-  });
-
-  const [projectOwner] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, project.userId)).limit(1);
-  if (projectOwner?.email) {
-    sendNotificationEmail(projectOwner.email, 'New project proposal', `A freelancer submitted a proposal for "${project.title}".`, '/dashboard.html#my-projects').catch(() => {});
-  }
-
-  return res.status(201).json({ success: true, data: { bid } });
+  return res.status(403).json({ success: false, message: 'Project bidding is no longer available on Grit&Gigs.' });
 });
 
 // ── PUT /projects/bids/:bidId/accept — client accepts a bid ──────────────────
@@ -940,69 +730,7 @@ router.delete('/projects/bids/:bidId', authenticate, async (req: Request, res: R
 
 // ── POST /projects/bids/:bidId/highlight — retroactively highlight a bid ─────
 router.post('/projects/bids/:bidId/highlight', authenticate, async (req: Request, res: Response) => {
-  const userId = (req as any).user?.id;
-  if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
-
-  const [bid] = await db
-    .select()
-    .from(projectBidsTable)
-    .where(and(eq(projectBidsTable.id, req.params.bidId as string), eq(projectBidsTable.userId, userId)))
-    .limit(1);
-
-  if (!bid) return res.status(404).json({ success: false, message: 'Bid not found or not yours' });
-  if (bid.isHighlighted) return res.status(400).json({ success: false, message: 'Bid is already highlighted' });
-  if (bid.status !== 'PENDING') return res.status(400).json({ success: false, message: 'Only PENDING bids can be highlighted' });
-
-  const HIGHLIGHT_FEE = 50;
-  const [wallCheck] = await db
-    .select()
-    .from(freelanceWalletsTable)
-    .where(eq(freelanceWalletsTable.userId, userId));
-  if (!wallCheck || Number(wallCheck.balance) < HIGHLIGHT_FEE) {
-    return res.status(400).json({
-      success: false,
-      message: `Insufficient balance for highlight (₹${HIGHLIGHT_FEE} required). Add funds to your wallet first.`,
-    });
-  }
-  let updated;
-  try {
-    await db.transaction(async (tx) => {
-      const deductResult = await tx.execute(
-        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${HIGHLIGHT_FEE}, updated_at = NOW() WHERE ${freelanceWalletsTable.id} = ${wallCheck.id} AND balance >= ${HIGHLIGHT_FEE}`
-      );
-      if (deductResult.rowCount === 0) {
-        throw new Error("INSUFFICIENT_HIGHLIGHT");
-      }
-      await tx.insert(transactionsTable).values({
-        userId,
-        type: 'SERVICE_PAYMENT',
-        amount: HIGHLIGHT_FEE,
-        description: `Bid highlight fee (bid ${bid.id})`,
-        status: 'COMPLETED',
-      });
-      [updated] = await tx
-        .update(projectBidsTable)
-        .set({ isHighlighted: true, updatedAt: new Date() })
-        .where(and(eq(projectBidsTable.id, bid.id), eq(projectBidsTable.isHighlighted, false)))
-        .returning();
-      if (!updated) {
-        throw new Error("HIGHLIGHT_CONFLICT");
-      }
-    });
-  } catch (e) {
-    if (e instanceof Error && e.message === "INSUFFICIENT_HIGHLIGHT") {
-      return res.status(400).json({
-        success: false,
-        message: `Insufficient balance for highlight (₹${HIGHLIGHT_FEE} required). Add funds to your wallet first.`,
-      });
-    }
-    return res.status(400).json({
-      success: false,
-      message: 'This project already has a highlighted proposal or this bid is already highlighted.',
-    });
-  }
-
-  return res.json({ success: true, data: { bid: updated }, message: 'Bid highlighted! It will now appear at the top of the list.' });
+  return res.status(403).json({ success: false, message: 'Project bidding is no longer available on Grit&Gigs.' });
 });
 
 // -- POST /projects/:id/mark-complete -- freelancer delivers work

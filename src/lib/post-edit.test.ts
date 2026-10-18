@@ -69,9 +69,9 @@ describe("PUT /community/posts/:id", () => {
   });
 });
 
-describe("keyword editor on your own gig", () => {
-  it("renders the control only on the signed-in user's own GIG or PROJECT", () => {
-    expect(feedJs).toMatch(/if \(isMine && \(kind === 'GIG' \|\| kind === 'PROJECT'\)\)/);
+describe("keyword editor on your own barter", () => {
+  it("renders the control only on the signed-in user's own BARTER", () => {
+    expect(feedJs).toMatch(/if \(isMine && kind === 'BARTER'\)/);
     expect(feedJs).toContain('data-kw-edit=');
   });
 

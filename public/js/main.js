@@ -469,7 +469,7 @@ async function loadLiveServices() {
       </div>`;
   }).join('');
   } catch (err) {
-    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">Couldn\'t load services right now. <a href="/explore?kind=GIG" style="color:var(--violet);font-weight:600;">Browse the freelance page →</a></div>';
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">Couldn\'t load services right now. <a href="/explore?kind=BARTER" style="color:var(--violet);font-weight:600;">Browse barter posts →</a></div>';
   }
 }
 
@@ -546,7 +546,7 @@ window.openServiceModal = async function(serviceId, title, price, profilePhoto, 
       Continue — ₹<span id="modalPrice">${(s.packages?.[0]?.priceInr||0).toLocaleString('en-IN')}</span>
     </button>
     <button class="btn" style="width:100%;justify-content:center;margin-top:8px;border:1px solid var(--border);background:var(--surface);color:var(--ink);" onclick="shareItem('freelance','${s.id}','${s.title.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">
-      📤 Share this gig
+      📤 Share
     </button>
     <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px;"><div style="font-weight:600;margin-bottom:8px;font-size:0.9rem;">Reviews</div>${reviewsHtml}</div>`;
 
@@ -1081,11 +1081,9 @@ window.openUserProfile = async function(userId) {
   function safeHttpU(url) { if (!url) return '#'; return /^https?:\/\//i.test(String(url)) ? String(url) : '#'; }
   var ini = ((u.firstName || '?')[0] || '?').toUpperCase();
   var memberSince = u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) : '';
-  var gigs = Array.isArray(d.data.gigs) ? d.data.gigs : [];
   var ratingAvg = d.data.avgRating || 0;
   var reviewCount = d.data.reviewCount || 0;
   var reviews = Array.isArray(d.data.reviews) ? d.data.reviews : [];
-  var completedProjects = Array.isArray(d.data.completedProjects) ? d.data.completedProjects : [];
   var skillsOffered = Array.isArray(u.skillsOffered) ? u.skillsOffered : [];
   var skillsNeeded = Array.isArray(u.skillsNeeded) ? u.skillsNeeded : [];
   var languages = Array.isArray(u.languages) ? u.languages : [];
@@ -1117,10 +1115,8 @@ window.openUserProfile = async function(userId) {
       (r.reviewText ? '<div style="font-size:.73rem;color:var(--text-secondary);line-height:1.5;">' + escU(r.reviewText) + '</div>' : '') +
       '</div>';
   }).join('') : '';
-  var gigsHtml = gigs.length ? '<div style="background:var(--surface);padding:14px 16px;border:1px solid var(--border);border-radius:14px;margin-bottom:16px;">' +
-    '<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:8px;">Active Gigs (' + gigs.length + ')</div>' +
-    gigs.map(function(g) { return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--surface-2);border-radius:9px;padding:8px 12px;margin-bottom:5px;font-size:.78rem;color:var(--ink);"><span style="flex:1;">' + escU(g.title || '') + '</span>' + (g.startingPrice ? '<span style="font-weight:700;color:var(--violet);white-space:nowrap;">₹' + Number(g.startingPrice).toLocaleString('en-IN') + '+</span>' : '') + '</div>'; }).join('') +
-    '</div>' : '';
+  // Gig listings are retired — the "Active Gigs" section never renders.
+  var gigsHtml = '';
   var availBadge = u.isAvailable !== false ? '<span style="display:inline-flex;align-items:center;gap:5px;font-size:.68rem;background:rgba(26,122,94,.1);color:var(--success);font-weight:700;padding:3px 9px;border-radius:99px;"><span style="width:6px;height:6px;border-radius:50%;background:var(--success);display:inline-block;"></span>Available for work</span>' : '<span style="display:inline-flex;align-items:center;gap:5px;font-size:.68rem;background:rgba(122,122,133,.12);color:var(--text-muted);font-weight:700;padding:3px 9px;border-radius:99px;"><span style="width:6px;height:6px;border-radius:50%;background:var(--text-muted);display:inline-block;"></span>Not available</span>';
   var avHtml = u.profilePhoto
     ? '<img src="' + escU(u.profilePhoto) + '" style="width:58px;height:58px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid #fff;box-shadow:0 4px 14px rgba(10,10,15,.18);" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';"/>'
@@ -1150,7 +1146,7 @@ window.openUserProfile = async function(userId) {
     '<div style="display:flex;gap:8px;flex-wrap:wrap;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:16px;">' +
       '<div style="flex:1;min-width:80px;"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);">Rating</div><div style="font-weight:700;font-size:.92rem;color:var(--ink);">' + starDisplay + ' ' + (ratingAvg ? Number(ratingAvg).toFixed(1) : 'New') + '</div></div>' +
       '<div style="flex:1;min-width:80px;"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);">Reviews</div><div style="font-weight:700;font-size:.92rem;color:var(--ink);">' + reviewCount + '</div></div>' +
-      '<div style="flex:1;min-width:80px;"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);">Projects Done</div><div style="font-weight:700;font-size:.92rem;color:var(--ink);">' + completedProjects.length + '</div></div>' +
+      '<div style="flex:1;min-width:80px;"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);">Rep</div><div style="font-weight:700;font-size:.92rem;color:var(--ink);">' + Number(u.reputationScore || 0) + '</div></div>' +
     '</div>' +
     '<div style="margin-bottom:16px;"><div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px;">About</div>' +
       (u.bio ? '<div style="font-size:.8rem;color:var(--text-secondary);line-height:1.65;background:var(--surface-2);padding:10px 13px;border-radius:12px;">' + escU(u.bio) + '</div>' : '<div style="font-size:.75rem;color:var(--text-muted);font-style:italic;">No bio added yet.</div>') +

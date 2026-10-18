@@ -53,8 +53,8 @@ h1{font-size:1.5rem;margin:0 0 2px;}
     <a href="/orders.html" title="Orders"><svg viewBox="0 0 24 24"><path d="M21 8.2 12 3 3 8.2v7.6L12 21l9-5.2Z"/><path d="M3.3 8.3 12 13.3l8.7-5"/><path d="M12 13.3V21"/></svg></a>
     <a href="/profile.html" id="navProfile" title="Profile"><img id="navAv" class="avatar" src="https://api.dicebear.com/9.x/initials/svg?seed=grit&backgroundColor=f0f0f0&textColor=262626" alt=""/></a>
   </div>
-</header> <div class="wrap"> <h1>Buy more</h1> <div class="sub">You get a monthly free allowance. Run low? Add a bundle — one clever top-up covers you for the month.</div> <div id="quotaWrap"><div class="empty">Loading your quota…</div></div> <div class="plans" id="plans"> <div class="plan on" data-plan="gigs5" onclick="pick('gigs5')"> <span class="tag">Bestseller</span> <div class="emoji">📦</div> <div class="name">5 extra gig posts</div> <div class="desc">Post 5 more gigs. Adds to your 10 free gig posts for this month.</div> <div class="price">₹80 <small>one-time / month</small></div> </div> <div class="plan" data-plan="props5" onclick="pick('props5')"> <div class="emoji">💡</div> <div class="name">5 extra proposals</div> <div class="desc">Bid on 5 more projects. Adds to your 5 free proposals for this month.</div> <div class="price">₹60 <small>one-time / month</small></div> </div> </div> <button class="primary" id="payBtn">Buy selected bundle</button> <div class="err" id="payErr"></div>
-</div> <script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=40"></script>
+</header> <div class="wrap"> <h1>Buy more</h1> <div class="sub">You get a monthly free allowance. Run low? Add a bundle — one clever top-up covers you for the month.</div> <div id="quotaWrap"><div class="empty">Loading your quota…</div></div> <div class="plans" id="plans"> <div class="plan on" data-plan="props5" onclick="pick('props5')"> <span class="tag">Bestseller</span> <div class="emoji">💡</div> <div class="name">5 extra proposals</div> <div class="desc">Send 5 more barter offers. Adds to your 5 free proposals for this month.</div> <div class="price">₹60 <small>one-time / month</small></div> </div> </div> <button class="primary" id="payBtn">Buy selected bundle</button> <div class="err" id="payErr"></div>
+</div> <script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=41"></script>
 <script>
 (function () {
   var c = window.community || window.feed;
@@ -64,7 +64,7 @@ h1{font-size:1.5rem;margin:0 0 2px;}
     if (!r) return 'Network error';
     return (r.d && (r.d.message || r.d.error)) || (r.ok === false ? 'Request failed' : 'Something went wrong');
   }
-  var chosen = 'gigs5';
+  var chosen = 'props5';
 
   function pick(k) {
     chosen = k;
@@ -85,20 +85,14 @@ h1{font-size:1.5rem;margin:0 0 2px;}
   function renderQuota(d) {
     var el = $('quotaWrap');
     if (!d) { el.innerHTML = '<div class="empty">Quota unavailable.</div>'; return; }
-    var gig = d.gigPosts || {};
     var prop = d.proposals || {};
     // `free` is already the REMAINING free allowance (limit - used), so it must
     // not be reduced by `used` again. Total is the monthly limit plus bonuses.
-    var gigBonus = Number(gig.bonus || 0);
     var propBonus = Number(prop.bonus || 0);
-    var gigRemain = Number(gig.free || 0) + gigBonus;
     var propRemain = Number(prop.free || 0) + propBonus;
-    var gigTotal = Number(gig.limit || 0) + gigBonus;
     var propTotal = Number(prop.limit || 0) + propBonus;
-    var gigLbl = gigBonus > 0 ? gigRemain + ' left · incl. ' + gigBonus + ' bought' : 'free this month';
     var propLbl = propBonus > 0 ? propRemain + ' left · incl. ' + propBonus + ' bought' : 'free this month';
     el.innerHTML = '<div class="quota-grid">' +
-      qCard('Gig posts', gigLbl, gigRemain, gigTotal, '\ud83d\udce2') +
       qCard('Proposals', propLbl, propRemain, propTotal, '\ud83d\udca1') +
       '</div>';
   }
@@ -122,7 +116,7 @@ h1{font-size:1.5rem;margin:0 0 2px;}
       document.head.appendChild(s);
       return;
     }
-    var amt = Number(order.amount || (chosen === 'props5' ? 6000 : 8000));
+    var amt = Number(order.amount || 6000);
     var rz = new Razorpay({
       key: keyMetadata.key,
       amount: amt,

@@ -143,13 +143,12 @@
       });
     }
     if (posts.length) {
-      html += '<div class="sd-group">Gigs and projects</div>';
+      html += '<div class="sd-group">Posts</div>';
       posts.forEach(function (p) {
         var i = f.items.length;
         f.items.push({ type: 'post', value: p.id, kind: p.kind });
         html += '<div class="sd-row" id="' + f.rowPrefix + '-i' + i + '" role="option" data-i="' + i + '" aria-selected="false">' +
-          '<span class="sd-ic sd-ic-' + (p.kind === 'PROJECT' ? 'proj' : 'gig') + '" aria-hidden="true">' +
-          (p.kind === 'PROJECT' ? 'P' : 'G') + '</span>' +
+          '<span class="sd-ic sd-ic-gig" aria-hidden="true">' + (p.kind === 'BARTER' ? 'B' : (p.kind || 'P').charAt(0)) + '</span>' +
           '<span class="sd-txt">' + highlight(p.content, q) + '</span></div>';
       });
     }
@@ -417,7 +416,7 @@
     m.innerHTML =
       '<div class="modal">' +
       '<h3>Add your phone number</h3>' +
-      '<div class="sub">Required to join Grit&amp;Gigs. We use it to confirm gigs and payouts. Takes 10 seconds.</div>' +
+      '<div class="sub">Required to join Grit&amp;Gigs. We use it to confirm payouts. Takes 10 seconds.</div>' +
       '<div class="fld"><label>Phone (WhatsApp)</label><input type="tel" id="phoneInput" inputmode="tel" autocomplete="tel" placeholder="+91 98765 43210"/></div>' +
       '<div class="err" id="phoneErr"></div>' +
       '<div class="actions">' +
@@ -593,18 +592,18 @@
       try { el.dataset.tags = JSON.stringify(p.tags); } catch (e) { /* non-fatal */ }
     }
     // Marks this card as the signed-in user's own. The spotlight demand promo
-    // needs "my gig's keywords", and it used to read the first GIG/PROJECT card
-    // on the page regardless of author, so it silently showed another person's
-    // tags - or, with no cards rendered yet, reported "no gigs yet".
+    // needs "my barter's keywords", and it used to read the first card on the
+    // page regardless of author, so it silently showed another person's
+    // tags - or, with no cards rendered yet, reported "none yet".
     if (isMine) el.dataset.mine = '1';
     if (row.spotlight) el.classList.add('spotlight');
 
     var spotFlag = row.spotlight ? '<div class="spot-promo"><span>✦ BOOSTED</span><span class="spot-promo-sub">Promoted</span></div>' : '';
     var spotCtl = '';
-    if (isMine && (kind === 'GIG' || kind === 'PROJECT')) {
+    if (isMine && kind === 'BARTER') {
       // Keywords are what the demand number is measured against, and the boost
       // picker's keywords only apply to the boost. Without this control the only
-      // way to add them to a gig was to delete it and post again.
+      // way to add them was to delete the post and post again.
       spotCtl += '<div class="spot-bar idle" data-kw-row="' + esc(p.id) + '">' +
         '<span class="spot-txt">' + (p.tags && p.tags.length
           ? 'Keywords: <b>' + esc(p.tags.join(', ')) + '</b>'
@@ -642,31 +641,23 @@
         mediaHtml = '<div class="card-media"><video src="' + esc(med.url) + '" controls preload="metadata" style="max-height:680px;"></video></div>';
       } else {
         mediaHtml = '<div class="card-media"' + (mArr.length > 1 ? '' : '') + '>' +
-          '<img src="' + esc(med.url) + '" loading="lazy" onerror="this.style.display=\'none\'" style="' + (kind === 'BARTER' || kind === 'GIG' ? 'aspect-ratio:1/1;object-fit:cover;' : '') + '"/>' +
+          '<img src="' + esc(med.url) + '" loading="lazy" onerror="this.style.display=\'none\'" style="' + (kind === 'BARTER' ? 'aspect-ratio:1/1;object-fit:cover;' : '') + '"/>' +
           '<span class="kind-stamp">' + kind + '</span>' +
-          (kind === 'GIG' && p.priceInr ? '<span class="price-stamp">₹<b>' + Number(p.priceInr).toLocaleString('en-IN') + '</b>' + (p.deliveryDays ? ' · ' + p.deliveryDays + 'd' : '') + '</span>' : '') +
-          (kind === 'PROJECT' && p.priceInr ? '<span class="price-stamp">Budget ₹' + Number(p.priceInr).toLocaleString('en-IN') + (p.priceMaxInr ? '–₹' + Number(p.priceMaxInr).toLocaleString('en-IN') : '') + '</span>' : '') +
           (kind === 'BARTER' ? '<span class="price-stamp">⟷ ' + (p.wantText ? esc(p.wantText) : 'Barter') + '</span>' : '') +
           '<div class="pv-overlay" style="position:absolute;inset:0;cursor:pointer;" data-open="' + esc(p.id) + '"></div></div>';
       }
     }
 
-    // Work status sits directly on BARTER / PROJECT posts. Freelancers were
-    // bidding on work that was already finished or underway, so the state of the
-    // work behind the post is stated on the post itself, and the bid button is
-    // replaced with the reason it is closed. GIG posts are untouched.
-    var ws = (kind === 'BARTER' || kind === 'PROJECT') ? workStatusInfo(row.workStatus) : null;
+    // Work status sits directly on BARTER posts. People were requesting work
+    // that was already finished or underway, so the state of the work behind
+    // the post is stated on the post itself, and the offer button is replaced
+    // with the reason it is closed.
+    var ws = kind === 'BARTER' ? workStatusInfo(row.workStatus) : null;
     var workBar = ws ? '<div class="work-state ' + ws.cls + '"><span class="ws-dot"></span>' + esc(ws.label) +
       (ws.note ? '<span class="ws-note">' + esc(ws.note) + '</span>' : '') + '</div>' : '';
 
-    // optional action buttons below media (for GIG/PROJECT/BARTER)
+    // optional action buttons below media (for BARTER)
     var cta = '';
-    if (kind === 'GIG' && token && !isMine) cta = '<button class="big-cta" data-order="' + esc(p.id) + '">Send order</button>';
-    if (kind === 'PROJECT' && token && !isMine) {
-      cta = ws && ws.closed
-        ? '<div class="big-cta closed-cta">' + esc(ws.cta) + '</div>'
-        : '<button class="big-cta" data-bid="' + esc(p.id) + '">Bid on project</button>';
-    }
     if (kind === 'BARTER' && token && !isMine) {
       cta = ws && ws.closed
         ? '<div class="big-cta closed-cta">' + esc(ws.cta) + '</div>'
@@ -790,11 +781,7 @@
       });
     });
 
-    // order / bid / offer → open dedicated composer child
-    var order = el.querySelector('[data-order]');
-    if (order) order.addEventListener('click', function () { if (!token) { openLogin(); return; } openOrderModal('GIG', p); });
-    var bid = el.querySelector('[data-bid]');
-    if (bid) bid.addEventListener('click', function () { if (!token) { openLogin(); return; } openOrderModal('PROJECT', p); });
+    // offer → open dedicated composer child
     var offer = el.querySelector('[data-offer]');
     if (offer) offer.addEventListener('click', function () { if (!token) { openLogin(); return; } openOrderModal('BARTER', p); });
 
@@ -815,7 +802,7 @@
     if (row.mySpotlight) {
       (function (pid) { setTimeout(function () { pollSpotStats(pid); }, 2500); })(p.id);
     }
-    // For an unboosted gig, show how many real searches its keywords matched
+    // For an unboosted barter, show how many real searches its keywords matched
     // this week. This is the seller's own audience, not a marketing figure.
     if (spotCtl.indexOf('data-demand') > -1 && p.tags && p.tags.length) {
       loadSpotDemand(p.id, p.tags);
@@ -972,24 +959,21 @@
     });
   }
 
-  // ── order / bid / offer modal ──
+  // ── offer modal ──
   function openOrderModal(kind, post) {
     var m = document.getElementById('orderModal');
     if (!m) return;
     var t = document.getElementById('orderTitle');
     var f1 = document.getElementById('orderReq');
-    if (t) t.textContent = kind === 'GIG' ? 'Order · ' + Number(post.priceInr).toLocaleString('en-IN') + ' /' + (post.deliveryDays ? ' ' + post.deliveryDays + 'd' : '') : kind === 'PROJECT' ? 'Apply for project' : 'Propose barter';
-    if (f1) f1.placeholder = kind === 'GIG' ? 'Describe what you need, scope, deadline…' : kind === 'PROJECT' ? "Your bid + why you / what you'll deliver…" : 'What you can offer in exchange…';
+    if (t) t.textContent = 'Propose barter';
+    if (f1) f1.placeholder = 'What you can offer in exchange…';
     m.dataset.kind = kind;
     m.dataset.post = post.id;
-    m.dataset.amt = kind === 'GIG' ? String(post.priceInr || '') : '';
+    m.dataset.amt = '';
     var amtRow = document.getElementById('orderAmtRow');
-    if (amtRow) amtRow.style.display = kind === 'PROJECT' ? '' : 'none';
+    if (amtRow) amtRow.style.display = 'none';
     var amt = document.getElementById('orderAmt');
-    if (amt) {
-      amt.placeholder = kind === 'PROJECT' ? 'Your bid (₹)' : '';
-      if (kind !== 'PROJECT') amt.value = '';
-    }
+    if (amt) amt.value = '';
     m.classList.add('open');
   }
 
@@ -1036,7 +1020,7 @@
   var DEMAND_CACHE = {};
 
   /**
-   * Fills the demand line on an unboosted gig card.
+   * Fills the demand line on an unboosted barter card.
    *
    * These are real searches from the last 7 days, so the copy never promises an
    * outcome. Zero searches renders a plain "no recent searches" rather than a
@@ -1108,7 +1092,7 @@
   }
 
   /** The boost row inside a card.
-   *  Own gig cards render a keyword row above the boost row and both carry
+   *  Own barter cards render a keyword row above the boost row and both carry
    *  .spot-bar for styling, so a bare first-match .spot-bar would resolve to
    *  the keyword row and wipe the Add keywords button as soon as a boost poll
    *  landed. Scope to the rows that are actually the boost UI. */
@@ -1201,7 +1185,7 @@
   }
 
   /**
-   * Add or change the keywords on your own gig/project. These are the words the
+   * Add or change the keywords on your own barter. These are the words the
    * spotlight demand number is measured against, and they are separate from the
    * boost modal's targeting keywords, which only affect that one boost.
    */
@@ -1287,7 +1271,7 @@
     var initial = (p.tags && p.tags.length ? p.tags : []).slice(0, 5);
     initial.forEach(function (t) { sel[String(t).toLowerCase().replace(/^#/, '')] = true; });
     var trendList = [];
-    var noun = p.kind === 'PROJECT' ? 'project' : 'gig';
+    var noun = 'barter';
     body.innerHTML =
       '<h3>✦ Boost this ' + noun + '</h3>' +
       '<div class="sub">Your ' + noun + ' is shown at the top of the feed to people searching for your keywords. You can see exactly how many people it reached and opened.</div>' +

@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { eq, and, desc, count, countDistinct, sql, inArray, or, ilike, gt, gte, ne, not, type SQL } from "drizzle-orm";
+import { eq, and, desc, count, countDistinct, sql, inArray, or, ilike, gt, gte, ne, not, notInArray, type SQL } from "drizzle-orm";
 import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable, conversationsTable, messagesTable, communityOrdersTable, communityOrderDeliveriesTable, communityOrderReviewsTable, transactionsTable, freelanceWalletsTable, postBoostsTable, searchLogsTable, projectsTable, projectBidsTable, barterMatchesTable, barterRequestsTable } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { logger } from "../lib/logger";
@@ -10,7 +10,7 @@ import {
 import { uploadToSupabase } from "../lib/storage";
 import { likeTerm, rankTerms } from "../lib/search-suggest";
 import { PROJECT_ROOT } from "../lib/root";
-import { getCommunityQuota, consumeGigPost, consumeProposal, grantQuotaBundle, QUOTA_PLANS, FREE_GIG_POSTS, FREE_PROPOSALS, type QuotaPlanId } from "../lib/community-quota";
+import { getCommunityQuota, consumeProposal, grantQuotaBundle, QUOTA_PLANS, FREE_GIG_POSTS, FREE_PROPOSALS, type QuotaPlanId } from "../lib/community-quota";
 import { resolveGigAmount, canAfford } from "../lib/wallet-guards";
 import { areConnected } from "../lib/connections";
 import { PLATFORM_COMMISSION_PCT } from "../lib/subscriptions";
@@ -123,11 +123,12 @@ router.get("/community/quota", authenticate, async (req, res): Promise<void> => 
   res.json({
     success: true,
     data: {
+      // gigPosts stays in the payload for older cached clients that read it;
+      // the gigs5 bundle itself is no longer offered.
       gigPosts: { used: usage.gigPostsUsed, free: usage.gigPostsFree, bonus: usage.gigPostsBonus, limit: FREE_GIG_POSTS },
       proposals: { used: usage.proposalsUsed, free: usage.proposalsFree, bonus: usage.proposalsBonus, limit: FREE_PROPOSALS },
       resetsInMs: usage.resetsInMs,
       plans: [
-        { id: QUOTA_PLANS.gigs5.id, label: QUOTA_PLANS.gigs5.label, priceInr: QUOTA_PLANS.gigs5.priceInr },
         { id: QUOTA_PLANS.props5.id, label: QUOTA_PLANS.props5.label, priceInr: QUOTA_PLANS.props5.priceInr },
       ],
     },
@@ -139,6 +140,10 @@ router.post("/community/quota/order", authenticate, async (req, res): Promise<vo
   const planId = String(req.body?.planId ?? "");
   if (!(planId in QUOTA_PLANS)) {
     res.status(400).json({ success: false, message: "Unknown quota bundle" });
+    return;
+  }
+  if (planId === "gigs5") {
+    res.status(400).json({ success: false, message: "Gig post bundles are no longer sold." });
     return;
   }
   if (!razorpayConfigured()) {
@@ -249,8 +254,16 @@ router.post("/community/quota/verify", authenticate, async (req, res): Promise<v
 });
 
 // â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Gig and project posts are retired platform-wide. The rows stay in the DB
+// (orders, boosts and money records reference them) but they are hidden from
+// every read surface and no longer accepted on create.
+const RETIRED_KINDS = ["GIG", "PROJECT"] as const;
+function visibleKindCond(): SQL {
+  return notInArray(communityPostsTable.kind, RETIRED_KINDS as unknown as (typeof communityPostsTable.$inferSelect.kind)[]);
+}
+
 function kindWhitelist(kind: string | undefined, fallback: string): string {
-  const allowed = ["POST", "GIG", "BARTER", "WIN", "TIPS", "REEL", "PROJECT"];
+  const allowed = ["POST", "BARTER", "WIN", "TIPS", "REEL"];
   if (kind && allowed.includes(kind)) return kind;
   return fallback;
 }
@@ -653,7 +666,7 @@ async function viewerSearchSignature(userId: string): Promise<string[]> {
 
 async function loadSpotlightPins(viewerId: string, kindFilter: string): Promise<PostRowShape[]> {
   try {
-    const conds: SQL[] = [gt(postBoostsTable.expiresAt, new Date()), ne(communityPostsTable.userId, viewerId)];
+    const conds: SQL[] = [gt(postBoostsTable.expiresAt, new Date()), ne(communityPostsTable.userId, viewerId), visibleKindCond()];
     if (kindFilter) conds.push(eq(communityPostsTable.kind, kindFilter as typeof communityPostsTable.$inferSelect.kind));
     const active = await db
       .select({ boost: postBoostsTable, post: communityPostsTable })
@@ -820,8 +833,8 @@ router.post("/community/posts/:id/spotlight", authenticate, async (req: Request,
     res.status(403).json({ success: false, message: "You can only boost your own posts" });
     return;
   }
-  if (post.kind !== "GIG" && post.kind !== "PROJECT") {
-    res.status(400).json({ success: false, message: "Only gigs and projects can be boosted" });
+  if (post.kind !== "BARTER") {
+    res.status(400).json({ success: false, message: "Only barter posts can be boosted" });
     return;
   }
   const existing = await db
@@ -913,6 +926,10 @@ router.post("/community/posts/:id/spotlight/extend", authenticate, async (req: R
   }
   if (post.userId !== meId) {
     res.status(403).json({ success: false, message: "You can only extend your own boost" });
+    return;
+  }
+  if (post.kind === "GIG" || post.kind === "PROJECT") {
+    res.status(400).json({ success: false, message: "Gig and project posts are no longer boostable" });
     return;
   }
   const [boost] = await db
@@ -1080,7 +1097,7 @@ router.get("/community/search/suggest", optionalAuth, async (req: Request, res: 
     const tagRows = await db.execute(sql`
       SELECT t AS term, COUNT(*)::int AS n
       FROM community_posts, unnest(tags) AS t
-      WHERE t ILIKE ${likeTerm(q)} ESCAPE '\\'
+      WHERE t ILIKE ${likeTerm(q)} ESCAPE '\\' AND community_posts.kind NOT IN ('GIG', 'PROJECT')
       GROUP BY t
       ORDER BY n DESC
       LIMIT 40
@@ -1105,11 +1122,14 @@ router.get("/community/search/suggest", optionalAuth, async (req: Request, res: 
       })
       .from(communityPostsTable)
       .where(
-        or(
-          ilike(communityPostsTable.content, likeTerm(q)),
-          ilike(sql`${communityPostsTable.tags}::text`, likeTerm(q)),
-          ilike(communityPostsTable.location, likeTerm(q)),
-        ) as SQL,
+        and(
+          or(
+            ilike(communityPostsTable.content, likeTerm(q)),
+            ilike(sql`${communityPostsTable.tags}::text`, likeTerm(q)),
+            ilike(communityPostsTable.location, likeTerm(q)),
+          ) as SQL,
+          visibleKindCond(),
+        ),
       )
       .orderBy(desc(communityPostsTable.createdAt))
       .limit(4);
@@ -1151,8 +1171,9 @@ router.get("/community/feed", optionalAuth, async (req: Request, res: Response):
       );
   }
 
-  let where: SQL | undefined;
-  if (kind) where = eq(communityPostsTable.kind, kind as typeof communityPostsTable.$inferSelect.kind);
+  // Retired gig/project posts are excluded from every feed query.
+  let where: SQL | undefined = visibleKindCond();
+  if (kind) where = and(where, eq(communityPostsTable.kind, kind as typeof communityPostsTable.$inferSelect.kind)) as SQL;
   if (authorId) {
     const authorCond: SQL = eq(communityPostsTable.userId, authorId);
     where = where ? and(where, authorCond) : authorCond;
@@ -1369,7 +1390,7 @@ router.get("/community/posts/:id", optionalAuth, async (req: Request, res: Respo
     .from(communityPostsTable)
     .where(eq(communityPostsTable.id, String(req.params.id)))
     .limit(1);
-  if (!post) {
+  if (!post || post.kind === "GIG" || post.kind === "PROJECT") {
     res.status(404).json({ success: false, message: "Post not found" });
     return;
   }
@@ -1381,20 +1402,18 @@ router.get("/community/posts/:id", optionalAuth, async (req: Request, res: Respo
 router.post("/community/posts", authenticate, async (req: Request, res: Response): Promise<void> => {
   const { kind, content, tags, media, priceInr, priceMaxInr, deliveryDays, revisions, wantInr, wantText, coverUrl, location, isRemote } = req.body ?? {};
 
+  // Gig and project posts are retired — reject loudly instead of silently
+  // falling back to a plain POST, which would misrepresent what was asked.
+  const rawKind = String(kind || "POST").toUpperCase();
+  if (rawKind === "GIG" || rawKind === "PROJECT") {
+    res.status(400).json({ success: false, message: "Gig and project posts are no longer available on Grit&Gigs." });
+    return;
+  }
+
   const k = kindWhitelist(String(kind || "POST"), "POST");
   if (!content || !String(content).trim()) {
     res.status(400).json({ success: false, message: "Post content is required" });
     return;
-  }
-
-  let price: number | null = null;
-  if (k === "GIG" || k === "PROJECT") {
-    const p = Number(priceInr);
-    if (!Number.isFinite(p) || p <= 0) {
-      res.status(400).json({ success: false, message: "Gig and project posts need a price in ₹" });
-      return;
-    }
-    price = Math.round(p);
   }
 
   const cleanMedia: { type: "image" | "video" | "embed"; url: string }[] = Array.isArray(media)
@@ -1413,19 +1432,6 @@ router.post("/community/posts", authenticate, async (req: Request, res: Response
     return;
   }
 
-  if (k === "GIG") {
-    const q = await consumeGigPost(req.user!.id);
-    if (!q.allowed) {
-      res.status(402).json({
-        success: false,
-        code: "QUOTA_GIG",
-        message: `You've used all ${FREE_GIG_POSTS} free gig posts this month. 5 more = just ₹80.`,
-        usage: { gigPosts: { used: q.usage.gigPostsUsed, free: q.usage.gigPostsFree, bonus: q.usage.gigPostsBonus, limit: FREE_GIG_POSTS } },
-      });
-      return;
-    }
-  }
-
   try {
     const [post] = await db
       .insert(communityPostsTable)
@@ -1436,10 +1442,10 @@ router.post("/community/posts", authenticate, async (req: Request, res: Response
         tags: cleanTags(tags),
         media: cleanMedia,
         coverUrl: cover,
-        priceInr: price,
-        priceMaxInr: Number.isFinite(Number(priceMaxInr)) && Number(priceMaxInr) > 0 ? Math.round(Number(priceMaxInr)) : null,
+        priceInr: null,
+        priceMaxInr: null,
         deliveryDays: Number.isFinite(Number(deliveryDays)) && Number(deliveryDays) > 0 ? Math.round(Number(deliveryDays)) : null,
-        revisions: k === "GIG" || k === "BARTER" || k === "PROJECT" ? Math.max(0, Math.min(10, Math.round(Number(revisions) || 0))) : 0,
+        revisions: k === "BARTER" ? Math.max(0, Math.min(10, Math.round(Number(revisions) || 0))) : 0,
         wantInr: k === "BARTER" && Number.isFinite(Number(wantInr)) && Number(wantInr) > 0 ? Math.round(Number(wantInr)) : null,
         wantText: k === "BARTER" && wantText ? String(wantText).trim().slice(0, 200) : null,
         location: location ? String(location).trim().slice(0, 100) : req.user!.city ?? null,
@@ -1628,7 +1634,7 @@ router.get("/community/users/:id", optionalAuth, async (req: Request, res: Respo
       comments: sql<number>`COALESCE(SUM(${communityPostsTable.commentCount}), 0)`,
     })
     .from(communityPostsTable)
-    .where(eq(communityPostsTable.userId, user.id));
+    .where(and(eq(communityPostsTable.userId, user.id), visibleKindCond()));
 
   // Likes given and comments made drive the LIKED / COMMENTED tabs, so the
   // header counters have to include them or those tabs look empty.
@@ -1683,7 +1689,7 @@ router.get("/community/me/liked-posts", authenticate, async (req: Request, res: 
     .select({ id: communityPostsTable.id })
     .from(communityLikesTable)
     .innerJoin(communityPostsTable, eq(communityLikesTable.postId, communityPostsTable.id))
-    .where(eq(communityLikesTable.userId, meId))
+    .where(and(eq(communityLikesTable.userId, meId), visibleKindCond()))
     .orderBy(desc(communityLikesTable.createdAt))
     .limit(limit);
   if (!liked.length) {
@@ -1716,7 +1722,7 @@ router.get("/community/me/commented-posts", authenticate, async (req: Request, r
     return;
   }
   const ids = commented.map((r) => r.postId);
-  const rows = await db.select().from(communityPostsTable).where(inArray(communityPostsTable.id, ids));
+  const rows = await db.select().from(communityPostsTable).where(and(inArray(communityPostsTable.id, ids), visibleKindCond()));
   const byId = new Map(rows.map((r) => [r.id, r]));
   const ordered: typeof rows = [];
   for (const id of ids) {
@@ -1926,8 +1932,8 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
     res.status(404).json({ success: false, message: "Post not found" });
     return;
   }
-  if (post.kind !== "GIG" && post.kind !== "PROJECT" && post.kind !== "BARTER") {
-    res.status(400).json({ success: false, message: "Only gig, project and barter posts can take requests." });
+  if (post.kind !== "BARTER") {
+    res.status(400).json({ success: false, message: "Only barter posts can take requests." });
     return;
   }
   if (post.userId === meId) {
@@ -1935,24 +1941,23 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
     return;
   }
 
-// Requesting a gig never costs a proposal quota; bids/proposals on projects and
-  // barter offers draw from the monthly proposal quota (freelancer quota).
-  if (post.kind === "PROJECT" || post.kind === "BARTER") {
+  // Barter offers draw from the monthly proposal quota (freelancer quota).
+  {
     const q = await consumeProposal(meId);
     if (!q.allowed) {
       res.status(402).json({
         success: false,
         code: "QUOTA_PROPOSAL",
-        message: `You've used all ${FREE_PROPOSALS} free proposals this month. 5 more = just ?60.`,
+        message: `You've used all ${FREE_PROPOSALS} free proposals this month. 5 more = just ₹60.`,
         usage: { proposals: { used: q.usage.proposalsUsed, free: q.usage.proposalsFree, bonus: q.usage.proposalsBonus, limit: FREE_PROPOSALS } },
       });
       return;
     }
   }
 
-// A client can only order a gig if their wallet can cover it. resolveGigAmount is
-  // shared with the unit tests so the amount we check is exactly the amount we
-  // store — a client cannot lower one without lowering the other.
+  // A client can only order a barter if their wallet can cover a quoted amount.
+  // resolveGigAmount is shared with the unit tests so the amount we check is
+  // exactly the amount we store — a client cannot lower one without the other.
   const gigPrice = resolveGigAmount(post.kind, post.priceInr, amount);
   if (gigPrice !== null && gigPrice > 0) {
     const [buyerWallet] = await db
@@ -1965,7 +1970,7 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
       res.status(400).json({
         success: false,
         code: "INSUFFICIENT_FUNDS",
-        message: `You need ₹${Number(gigPrice).toLocaleString("en-IN")} in your wallet to order this gig. You have ₹${Number(walletBalance).toLocaleString("en-IN")}. Please add funds first.`,
+        message: `You need ₹${Number(gigPrice).toLocaleString("en-IN")} in your wallet to send this request. You have ₹${Number(walletBalance).toLocaleString("en-IN")}. Please add funds first.`,
       });
       return;
     }
@@ -1982,16 +1987,8 @@ router.post("/community/posts/:id/order", authenticate, async (req: Request, res
     return;
   }
 
-  // GIG posts have a fixed price on the post. PROJECT proposals carry a bid.
   // BARTER is free by definition, so it never stores a monetary amount.
-const finalAmount =
-      post.kind === "GIG"
-? gigPrice
-: post.kind === "BARTER"
-? null
-: Number.isFinite(amount) && amount > 0
-          ? Math.round(amount)
-          : null;
+  const finalAmount = null;
 
   try {
     const [order] = await db
@@ -2013,7 +2010,7 @@ const finalAmount =
     notify(
       author.id,
       "COMMUNITY_ORDER",
-      `New ${post.kind === "GIG" ? "gig order" : post.kind === "PROJECT" ? "project proposal" : "barter offer"}`,
+      "New barter offer",
       `${req.user!.firstName} sent you a request: ${snippet}`,
       `/orders`,
     );
@@ -2272,7 +2269,7 @@ router.post("/community/orders/:id/review", authenticate, async (req: Request, r
     .insert(communityOrderReviewsTable)
     .values({ orderId: order.id, reviewerId: meId, revieweeId, rating, review: review || null })
     .returning();
-  notify(revieweeId, "REVIEW_RECEIVED", "New review", `${req.user!.firstName} rated their gig order with you ${rating}/5.`, `/orders`);
+  notify(revieweeId, "REVIEW_RECEIVED", "New review", `${req.user!.firstName} rated their order with you ${rating}/5.`, `/orders`);
   emitToRoom(req, `user:${revieweeId}`, "profile:updated", { userId: revieweeId });
   res.status(201).json({ success: true, data: { review: created } });
 });

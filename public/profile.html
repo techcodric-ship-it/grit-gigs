@@ -193,12 +193,12 @@
         <div id="pReviews"></div>
       </div>
 
-      <!-- Own-profile only. Gigs live here, so this is where a seller can
-           actually act on the offer instead of just reading about it. -->
+      <!-- Own-profile only. Barter posts live here, so this is where a
+           seller can actually act on the offer instead of just reading about it. -->
       <div class="pcard pspot" id="pSpotCard" style="display:none;">
         <div class="pspot-head">
           <div class="pspot-eyebrow"><span class="pspot-star">&#10022;</span> Spotlight</div>
-          <div class="pspot-title">Get your gigs in front of people already searching</div>
+          <div class="pspot-title">Get your barter posts in front of people already searching</div>
         </div>
         <div id="pSpotList"></div>
         <a class="pspot-more" href="/spotlight-boost">How it works and what it costs</a>
@@ -269,7 +269,7 @@
   </div>
 </div>
 
-<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=40"></script>
+<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=41"></script>
 <script>
 (function () {
   var c = window.community;
@@ -433,9 +433,9 @@
     renderSpotPanel(posts);
   }
 
-  // Lists the seller's own boostable posts with a one-click Boost button and
-  // the real weekly search count for that gig's keywords. Only renders on your
-  // own profile, and only for posts that can actually be boosted.
+  // Lists the seller's own boostable barter posts with a one-click Boost button
+  // and the real weekly search count for that post's keywords. Only renders on
+  // your own profile, and only for posts that can actually be boosted.
   function renderSpotPanel(posts) {
     var card = $('pSpotCard');
     var lm = liveMe();
@@ -443,10 +443,11 @@
     var mine = posts.filter(function (r) {
       // Ownership matters, not just kind. This panel is also fed by the LIKED
       // and COMMENTED tabs, which return other people's posts, so a kind-only
-      // filter offered a Boost button on someone else's gig. The API rejects
+      // filter offered a Boost button on someone else's post. The API rejects
       // that with 403, but the button should never have been offered at all.
+      // Only barter posts can be boosted.
       return r.post.userId === lm.id &&
-        (r.post.kind === 'GIG' || r.post.kind === 'PROJECT');
+        r.post.kind === 'BARTER';
     });
     if (!mine.length) { card.style.display = 'none'; return; }
     card.style.display = '';
@@ -454,10 +455,10 @@
     var list = $('pSpotList');
     list.innerHTML = mine.map(function (r) {
       var p = r.post;
-      // Community posts have no title column: the caption is the text buyers
+      // Community posts have no title column: the caption is the text people
       // scan, so use it and keep it to one line.
       var label = String(p.content || '').replace(/\s+/g, ' ').trim().slice(0, 70);
-      if (!label) label = (p.kind === 'PROJECT' ? 'Project' : 'Gig') + ' with no description';
+      if (!label) label = 'Barter with no description';
       var live = r.mySpotlight;
       var meta;
       if (live) {
@@ -473,7 +474,7 @@
       return '<div class="psp-row">' +
         '<div class="psp-main">' +
           '<div class="psp-name">' + c.esc(label) + '</div>' +
-          '<div class="psp-meta"><span class="psp-chip">' + (p.kind === 'PROJECT' ? 'Project' : 'Gig') + '</span>' + meta + '</div>' +
+          '<div class="psp-meta"><span class="psp-chip">Barter</span>' + meta + '</div>' +
         '</div>' +
         (live
           ? '<button class="psp-btn ghost" data-spext="' + c.esc(p.id) + '">Extend</button>'
@@ -488,12 +489,12 @@
       b.addEventListener('click', function () { c.extendSpotlight({ id: b.getAttribute('data-spext') }); });
     });
 
-    // Demand per gig, so the seller compares real numbers instead of guessing.
+    // Demand per barter, so the poster compares real numbers instead of guessing.
     mine.forEach(function (r) {
       var slot = list.querySelector('[data-psd="' + r.post.id + '"]');
       if (!slot) return;
       var tags = r.post.tags || [];
-      if (!tags.length) { slot.textContent = 'No keywords yet — add tags so buyers can find you'; return; }
+      if (!tags.length) { slot.textContent = 'No keywords yet — add tags so people can find you'; return; }
       c.api('/community/spotlight/demand?tags=' + encodeURIComponent(tags.join(','))).then(function (res) {
         if (!slot.isConnected || !(res && res.ok && res.d && res.d.data)) return;
         var n = res.d.data.totalSearches || 0;

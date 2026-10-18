@@ -97,8 +97,25 @@ app.get("/dashboard/:tab", (req, res) => {
   res.redirect(302, "/dashboard.html?tab=" + encodeURIComponent(String(req.params.tab)));
 });
 app.get("/services/:_id", (_req, res) => {
-  res.redirect(302, "/explore?kind=GIG");
+  res.redirect(302, "/explore");
 });
+// Gig/project marketplace pages are retired — send old links to Explore.
+app.get(["/projects", "/projects/:_id", "/freelance"], (_req, res) => {
+  res.redirect(302, "/explore");
+});
+app.get(
+  [
+    "/hire-developer-india",
+    "/hire-logo-designer-india",
+    "/hire-video-editor-india",
+    "/hire-digital-marketer-india",
+    "/hire-data-analyst-india",
+    "/hire-business-consultant-india",
+  ],
+  (_req, res) => {
+    res.redirect(302, "/explore");
+  },
+);
 
 app.use(express.static(publicPath));
 

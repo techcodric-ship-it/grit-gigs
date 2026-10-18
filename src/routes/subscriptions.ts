@@ -25,14 +25,8 @@ const router: IRouter = Router();
 function planToClientJson(plan: PlanConfig) {
   const features: string[] = [
     plan.weeklyBidCredits === -1
-      ? "Unlimited project bids"
-      : `${plan.weeklyBidCredits} project bids / week`,
-    plan.maxActiveGigs === -1
-      ? "Unlimited new gig listings per month"
-      : `${plan.maxActiveGigs} new gig listings per month`,
-    plan.maxActiveProjects === -1
-      ? "Unlimited new project listings per month"
-      : `${plan.maxActiveProjects} new project listings per month`,
+      ? "Unlimited barter offer credits"
+      : `${plan.weeklyBidCredits} barter offer credits / week`,
     plan.walletLimit === -1
       ? "Unlimited wallet balance"
       : `₹${plan.walletLimit.toLocaleString("en-IN")} wallet limit`,
@@ -264,7 +258,7 @@ router.post("/subscriptions/verify-payment", authenticate, async (req: Request, 
     userId,
     type: "SUBSCRIPTION",
     title: `${plan.name} plan activated!`,
-    message: `You now get ${plan.weeklyBidCredits === -1 ? "unlimited" : plan.weeklyBidCredits} project bids per week, ${PLATFORM_COMMISSION_PCT}% platform fee, and ${plan.maxActiveGigs === -1 ? "unlimited" : plan.maxActiveGigs} new gig listings/month.`,
+    message: `You now get ${plan.weeklyBidCredits === -1 ? "unlimited" : plan.weeklyBidCredits} barter offer credits per week, a ${PLATFORM_COMMISSION_PCT}% platform fee, and an expanded wallet limit.`,
     linkUrl: "/dashboard.html",
   });
 
