@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit",
     "db:push": "drizzle-kit push --config=drizzle.config.js",
     "test": "vitest run",
+    "guard:prep": "node scripts/prep-guard.mjs",
     "test:watch": "vitest",
     "db:migrate-plan": "tsx src/db/migrate-plan-tiers.ts",
     "db:migrate-project-type": "tsx src/db/migrate-project-type.ts",

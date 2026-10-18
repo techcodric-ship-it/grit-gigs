@@ -1,0 +1,16 @@
+{
+  "baseline": "Phase 0 - 2026-10-19 (committed git blob hashes at HEAD c1573ce lineage)",
+  "note": "Barter-exclusive files. Byte-identical forever; enforced by scripts/prep-guard.mjs.",
+  "files": {
+    "src/routes/barter.ts": "efb169ad008df2cda4d47811d770d616a4ef29c8dbe7f6e11d058e64f7d7cb0b",
+    "src/routes/barter-review.ts": "0d4cda2b950c7ed7020b5f6be1655b63275571bff973b60903193033e1c763a9",
+    "src/routes/match-complete.ts": "2bdc9ad98ada96344261d3cf254c9cd0a808519715210de6db5a58abca90aab1",
+    "src/db/schema/barter.ts": "551fd6735c5f79b47a532348132ec19d5bdca53557a5eb8f3f0270ac1608fc4c",
+    "public/barter.html": "b70e257d1fb5bec2ba0943f95e2775c0df37b6b3abe4cada3b227928371b8b6d"
+  },
+  "barterTests": {
+    "src/lib/demo-data.test.ts": 22,
+    "src/lib/wallet-guards.test.ts": 9
+  },
+  "baselineTests": 446
+}

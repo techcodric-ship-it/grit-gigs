@@ -12,6 +12,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Phase 0 barter protection: refuse to deploy anything whose diff touches
+      # a barter-locked path or whose barter files no longer match the baseline
+      # hashes in docs/prep-barter-lock.json.
+      - name: Barter protection guard
+        run: |
+          set -euo pipefail
+          node scripts/prep-guard.mjs
+          if [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            node scripts/prep-guard.mjs "${{ github.event.before }}..${{ github.sha }}"
+          fi
 
       - name: Pull new code and restart the app
         uses: appleboy/ssh-action@v1
