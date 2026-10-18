@@ -45,6 +45,18 @@ export async function getReportById(id: string): Promise<PrepReport | null> {
   return rows[0] ?? null;
 }
 
+export async function updateReportAi(
+  id: string,
+  ai: { summary: string; model: string },
+): Promise<PrepReport | null> {
+  const updated = await db
+    .update(prepReportsTable)
+    .set({ aiSummary: ai.summary.slice(0, 4000), aiModel: ai.model.slice(0, 80) })
+    .where(eq(prepReportsTable.id, id))
+    .returning();
+  return updated[0] ?? null;
+}
+
 export async function latestReportForCompany(companyId: string, role: string | null): Promise<PrepReport | null> {
   const roleNorm = role?.slice(0, 120) ?? null;
   const rows = await db

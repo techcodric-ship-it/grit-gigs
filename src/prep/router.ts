@@ -11,6 +11,7 @@ import { isPrepEnabled } from "./feature";
 import { ensurePrepDb } from "./db";
 import { resolveCompany, createPendingCompany } from "./companies";
 import { gatherSources } from "./sources/gather";
+import { summarizeReport } from "./ai";
 import {
   buildReportSkeleton,
   createReport,
@@ -18,6 +19,7 @@ import {
   getReportById,
   latestReportForCompany,
   publicReport,
+  updateReportAi,
 } from "./reports";
 
 export const prepRouter = Router();
@@ -153,6 +155,14 @@ prepRouter.post("/reports", authenticate, reportLimiter, prepDbGate, async (req:
       skeleton,
       createdBy: req.user!.id,
     });
+    const ai = await summarizeReport({ company: { name: company.name }, role: report.role, gathered });
+    if (ai) {
+      const updated = await updateReportAi(report.id, { summary: ai.summary, model: ai.model });
+      if (updated) {
+        report.aiSummary = updated.aiSummary;
+        report.aiModel = updated.aiModel;
+      }
+    }
     res.status(201).json({ success: true, data: { report: publicReport(report) } });
   } catch (err) {
     console.error("[prep] report create failed:", err);
@@ -205,6 +215,14 @@ prepRouter.get("/companies/:slug/report", authenticate, reportLimiter, prepDbGat
       skeleton,
       createdBy: req.user!.id,
     });
+    const ai = await summarizeReport({ company: { name: company.name }, role: report.role, gathered });
+    if (ai) {
+      const updated = await updateReportAi(report.id, { summary: ai.summary, model: ai.model });
+      if (updated) {
+        report.aiSummary = updated.aiSummary;
+        report.aiModel = updated.aiModel;
+      }
+    }
     res.status(201).json({ success: true, data: { report: publicReport(report), cached: false } });
   } catch (err) {
     console.error("[prep] latest report failed:", err);
