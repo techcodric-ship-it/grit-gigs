@@ -123,7 +123,6 @@ router.get("/community/quota", authenticate, async (req, res): Promise<void> => 
       proposals: { used: usage.proposalsUsed, free: usage.proposalsFree, bonus: usage.proposalsBonus, limit: FREE_PROPOSALS },
       resetsInMs: usage.resetsInMs,
       plans: [
-        { id: QUOTA_PLANS.gigs5.id, label: QUOTA_PLANS.gigs5.label, priceInr: QUOTA_PLANS.gigs5.priceInr },
         { id: QUOTA_PLANS.props5.id, label: QUOTA_PLANS.props5.label, priceInr: QUOTA_PLANS.props5.priceInr },
       ],
     },
@@ -135,6 +134,10 @@ router.post("/community/quota/order", authenticate, async (req, res): Promise<vo
   const planId = String(req.body?.planId ?? "");
   if (!(planId in QUOTA_PLANS)) {
     res.status(400).json({ success: false, message: "Unknown quota bundle" });
+    return;
+  }
+  if (planId === "gigs5") {
+    res.status(400).json({ success: false, message: "This bundle is no longer available." });
     return;
   }
   if (!razorpayConfigured()) {

@@ -64,7 +64,7 @@ h1{font-size:1.5rem;margin:0 0 2px;}
     if (!r) return 'Network error';
     return (r.d && (r.d.message || r.d.error)) || (r.ok === false ? 'Request failed' : 'Something went wrong');
   }
-  var chosen = 'gigs5';
+  var chosen = 'props5';
 
   function pick(k) {
     chosen = k;
@@ -73,9 +73,10 @@ h1{font-size:1.5rem;margin:0 0 2px;}
   }
   window.pick = pick;
 
+  var ICO_OFFER = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>';
   function qCard(name, lbl, now, total, ic) {
     var pct = total > 0 ? Math.min(100, Math.round((now / total) * 100)) : 0;
-    return '<div class="quota"><div class="q-top"><div><div class="q-name">' + esc(ic + ' ' + name) + '</div>' +
+    return '<div class="quota"><div class="q-top"><div><div class="q-name">' + (ic || '') + esc(name) + '</div>' +
       '<div class="q-free">' + esc(lbl) + '</div></div>' +
       '<div class="q-num">' + now + '<small> / ' + total + '</small></div></div>' +
       '<div class="bar"><i style="width:' + pct + '%"></i></div>' +
@@ -85,21 +86,15 @@ h1{font-size:1.5rem;margin:0 0 2px;}
   function renderQuota(d) {
     var el = $('quotaWrap');
     if (!d) { el.innerHTML = '<div class="empty">Quota unavailable.</div>'; return; }
-    var gig = d.gigPosts || {};
     var prop = d.proposals || {};
     // `free` is already the REMAINING free allowance (limit - used), so it must
     // not be reduced by `used` again. Total is the monthly limit plus bonuses.
-    var gigBonus = Number(gig.bonus || 0);
     var propBonus = Number(prop.bonus || 0);
-    var gigRemain = Number(gig.free || 0) + gigBonus;
     var propRemain = Number(prop.free || 0) + propBonus;
-    var gigTotal = Number(gig.limit || 0) + gigBonus;
     var propTotal = Number(prop.limit || 0) + propBonus;
-    var gigLbl = gigBonus > 0 ? gigRemain + ' left · incl. ' + gigBonus + ' bought' : 'free this month';
     var propLbl = propBonus > 0 ? propRemain + ' left · incl. ' + propBonus + ' bought' : 'free this month';
     el.innerHTML = '<div class="quota-grid">' +
-      qCard('Gig posts', gigLbl, gigRemain, gigTotal, '\ud83d\udce2') +
-      qCard('Proposals', propLbl, propRemain, propTotal, '\ud83d\udca1') +
+      qCard('Barter offers', propLbl, propRemain, propTotal, ICO_OFFER) +
       '</div>';
   }
 
@@ -122,7 +117,7 @@ h1{font-size:1.5rem;margin:0 0 2px;}
       document.head.appendChild(s);
       return;
     }
-    var amt = Number(order.amount || (chosen === 'props5' ? 6000 : 8000));
+    var amt = Number(order.amount || 6000);
     var rz = new Razorpay({
       key: keyMetadata.key,
       amount: amt,
