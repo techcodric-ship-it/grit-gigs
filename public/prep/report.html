@@ -79,6 +79,11 @@
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
+  // href scheme guard: esc() escapes markup but cannot stop javascript:/data:
+  // URLs, so anything that is not http(s) collapses to "#".
+  function safeUrl(u) {
+    return /^https?:\/\//i.test(String(u || "")) ? u : "#";
+  }
   var parts = location.pathname.split("/");
   var slug = parts[parts.length - 1] || "";
   var role = new URLSearchParams(location.search).get("role") || "";
@@ -87,7 +92,7 @@
 
   function itemHtml(it) {
     var chip = it.label === "OFFICIAL" ? "official" : "pending";
-    return '<a href="' + esc(it.url || "#") + '" target="_blank" rel="noopener noreferrer"><span>' + esc(it.title) +
+    return '<a href="' + esc(safeUrl(it.url || "")) + '" target="_blank" rel="noopener noreferrer"><span>' + esc(it.title) +
       (it.publishedAt ? " — " + esc(String(it.publishedAt).slice(0, 10)) : "") +
       '</span><span class="prep-chip ' + chip + '">' + esc(it.label) + "</span></a>";
   }
@@ -133,7 +138,7 @@
       var prov = sec.provenance || [];
       if (prov.length) {
         document.getElementById("rpProv").innerHTML = prov.map(function (p) {
-          return '<a href="' + esc(p.url) + '" target="_blank" rel="noopener noreferrer"><span>' + esc(p.publisher || p.title) +
+          return '<a href="' + esc(safeUrl(p.url)) + '" target="_blank" rel="noopener noreferrer"><span>' + esc(p.publisher || p.title) +
             '</span><span class="prep-chip">' + esc(p.label) + "</span></a>";
         }).join("");
         document.getElementById("rpProvCard").hidden = false;

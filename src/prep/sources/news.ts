@@ -28,15 +28,23 @@ export function parseNewsRss(xml: string, limit = MAX_NEWS_ITEMS): NewsItem[] {
     // <source url="...">Name</source>
     const sourceMatch = block.match(/<source[^>]*>([\s\S]*?)<\/source>/i);
     const sourceName = sourceMatch ? decodeXml(sourceMatch[1] ?? "") : "Google News";
-    if (!title || !url) continue;
+    // Defence in depth: only http(s) links ever reach provenance/href sinks.
+    if (!title || !url || !/^https?:\/\//i.test(url)) continue;
     items.push({
       title: title.slice(0, 300),
-      url,
-      publishedAt: pubDate ? new Date(pubDate).toISOString() : undefined,
+      url: url.slice(0, 2000),
+      publishedAt: toIsoDate(pubDate),
       sourceName: sourceName.slice(0, 120) || "Google News",
     });
   }
   return items;
+}
+
+/** ISO date or undefined — never throws on hostile/garbage pubDate values. */
+function toIsoDate(pubDate: string): string | undefined {
+  if (!pubDate) return undefined;
+  const t = new Date(pubDate).getTime();
+  return Number.isFinite(t) ? new Date(t).toISOString() : undefined;
 }
 
 function firstTag(block: string, tag: string): string {

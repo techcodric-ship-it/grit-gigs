@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /uploads/
+Disallow: /prep/
 
 Sitemap: https://www.gritandgigs.in/sitemap.xml
