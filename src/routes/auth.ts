@@ -787,13 +787,26 @@ function googleCallbackHtml(data: { accessToken: string; refreshToken: string; u
 
   return `<!DOCTYPE html><html><body><script>
     try {
+      var ok = ${data ? "true" : "false"};
+      if (ok) {
+        var d = ${messageJson};
+        // Also persist here: same-origin openers can pick the session up by
+        // polling localStorage if this postMessage is ever lost.
+        try {
+          localStorage.setItem('se_token', d.data.accessToken);
+          localStorage.setItem('se_refresh', d.data.refreshToken);
+          localStorage.setItem('se_user', JSON.stringify(d.data.user));
+        } catch (storeErr) { /* private mode */ }
+      }
       if (window.opener) {
         window.opener.postMessage(${messageJson}, window.location.origin);
+        if (!ok) {
+          document.body.textContent = ${JSON.stringify(errorMsg || "Google sign-in failed")};
+        }
       } else {
         // No opener — redirect-based flow fallback
         var params = new URLSearchParams();
-        if (${data ? "true" : "false"}) {
-          var d = ${messageJson};
+        if (ok) {
           params.set('accessToken', d.data.accessToken);
           params.set('refreshToken', d.data.refreshToken);
           params.set('user', JSON.stringify(d.data.user));
@@ -805,7 +818,8 @@ function googleCallbackHtml(data: { accessToken: string; refreshToken: string; u
     } catch(e) {
       document.body.textContent = "Google sign-in " + (${data ? '"complete, you can close this window"' : '"failed: ' + JSON.stringify(errorMsg) + '"'});
     }
-    if (${data ? "true" : "false"}) { setTimeout(function(){ window.close(); }, 500); }
+    // Always close — an error used to leave a blank popup stuck open forever.
+    setTimeout(function(){ window.close(); }, ${data ? 500 : 1500});
   <\/script></body></html>`;
 }
 

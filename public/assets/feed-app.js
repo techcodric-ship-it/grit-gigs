@@ -280,7 +280,31 @@
   function openRegister() { closeModals(); var m = document.getElementById('registerModal'); if (m) m.classList.add('open'); }
 
   // ── Google Sign-In (popup OAuth) ──
-  var googleWin = null, googlePending = false;
+  var googleWin = null, googlePending = false, googlePoll = null;
+  function googleStop() { if (googlePoll) { clearInterval(googlePoll); googlePoll = null; } }
+
+  function googleSignedIn(d) {
+    googlePending = false;
+    googleWin = null;
+    googleStop();
+    setSession(d.data.accessToken, d.data.refreshToken, d.data.user);
+    toast('Welcome, ' + (d.data.user && d.data.user.firstName ? d.data.user.firstName : 'hustler') + '!');
+    closeModals();
+    refreshAuthedUI();
+    if (d.data.needsPhone || !(d.data.user && d.data.user.phone)) {
+      openPhoneModal({ onDone: maybeOnboard });
+    } else {
+      maybeOnboard();
+    }
+  }
+
+  function googleFailed(msg) {
+    googlePending = false;
+    googleWin = null;
+    googleStop();
+    toast(msg || 'Google sign-in failed — try again.', true);
+  }
+
   function googleLogin() {
     if (!token) toast('Connecting to Google…');
     var w = null;
@@ -297,6 +321,19 @@
     }
     googleWin = w;
     setTimeout(function () { try { w.focus(); } catch (e) {} }, 200);
+    // Fallback for a lost postMessage: the popup also writes the session to
+    // this origin's localStorage — watch for it and finish the sign-in here.
+    var seen = read();
+    googleStop();
+    var deadline = Date.now() + 120000;
+    googlePoll = setInterval(function () {
+      if (!googlePending) { googleStop(); return; }
+      if (Date.now() > deadline) { googleStop(); return; }
+      var t = read();
+      if (t && t !== seen) {
+        googleSignedIn({ data: { accessToken: t, refreshToken: getRefresh(), user: getUser() } });
+      }
+    }, 500);
   }
 
   function handleGoogleMessage(e) {
@@ -306,21 +343,11 @@
     var d = e.data;
     if (!d || typeof d !== 'object' || d.__ggHandled) return;
     d.__ggHandled = true;
-    googlePending = false;
-    googleWin = null;
     if (!d.success || !d.data || !d.data.accessToken) {
-      toast((d.message || 'Google sign-in failed — try again.'), true);
+      googleFailed(d.message);
       return;
     }
-    setSession(d.data.accessToken, d.data.refreshToken, d.data.user);
-    toast('Welcome, ' + (d.data.user && d.data.user.firstName ? d.data.user.firstName : 'hustler') + '!');
-    closeModals();
-    refreshAuthedUI();
-    if (d.data.needsPhone || !(d.data.user && d.data.user.phone)) {
-      openPhoneModal({ onDone: maybeOnboard });
-    } else {
-      maybeOnboard();
-    }
+    googleSignedIn(d);
   }
 
   // ── profile setup: phone (compulsory) then onboarding ──

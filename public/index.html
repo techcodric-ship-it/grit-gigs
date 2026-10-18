@@ -894,18 +894,45 @@
   }
 
   // ── Google sign-in (popup OAuth) ──
+  var ggPoll = null, ggSeenToken = read('se_token');
+  function ggStop() { if (ggPoll) { clearInterval(ggPoll); ggPoll = null; } }
+  function ggFail(msg) {
+    ggStop();
+    var el = $(mode === 'login' ? 'liErr' : 'suErr');
+    if (el) el.textContent = msg || 'Google sign-in failed. Please try again.';
+  }
   $('ggBtn').addEventListener('click', function () {
+    var se = $('suErr'), le = $('liErr');
+    if (se) se.textContent = '';
+    if (le) le.textContent = '';
     var w = null;
     try { w = window.open(API + '/auth/google/login', 'gritgigs_google', 'width=520,height=680'); }
     catch (e) { /* blocker */ }
     if (!w) { location.href = API + '/auth/google/login'; return; }
     setTimeout(function () { try { w.focus(); } catch (e) {} }, 200);
+    // Fallback for a lost postMessage: the popup also writes the session to
+    // this origin's localStorage — watch for a new token and enter ourselves.
+    ggSeenToken = read('se_token');
+    ggStop();
+    var deadline = Date.now() + 120000;
+    ggPoll = setInterval(function () {
+      if (Date.now() > deadline) { ggStop(); return; }
+      var t = read('se_token');
+      if (t && t !== ggSeenToken) { ggStop(); location.href = nextPath; }
+    }, 400);
   });
 
   window.addEventListener('message', function (e) {
     if (e.origin !== location.origin) return;
     var d = e.data;
-    if (!d || typeof d !== 'object' || !d.success || !d.data || !d.data.accessToken) return;
+    if (!d || typeof d !== 'object' || d.__ggDone) return;
+    if (typeof d.success !== 'boolean') return;
+    d.__ggDone = true;
+    if (!d.success || !d.data || !d.data.accessToken) {
+      ggFail(d.message);
+      return;
+    }
+    ggStop();
     setSession(d.data.accessToken, d.data.refreshToken, d.data.user);
     location.href = nextPath;
   });

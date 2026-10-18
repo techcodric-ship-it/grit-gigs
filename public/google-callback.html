@@ -16,18 +16,37 @@
   var error = params.get('error');
 
   if (error) {
-    document.body.innerHTML = '<div style="text-align:center"><p style="color:#ef4444;">Sign-in failed: ' + error + '</p><button onclick="window.close()" style="margin-top:12px;padding:8px 20px;background:var(--violet,#6C3FE8);color:#fff;border:none;border-radius:6px;cursor:pointer;">Close</button></div>';
+    document.body.innerHTML = '';
+    var wrap = document.createElement('div');
+    wrap.style.textAlign = 'center';
+    var p = document.createElement('p');
+    p.style.color = '#ef4444';
+    p.textContent = 'Sign-in failed: ' + error;
+    var retry = document.createElement('a');
+    retry.href = '/?login=1';
+    retry.textContent = 'Try again';
+    retry.style.cssText = 'display:inline-block;margin-top:12px;padding:8px 20px;background:var(--violet,#6C3FE8);color:#fff;border-radius:6px;text-decoration:none;';
+    wrap.appendChild(p);
+    wrap.appendChild(retry);
+    document.body.appendChild(wrap);
     return;
   }
 
   if (accessToken && refreshToken && userRaw) {
+    var user = null;
     try {
-      var user = JSON.parse(decodeURIComponent(userRaw));
+      user = JSON.parse(userRaw);
+    } catch (e1) {
+      // Older links double-encoded the payload — decode once more.
+      try { user = JSON.parse(decodeURIComponent(userRaw)); }
+      catch (e2) { user = null; }
+    }
+    if (user) {
       localStorage.setItem('se_token', accessToken);
       localStorage.setItem('se_refresh', refreshToken);
       localStorage.setItem('se_user', JSON.stringify(user));
       window.location.href = '/feed';
-    } catch(e) {
+    } else {
       document.body.textContent = 'Error processing sign-in';
     }
   } else {

@@ -56,9 +56,17 @@ jobs:
       - name: Verify site is serving the deployed build
         run: |
           set -euo pipefail
-          BASE=https://gritandgigs.in
+          # www is canonical (the Google OAuth callback lives there), so every
+          # probe must target it — the apex answers with a 308 redirect bodyless.
+          BASE=https://www.gritandgigs.in
           curl -fsS --retry 5 --retry-delay 5 --retry-connrefused $BASE/health
           echo ""
+
+          # The bare apex must keep redirecting to www, otherwise a visitor who
+          # lands there signs in on an origin the OAuth popup can never reach.
+          code=$(curl -s -o /dev/null -w '%{http_code}' https://gritandgigs.in/feed)
+          [ "$code" = "308" ] || { echo "::error::apex returned $code (expected 308 to www)"; exit 1; }
+          echo "apex -> 308 to www OK"
 
           # /health answers 200 whether it is running the old code or the new
           # code, so it cannot prove a deploy landed. Compare the asset version

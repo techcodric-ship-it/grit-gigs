@@ -15,6 +15,18 @@ const app: Express = express();
 // Trust Railway proxy so rate-limiter doesn't complain about X-Forwarded-For
 app.set("trust proxy", 1);
 
+// Canonical host: the Google OAuth callback is registered on www, so a session
+// created there is invisible to a page opened on the bare apex (localStorage
+// and postMessage are per-origin). 308 keeps method + query string intact.
+app.use((req, res, next) => {
+  const host = (req.headers.host ?? "").split(":")[0].toLowerCase();
+  if (host === "gritandgigs.in") {
+    res.redirect(308, `https://www.gritandgigs.in${req.originalUrl}`);
+    return;
+  }
+  next();
+});
+
 app.use(
   pinoHttp({
     logger,
