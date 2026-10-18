@@ -781,9 +781,14 @@ router.get("/auth/google/callback", async (req, res): Promise<void> => {
 
 // Renders an HTML page that posts the result to the opener window
 function googleCallbackHtml(data: { accessToken: string; refreshToken: string; user: Record<string, unknown> } | null, errorMsg: string | null) {
-  const messageJson = data
-    ? JSON.stringify({ success: true, data })
-    : JSON.stringify({ success: false, message: errorMsg });
+  // Every display string is computed here: raw interpolation of a quoted
+  // fragment used to render `"failed: "Token…"` — a syntax error that killed
+  // the whole script, so errors never reached the opener and the popup hung.
+  const js = (s: string) => JSON.stringify(s).replace(/</g, "\\u003c");
+  const messageJson = JSON.stringify(data ? { success: true, data } : { success: false, message: errorMsg }).replace(/</g, "\\u003c");
+  const doneText = js("Google sign-in complete — you can close this window.");
+  const failText = js("Google sign-in failed: " + (errorMsg || "unknown error"));
+  const errText = js(errorMsg || "Google sign-in failed");
 
   return `<!DOCTYPE html><html><body><script>
     try {
@@ -801,7 +806,7 @@ function googleCallbackHtml(data: { accessToken: string; refreshToken: string; u
       if (window.opener) {
         window.opener.postMessage(${messageJson}, window.location.origin);
         if (!ok) {
-          document.body.textContent = ${JSON.stringify(errorMsg || "Google sign-in failed")};
+          document.body.textContent = ${errText};
         }
       } else {
         // No opener — redirect-based flow fallback
@@ -811,12 +816,12 @@ function googleCallbackHtml(data: { accessToken: string; refreshToken: string; u
           params.set('refreshToken', d.data.refreshToken);
           params.set('user', JSON.stringify(d.data.user));
         } else {
-          params.set('error', ${JSON.stringify(errorMsg || "Unknown error")});
+          params.set('error', ${js(errorMsg || "Unknown error")});
         }
         window.location.href = '/google-callback?' + params.toString();
       }
     } catch(e) {
-      document.body.textContent = "Google sign-in " + (${data ? '"complete, you can close this window"' : '"failed: ' + JSON.stringify(errorMsg) + '"'});
+      document.body.textContent = ${data ? doneText : failText};
     }
     // Always close — an error used to leave a blank popup stuck open forever.
     setTimeout(function(){ window.close(); }, ${data ? 500 : 1500});
