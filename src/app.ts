@@ -73,9 +73,12 @@ const rootDir = path.resolve(__dirname, "..");
 app.use("/uploads", (_req, res, next) => { res.set("X-Robots-Tag", "noindex"); next(); });
 app.use("/uploads", express.static(path.join(rootDir, "uploads")));
 
-app.use("/api", router);
 // Prep (Company Report) — new namespaced feature, gated by FEATURE_PREP.
+// MUST mount before `app.use("/api", router)`: routes/index.ts ends in a
+// terminal 404 catch-all that never calls next(), so mounting prep after it
+// would make every /api/prep/* route answer "Route not found".
 app.use("/api/prep", prepRouter);
+app.use("/api", router);
 
 // Serve frontend static files (public/ folder next to server)
 const publicPath = path.join(rootDir, "public");
