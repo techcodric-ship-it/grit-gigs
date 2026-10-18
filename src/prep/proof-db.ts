@@ -79,3 +79,27 @@ export async function reviewSubmission(
     .returning();
   return rows[0] ?? null;
 }
+
+async function listApprovedByKind(companyId: string, kind: "PAY_RECORD" | "PLACEMENT_RECORD"): Promise<
+  { payload: Record<string, unknown>; hasVerifiedDocument: boolean }[]
+> {
+  const rows = await db
+    .select()
+    .from(prepProofSubmissionsTable)
+    .where(
+      and(
+        eq(prepProofSubmissionsTable.companyId, companyId),
+        eq(prepProofSubmissionsTable.status, "APPROVED"),
+        eq(prepProofSubmissionsTable.kind, kind),
+      ),
+    )
+    .limit(500);
+  // Only payload + document-presence leave this function — no ids, no submitter.
+  return rows.map((r) => ({
+    payload: (r.payload ?? {}) as Record<string, unknown>,
+    hasVerifiedDocument: Boolean(r.filePath) || r.fileDeletedAt !== null,
+  }));
+}
+
+export const listApprovedPayRows = (companyId: string) => listApprovedByKind(companyId, "PAY_RECORD");
+export const listApprovedPlacementRows = (companyId: string) => listApprovedByKind(companyId, "PLACEMENT_RECORD");

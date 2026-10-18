@@ -35,6 +35,16 @@
     <p class="prep-body" id="rpSummary"></p>
   </section>
 
+  <section class="prep-card" id="rpPayCard" hidden>
+    <h2 class="prep-h2">Pay data <span class="prep-chip">Member-reported</span></h2>
+    <div id="rpPayBody"></div>
+  </section>
+
+  <section class="prep-card" id="rpPlacementCard" hidden>
+    <h2 class="prep-h2">Placement data <span class="prep-chip">Member-reported</span></h2>
+    <div id="rpPlacementBody"></div>
+  </section>
+
   <section class="prep-card" id="rpCareersCard" hidden>
     <h2 class="prep-h2">Careers &amp; official pages</h2>
     <ul class="prep-matches" id="rpCareers"></ul>
@@ -132,8 +142,65 @@
       document.getElementById("rpDisclaimers").innerHTML = (sec.disclaimers || []).map(function (d) {
         return "<p>" + esc(d) + "</p>";
       }).join("");
+
+      loadAggregates(slug);
     })
     .catch(function () { errEl.textContent = "Network error. Try again."; });
+
+  function inr(n) {
+    if (typeof n !== "number") return "—";
+    if (n >= 10000000) return "₹" + (n / 10000000).toFixed(2).replace(/\.00$/, "") + " Cr";
+    if (n >= 100000) return "₹" + (n / 100000).toFixed(2).replace(/\.00$/, "") + " L";
+    return "₹" + n.toLocaleString("en-IN");
+  }
+
+  function loadAggregates(slug) {
+    function render(endpoint, cardId, bodyId, buildHtml) {
+      fetch(endpoint, { credentials: "same-origin" })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d.success) return;
+          var a = d.data.aggregate;
+          var body = document.getElementById(bodyId);
+          var html = buildHtml(a);
+          if (!html) return;
+          body.innerHTML = html;
+          document.getElementById(cardId).hidden = false;
+        })
+        .catch(function () {});
+    }
+    var base = "/api/prep/companies/" + encodeURIComponent(slug);
+    render(base + "/pay-aggregates", "rpPayCard", "rpPayBody", function (a) {
+      if (a.available) {
+        var roles = (a.byRole || []).map(function (r) {
+          return '<li><span>' + esc(r.role) + " · " + r.sampleSize + " reports</span><span>" + inr(r.medianCtcInr) + " median</span></li>";
+        }).join("");
+        return "<p class=\"prep-body\">" + inr(a.medianCtcInr) + " median CTC · range " + inr(a.p25CtcInr) + " – " + inr(a.p75CtcInr) +
+          " · based on " + a.sampleSize + " approved reports (" + a.verifiedDocumentCount + " with documents)</p>" +
+          (roles ? '<ul class="prep-matches">' + roles + "</ul>" : "");
+      }
+      if (a.reason === "below-min-sample") {
+        return '<p class="prep-sub" style="margin:0;">' + a.sampleSize + " of " + a.minSample +
+          " approved reports so far. Aggregates unlock at " + a.minSample + " so individuals can’t be guessed.</p>";
+      }
+      return "";
+    });
+    render(base + "/placement-aggregates", "rpPlacementCard", "rpPlacementBody", function (a) {
+      if (a.available) {
+        var cols = (a.byCollege || []).map(function (c) {
+          return '<li><span>' + esc(c.college) + " · " + c.sampleSize + " offers</span><span>" + inr(c.medianPackageInr) + " median</span></li>";
+        }).join("");
+        return "<p class=\"prep-body\">" + inr(a.medianPackageInr) + " median package · based on " + a.sampleSize +
+          " approved records (" + a.verifiedDocumentCount + " with documents)</p>" +
+          (cols ? '<ul class="prep-matches">' + cols + "</ul>" : "");
+      }
+      if (a.reason === "below-min-sample") {
+        return '<p class="prep-sub" style="margin:0;">' + a.sampleSize + " of " + a.minSample +
+          " approved placement records so far. Aggregates unlock at " + a.minSample + ".</p>";
+      }
+      return "";
+    });
+  }
 })();
 </script>
 </body>

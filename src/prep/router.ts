@@ -30,10 +30,13 @@ import {
   companyExists,
   getSubmission,
   insertSubmission,
+  listApprovedPayRows,
+  listApprovedPlacementRows,
   listMySubmissions,
   listPendingSubmissions,
   reviewSubmission,
 } from "./proof-db";
+import { buildPayAggregate, buildPlacementAggregate, resolveMinSample } from "./aggregates";
 import {
   INTERVIEW_CATEGORIES,
   INTERVIEW_TRACKS,
@@ -463,7 +466,7 @@ const proofSubmitLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { success: false, message: "Too many proof submissions — try again shortly." },
+  message: { success: false, message: "Too many proof submissions ï¿½ try again shortly." },
 });
 
 const proofListLimiter = rateLimit({
@@ -500,7 +503,7 @@ prepRouter.post("/proof", authenticate, proofSubmitLimiter, prepDbGate, proofUpl
     if (file) {
       const url = await uploadToSupabase(file.buffer, file.originalname, "proof-evidence");
       if (!url) {
-        res.status(502).json({ success: false, message: "Evidence storage is unavailable — try again without the file" });
+        res.status(502).json({ success: false, message: "Evidence storage is unavailable ï¿½ try again without the file" });
         return;
       }
       filePath = url;
@@ -554,5 +557,49 @@ prepRouter.post("/proof/:id/review", adminAuth, prepDbGate, async (req: Request,
   } catch (err) {
     console.error("[prep] proof review failed:", err);
     res.status(500).json({ success: false, message: "Review failed" });
+  }
+});
+
+// ---- Aggregates over approved proof (Phase 8) ----
+// PROOF_MIN_SAMPLE is enforced inside the pure builders ï¿½ the endpoint never
+// assembles a response that could bypass it.
+
+const aggregateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many requests, try again shortly." },
+});
+
+prepRouter.get("/companies/:slug/pay-aggregates", aggregateLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const company = await findCompanyBySlug(String(req.params.slug));
+    if (!company) {
+      res.status(404).json({ success: false, message: "Company not found" });
+      return;
+    }
+    const rows = await listApprovedPayRows(company.id);
+    const aggregate = buildPayAggregate(rows, resolveMinSample(process.env.PROOF_MIN_SAMPLE));
+    res.json({ success: true, data: { company: { name: company.name, slug: company.slug }, aggregate } });
+  } catch (err) {
+    console.error("[prep] pay aggregates failed:", err);
+    res.status(500).json({ success: false, message: "Aggregates unavailable" });
+  }
+});
+
+prepRouter.get("/companies/:slug/placement-aggregates", aggregateLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const company = await findCompanyBySlug(String(req.params.slug));
+    if (!company) {
+      res.status(404).json({ success: false, message: "Company not found" });
+      return;
+    }
+    const rows = await listApprovedPlacementRows(company.id);
+    const aggregate = buildPlacementAggregate(rows, resolveMinSample(process.env.PROOF_MIN_SAMPLE));
+    res.json({ success: true, data: { company: { name: company.name, slug: company.slug }, aggregate } });
+  } catch (err) {
+    console.error("[prep] placement aggregates failed:", err);
+    res.status(500).json({ success: false, message: "Aggregates unavailable" });
   }
 });
