@@ -28,14 +28,25 @@ import {
 } from "./proof";
 import {
   companyExists,
-  getSubmission,
   insertSubmission,
   listApprovedPayRows,
   listApprovedPlacementRows,
   listMySubmissions,
   listPendingSubmissions,
-  reviewSubmission,
 } from "./proof-db";
+import {
+  PREP_PRO_DAYS,
+  PREP_PRO_PRICE_INR,
+  canGenerateReport,
+  isEntitlementActive,
+  resolveFreeDailyReports,
+} from "./monetization";
+import {
+  countReportsLast24h,
+  getActiveEntitlement,
+  purchasePro,
+  reviewAndAward,
+} from "./monetization-db";
 import { buildPayAggregate, buildPlacementAggregate, resolveMinSample } from "./aggregates";
 import {
   INTERVIEW_CATEGORIES,
@@ -164,6 +175,31 @@ const reportBody = z.object({
   userType: z.enum(["job-seeker", "student", "employee"]).optional(),
 });
 
+// Free-tier quota: rolling 24h generations for non-Pro users, enforced on
+// BOTH creation routes. Cached report reads are free.
+async function checkReportQuota(
+  userId: string,
+): Promise<{ ok: true } | { ok: false; used: number; limit: number }> {
+  const entitlement = await getActiveEntitlement(userId);
+  if (isEntitlementActive(entitlement)) return { ok: true };
+  const limit = resolveFreeDailyReports(process.env.PREP_FREE_DAILY_REPORTS);
+  const used = await countReportsLast24h(userId);
+  if (canGenerateReport(used, false, limit)) return { ok: true };
+  return { ok: false, used, limit };
+}
+
+function quotaResponse(res: Response, used: number, limit: number): void {
+  res.status(402).json({
+    success: false,
+    code: "UPGRADE_REQUIRED",
+    used,
+    limit,
+    message:
+      `Free plan allows ${limit} report generations per day (${used} used). ` +
+      "Upgrade to Prep Pro for unlimited reports.",
+  });
+}
+
 prepRouter.post("/reports", authenticate, reportLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
   const parsed = reportBody.safeParse(req.body ?? {});
   if (!parsed.success) {
@@ -171,6 +207,11 @@ prepRouter.post("/reports", authenticate, reportLimiter, prepDbGate, async (req:
     return;
   }
   try {
+    const quota = await checkReportQuota(req.user!.id);
+    if (!quota.ok) {
+      quotaResponse(res, quota.used, quota.limit);
+      return;
+    }
     const company = await findCompanyBySlug(parsed.data.slug);
     if (!company) {
       res.status(404).json({ success: false, message: "Company not found" });
@@ -237,6 +278,11 @@ prepRouter.get("/companies/:slug/report", authenticate, reportLimiter, prepDbGat
     const existing = await latestReportForCompany(company.id, role);
     if (existing) {
       res.json({ success: true, data: { report: publicReport(existing), cached: true } });
+      return;
+    }
+    const quota = await checkReportQuota(req.user!.id);
+    if (!quota.ok) {
+      quotaResponse(res, quota.used, quota.limit);
       return;
     }
     const gathered = await gatherSources({
@@ -543,7 +589,7 @@ prepRouter.post("/proof/:id/review", adminAuth, prepDbGate, async (req: Request,
     return;
   }
   try {
-    const updated = await reviewSubmission(
+    const updated = await reviewAndAward(
       String(req.params.id),
       parsed.data.decision,
       parsed.data.note ?? null,
@@ -601,5 +647,76 @@ prepRouter.get("/companies/:slug/placement-aggregates", aggregateLimiter, prepDb
   } catch (err) {
     console.error("[prep] placement aggregates failed:", err);
     res.status(500).json({ success: false, message: "Aggregates unavailable" });
+  }
+});
+
+// ---- Prep Pro (Phase 9) ----
+// Wallet-funded, prep-scoped entitlement. Shared plan/billing enums untouched.
+
+const proLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many requests, try again shortly." },
+});
+
+const purchaseLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many purchase attempts, try again shortly." },
+});
+
+prepRouter.get("/pro/status", authenticate, proLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const entitlement = await getActiveEntitlement(req.user!.id);
+    const isPro = isEntitlementActive(entitlement);
+    const limit = resolveFreeDailyReports(process.env.PREP_FREE_DAILY_REPORTS);
+    const used = isPro ? 0 : await countReportsLast24h(req.user!.id);
+    res.json({
+      success: true,
+      data: {
+        isPro,
+        expiresAt: isPro && entitlement ? entitlement.expiresAt : null,
+        priceInr: PREP_PRO_PRICE_INR,
+        days: PREP_PRO_DAYS,
+        freeDailyReports: limit,
+        reportsUsed: used,
+        reportsRemaining: Math.max(0, limit - used),
+      },
+    });
+  } catch (err) {
+    console.error("[prep] pro status failed:", err);
+    res.status(500).json({ success: false, message: "Could not load Prep Pro status" });
+  }
+});
+
+prepRouter.post("/pro/purchase", authenticate, purchaseLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await purchasePro(req.user!.id);
+    if (!result.ok) {
+      if (result.reason === "already-active") {
+        res.status(409).json({ success: false, message: "Prep Pro is already active on your account." });
+      } else {
+        res
+          .status(402)
+          .json({ success: false, message: "Not enough wallet balance. Top up your wallet first." });
+      }
+      return;
+    }
+    res.status(201).json({
+      success: true,
+      data: {
+        entitlement: {
+          expiresAt: result.entitlement.expiresAt,
+          pricePaidInr: result.entitlement.pricePaidInr,
+        },
+      },
+    });
+  } catch (err) {
+    console.error("[prep] pro purchase failed:", err);
+    res.status(500).json({ success: false, message: "Purchase failed" });
   }
 });

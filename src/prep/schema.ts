@@ -103,3 +103,28 @@ export const prepProofSubmissionsTable = pgTable("prep_proof_submissions", {
 });
 
 export type PrepProofSubmission = typeof prepProofSubmissionsTable.$inferSelect;
+
+export const prepEntitlementsTable = pgTable("prep_entitlements", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  kind: varchar("kind", { length: 40 }).notNull().default("PREP_PRO"),
+  status: varchar("status", { length: 20 }).notNull().default("ACTIVE"),
+  pricePaidInr: integer("price_paid_inr").notNull(),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type PrepEntitlement = typeof prepEntitlementsTable.$inferSelect;
+
+// Unique per record: the reason embeds the submission id, so an approved
+// proof can never be paid twice even across retries/races.
+export const prepCreditAwardsTable = pgTable("prep_credit_awards", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  reason: varchar("reason", { length: 160 }).notNull(),
+  amountInr: integer("amount_inr").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type PrepCreditAward = typeof prepCreditAwardsTable.$inferSelect;

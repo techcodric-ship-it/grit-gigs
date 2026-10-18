@@ -78,6 +78,26 @@ CREATE TABLE IF NOT EXISTS prep_proof_submissions (
 CREATE INDEX IF NOT EXISTS prep_proof_status_idx ON prep_proof_submissions (status, created_at DESC);
 CREATE INDEX IF NOT EXISTS prep_proof_company_idx ON prep_proof_submissions (company_id, status);
 CREATE INDEX IF NOT EXISTS prep_proof_expiry_idx ON prep_proof_submissions (expires_at) WHERE file_path IS NOT NULL;
+CREATE TABLE IF NOT EXISTS prep_entitlements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  kind VARCHAR(40) NOT NULL DEFAULT 'PREP_PRO',
+  status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+  price_paid_inr INTEGER NOT NULL,
+  started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS prep_entitlements_active_uniq
+  ON prep_entitlements (user_id, kind) WHERE status = 'ACTIVE';
+CREATE TABLE IF NOT EXISTS prep_credit_awards (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  reason VARCHAR(160) NOT NULL,
+  amount_inr INTEGER NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS prep_credit_awards_reason_uniq ON prep_credit_awards (reason);
 `;
 
 /** Raw evidence is deleted after 30 days (spec): drop the stored file, keep

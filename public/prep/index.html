@@ -50,6 +50,15 @@
     <ul class="prep-matches" id="prepMatches" hidden></ul>
   </section>
 
+  <section class="prep-card" id="prepProCard">
+    <div class="prep-empty" id="prepProLoading"><b>Prep Pro</b> Checking your plan…</div>
+    <div id="prepProContent" hidden>
+      <div class="prep-empty" id="prepProBody" style="text-align:left;"></div>
+      <button class="prep-btn" type="button" id="prepProBuy" hidden>Buy Prep Pro — ₹199 / 30 days</button>
+    </div>
+    <div class="prep-err" id="prepProErr" role="alert"></div>
+  </section>
+
   <section class="prep-card">
     <div class="prep-empty" id="prepRecent">
       <b>Recent reports</b>
@@ -110,6 +119,81 @@
         list.hidden = false;
       })
       .catch(function () { btn.disabled = false; errEl.textContent = "Network error. Try again."; });
+  });
+
+  // Prep Pro status + wallet purchase.
+  var proLoading = document.getElementById("prepProLoading");
+  var proContent = document.getElementById("prepProContent");
+  var proBody = document.getElementById("prepProBody");
+  var proBuy = document.getElementById("prepProBuy");
+  var proErr = document.getElementById("prepProErr");
+  var proToken = localStorage.getItem("se_token");
+  var proAuth = { Authorization: "Bearer " + proToken };
+
+  function showLoggedOutPro() {
+    proLoading.hidden = true;
+    proContent.hidden = false;
+    proBody.innerHTML = "<b>Prep Pro — ₹199 / 30 days</b><br/>Unlimited company report generations, " +
+      "beyond the free daily allowance. Log in to check your plan or buy.";
+  }
+
+  function showPro(d) {
+    proLoading.hidden = true;
+    proContent.hidden = false;
+    if (d.isPro) {
+      proBuy.hidden = true;
+      var until = d.expiresAt ? new Date(d.expiresAt).toLocaleDateString("en-IN") : "";
+      proBody.innerHTML = "<b>Prep Pro is active</b><br/>Unlimited report generations" +
+        (until ? " until " + esc(until) : "") + ".";
+      return;
+    }
+    proBuy.hidden = false;
+    proBody.innerHTML = "<b>Free plan</b><br/>You have " + d.reportsRemaining + " of " +
+      d.freeDailyReports + " report generations left today. Prep Pro unlocks unlimited reports for ₹" +
+      d.priceInr + " / " + d.days + " days.";
+  }
+
+  if (!proToken) {
+    showLoggedOutPro();
+  } else {
+    fetch("/api/prep/pro/status", { credentials: "same-origin", headers: proAuth })
+      .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
+      .then(function (res) {
+        if (res.status === 401) { showLoggedOutPro(); return; }
+        if (res.status !== 200 || !res.d.success) {
+          proLoading.hidden = true;
+          proContent.hidden = false;
+          proBody.textContent = "Could not load Prep Pro status.";
+          return;
+        }
+        showPro(res.d.data);
+      })
+      .catch(function () {
+        proLoading.hidden = true;
+        proContent.hidden = false;
+        proBody.textContent = "Could not load Prep Pro status.";
+      });
+  }
+
+  proBuy.addEventListener("click", function () {
+    proErr.textContent = "";
+    proBuy.disabled = true;
+    fetch("/api/prep/pro/purchase", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: proAuth,
+    })
+      .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
+      .then(function (res) {
+        proBuy.disabled = false;
+        if (res.status === 201 && res.d.success) {
+          showPro({ isPro: true, expiresAt: res.d.data.entitlement.expiresAt });
+          return;
+        }
+        if (res.status === 401) { showLoggedOutPro(); return; }
+        proErr.textContent = (res.d && res.d.message) || "Purchase failed. Try again.";
+      })
+      .catch(function () { proBuy.disabled = false; proErr.textContent = "Network error. Try again."; });
   });
 })();
 </script>
