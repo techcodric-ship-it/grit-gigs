@@ -127,7 +127,7 @@ router.put("/barter/matches/:id/complete", authenticate, async (req: Request, re
         userId: uid,
         type: "EXCHANGE_DELIVERABLE",
         title: "Both sides ready!",
-        message: "Both parties have completed their exchange. Please deliver the project now.",
+        message: "Both parties have completed their exchange. Please deliver the work now.",
         linkUrl: "/dashboard#my-exchanges",
       });
     }

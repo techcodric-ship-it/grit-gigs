@@ -71,7 +71,7 @@
       <img class="av" id="av" alt=""/>
       <div style="min-width:0;">
         <div class="lbl" id="pName" style="font-weight:700;font-size:1.02rem;">Loading...</div>
-        <div class="val" id="pTag" style="color:var(--muted);font-size:.85rem;">Gig maker</div>
+        <div class="val" id="pTag" style="color:var(--muted);font-size:.85rem;">Member</div>
       </div>
     </div>
     <div class="fld"><label>Display name</label><input id="name" placeholder="Your name"/></div>
@@ -171,7 +171,7 @@
     if (!u) { $('pName').textContent = 'Profile unavailable'; return; }
     var full = ((u.firstName || '') + ' ' + (u.lastName || '')).trim();
     $('pName').textContent = full || 'Your name';
-    $('pTag').textContent = u.tagline || u.headline || 'Gig maker';
+    $('pTag').textContent = u.tagline || u.headline || 'Member';
     $('name').value = u.firstName || '';
     $('headline').value = u.tagline || '';
     $('skills').value = (u.skillsOffered || []).join(', ');
