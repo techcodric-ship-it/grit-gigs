@@ -5,6 +5,7 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
+import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db";
 import { authenticate } from "../middlewares/authenticate";
 import { isPrepEnabled } from "./feature";
@@ -12,6 +13,8 @@ import { ensurePrepDb } from "./db";
 import { resolveCompany, createPendingCompany } from "./companies";
 import { gatherSources } from "./sources/gather";
 import { summarizeReport } from "./ai";
+import { APTITUDE_TOPICS, prepAptitudeQuestionsTable } from "./schema";
+import { clampCount, pickQuiz, scoreQuiz, signQuizToken, toPublicQuestion, verifyQuizToken } from "./aptitude";
 import {
   buildReportSkeleton,
   createReport,
@@ -227,5 +230,98 @@ prepRouter.get("/companies/:slug/report", authenticate, reportLimiter, prepDbGat
   } catch (err) {
     console.error("[prep] latest report failed:", err);
     res.status(500).json({ success: false, message: "Report generation failed" });
+  }
+});
+
+// ---- Aptitude practice (Phase 5) ----
+// Quiz endpoints are flag-gated + rate-limited. Correct answers never leave
+// the server before submit; the quiz rides in a 10-minute signed JWT.
+
+const quizSecret = (): string => {
+  const s = process.env.JWT_SECRET;
+  if (!s) throw new Error("JWT_SECRET not configured");
+  return s;
+};
+
+const aptitudeLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many quiz requests, try again shortly." },
+});
+
+prepRouter.get("/aptitude/topics", prepDbGate, async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const rows = await db
+      .select({
+        topic: prepAptitudeQuestionsTable.topic,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(prepAptitudeQuestionsTable)
+      .groupBy(prepAptitudeQuestionsTable.topic);
+    const topics = APTITUDE_TOPICS.map((t) => ({
+      topic: t,
+      count: rows.find((r) => r.topic === t)?.count ?? 0,
+    })).filter((t) => t.count > 0);
+    res.json({ success: true, data: { topics } });
+  } catch (err) {
+    console.error("[prep] aptitude topics failed:", err);
+    res.status(500).json({ success: false, message: "Could not load topics" });
+  }
+});
+
+prepRouter.get("/aptitude/quiz", aptitudeLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const rawTopic = typeof req.query.topic === "string" ? req.query.topic : "";
+    const topic = (APTITUDE_TOPICS as readonly string[]).includes(rawTopic) ? rawTopic : null;
+    const requested = clampCount(req.query.count, 20);
+    const rows = await db
+      .select()
+      .from(prepAptitudeQuestionsTable)
+      .where(topic ? eq(prepAptitudeQuestionsTable.topic, topic) : sql`1=1`);
+    if (!rows.length) {
+      res.status(404).json({ success: false, message: "No questions available" });
+      return;
+    }
+    const picked = pickQuiz(rows, Math.min(requested, rows.length));
+    const ids = picked.map((r) => r.id);
+    const token = signQuizToken({ ids, topic }, quizSecret());
+    res.json({
+      success: true,
+      data: { questions: picked.map(toPublicQuestion), token, total: picked.length },
+    });
+  } catch (err) {
+    console.error("[prep] aptitude quiz failed:", err);
+    res.status(500).json({ success: false, message: "Could not build the quiz" });
+  }
+});
+
+const submitBody = z.object({
+  token: z.string().min(1).max(4000),
+  answers: z.record(z.string(), z.number().int().min(0).max(20)),
+});
+
+prepRouter.post("/aptitude/submit", aptitudeLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  const parsed = submitBody.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(400).json({ success: false, message: "token and answers are required" });
+    return;
+  }
+  try {
+    const payload = verifyQuizToken(parsed.data.token, quizSecret());
+    if (!payload) {
+      res.status(400).json({ success: false, message: "Quiz expired or invalid — start again" });
+      return;
+    }
+    const rows = await db
+      .select()
+      .from(prepAptitudeQuestionsTable)
+      .where(inArray(prepAptitudeQuestionsTable.id, payload.ids));
+    const score = scoreQuiz(rows, parsed.data.answers, payload.ids);
+    res.json({ success: true, data: score });
+  } catch (err) {
+    console.error("[prep] aptitude submit failed:", err);
+    res.status(500).json({ success: false, message: "Scoring failed" });
   }
 });

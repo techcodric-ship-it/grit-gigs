@@ -47,3 +47,20 @@ export const prepReportsTable = pgTable("prep_reports", {
 });
 
 export type PrepReport = typeof prepReportsTable.$inferSelect;
+
+export const APTITUDE_TOPICS = ["quant", "logical", "verbal"] as const;
+export type AptitudeTopic = (typeof APTITUDE_TOPICS)[number];
+
+export const prepAptitudeQuestionsTable = pgTable("prep_aptitude_questions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  code: varchar("code", { length: 64 }).notNull().unique(),
+  topic: varchar("topic", { length: 40 }).notNull(),
+  difficulty: varchar("difficulty", { length: 10 }).notNull().default("medium"),
+  question: text("question").notNull(),
+  options: text("options").array().notNull(),
+  correctIdx: integer("correct_idx").notNull(),
+  explanation: text("explanation").notNull().default(""),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type PrepAptitudeQuestion = typeof prepAptitudeQuestionsTable.$inferSelect;
