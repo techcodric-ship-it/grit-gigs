@@ -77,3 +77,29 @@ export const prepInterviewQuestionsTable = pgTable("prep_interview_questions", {
 });
 
 export type PrepInterviewQuestion = typeof prepInterviewQuestionsTable.$inferSelect;
+
+export const PROOF_KINDS = ["PAY_RECORD", "PLACEMENT_RECORD", "INTERVIEW_EXPERIENCE"] as const;
+export type ProofKind = (typeof PROOF_KINDS)[number];
+
+export const PROOF_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
+export type ProofStatus = (typeof PROOF_STATUSES)[number];
+
+export const prepProofSubmissionsTable = pgTable("prep_proof_submissions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id")
+    .notNull()
+    .references(() => prepCompaniesTable.id),
+  kind: varchar("kind", { length: 40 }).notNull(),
+  payload: jsonb("payload").notNull().default({}),
+  filePath: text("file_path"),
+  status: varchar("status", { length: 20 }).notNull().default("PENDING"),
+  reviewNote: text("review_note"),
+  reviewedBy: uuid("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  submittedBy: uuid("submitted_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  fileDeletedAt: timestamp("file_deleted_at"),
+});
+
+export type PrepProofSubmission = typeof prepProofSubmissionsTable.$inferSelect;

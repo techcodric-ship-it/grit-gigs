@@ -131,3 +131,7 @@ baseline, or (b) the diff under test touches a locked path.
 - `docs/prep-barter-lock.json` — machine-readable { path: sha256 }.
 - `scripts/prep-guard.mjs` — hash check + diff-path check (used by CI and
   `npm run guard:prep`). Deploy workflow runs it before any code is pulled to the server.
+
+## Phase 7 deviation note (evidence storage)
+- Spec wants raw evidence private + deleted after 30 days. The existing `uploads` bucket is public (Supabase `public: true`, served at `/uploads/*` with `X-Robots-Tag: noindex`). Evidence is therefore uploaded under an unguessable `proof-evidence/<timestamp>-<uuid8>` path, the URL is stored **server-side only** (never returned by any API � enforced by `publicSubmission()` + tests), and `runEvidenceRetention()` deletes the object after exactly 30 days (6-hour sweep, retries on failure, `file_path` nulled only after confirmed deletion).
+- Follow-up hardening (non-blocking): move evidence to a private bucket with signed admin-only URLs when bucket config is touched next.

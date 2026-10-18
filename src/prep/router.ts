@@ -4,10 +4,13 @@
 
 import { Router, type Request, type Response, type NextFunction } from "express";
 import rateLimit from "express-rate-limit";
+import multer from "multer";
 import { z } from "zod";
 import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db";
 import { authenticate } from "../middlewares/authenticate";
+import { adminAuth } from "../middlewares/adminAuth";
+import { uploadToSupabase } from "../lib/storage";
 import { isPrepEnabled } from "./feature";
 import { ensurePrepDb } from "./db";
 import { resolveCompany, createPendingCompany } from "./companies";
@@ -15,6 +18,22 @@ import { gatherSources } from "./sources/gather";
 import { summarizeReport } from "./ai";
 import { APTITUDE_TOPICS, prepAptitudeQuestionsTable, prepInterviewQuestionsTable } from "./schema";
 import { clampCount, pickQuiz, scoreQuiz, signQuizToken, toPublicQuestion, verifyQuizToken } from "./aptitude";
+import {
+  PROOF_FILE_MAX_BYTES,
+  isAllowedProofMime,
+  normalizeMultipartFields,
+  parseProofSubmission,
+  publicSubmission,
+  reviewDecisionSchema,
+} from "./proof";
+import {
+  companyExists,
+  getSubmission,
+  insertSubmission,
+  listMySubmissions,
+  listPendingSubmissions,
+  reviewSubmission,
+} from "./proof-db";
 import {
   INTERVIEW_CATEGORIES,
   INTERVIEW_TRACKS,
@@ -426,5 +445,114 @@ prepRouter.post("/interview/mock/submit", interviewLimiter, prepDbGate, async (r
   } catch (err) {
     console.error("[prep] interview submit failed:", err);
     res.status(500).json({ success: false, message: "Feedback generation failed" });
+  }
+});
+
+// ---- Proof / evidence pipeline (Phase 7) ----
+// Raw evidence (optional file) is stored server-side only, never returned to
+// clients, and auto-deleted after 30 days by runEvidenceRetention. Aggregates
+// (Phase 8) only count APPROVED rows.
+
+const proofUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: PROOF_FILE_MAX_BYTES, files: 1 },
+});
+
+const proofSubmitLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many proof submissions — try again shortly." },
+});
+
+const proofListLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many requests, try again shortly." },
+});
+
+prepRouter.post("/proof", authenticate, proofSubmitLimiter, prepDbGate, proofUpload.single("file"), async (req: Request, res: Response): Promise<void> => {
+  const parsed = parseProofSubmission(normalizeMultipartFields((req.body ?? {}) as Record<string, unknown>));
+  if (!parsed.ok) {
+    res.status(400).json({ success: false, message: parsed.message });
+    return;
+  }
+  const file = req.file;
+  if (file) {
+    if (!isAllowedProofMime(file.mimetype)) {
+      res.status(400).json({ success: false, message: "File must be a PDF, PNG, JPEG or WEBP" });
+      return;
+    }
+    if (file.size > PROOF_FILE_MAX_BYTES) {
+      res.status(400).json({ success: false, message: "File must be 5 MB or smaller" });
+      return;
+    }
+  }
+  try {
+    if (!(await companyExists(parsed.value.companyId))) {
+      res.status(404).json({ success: false, message: "Company not found" });
+      return;
+    }
+    let filePath: string | null = null;
+    if (file) {
+      const url = await uploadToSupabase(file.buffer, file.originalname, "proof-evidence");
+      if (!url) {
+        res.status(502).json({ success: false, message: "Evidence storage is unavailable — try again without the file" });
+        return;
+      }
+      filePath = url;
+    }
+    const row = await insertSubmission(parsed.value, { submittedBy: req.user!.id, filePath });
+    res.status(201).json({ success: true, data: { submission: publicSubmission(row) } });
+  } catch (err) {
+    console.error("[prep] proof submit failed:", err);
+    res.status(500).json({ success: false, message: "Submission failed" });
+  }
+});
+
+prepRouter.get("/proof/my", authenticate, proofListLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const rows = await listMySubmissions(req.user!.id);
+    res.json({ success: true, data: { submissions: rows.map(publicSubmission) } });
+  } catch (err) {
+    console.error("[prep] proof list failed:", err);
+    res.status(500).json({ success: false, message: "Could not load submissions" });
+  }
+});
+
+prepRouter.get("/proof/pending", adminAuth, prepDbGate, async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const rows = await listPendingSubmissions();
+    res.json({ success: true, data: { submissions: rows.map(publicSubmission) } });
+  } catch (err) {
+    console.error("[prep] proof pending failed:", err);
+    res.status(500).json({ success: false, message: "Could not load queue" });
+  }
+});
+
+prepRouter.post("/proof/:id/review", adminAuth, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  const parsed = reviewDecisionSchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(400).json({ success: false, message: "decision must be APPROVED or REJECTED" });
+    return;
+  }
+  try {
+    const updated = await reviewSubmission(
+      String(req.params.id),
+      parsed.data.decision,
+      parsed.data.note ?? null,
+      null, // adminAuth does not carry a user id (raw key or role token)
+    );
+    if (!updated) {
+      res.status(404).json({ success: false, message: "Submission not found or already reviewed" });
+      return;
+    }
+    res.json({ success: true, data: { submission: publicSubmission(updated) } });
+  } catch (err) {
+    console.error("[prep] proof review failed:", err);
+    res.status(500).json({ success: false, message: "Review failed" });
   }
 });

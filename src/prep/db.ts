@@ -5,6 +5,7 @@
 
 import { pool } from "../db";
 import { logger } from "../lib/logger";
+import { deleteFromSupabase } from "../lib/storage";
 import { APTITUDE_BANK } from "./aptitude-bank";
 import { INTERVIEW_BANK } from "./interview-bank";
 
@@ -59,7 +60,50 @@ CREATE TABLE IF NOT EXISTS prep_interview_questions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS prep_interview_track_idx ON prep_interview_questions (track, category);
+CREATE TABLE IF NOT EXISTS prep_proof_submissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES prep_companies(id),
+  kind VARCHAR(40) NOT NULL,
+  payload JSONB NOT NULL DEFAULT '{}',
+  file_path TEXT,
+  status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+  review_note TEXT,
+  reviewed_by UUID,
+  reviewed_at TIMESTAMPTZ,
+  submitted_by UUID,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMPTZ NOT NULL,
+  file_deleted_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS prep_proof_status_idx ON prep_proof_submissions (status, created_at DESC);
+CREATE INDEX IF NOT EXISTS prep_proof_company_idx ON prep_proof_submissions (company_id, status);
+CREATE INDEX IF NOT EXISTS prep_proof_expiry_idx ON prep_proof_submissions (expires_at) WHERE file_path IS NOT NULL;
 `;
+
+/** Raw evidence is deleted after 30 days (spec): drop the stored file, keep
+ * only the de-identified metadata row. Retention runs on an interval and
+ * retries failed deletes next sweep (file_path stays set until removal). */
+export async function runEvidenceRetention(): Promise<number> {
+  const { rows } = await pool.query<{ id: string; file_path: string }>(
+    `SELECT id, file_path FROM prep_proof_submissions
+     WHERE file_path IS NOT NULL AND expires_at < NOW()`,
+  );
+  let removed = 0;
+  for (const row of rows) {
+    try {
+      await deleteFromSupabase(row.file_path);
+      await pool.query(
+        `UPDATE prep_proof_submissions SET file_path = NULL, file_deleted_at = NOW() WHERE id = $1`,
+        [row.id],
+      );
+      removed++;
+    } catch (err) {
+      logger.warn({ err, id: row.id }, "[prep] evidence retention delete failed — will retry next sweep");
+    }
+  }
+  if (removed > 0) logger.info({ removed }, "[prep] evidence retention removed expired files");
+  return removed;
+}
 
 /** Idempotent seed of the original aptitude bank (ON CONFLICT DO NOTHING). */
 async function seedAptitudeBank(): Promise<void> {
@@ -94,6 +138,14 @@ export function ensurePrepDb(): Promise<void> {
       await seedAptitudeBank();
       await seedInterviewBank();
       logger.info("[prep] prep_ tables ensured");
+      // 6-hourly evidence retention sweep; guarded so restarts/retries never
+      // stack timers (ensurePrepDb resolves once per process).
+      const timer = setInterval(() => {
+        runEvidenceRetention().catch((err: unknown) =>
+          logger.warn({ err }, "[prep] evidence retention sweep failed"),
+        );
+      }, 6 * 60 * 60 * 1000);
+      timer.unref?.();
     })().catch((err: unknown) => {
       ensured = null; // retry on next call
       throw err;
