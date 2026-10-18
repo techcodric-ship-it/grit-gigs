@@ -75,7 +75,7 @@ jobs:
           # stale cache-buster, both of which show users a broken UI.
           want=$(grep -ho 'feed\.css?v=[0-9]\+' public/feed.html | head -1 | grep -o '[0-9]\+$')
           echo "repo feed.css version: $want"
-          for p in /feed /profile /explore /spotlight-boost; do
+          for p in /feed /profile /explore; do
             got=$(curl -fsS "$BASE$p" | grep -ho 'feed\.css?v=[0-9]\+' | head -1 | grep -o '[0-9]\+$' || true)
             code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE$p")
             echo "$p -> $code, feed.css?v=$got"
@@ -86,11 +86,12 @@ jobs:
             fi
           done
 
-          # The sidebar card and profile panel only exist for signed-in users,
-          # so they cannot be checked here, but their CSS must ship in the file
-          # the pages just requested.
-          css=$(curl -fsS "$BASE/assets/feed.css?v=$want")
-          for sel in .pspot-head .psp-main .spcard-stat .spcard-prices; do
-            echo "$css" | grep -q -- "$sel" || { echo "::error::served CSS is missing $sel"; exit 1; }
-          done
+          # Spotlight boosting is retired: the explainer page must redirect to
+          # the feed and the old boost API must answer 410. Either failing means
+          # the server is still running the old code.
+          code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/spotlight-boost")
+          [ "$code" = "302" ] || { echo "::error::spotlight-boost returned $code (expected 302)"; exit 1; }
+          code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/community/spotlight/packs")
+          [ "$code" = "410" ] || { echo "::error::spotlight API returned $code (expected 410)"; exit 1; }
+          echo "retired spotlight endpoints OK"
           echo "SITE OK"
