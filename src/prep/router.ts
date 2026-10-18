@@ -13,8 +13,20 @@ import { ensurePrepDb } from "./db";
 import { resolveCompany, createPendingCompany } from "./companies";
 import { gatherSources } from "./sources/gather";
 import { summarizeReport } from "./ai";
-import { APTITUDE_TOPICS, prepAptitudeQuestionsTable } from "./schema";
+import { APTITUDE_TOPICS, prepAptitudeQuestionsTable, prepInterviewQuestionsTable } from "./schema";
 import { clampCount, pickQuiz, scoreQuiz, signQuizToken, toPublicQuestion, verifyQuizToken } from "./aptitude";
+import {
+  INTERVIEW_CATEGORIES,
+  INTERVIEW_TRACKS,
+  MOCK_DEFAULT_COUNT,
+  aggregateFeedback,
+  isValidCategory,
+  isValidTrack,
+  pickMock,
+  signInterviewMock,
+  toPublicInterviewQuestion,
+  verifyInterviewMock,
+} from "./interview";
 import {
   buildReportSkeleton,
   createReport,
@@ -323,5 +335,96 @@ prepRouter.post("/aptitude/submit", aptitudeLimiter, prepDbGate, async (req: Req
   } catch (err) {
     console.error("[prep] aptitude submit failed:", err);
     res.status(500).json({ success: false, message: "Scoring failed" });
+  }
+});
+
+// ---- Interview prep + mock (Phase 6) ----
+
+const interviewLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many interview requests, try again shortly." },
+});
+
+prepRouter.get("/interview/questions", interviewLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const track = isValidTrack(req.query.track) ? req.query.track : null;
+    const category = isValidCategory(req.query.category) ? req.query.category : null;
+    const rows = await db.select().from(prepInterviewQuestionsTable);
+    // Small bank: filter in JS so validation and ordering stay in one place.
+    const filtered = rows.filter(
+      (r) => (!track || r.track === track) && (!category || r.category === category),
+    );
+    filtered.sort((a, b) => a.code.localeCompare(b.code));
+    res.json({
+      success: true,
+      data: {
+        tracks: INTERVIEW_TRACKS,
+        categories: INTERVIEW_CATEGORIES,
+        questions: filtered,
+      },
+    });
+  } catch (err) {
+    console.error("[prep] interview questions failed:", err);
+    res.status(500).json({ success: false, message: "Could not load questions" });
+  }
+});
+
+prepRouter.get("/interview/mock", interviewLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const track = isValidTrack(req.query.track) ? req.query.track : null;
+    const rows = await db
+      .select()
+      .from(prepInterviewQuestionsTable)
+      .where(track ? eq(prepInterviewQuestionsTable.track, track) : sql`1=1`);
+    if (!rows.length) {
+      res.status(404).json({ success: false, message: "No interview questions available" });
+      return;
+    }
+    const picked = pickMock(rows, req.query.count ?? MOCK_DEFAULT_COUNT);
+    const ids = picked.map((r) => r.id);
+    const token = signInterviewMock(ids, track, quizSecret());
+    res.json({
+      success: true,
+      data: { questions: picked.map(toPublicInterviewQuestion), token, total: picked.length },
+    });
+  } catch (err) {
+    console.error("[prep] interview mock failed:", err);
+    res.status(500).json({ success: false, message: "Could not build the mock session" });
+  }
+});
+
+const mockSubmitBody = z.object({
+  token: z.string().min(1).max(4000),
+  ratings: z.record(z.string(), z.number().int().min(1).max(5)).default({}),
+});
+
+prepRouter.post("/interview/mock/submit", interviewLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  const parsed = mockSubmitBody.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(400).json({ success: false, message: "token and ratings (1-5) are required" });
+    return;
+  }
+  try {
+    const payload = verifyInterviewMock(parsed.data.token, quizSecret());
+    if (!payload) {
+      res.status(400).json({ success: false, message: "Mock session expired or invalid � start again" });
+      return;
+    }
+    const rows = await db
+      .select()
+      .from(prepInterviewQuestionsTable)
+      .where(inArray(prepInterviewQuestionsTable.id, payload.ids));
+    const publicRows = rows.map((r) => ({
+      ...toPublicInterviewQuestion(r),
+      guidance: r.guidance,
+    }));
+    const feedback = aggregateFeedback(publicRows, parsed.data.ratings, payload.ids);
+    res.json({ success: true, data: feedback });
+  } catch (err) {
+    console.error("[prep] interview submit failed:", err);
+    res.status(500).json({ success: false, message: "Feedback generation failed" });
   }
 });

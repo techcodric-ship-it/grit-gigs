@@ -6,6 +6,7 @@
 import { pool } from "../db";
 import { logger } from "../lib/logger";
 import { APTITUDE_BANK } from "./aptitude-bank";
+import { INTERVIEW_BANK } from "./interview-bank";
 
 export const PREP_DDL = `
 CREATE TABLE IF NOT EXISTS prep_companies (
@@ -47,6 +48,17 @@ CREATE TABLE IF NOT EXISTS prep_aptitude_questions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS prep_aptitude_topic_idx ON prep_aptitude_questions (topic);
+CREATE TABLE IF NOT EXISTS prep_interview_questions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code VARCHAR(64) NOT NULL UNIQUE,
+  track VARCHAR(30) NOT NULL,
+  category VARCHAR(30) NOT NULL,
+  difficulty VARCHAR(10) NOT NULL DEFAULT 'medium',
+  question TEXT NOT NULL,
+  guidance TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS prep_interview_track_idx ON prep_interview_questions (track, category);
 `;
 
 /** Idempotent seed of the original aptitude bank (ON CONFLICT DO NOTHING). */
@@ -61,6 +73,18 @@ async function seedAptitudeBank(): Promise<void> {
   }
 }
 
+/** Idempotent seed of the original interview bank. */
+async function seedInterviewBank(): Promise<void> {
+  for (const q of INTERVIEW_BANK) {
+    await pool.query(
+      `INSERT INTO prep_interview_questions (code, track, category, difficulty, question, guidance)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (code) DO NOTHING`,
+      [q.code, q.track, q.category, q.difficulty, q.question, q.guidance],
+    );
+  }
+}
+
 let ensured: Promise<void> | null = null;
 
 export function ensurePrepDb(): Promise<void> {
@@ -68,6 +92,7 @@ export function ensurePrepDb(): Promise<void> {
     ensured = (async () => {
       await pool.query(PREP_DDL);
       await seedAptitudeBank();
+      await seedInterviewBank();
       logger.info("[prep] prep_ tables ensured");
     })().catch((err: unknown) => {
       ensured = null; // retry on next call

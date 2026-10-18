@@ -64,3 +64,16 @@ export const prepAptitudeQuestionsTable = pgTable("prep_aptitude_questions", {
 });
 
 export type PrepAptitudeQuestion = typeof prepAptitudeQuestionsTable.$inferSelect;
+
+export const prepInterviewQuestionsTable = pgTable("prep_interview_questions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  code: varchar("code", { length: 64 }).notNull().unique(),
+  track: varchar("track", { length: 30 }).notNull(),
+  category: varchar("category", { length: 30 }).notNull(),
+  difficulty: varchar("difficulty", { length: 10 }).notNull().default("medium"),
+  question: text("question").notNull(),
+  guidance: text("guidance").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type PrepInterviewQuestion = typeof prepInterviewQuestionsTable.$inferSelect;
