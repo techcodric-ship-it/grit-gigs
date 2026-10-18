@@ -10,6 +10,15 @@ import { authenticate } from "../middlewares/authenticate";
 import { isPrepEnabled } from "./feature";
 import { ensurePrepDb } from "./db";
 import { resolveCompany, createPendingCompany } from "./companies";
+import { gatherSources } from "./sources/gather";
+import {
+  buildReportSkeleton,
+  createReport,
+  findCompanyBySlug,
+  getReportById,
+  latestReportForCompany,
+  publicReport,
+} from "./reports";
 
 export const prepRouter = Router();
 
@@ -97,5 +106,108 @@ prepRouter.post("/companies", authenticate, createCompanyLimiter, prepDbGate, as
   } catch (err) {
     console.error("[prep] company create failed:", err);
     res.status(500).json({ success: false, message: "Could not save the company" });
+  }
+});
+
+// ---- Company reports ----
+
+const reportLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many report requests, try again shortly." },
+});
+
+const reportBody = z.object({
+  slug: z.string().min(1).max(160),
+  role: z.string().max(120).optional(),
+  userType: z.enum(["job-seeker", "student", "employee"]).optional(),
+});
+
+prepRouter.post("/reports", authenticate, reportLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  const parsed = reportBody.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(400).json({ success: false, message: "slug is required" });
+    return;
+  }
+  try {
+    const company = await findCompanyBySlug(parsed.data.slug);
+    if (!company) {
+      res.status(404).json({ success: false, message: "Company not found" });
+      return;
+    }
+    const gathered = await gatherSources({
+      name: company.name,
+      domain: company.domain,
+      website: company.website,
+    });
+    const skeleton = buildReportSkeleton(company, gathered, {
+      role: parsed.data.role ?? null,
+      userType: parsed.data.userType ?? null,
+    });
+    const report = await createReport({
+      companyId: company.id,
+      role: parsed.data.role ?? null,
+      userType: parsed.data.userType ?? null,
+      skeleton,
+      createdBy: req.user!.id,
+    });
+    res.status(201).json({ success: true, data: { report: publicReport(report) } });
+  } catch (err) {
+    console.error("[prep] report create failed:", err);
+    res.status(500).json({ success: false, message: "Report generation failed" });
+  }
+});
+
+prepRouter.get("/reports/:id", authenticate, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const report = await getReportById(String(req.params.id));
+    if (!report) {
+      res.status(404).json({ success: false, message: "Report not found" });
+      return;
+    }
+    // Owner-only in v1 (no public sharing yet).
+    if (report.createdBy && report.createdBy !== req.user!.id && req.user!.role !== "ADMIN") {
+      res.status(404).json({ success: false, message: "Report not found" });
+      return;
+    }
+    res.json({ success: true, data: { report: publicReport(report) } });
+  } catch (err) {
+    console.error("[prep] report fetch failed:", err);
+    res.status(500).json({ success: false, message: "Report fetch failed" });
+  }
+});
+
+prepRouter.get("/companies/:slug/report", authenticate, reportLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const company = await findCompanyBySlug(String(req.params.slug));
+    if (!company) {
+      res.status(404).json({ success: false, message: "Company not found" });
+      return;
+    }
+    const role = typeof req.query.role === "string" && req.query.role.trim() ? req.query.role.trim() : null;
+    const existing = await latestReportForCompany(company.id, role);
+    if (existing) {
+      res.json({ success: true, data: { report: publicReport(existing), cached: true } });
+      return;
+    }
+    const gathered = await gatherSources({
+      name: company.name,
+      domain: company.domain,
+      website: company.website,
+    });
+    const skeleton = buildReportSkeleton(company, gathered, { role, userType: null });
+    const report = await createReport({
+      companyId: company.id,
+      role,
+      userType: null,
+      skeleton,
+      createdBy: req.user!.id,
+    });
+    res.status(201).json({ success: true, data: { report: publicReport(report), cached: false } });
+  } catch (err) {
+    console.error("[prep] latest report failed:", err);
+    res.status(500).json({ success: false, message: "Report generation failed" });
   }
 });

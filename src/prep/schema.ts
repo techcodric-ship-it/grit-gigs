@@ -8,6 +8,8 @@ import {
   uuid,
   varchar,
   text,
+  jsonb,
+  integer,
   timestamp,
 } from "drizzle-orm/pg-core";
 
@@ -28,3 +30,20 @@ export const prepCompaniesTable = pgTable("prep_companies", {
 });
 
 export type PrepCompany = typeof prepCompaniesTable.$inferSelect;
+
+export const prepReportsTable = pgTable("prep_reports", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id")
+    .notNull()
+    .references(() => prepCompaniesTable.id),
+  role: varchar("role", { length: 120 }),
+  userType: varchar("user_type", { length: 40 }),
+  sections: jsonb("sections").notNull().default({}),
+  aiSummary: text("ai_summary"),
+  aiModel: varchar("ai_model", { length: 80 }),
+  sourceCount: integer("source_count").notNull().default(0),
+  createdBy: uuid("created_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type PrepReport = typeof prepReportsTable.$inferSelect;

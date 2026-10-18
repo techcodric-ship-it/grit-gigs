@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Company report | Prep | Grit&amp;Gigs</title>
+<meta name="robots" content="noindex"/>
+<link rel="icon" href="/favicon.ico?v=3"/>
+<link rel="stylesheet" href="/css/main.css?v=3"/>
+<link rel="stylesheet" href="/prep/prep.css?v=1"/>
+</head>
+<body>
+<header class="topnav">
+  <a class="nav-logo" href="/feed" title="Grit&Gigs home"><div class="nav-logo-mark"><img src="/logo.svg?v=3" alt="" width="32" height="32"></div><span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span></a>
+  <div class="icons">
+    <a href="/feed" title="Feed"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.7V21h14V9.7"/></svg></a>
+    <a href="/explore.html" title="Explore"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.3 16.3 4.2 4.2"/></svg></a>
+    <a class="badge" href="/messages.html" title="Messages"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/></svg><span class="cnt" id="msgBadge" style="display:none;">0</span></a>
+    <a href="/notifications.html" class="badge" title="Inbox"><svg viewBox="0 0 24 24"><path d="M12 20.3 4.9 13a4.7 4.7 0 0 1 6.6-6.6l.5.5.5-.5A4.7 4.7 0 0 1 19 13Z"/></svg><span class="cnt" id="notifBadge" style="display:none;">0</span></a>
+    <a href="/orders.html" title="Orders"><svg viewBox="0 0 24 24"><path d="M21 8.2 12 3 3 8.2v7.6L12 21l9-5.2Z"/><path d="M3.3 8.3 12 13.3l8.7-5"/><path d="M12 13.3V21"/></svg></a>
+    <a href="/prep" id="navPrep" title="Prep" class="on"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M9 7.5h6"/></svg></a>
+    <a href="/profile.html" id="navProfile" title="Profile"><img id="navAv" class="avatar" src="https://api.dicebear.com/9.x/initials/svg?seed=grit&backgroundColor=f0f0f0&textColor=262626" alt=""/></a>
+  </div>
+</header>
+
+<main class="prep-wrap">
+  <section class="prep-card">
+    <h1 class="prep-h1" id="rpName">Company report</h1>
+    <p class="prep-sub" id="rpMeta">Loading report…</p>
+    <div class="prep-err" id="rpErr" role="alert"></div>
+  </section>
+
+  <section class="prep-card" id="rpSummaryCard" hidden>
+    <h2 class="prep-h2">Summary</h2>
+    <p class="prep-body" id="rpSummary"></p>
+  </section>
+
+  <section class="prep-card" id="rpCareersCard" hidden>
+    <h2 class="prep-h2">Careers &amp; official pages</h2>
+    <ul class="prep-matches" id="rpCareers"></ul>
+  </section>
+
+  <section class="prep-card" id="rpNewsCard" hidden>
+    <h2 class="prep-h2">Recent news</h2>
+    <ul class="prep-matches" id="rpNews"></ul>
+  </section>
+
+  <section class="prep-card" id="rpProvCard" hidden>
+    <h2 class="prep-h2">Sources</h2>
+    <ul class="prep-matches" id="rpProv"></ul>
+    <p class="prep-sub" id="rpGenerated" style="margin-top:12px;margin-bottom:0;"></p>
+  </section>
+
+  <section class="prep-card">
+    <div class="prep-empty" id="rpDisclaimers"></div>
+  </section>
+</main>
+
+<script src="/js/prep-nav.js?v=1" defer></script>
+<script>
+(function () {
+  "use strict";
+  if (!localStorage.getItem("se_token")) {
+    location.replace("/login?next=" + encodeURIComponent(location.pathname + location.search));
+    return;
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  var parts = location.pathname.split("/");
+  var slug = parts[parts.length - 1] || "";
+  var role = new URLSearchParams(location.search).get("role") || "";
+  var errEl = document.getElementById("rpErr");
+  var auth = { Authorization: "Bearer " + localStorage.getItem("se_token") };
+
+  function itemHtml(it) {
+    var chip = it.label === "OFFICIAL" ? "official" : "pending";
+    return '<a href="' + esc(it.url || "#") + '" target="_blank" rel="noopener noreferrer"><span>' + esc(it.title) +
+      (it.publishedAt ? " — " + esc(String(it.publishedAt).slice(0, 10)) : "") +
+      '</span><span class="prep-chip ' + chip + '">' + esc(it.label) + "</span></a>";
+  }
+
+  fetch("/api/prep/companies/" + encodeURIComponent(slug) + "/report" + (role ? "?role=" + encodeURIComponent(role) : ""), {
+    credentials: "same-origin",
+    headers: auth,
+  })
+    .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
+    .then(function (res) {
+      if (res.status === 401) { location.replace("/login?next=" + encodeURIComponent(location.pathname + location.search)); return; }
+      if (res.status !== 200 || !res.d.success) {
+        errEl.textContent = (res.d && res.d.message) || "Could not load this report.";
+        return;
+      }
+      var report = res.d.data.report;
+      var sec = report.sections || {};
+      var ov = sec.overview || {};
+      document.title = esc(ov.name || "Company") + " — report | Prep | Grit&Gigs";
+      document.getElementById("rpName").textContent = ov.name || "Company report";
+      document.getElementById("rpMeta").textContent =
+        (report.role ? "Role: " + report.role + " · " : "") +
+        (ov.domain ? ov.domain + " · " : "") +
+        "Status: " + (ov.status || "unknown");
+
+      if (report.aiSummary) {
+        document.getElementById("rpSummary").textContent = report.aiSummary;
+        document.getElementById("rpSummaryCard").hidden = false;
+      }
+
+      var careers = sec.careers || [];
+      var official = sec.officialSites || [];
+      var careersAll = careers.concat(official);
+      if (careersAll.length) {
+        document.getElementById("rpCareers").innerHTML = careersAll.map(itemHtml).join("");
+        document.getElementById("rpCareersCard").hidden = false;
+      }
+      var news = sec.recentNews || [];
+      if (news.length) {
+        document.getElementById("rpNews").innerHTML = news.map(itemHtml).join("");
+        document.getElementById("rpNewsCard").hidden = false;
+      }
+      var prov = sec.provenance || [];
+      if (prov.length) {
+        document.getElementById("rpProv").innerHTML = prov.map(function (p) {
+          return '<a href="' + esc(p.url) + '" target="_blank" rel="noopener noreferrer"><span>' + esc(p.publisher || p.title) +
+            '</span><span class="prep-chip">' + esc(p.label) + "</span></a>";
+        }).join("");
+        document.getElementById("rpProvCard").hidden = false;
+      }
+      document.getElementById("rpGenerated").textContent = "Report generated " + String(sec.generatedAt || report.createdAt).slice(0, 19).replace("T", " ") + " UTC · " + report.sourceCount + " sources";
+      document.getElementById("rpDisclaimers").innerHTML = (sec.disclaimers || []).map(function (d) {
+        return "<p>" + esc(d) + "</p>";
+      }).join("");
+    })
+    .catch(function () { errEl.textContent = "Network error. Try again."; });
+})();
+</script>
+</body>
+</html>

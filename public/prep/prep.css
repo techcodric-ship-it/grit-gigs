@@ -20,6 +20,8 @@
 }
 .prep-card + .prep-card { margin-top: 16px; }
 .prep-h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; color: var(--prep-ink); margin: 0 0 6px; }
+.prep-h2 { font-size: 1.02rem; font-weight: 800; letter-spacing: -0.01em; color: var(--prep-ink); margin: 0 0 10px; }
+.prep-body { font-size: 0.92rem; line-height: 1.55; color: var(--prep-ink-2); margin: 0; white-space: pre-wrap; }
 .prep-sub { font-size: 0.92rem; line-height: 1.5; color: var(--prep-muted); margin: 0 0 18px; }
 .prep-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .prep-field label { font-size: 0.8rem; font-weight: 700; color: var(--prep-ink-2); letter-spacing: 0.01em; }

@@ -21,6 +21,19 @@ CREATE TABLE IF NOT EXISTS prep_companies (
 );
 CREATE INDEX IF NOT EXISTS prep_companies_name_idx ON prep_companies (LOWER(name));
 CREATE INDEX IF NOT EXISTS prep_companies_domain_idx ON prep_companies (LOWER(domain));
+CREATE TABLE IF NOT EXISTS prep_reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES prep_companies(id),
+  role VARCHAR(120),
+  user_type VARCHAR(40),
+  sections JSONB NOT NULL DEFAULT '{}',
+  ai_summary TEXT,
+  ai_model VARCHAR(80),
+  source_count INTEGER NOT NULL DEFAULT 0,
+  created_by UUID,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS prep_reports_company_idx ON prep_reports (company_id, created_at DESC);
 `;
 
 let ensured: Promise<void> | null = null;

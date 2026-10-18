@@ -21,6 +21,16 @@ export function makePrepPages(publicRoot: string) {
     }
     // req.path here is relative to the /prep mount.
     const rel = String(req.path || "/").replace(/^\/+/, "");
+    // Dynamic report page: /prep/report/<slug> serves the shell; client JS
+    // loads the report data from the API by slug.
+    if (/^report\/[A-Za-z0-9_-]{1,160}$/.test(rel)) {
+      const shell = path.normalize(path.join(prepRoot, "report.html"));
+      if (fs.existsSync(shell) && fs.statSync(shell).isFile()) {
+        res.set("X-Robots-Tag", "noindex");
+        res.sendFile(shell);
+        return;
+      }
+    }
     const candidates = rel === "" || rel === "/"
       ? ["index.html"]
       : [rel, `${rel}.html`, path.join(rel, "index.html")];
