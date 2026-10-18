@@ -220,3 +220,61 @@ Known residues, deferred with owners:
   file is unchanged since pre-pivot commit `8fe314c` (verified via git log).
 - LLM provider: GROQ_API_KEY/GROQ_MODEL already wired in `src/routes/ai-support.ts`
   (Phase 10 can reuse; no new provider needed).
+
+## 10. Phases 4-12 completion (2026-10-18)
+
+Commits `d2a2464` (3e) through `b32af21` (12). Gates green at every phase end
+(tsc clean; vitest 487 passed / 18 files at final phase).
+
+- **Phase 4 (jobs marketplace)** `23837e8`: skills taxonomy + list filters,
+  job posting/apply/withdraw/applications-review routes, jobs.html UI, hire-*
+  widgets repointed to `/api/jobs`.
+- **Phase 5 (companion + barter)** `6f21b2c`: Gigi docked companion (GROQ,
+  confirm-cards for state changes, always-labelled AI), barter.html rebuilt as
+  real browse/post/match page.
+- **Phase 6 (interview prep)** `1a8abd9`: prep_sessions table (DDL in
+  `_autoMigrate`, applied live), 6-track question bank, AI-scored practice with
+  `platform_checklist` fallback (never labelled an AI score), prep.html.
+- **Phase 7 (Grit Circle)** `e31ec45`: circle.html Circles tab (directory,
+  create, request-to-join), squads.ts dead projects query removed, jobs-era
+  copy.
+- **Phase 8 (Who Viewed Me)** `52aa0dc`: profile_views table (applied live),
+  recorded fire-and-forget on `/users/:id` and `/community/users/:id` (no
+  self-views), `GET /me/profile-views` + profile card, dead completedProjects
+  block removed from profile API, main.js "Projects Done" stat dropped.
+- **Phase 9 (notifications)** `a9fbb0b`: inline-SVG icon set keyed by real
+  notification types (incl. JOB_APPLICATION*), de-gigged order/review copy.
+- **Phase 10 (SEO)** `e8dad90`: jobs-first title/description/og/twitter on
+  landing, hero + how-it-works reworked, /prep added to sitemap, JSON-LD copy.
+- **Phase 11 (plans/quota)** `5c93800`: Pro/Squad descriptions jobs-era,
+  dead gigs5 bundle removed from store UI + order endpoint (webhook verify kept
+  for historical rows), buy-more shows Barter offers only (SVG icon, not emoji).
+- **Phase 12 (residue sweep)** `b32af1` + `b32af21`: hire-* CTAs post roles to
+  `/jobs?mine=1`, refer-and-earn copy matches actual signup-based team-reviewed
+  trigger, design-system demos pivot-era, profile review-type labels, settings
+  default tagline, faq footer, match-complete "deliver the work".
+
+Protected hashes re-verified at Phase 13: logo.svg, logo-og.png,
+demo-data.test.ts, wallet-guards.ts - all byte-identical to baseline.
+
+Final known residues (accepted, not blocking):
+- `src/lib/subscriptions.ts` internal field names (`weeklyBidCredits`,
+  `maxActiveGigs`, `maxActiveProjects`, `featuredProposalsPerMonth`) kept for
+  DB compatibility; user-facing descriptions reworded (Phase 11).
+- `src/routes/squads.ts` legacy services/orders stack (incl. `consumeGigCreation`)
+  still functional but unlinked from UI; `consumeProjectCreation` has no live
+  callers.
+- `src/demo/dataset.ts` kind=PROJECT rows retained (protected test lock);
+  seeds only ever insert into the throwaway demo DB.
+- `wallet.html` legacy txn types (PROJECT_*, SERVICE_*) kept so historical money
+  rows still render; money records never deleted.
+- Blog posts (`blog-*`) retain historical project/gig framing as published
+  content; live product pages are clean.
+- `orders.html` legacy `handleProj` helper retained for historical PROJECT
+  orders display.
+- Shared index files (`src/index.ts`, `src/routes/index.ts`,
+  `src/db/schema/index.ts`) staged via blob trick (worktree minus focus lines);
+  worktree diffs vs HEAD show `MM` - expected, focus belongs to in-progress
+  user work.
+- Landing stats block (28,000+ members etc.) and testimonials are pre-existing
+  site copy, left untouched (not introduced by this pivot).
