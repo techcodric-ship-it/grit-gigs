@@ -46,22 +46,6 @@
 
   <aside class="col-side">
     <div class="sidebar">
-      <!-- Always visible to signed-in sellers. This is the main way people learn
-           Spotlight exists at all: it does not depend on already owning a barter
-           with tags, which is how the earlier placement stayed invisible. -->
-      <div class="side-card spcard" id="spotPromoCard" style="display:none;">
-        <div class="spcard-eyebrow"><span class="spcard-star">&#10022;</span> Spotlight</div>
-        <div class="spcard-title">Put your barter in front of people already searching for it</div>
-        <p class="spcard-sub">Your post sits at the top of their feed while the boost runs, and you see the real reached and opened numbers.</p>
-        <div class="spcard-stat" id="spcDemand"></div>
-        <div class="spcard-prices">
-          <div><b>&#8377;50</b><span>24 hours</span></div>
-          <div><b>&#8377;199</b><span>3 days</span></div>
-          <div><b>&#8377;499</b><span>7 days</span></div>
-        </div>
-        <button class="spcard-cta" id="spcBoost">Boost my post</button>
-        <a class="spcard-more" href="/spotlight-boost">How it works &amp; what it costs</a>
-      </div>
       <div class="side-card">
         <h4>On the grind</h4>
         <div id="suggestList"></div>
@@ -120,8 +104,6 @@
       <button class="primary" id="composeSubmit">Post it</button>
     </div>
     <div class="note" id="quotaNote" style="display:none;"></div>
-    <div class="note" id="spotLink" style="display:none;"></div>
-    <div class="note" style="font-size:11.5px;opacity:.78;">Want more eyes on it? <a href="/spotlight-boost" style="color:#6C3FE8;font-weight:600;">How Spotlight works and what it costs</a></div>
   </div>
 </div>
 
@@ -339,10 +321,6 @@
       'Earned my first ₹5,000 this month…';
     $('compTitle').textContent = k === 'REEL' ? 'Post a clip' : k === 'BARTER' ? 'Post a barter' : 'Share your grind';
     $('quotaNote').style.display = 'none';
-    // Surface the boost explainer in the barter composer, where someone has
-    // just decided to post work and is thinking about how many will see it.
-    $('spotLink').style.display = (k === 'BARTER') ? '' : 'none';
-    if (k === 'BARTER') loadSpotLink();
   }
 
   $('kindRow').addEventListener('click', function (e) {
@@ -421,10 +399,6 @@
       // Each BARTER / PROJECT post carries its own work status, so the state of
       // the work is visible right on the post rather than in a separate list.
       posts.forEach(function (row) { postsEl.appendChild(c.renderPost(row)); });
-      // Runs here, after the cards exist. It used to run inline at the bottom of
-      // this IIFE, before this async fetch resolved, so it found no .card
-      // elements and told every signed-in user they had no gigs.
-      loadSpotPromo();
     }).catch(function () { postsEl.innerHTML = '<div class="empty"><h3>Network error</h3></div>'; });
   }
 
@@ -521,100 +495,6 @@
       if (r.ok) { c.toast('Bundle added!'); qOpen(); } else { $('quotaErr').textContent = r.d.message || 'Failed to verify payment'; }
     });
   }
-  // The boost explainer sits in the barter composer: someone who just decided
-  // to post work is exactly the person who needs to know boosting exists,
-  // and how honestly it is priced.
-  function loadSpotLink() {
-    var slot = $('spotLink');
-    if (!slot || !c.token()) return;
-    var tags = mySpotTags();
-    if (!tags.length) { slot.style.display = 'none'; return; }
-    c.api('/community/spotlight/demand?tags=' + encodeURIComponent(tags.join(','))).then(function (r) {
-      if (!(r && r.ok && r.d && r.d.data)) return;
-      var n = r.d.data.totalSearches || 0;
-      // Never invent urgency. When nothing is searching we still show the
-      // explainer, because that is exactly when a seller most needs to know
-      // the honest ceiling of what a boost can reach.
-      slot.innerHTML = n > 0
-        ? '<b>' + n + '</b> search' + (n === 1 ? '' : 'es') + ' this week matched your keywords \u2014 <a href="/spotlight-boost" style="color:#6C3FE8;font-weight:600;">see what a boost would reach</a>'
-        : 'Nobody searched your keywords this week \u2014 <a href="/spotlight-boost" style="color:#6C3FE8;font-weight:600;">how boosts work</a>';
-    });
-  }
-  function mySpotInfo() {
-    // The signed-in user's own barter posts only. Scoped to [data-mine]
-    // because the feed is mixed: reading the first card on the page returned
-    // another person's keywords. Merge across their barter posts so one
-    // tagged post is enough.
-    //
-    // Returns hasBarter as well as tags, because "no barter posts" and
-    // "posts but no keywords" need different copy. Collapsing them told
-    // someone who had already posted to "post one first".
-    var res = { hasBarter: false, tags: [] };
-    if (!c.me) return res;
-    var els = document.querySelectorAll('.card[data-mine="1"][data-kind="BARTER"]');
-    if (els.length) res.hasBarter = true;
-    for (var i = 0; i < els.length; i++) {
-      if (!els[i].dataset.tags) continue;
-      try {
-        JSON.parse(els[i].dataset.tags).forEach(function (t) {
-          if (res.tags.indexOf(t) === -1) res.tags.push(t);
-        });
-      } catch (e) { /* malformed tag payload: skip this card */ }
-    }
-    return res;
-  }
-  function mySpotTags() { return mySpotInfo().tags; }
-  loadSpotLink();
-
-  // Sidebar promo: visible on every signed-in feed load, even for someone with
-  // no barter posts yet. Sends them to the composer via the feed.
-  function loadSpotPromo() {
-    var card = $('spotPromoCard');
-    if (!card || !c.token()) return;
-    card.style.display = '';
-    var info = mySpotInfo();
-    var tags = info.tags;
-    var demand = $('spcDemand');
-    if (!info.hasBarter) {
-      // No barter posts yet: still explain the product, but do not fake a
-      // number. This is its own treatment, not the number layout with a word
-      // in it: a 20px "Post one first" beside a sentence read as a mistake.
-      demand.className = 'spcard-stat empty';
-      demand.innerHTML =
-        '<span class="spc-flag">No barter posts yet</span>' +
-        '<span class="spc-note">Post a barter first and we will show you how many people are searching for your keywords.</span>';
-      return;
-    }
-    if (!tags.length) {
-      // They have posted. The blocker is keywords, so name that instead of
-      // telling them to post again.
-      demand.className = 'spcard-stat empty';
-      demand.innerHTML =
-        '<span class="spc-flag">No keywords yet</span>' +
-        '<span class="spc-note">Add keywords to your barter and we will show you how many people are searching for them. ' +
-        '<a href="/profile" style="color:#6C3FE8;font-weight:600;">Edit your post</a></span>';
-      return;
-    }
-    c.api('/community/spotlight/demand?tags=' + encodeURIComponent(tags.join(','))).then(function (r) {
-      if (!(r && r.ok && r.d && r.d.data)) return;
-      var n = r.d.data.totalSearches || 0;
-      demand.className = 'spcard-stat' + (n > 0 ? '' : ' zero');
-      demand.innerHTML = n > 0
-        ? '<span class="spc-num"><b>' + n + '</b>' +
-          '<span>search' + (n === 1 ? '' : 'es') + ' this week</span></span>' +
-          '<span class="spc-note">matched your keywords. A boost reaches those people.</span>'
-        : '<span class="spc-num"><b>0</b><span>searches this week</span></span>' +
-          '<span class="spc-note">for your keywords. Check the number before you pay.</span>';
-    });
-  }
-  var spotBtn = $('spcBoost');
-  if (spotBtn) spotBtn.addEventListener('click', function () { location.href = '/profile'; });
-  // Also called from loadFeed() once cards render; this covers the case where the
-  // feed is empty or already cached so that block never runs.
-  loadSpotPromo();
-  // The keyword editor on your own barter calls this after saving, so the panel
-  // switches from "No keywords yet" to a real demand number without a reload.
-  window.refreshSpotPromo = loadSpotPromo;
   if ($('quotaCancel')) $('quotaCancel').addEventListener('click', function () { $('quotaModal').classList.remove('open'); });
   if ($('quotaModal')) $('quotaModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
 })();

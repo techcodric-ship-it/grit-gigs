@@ -229,24 +229,9 @@ if (kind === 'GIG' || kind === 'PROJECT') kind = '';
       (kind === 'REEL' ? '<span class="reel-ic">▶</span>' : '') +
       '<button class="tile-share" data-share="' + c.esc(p.id) + '" title="Share">↗</button>' +
       '<div class="over"><span>♥ ' + Number(p.likeCount || 0) + '</span><span>💬 ' + Number(p.commentCount || 0) + '</span></div>';
-    var spotRib = '';
-    if (row.spotlight) spotRib = '<span class="spot-ribbon">✦ BOOSTED</span>';
-    else if (row.mySpotlight) {
-      var spH = Math.max(1, Math.ceil((new Date(row.mySpotlight.expiresAt).getTime() - Date.now()) / 3600e3));
-      spotRib = '<span class="spot-ribbon mine">✦ ' + (spH >= 24 ? Math.floor(spH / 24) + 'd' : spH + 'h') + ' left</span>';
-    }
-    if (spotRib) div.insertAdjacentHTML('afterbegin', spotRib);
     // Work-status ribbon on the tile itself, so it reads without opening the post.
     if (ws) div.insertAdjacentHTML('afterbegin', '<span class="work-ribbon ' + ws.cls + '">' + c.esc(ws.label) + '</span>');
-    // A viewer opening a boosted tile is the click the boost owner is paying
-    // for, so fire the beacon before the post modal opens. Fire-and-forget:
-    // never let analytics delay or block opening the post.
     div.addEventListener('click', function () {
-      if (row.spotlight && row.spotlight.boostId && c.token()) {
-        try {
-          c.api('/community/boosts/' + row.spotlight.boostId + '/click', { method: 'POST' }).catch(function () {});
-        } catch (e) {}
-      }
       c.openPost(p.id);
     });
     var tb = div.querySelector('.tile-share');

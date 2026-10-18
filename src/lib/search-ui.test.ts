@@ -176,8 +176,8 @@ describe("explore search sits above the filter tabs on mobile", () => {
 describe("suggestions endpoint", () => {
   it("never writes to search_logs", () => {
     // A typeahead fires one request per few keystrokes. Logging them would
-    // record "w", "we", "web" as real searches and inflate the Spotlight
-    // demand numbers that are sold to sellers.
+    // record "w", "we", "web" as real searches and inflate the search-volume
+    // numbers behind the feed's query stats.
     const src = route();
     const start = src.indexOf('"/community/search/suggest"');
     expect(start).toBeGreaterThan(-1);

@@ -1,12 +1,8 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and, desc, count, countDistinct, sql, inArray, or, ilike, gt, gte, ne, not, notInArray, type SQL } from "drizzle-orm";
-import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable, conversationsTable, messagesTable, communityOrdersTable, communityOrderDeliveriesTable, communityOrderReviewsTable, transactionsTable, freelanceWalletsTable, postBoostsTable, searchLogsTable, projectsTable, projectBidsTable, barterMatchesTable, barterRequestsTable } from "../db";
+import { db, usersTable, notificationsTable, communityPostsTable, communityLikesTable, communityCommentsTable, communityFollowsTable, conversationsTable, messagesTable, communityOrdersTable, communityOrderDeliveriesTable, communityOrderReviewsTable, transactionsTable, freelanceWalletsTable, searchLogsTable, projectsTable, projectBidsTable, barterMatchesTable, barterRequestsTable } from "../db";
 import { authenticate, optionalAuth } from "../middlewares/authenticate";
 import { logger } from "../lib/logger";
-import {
-  SPOTLIGHT_PACK_LIST, SPOTLIGHT_DEFAULT_PACK,
-  getSpotlightPack, isKnownSpotlightPack,   buildSpotlightStats, packPerDay, spotSuggestions,
-} from "../lib/spotlight";
 import { uploadToSupabase } from "../lib/storage";
 import { likeTerm, rankTerms } from "../lib/search-suggest";
 import { PROJECT_ROOT } from "../lib/root";
@@ -333,25 +329,6 @@ interface PostRowShape {
   // freelancer before they bid on something already finished or underway.
   // null for every other kind.
   workStatus: "OPEN" | "PENDING" | "IN_PROGRESS" | "REVISION" | "DELIVERED" | "COMPLETED" | null;
-  spotlight?: {
-    expiresAt: string;
-    tags: string[];
-    boostId: string;
-    reach: number;
-    impressions: number;
-    clicks: number;
-  };
-  mySpotlight?: {
-    expiresAt: string;
-    tags: string[];
-    extendCount: number;
-    boostId: string;
-    planId: string;
-    amount: number;
-    reach: number;
-    impressions: number;
-    clicks: number;
-  };
 }
 
 async function loadCommentCounts(postIds: string[]): Promise<Record<string, { count: number; rows: (typeof communityCommentsTable.$inferSelect)[] }>> {
@@ -518,95 +495,7 @@ async function renderPosts(rawPosts: typeof communityPostsTable.$inferSelect[], 
       workStatus: workStatusByPost.get(post.id) ?? null,
     };
   });
-
-  if (currentUserId) {
-    const myIds = rows.filter((r) => r.post.userId === currentUserId).map((r) => r.post.id);
-    if (myIds.length) {
-      try {
-        const myBoosts = await db
-          .select()
-          .from(postBoostsTable)
-          .where(and(inArray(postBoostsTable.postId, myIds), gt(postBoostsTable.expiresAt, new Date())));
-        const boostByPost = new Map(myBoosts.map((b) => [b.postId, b]));
-        const mineEng = await boostEngagementFor(myBoosts.map((b) => b.id));
-        for (const r of rows) {
-          const b = boostByPost.get(r.post.id);
-          if (!b) continue;
-          // Owners always see the live numbers on their own card, which is what
-          // makes a boost worth re-buying.
-          const e = mineEng.get(b.id) ?? { reach: 0, impressions: 0, clicks: 0 };
-          r.mySpotlight = {
-            expiresAt: b.expiresAt.toISOString(),
-            tags: b.tags,
-            extendCount: b.extendCount,
-            boostId: b.id,
-            planId: b.planId ?? SPOTLIGHT_DEFAULT_PACK,
-            amount: Number(b.amount) || 0,
-            reach: e.reach,
-            impressions: e.impressions,
-            clicks: e.clicks,
-          };
-        }
-      } catch (err) {
-        logger.warn({ err }, "renderPosts: mySpotlight lookup failed");
-      }
-    }
-  }
   return rows;
-}
-
-/**
- * Records that `viewerId` was shown `boostId`. Upsert keeps one row per pair so
- * reach stays a distinct-person count, while `views` accumulates render events.
- * Fire-and-forget: analytics must never fail a feed request.
- */
-async function recordBoostImpression(boostIds: string[], viewerId: string): Promise<void> {
-  if (!boostIds.length || !viewerId) return;
-  try {
-    for (const bid of boostIds) {
-      await db.execute(
-        sql`INSERT INTO boost_impressions (boost_id, user_id, viewed_at, views)
-            VALUES (${bid}::uuid, ${viewerId}::uuid, NOW(), 1)
-            ON CONFLICT (boost_id, user_id)
-            DO UPDATE SET views = boost_impressions.views + 1`,
-      );
-    }
-  } catch (err) {
-    logger.warn({ err }, "recordBoostImpression failed");
-  }
-}
-
-/** Aggregate reach/impressions/clicks for a set of boosts in one round trip. */
-async function boostEngagementFor(boostIds: string[]): Promise<Map<string, { reach: number; impressions: number; clicks: number }>> {
-  const out = new Map<string, { reach: number; impressions: number; clicks: number }>();
-  if (!boostIds.length) return out;
-  try {
-    const rows = await db.execute(
-      sql`SELECT boost_id,
-                 count(*)::int AS reach,
-                 COALESCE(SUM(views), 0)::int AS impressions,
-                 count(clicked_at)::int AS clicks
-          FROM boost_impressions
-          WHERE boost_id IN (${sql.join(boostIds.map((b) => sql`${b}::uuid`))})
-          GROUP BY boost_id`,
-    );
-    const list = ((rows as { rows?: unknown[] }).rows ?? []) as {
-      boost_id: string; reach: number; impressions: number; clicks: number;
-    }[];
-    for (const r of list) {
-      out.set(r.boost_id, {
-        reach: Number(r.reach) || 0,
-        impressions: Number(r.impressions) || 0,
-        clicks: Number(r.clicks) || 0,
-      });
-    }
-  } catch (err) {
-    logger.warn({ err }, "boostEngagementFor failed");
-  }
-  for (const b of boostIds) {
-    if (!out.has(b)) out.set(b, { reach: 0, impressions: 0, clicks: 0 });
-  }
-  return out;
 }
 
 /**
@@ -621,451 +510,19 @@ async function boostEngagementFor(boostIds: string[]): Promise<Map<string, { rea
 // Short but real skill acronyms. A generic length floor would drop these and
 // they are exactly the terms people search for.
 
-function normalizeSpotTerm(t: string): string {
-  return String(t).toLowerCase().replace(/^#+/, "").trim();
-}
-
-function tagMatchesSignature(tag: string, signature: string[]): boolean {
-  const t = normalizeSpotTerm(tag);
-  if (t.length < 2) return false;
-  return signature.some((s) => {
-    if (s === t) return true;
-    if (t.length < 3) return false;
-    return s.includes(t) || t.includes(s);
+// Spotlight boosting was retired. Cached clients still call the old
+// spotlight/boost endpoints, so answer with a clear 410 instead of a silent 404.
+const spotlightRetired = (_req: Request, res: Response): void => {
+  res.status(410).json({
+    success: false,
+    message: "Spotlight boosting has been retired. Barter posts now reach people through search and the feed.",
   });
-}
-
-async function viewerSearchSignature(userId: string): Promise<string[]> {
-  const now = Date.now();
-  const mine = await db
-    .select({ term: searchLogsTable.term, createdAt: searchLogsTable.createdAt })
-    .from(searchLogsTable)
-    .where(and(eq(searchLogsTable.userId, userId), gte(searchLogsTable.createdAt, new Date(now - 30 * 864e5))))
-    .orderBy(desc(searchLogsTable.createdAt))
-    .limit(300);
-  const mineTerms: string[] = [];
-  const seenMine = new Set<string>();
-  for (const r of mine) {
-    const t = normalizeSpotTerm(r.term);
-    if (t.length >= 3 && !seenMine.has(t)) {
-      seenMine.add(t);
-      mineTerms.push(t);
-    }
-    if (mineTerms.length >= 100) break;
-  }
-  if (mineTerms.length) return mineTerms;
-  const trend = await db
-    .select({ term: searchLogsTable.term, n: count() })
-    .from(searchLogsTable)
-    .where(gte(searchLogsTable.createdAt, new Date(now - 7 * 864e5)))
-    .groupBy(searchLogsTable.term)
-    .orderBy(desc(count()))
-    .limit(20);
-  return trend.map((r) => normalizeSpotTerm(r.term)).filter((t) => t.length >= 3);
-}
-
-async function loadSpotlightPins(viewerId: string, kindFilter: string): Promise<PostRowShape[]> {
-  try {
-    const conds: SQL[] = [gt(postBoostsTable.expiresAt, new Date()), ne(communityPostsTable.userId, viewerId), visibleKindCond()];
-    if (kindFilter) conds.push(eq(communityPostsTable.kind, kindFilter as typeof communityPostsTable.$inferSelect.kind));
-    const active = await db
-      .select({ boost: postBoostsTable, post: communityPostsTable })
-      .from(postBoostsTable)
-      .innerJoin(communityPostsTable, eq(postBoostsTable.postId, communityPostsTable.id))
-      .where(and(...conds))
-      .orderBy(desc(postBoostsTable.expiresAt))
-      .limit(25);
-    if (!active.length) return [];
-    const signature = await viewerSearchSignature(viewerId);
-    const matched: { boost: typeof postBoostsTable.$inferSelect; post: typeof communityPostsTable.$inferSelect }[] = [];
-    const seen = new Set<string>();
-    for (const a of active) {
-      if (seen.has(a.post.id)) continue;
-      const tags = a.boost.tags && a.boost.tags.length ? a.boost.tags : a.post.tags || [];
-      if (tags.some((t) => tagMatchesSignature(t, signature))) {
-        seen.add(a.post.id);
-        matched.push(a);
-        if (matched.length >= 3) break;
-      }
-    }
-    if (!matched.length) return [];
-    // Count the pin itself as the impression, then attach the numbers so the
-    // post owner can see what the boost is doing.
-    await recordBoostImpression(
-      matched.map((m) => m.boost.id),
-      viewerId,
-    );
-    const eng = await boostEngagementFor(matched.map((m) => m.boost.id));
-    const rows = await renderPosts(
-      matched.map((m) => m.post),
-      viewerId,
-    );
-    rows.forEach((r, i) => {
-      const b = matched[i];
-      const e = eng.get(b.boost.id) ?? { reach: 0, impressions: 0, clicks: 0 };
-      r.spotlight = {
-        expiresAt: b.boost.expiresAt.toISOString(),
-        tags: b.boost.tags,
-        boostId: b.boost.id,
-        reach: e.reach,
-        impressions: e.impressions,
-        clicks: e.clicks,
-      };
-    });
-    return rows;
-  } catch (err) {
-    logger.warn({ err }, "loadSpotlightPins failed");
-    return [];
-  }
-}
-
-router.get("/community/spotlight/packs", (_req: Request, res: Response): void => {
-  res.json({
-    success: true,
-    data: {
-      packs: SPOTLIGHT_PACK_LIST.map((p) => ({
-        id: p.id,
-        label: p.label,
-        hours: p.hours,
-        priceInr: p.priceInr,
-        duration: p.duration,
-        perDay: packPerDay(p),
-      })),
-      defaultPack: SPOTLIGHT_DEFAULT_PACK,
-    },
-  });
-});
-
-router.get("/community/posts/:id/spotlight/stats", authenticate, async (req: Request, res: Response): Promise<void> => {
-  const meId = req.user!.id;
-  const postId = String(req.params.id);
-  const [post] = await db
-    .select({ id: communityPostsTable.id, userId: communityPostsTable.userId })
-    .from(communityPostsTable)
-    .where(eq(communityPostsTable.id, postId))
-    .limit(1);
-  if (!post) {
-    res.status(404).json({ success: false, message: "Post not found" });
-    return;
-  }
-  if (post.userId !== meId) {
-    res.status(403).json({ success: false, message: "You can only see stats for your own boosts" });
-    return;
-  }
-  const [boost] = await db
-    .select()
-    .from(postBoostsTable)
-    .where(eq(postBoostsTable.postId, postId))
-    .orderBy(desc(postBoostsTable.createdAt))
-    .limit(1);
-  if (!boost) {
-    res.json({ success: true, data: { stats: null, packs: SPOTLIGHT_PACK_LIST.map((p) => ({ ...p, perDay: packPerDay(p) })) } });
-    return;
-  }
-  const eng = await boostEngagementFor([boost.id]);
-  const e = eng.get(boost.id) ?? { reach: 0, impressions: 0, clicks: 0 };
-  res.json({
-    success: true,
-    data: {
-      stats: buildSpotlightStats({
-        planId: boost.planId ?? SPOTLIGHT_DEFAULT_PACK,
-        amount: Number(boost.amount) || 0,
-        reach: e.reach,
-        impressions: e.impressions,
-        clicks: e.clicks,
-        startsAt: boost.startsAt,
-        expiresAt: boost.expiresAt,
-      }),
-      packs: SPOTLIGHT_PACK_LIST.map((p) => ({ ...p, perDay: packPerDay(p) })),
-    },
-  });
-});
-
-/**
- * Records that a viewer opened a boosted post. Upserts rather than UPDATEs so
- * an open via a share/direct link is never silently dropped, and `clicked_at`
- * is only stamped once so repeat opens cannot inflate the click count.
- * Owner clicks are ignored, since the buyer can't be their own customer.
- */
-router.post("/community/boosts/:boostId/click", authenticate, async (req: Request, res: Response): Promise<void> => {
-  const meId = req.user!.id;
-  const boostId = String(req.params.boostId);
-  try {
-    const [boost] = await db
-      .select({ id: postBoostsTable.id, userId: postBoostsTable.userId, postId: postBoostsTable.postId })
-      .from(postBoostsTable)
-      .where(eq(postBoostsTable.id, boostId))
-      .limit(1);
-    if (!boost || boost.userId === meId) {
-      res.json({ success: true });
-      return;
-    }
-    await db.execute(
-      sql`INSERT INTO boost_impressions (boost_id, user_id, viewed_at, clicked_at, views)
-          VALUES (${boost.id}::uuid, ${meId}::uuid, NOW(), NOW(), 1)
-          ON CONFLICT (boost_id, user_id)
-          DO UPDATE SET clicked_at = COALESCE(boost_impressions.clicked_at, NOW())`,
-    );
-    res.json({ success: true });
-  } catch (err) {
-    logger.warn({ err }, "boost click tracking failed");
-    res.json({ success: true });
-  }
-});
-
-router.post("/community/posts/:id/spotlight", authenticate, async (req: Request, res: Response): Promise<void> => {
-  const meId = req.user!.id;
-  if (req.body?.planId != null && !isKnownSpotlightPack(req.body.planId)) {
-    res.status(400).json({ success: false, message: "Unknown boost pack" });
-    return;
-  }
-  const pack = getSpotlightPack(req.body?.planId);
-  const [post] = await db
-    .select()
-    .from(communityPostsTable)
-    .where(eq(communityPostsTable.id, String(req.params.id)))
-    .limit(1);
-  if (!post) {
-    res.status(404).json({ success: false, message: "Post not found" });
-    return;
-  }
-  if (post.userId !== meId) {
-    res.status(403).json({ success: false, message: "You can only boost your own posts" });
-    return;
-  }
-  if (post.kind !== "BARTER") {
-    res.status(400).json({ success: false, message: "Only barter posts can be boosted" });
-    return;
-  }
-  const existing = await db
-    .select({ id: postBoostsTable.id })
-    .from(postBoostsTable)
-    .where(and(eq(postBoostsTable.postId, post.id), gt(postBoostsTable.expiresAt, new Date())))
-    .limit(1);
-  if (existing.length) {
-    res.status(409).json({ success: false, message: "This post is already boosted — extend it instead", _active: true });
-    return;
-  }
-  const tags = cleanTags(req.body?.tags).map((t) => t.toLowerCase());
-  if (!tags.length) {
-    res.status(400).json({ success: false, message: "Choose at least one keyword so the right people find you" });
-    return;
-  }
-  try {
-    const boost = await db.transaction(async (tx) => {
-      const [wallet] = await tx.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, meId));
-      if (!wallet || Number(wallet.balance) < pack.priceInr) throw new Error("INSUFFICIENT_SPOTLIGHT");
-      const deductResult = await tx.execute(
-        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${pack.priceInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.id} = ${wallet.id} AND balance >= ${pack.priceInr}`,
-      );
-      if (deductResult.rowCount === 0) throw new Error("INSUFFICIENT_SPOTLIGHT");
-      await tx.insert(transactionsTable).values({
-        userId: meId,
-        type: "SERVICE_PAYMENT",
-        amount: pack.priceInr,
-        description: `Featured boost · ${pack.duration} (post ${post.id})`,
-        status: "COMPLETED",
-      });
-      const [created] = await tx
-        .insert(postBoostsTable)
-        .values({
-          postId: post.id,
-          userId: meId,
-          tags,
-          amount: pack.priceInr,
-          planId: pack.id,
-          startsAt: new Date(),
-          expiresAt: new Date(Date.now() + pack.hours * 3600e3),
-        })
-        .returning();
-      return created;
-    });
-    res.status(201).json({
-      success: true,
-      message: `Your boost is live for ${pack.duration}!`,
-      data: {
-        boost: {
-          id: boost.id,
-          expiresAt: boost.expiresAt,
-          tags: boost.tags,
-          extendCount: boost.extendCount,
-          planId: pack.id,
-          amount: pack.priceInr,
-        },
-        packs: SPOTLIGHT_PACK_LIST.map((p) => ({ ...p, perDay: packPerDay(p) })),
-      },
-    });
-  } catch (e) {
-    if (e instanceof Error && e.message === "INSUFFICIENT_SPOTLIGHT") {
-      res.status(400).json({
-        success: false,
-        message: `Insufficient balance (₹${pack.priceInr} required). Add money to your wallet first.`,
-        _spotlightFailed: true,
-      });
-      return;
-    }
-    throw e;
-  }
-});
-
-router.post("/community/posts/:id/spotlight/extend", authenticate, async (req: Request, res: Response): Promise<void> => {
-  const meId = req.user!.id;
-  if (req.body?.planId != null && !isKnownSpotlightPack(req.body.planId)) {
-    res.status(400).json({ success: false, message: "Unknown boost pack" });
-    return;
-  }
-  const pack = getSpotlightPack(req.body?.planId);
-  const [post] = await db
-    .select()
-    .from(communityPostsTable)
-    .where(eq(communityPostsTable.id, String(req.params.id)))
-    .limit(1);
-  if (!post) {
-    res.status(404).json({ success: false, message: "Post not found" });
-    return;
-  }
-  if (post.userId !== meId) {
-    res.status(403).json({ success: false, message: "You can only extend your own boost" });
-    return;
-  }
-  if (post.kind === "GIG" || post.kind === "PROJECT") {
-    res.status(400).json({ success: false, message: "Gig and project posts are no longer boostable" });
-    return;
-  }
-  const [boost] = await db
-    .select()
-    .from(postBoostsTable)
-    .where(and(eq(postBoostsTable.postId, post.id), gt(postBoostsTable.expiresAt, new Date())))
-    .limit(1);
-  if (!boost) {
-    res.status(409).json({ success: false, message: "No active boost — start a new one", _active: false });
-    return;
-  }
-  try {
-    const updated = await db.transaction(async (tx) => {
-      const [wallet] = await tx.select().from(freelanceWalletsTable).where(eq(freelanceWalletsTable.userId, meId));
-      if (!wallet || Number(wallet.balance) < pack.priceInr) throw new Error("INSUFFICIENT_SPOTLIGHT");
-      const deductResult = await tx.execute(
-        sql`UPDATE ${freelanceWalletsTable} SET balance = balance - ${pack.priceInr}, updated_at = NOW() WHERE ${freelanceWalletsTable.id} = ${wallet.id} AND balance >= ${pack.priceInr}`,
-      );
-      if (deductResult.rowCount === 0) throw new Error("INSUFFICIENT_SPOTLIGHT");
-      await tx.insert(transactionsTable).values({
-        userId: meId,
-        type: "SERVICE_PAYMENT",
-        amount: pack.priceInr,
-        description: `Boost extension · ${pack.duration} (post ${post.id})`,
-        status: "COMPLETED",
-      });
-      // Longer packs replace the plan on the row, so stats report what the buyer
-      // actually paid for rather than the cheapest tier they started on.
-      const [u] = await tx
-        .update(postBoostsTable)
-        .set({
-          expiresAt: new Date(boost.expiresAt.getTime() + pack.hours * 3600e3),
-          extendCount: boost.extendCount + 1,
-          planId: pack.id,
-          amount: pack.priceInr,
-        })
-        .where(eq(postBoostsTable.id, boost.id))
-        .returning();
-      return u;
-    });
-    res.json({
-      success: true,
-      message: `Boost extended by ${pack.duration}`,
-      data: {
-        boost: {
-          id: updated.id,
-          expiresAt: updated.expiresAt,
-          tags: updated.tags,
-          extendCount: updated.extendCount,
-          planId: pack.id,
-          amount: pack.priceInr,
-        },
-        packs: SPOTLIGHT_PACK_LIST.map((p) => ({ ...p, perDay: packPerDay(p) })),
-      },
-    });
-  } catch (e) {
-    if (e instanceof Error && e.message === "INSUFFICIENT_SPOTLIGHT") {
-      res.status(400).json({
-        success: false,
-        message: `Insufficient balance (₹${pack.priceInr} required). Add money to your wallet first.`,
-        _spotlightFailed: true,
-      });
-      return;
-    }
-    throw e;
-  }
-});
-
-/**
- * Real demand for a set of keywords, counted from search_logs.
- *
- * This is the honest version of "people want this": a boost only reaches
- * viewers whose recent searches match its tags, so the number of matching
- * searches IS the addressable audience. No invented figures, no "127 people are
- * viewing" theatre — if nobody searched, it says zero and the seller should not
- * buy.
- */
-router.get("/community/spotlight/demand", optionalAuth, async (req: Request, res: Response): Promise<void> => {
-  const raw = String(req.query.tags ?? "");
-  const tags = spotSuggestions(raw.split(",").map((t) => ({ term: t, n: 1 })));
-  if (!tags.length) {
-    res.json({ success: true, data: { windowDays: 7, terms: [], totalSearches: 0, uniqueSearchers: 0 } });
-    return;
-  }
-  try {
-    const since = new Date(Date.now() - 7 * 864e5);
-    const rows = await db
-      .select({ term: searchLogsTable.term, userId: searchLogsTable.userId })
-      .from(searchLogsTable)
-      .where(gte(searchLogsTable.createdAt, since))
-      .limit(5000);
-    const perTerm: { term: string; searches: number }[] = [];
-    const matchedSearchers = new Set<string>();
-    let totalSearches = 0;
-    for (const tag of tags) {
-      // Same matching rule loadSpotlightPins() uses, so the count reflects the
-      // audience a boost with this tag would actually reach.
-      let n = 0;
-      for (const r of rows) {
-        if (!tagMatchesSignature(tag, [normalizeSpotTerm(r.term)])) continue;
-        n += 1;
-        // Only count people who actually searched this tag, so the number shown
-        // to the buyer is the reach ceiling, not a site-wide vanity metric.
-        if (r.userId) matchedSearchers.add(r.userId);
-      }
-      perTerm.push({ term: tag, searches: n });
-      totalSearches += n;
-    }
-    res.json({
-      success: true,
-      data: {
-        windowDays: 7,
-        terms: perTerm.sort((a, b) => b.searches - a.searches),
-        totalSearches,
-        uniqueSearchers: matchedSearchers.size,
-      },
-    });
-  } catch {
-    res.json({ success: true, data: { windowDays: 7, terms: [], totalSearches: 0, uniqueSearchers: 0 } });
-  }
-});
-
-router.get("/community/spotlight/suggestions", optionalAuth, async (_req: Request, res: Response): Promise<void> => {
-  try {
-    const trend = await db
-      .select({ term: searchLogsTable.term, n: count() })
-      .from(searchLogsTable)
-      .where(gte(searchLogsTable.createdAt, new Date(Date.now() - 14 * 864e5)))
-      .groupBy(searchLogsTable.term)
-      .orderBy(desc(count()))
-      .limit(40);
-    res.json({ success: true, data: { trending: spotSuggestions(trend) } });
-  } catch {
-    res.json({ success: true, data: { trending: [] } });
-  }
-});
+};
+router.all("/community/spotlight", spotlightRetired);
+router.all("/community/spotlight/*splat", spotlightRetired);
+router.all("/community/posts/:id/spotlight", spotlightRetired);
+router.all("/community/posts/:id/spotlight/*splat", spotlightRetired);
+router.all("/community/boosts/:boostId/click", spotlightRetired);
 
 /**
  * GET /community/search/suggest?q=
@@ -1077,7 +534,7 @@ router.get("/community/spotlight/suggestions", optionalAuth, async (_req: Reques
  * Deliberately never writes to search_logs. /community/feed logs every query,
  * and a typeahead fires one request per few keystrokes, so reusing the feed
  * endpoint would record "w", "we", "web", "web d" as genuine searches and
- * quietly inflate the Spotlight demand numbers that are sold to sellers.
+ * quietly inflate the search-volume numbers the feed shows for a query.
  */
 router.get("/community/search/suggest", optionalAuth, async (req: Request, res: Response): Promise<void> => {
   const q = String(req.query.q || "")
@@ -1236,14 +693,7 @@ router.get("/community/feed", optionalAuth, async (req: Request, res: Response):
       .limit(limit);
   }
 
-  let rows = await renderPosts(basePosts, meId);
-  if (meId && !authorId && !q && filter === "for-you") {
-    const pins = await loadSpotlightPins(meId, kind);
-    if (pins.length) {
-      const pinIds = new Set(pins.map((r) => r.post.id));
-      rows = [...pins, ...rows.filter((r) => !pinIds.has(r.post.id))];
-    }
-  }
+  const rows = await renderPosts(basePosts, meId);
   res.status(200).json({ success: true, data: { posts: rows } });
 });
 
@@ -2433,10 +1883,9 @@ router.put("/community/orders/:id/cancel", authenticate, async (req: Request, re
 });
 
 router.put("/community/posts/:id", authenticate, async (req: Request, res: Response): Promise<void> => {
-  // Editing a gig or project after posting. Without this, keywords could never
-  // be added to an existing post: the composer only sends tags on create, and
-  // the boost modal's keyword picker only sets boost targets. So a gig posted
-  // without keywords could only be fixed by deleting and reposting it.
+  // Editing a post after posting. The composer only sends tags on create, so
+  // without this a post whose tags are wrong could only be fixed by deleting
+  // and reposting it, which loses its likes and comments.
   const [post] = await db
     .select({
       id: communityPostsTable.id,

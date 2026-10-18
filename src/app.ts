@@ -116,6 +116,10 @@ app.get(
     res.redirect(302, "/explore");
   },
 );
+// Spotlight boosting is retired; old explainer links land on the feed.
+app.get(["/spotlight-boost", "/spotlight"], (_req, res) => {
+  res.redirect(302, "/feed");
+});
 
 app.use(express.static(publicPath));
 
