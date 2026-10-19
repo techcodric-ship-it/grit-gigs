@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<link rel="stylesheet" href="/prep/prep.css?v=2"/>
+<link rel="stylesheet" href="/prep/prep.css?v=3"/>
 </head>
 <body>
 <header class="topnav">
@@ -36,6 +36,15 @@
       <li>No Glassdoor / LinkedIn scraping</li>
       <li>Aggregates unlock at 5 reports</li>
       <li>Contributors stay anonymous</li>
+    </ul>
+    <div class="prep-hero-ctas">
+      <a class="prep-btn" href="#prepSearchForm">Start a company report</a>
+      <a class="prep-btn prep-btn-ghost" href="#prepFeatures">Explore what is included</a>
+    </div>
+    <ul class="prep-stats prep-hero-stats">
+      <li><b>55</b><span>practice questions</span></li>
+      <li><b>4</b><span>prep modules</span></li>
+      <li><b>5+</b><span>reports per aggregate</span></li>
     </ul>
   </section>
 
@@ -66,29 +75,29 @@
     <ul class="prep-matches" id="prepMatches" hidden></ul>
   </section>
 
-  <section class="prep-features">
+  <section class="prep-features" id="prepFeatures">
     <h2 class="prep-h2">Everything Prep includes</h2>
     <div class="prep-feature-grid">
       <div class="prep-feature">
-        <div class="prep-feature-k">CR</div>
+        <div class="prep-feature-k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"/><path d="M15 21V9h2a2 2 0 0 1 2 2v10"/><path d="M8 7h2M8 11h2M8 15h2"/></svg></div>
         <b>Company reports</b>
         <p>Official careers pages and recent news, fetched directly from the source. Each line
           carries a source chip and a link you can open yourself.</p>
       </div>
       <div class="prep-feature">
-        <div class="prep-feature-k">AQ</div>
+        <div class="prep-feature-k"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></div>
         <b>Aptitude practice</b>
         <p>31 original questions across quant, logical and verbal. Timed quizzes, scored on the
           server — explanations unlock after you submit.</p>
       </div>
       <div class="prep-feature">
-        <div class="prep-feature-k">IV</div>
+        <div class="prep-feature-k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg></div>
         <b>Interview prep</b>
         <p>24 questions across behavioural, technical and HR rounds, plus mock sessions that
           score your answers by category and flag the weakest one.</p>
       </div>
       <div class="prep-feature">
-        <div class="prep-feature-k">TC</div>
+        <div class="prep-feature-k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-3.5 8-10V5l-8-3-8 3v7c0 6.5 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div>
         <b>Trust checks</b>
         <p>Employer pay records and college placement outcomes, released only as aggregates once
           a company has at least 5 approved reports — never individual rows.</p>
@@ -106,8 +115,8 @@
     </ol>
   </section>
 
-  <section class="prep-card" id="prepProCard">
-    <h2 class="prep-h2">Prep Pro</h2>
+  <section class="prep-card prep-card-pro" id="prepProCard">
+    <h2 class="prep-h2">Prep Pro <span class="prep-pro-badge">Premium</span></h2>
     <div class="prep-empty" id="prepProLoading"><b>Prep Pro</b> Checking your plan…</div>
     <div id="prepProContent" hidden>
       <div class="prep-empty" id="prepProBody" style="text-align:left;"></div>
@@ -131,13 +140,14 @@
   </section>
 
   <footer class="prep-foot">
+    <div class="prep-foot-brand">Prep <span>by Grit&amp;Gigs</span></div>
     Prep reports are informational, not legal or financial advice. Sources are official company
     sites and public news feeds only. Pay and placement figures are member-reported and shown
     only as aggregates from a minimum of 5 approved records — individuals are never exposed.
   </footer>
 </main>
 
-<script src="/js/prep-nav.js?v=2" defer></script>
+<script src="/js/prep-nav.js?v=3" defer></script>
 <script>
 (function () {
   "use strict";
@@ -184,7 +194,7 @@
       .catch(function () { btn.disabled = false; errEl.textContent = "Network error. Try again."; });
   });
 
-  // Prep Pro status + wallet purchase.
+  // Prep Pro status + Razorpay checkout (activation only after payment).
   var proLoading = document.getElementById("prepProLoading");
   var proContent = document.getElementById("prepProContent");
   var proBody = document.getElementById("prepProBody");
@@ -238,26 +248,94 @@
       });
   }
 
+  // Razorpay checkout: order -> modal -> server verify. The entitlement is
+  // granted ONLY after /pro/verify confirms the capture with Razorpay
+  // server-side. Clicking the button without paying never activates anything.
+  function loadRazorpay(onReady, onFail) {
+    if (window.Razorpay) { onReady(); return; }
+    var s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload = function () { onReady(); };
+    s.onerror = function () { onFail(); };
+    document.head.appendChild(s);
+  }
+
+  function verifyPayment(resp) {
+    fetch("/api/prep/pro/verify", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: proAuth,
+      body: JSON.stringify({
+        razorpayOrderId: resp.razorpay_order_id,
+        razorpayPaymentId: resp.razorpay_payment_id,
+      }),
+    })
+      .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
+      .then(function (v) {
+        proBuy.disabled = false;
+        if ((v.status === 201 || v.status === 200) && v.d.success) {
+          var ent = v.d.data && v.d.data.entitlement;
+          if (ent) showPro({ isPro: true, expiresAt: ent.expiresAt });
+          else window.location.reload();
+          return;
+        }
+        if (v.status === 409) { window.location.reload(); return; }
+        proErr.textContent = (v.d && v.d.message) || "Payment could not be verified. If you were charged, contact support.";
+      })
+      .catch(function () {
+        proBuy.disabled = false;
+        proErr.textContent = "Verification failed. If you were charged, contact support.";
+      });
+  }
+
   proBuy.addEventListener("click", function () {
     proErr.textContent = "";
     proBuy.disabled = true;
-    fetch("/api/prep/pro/purchase", {
+    fetch("/api/prep/pro/order", {
       method: "POST",
       credentials: "same-origin",
       headers: proAuth,
     })
       .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
       .then(function (res) {
-        proBuy.disabled = false;
-        if (res.status === 201 && res.d.success) {
-          showPro({ isPro: true, expiresAt: res.d.data.entitlement.expiresAt });
+        if (res.status === 401) { proBuy.disabled = false; showLoggedOutPro(); return; }
+        if (res.status === 409) { proBuy.disabled = false; window.location.reload(); return; }
+        if (res.status !== 200 || !res.d.success) {
+          proBuy.disabled = false;
+          proErr.textContent = (res.d && res.d.message) || "Could not start checkout.";
           return;
         }
-        if (res.status === 401) { showLoggedOutPro(); return; }
-        proErr.textContent = (res.d && res.d.message) || "Purchase failed. Try again.";
+        var order = res.d.data.order;
+        loadRazorpay(function () {
+          var rz = new Razorpay({
+            key: res.d.data.key,
+            amount: order.amount,
+            currency: "INR",
+            name: "Grit and Gigs",
+            description: "Prep Pro - 30 days",
+            order_id: order.id,
+            theme: { color: "#111111" },
+            handler: function (resp) { verifyPayment(resp); },
+            modal: {
+              ondismiss: function () {
+                proBuy.disabled = false;
+                proErr.textContent = "Payment cancelled. You were not charged.";
+              },
+            },
+          });
+          rz.on("payment.failed", function () {
+            proBuy.disabled = false;
+            proErr.textContent = "Payment failed. You were not charged.";
+          });
+          rz.open();
+        }, function () {
+          proBuy.disabled = false;
+          proErr.textContent = "Could not load the payment gateway. Refresh and try again.";
+        });
       })
       .catch(function () { proBuy.disabled = false; proErr.textContent = "Network error. Try again."; });
   });
+
 })();
 </script>
 </body>

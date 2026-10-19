@@ -42,9 +42,11 @@ import {
   resolveFreeDailyReports,
 } from "./monetization";
 import {
+  completeProOrder,
   countReportsLast24h,
+  createProPendingOrder,
+  findProOrder,
   getActiveEntitlement,
-  purchasePro,
   reviewAndAward,
 } from "./monetization-db";
 import { buildPayAggregate, buildPlacementAggregate, resolveMinSample } from "./aggregates";
@@ -651,7 +653,18 @@ prepRouter.get("/companies/:slug/placement-aggregates", aggregateLimiter, prepDb
 });
 
 // ---- Prep Pro (Phase 9) ----
-// Wallet-funded, prep-scoped entitlement. Shared plan/billing enums untouched.
+// Paid exclusively through Razorpay: /pro/order creates a gateway order held
+// as a PENDING PREP_PRO transaction, and /pro/verify grants the entitlement
+// ONLY after Razorpay confirms the payment was captured against that exact
+// order and amount (server-side — the client is never trusted). There is no
+// wallet path: clicking without paying never activates anything.
+
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
+const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
+
+function razorpayConfigured(): boolean {
+  return !!(RAZORPAY_KEY_ID && RAZORPAY_KEY_SECRET);
+}
 
 const proLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -693,30 +706,109 @@ prepRouter.get("/pro/status", authenticate, proLimiter, prepDbGate, async (req: 
   }
 });
 
-prepRouter.post("/pro/purchase", authenticate, purchaseLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+prepRouter.post("/pro/order", authenticate, purchaseLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
   try {
-    const result = await purchasePro(req.user!.id);
-    if (!result.ok) {
-      if (result.reason === "already-active") {
-        res.status(409).json({ success: false, message: "Prep Pro is already active on your account." });
-      } else {
-        res
-          .status(402)
-          .json({ success: false, message: "Not enough wallet balance. Top up your wallet first." });
-      }
+    if (!razorpayConfigured()) {
+      res.status(503).json({ success: false, message: "Payment gateway not configured" });
       return;
     }
-    res.status(201).json({
-      success: true,
-      data: {
-        entitlement: {
-          expiresAt: result.entitlement.expiresAt,
-          pricePaidInr: result.entitlement.pricePaidInr,
-        },
-      },
+    const active = await getActiveEntitlement(req.user!.id);
+    if (active && isEntitlementActive(active)) {
+      res.status(409).json({ success: false, message: "Prep Pro is already active on your account." });
+      return;
+    }
+    const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
+    const rzResp = await fetch("https://api.razorpay.com/v1/orders", {
+      method: "POST",
+      headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount: Math.round(PREP_PRO_PRICE_INR * 100),
+        currency: "INR",
+        receipt: `prep_pro_${Date.now()}`,
+        notes: { purpose: "prep_pro" },
+      }),
     });
+    if (!rzResp.ok) {
+      res.status(502).json({ success: false, message: "Could not start checkout" });
+      return;
+    }
+    const order = await rzResp.json() as { id: string };
+    // PENDING row maps the gateway order to this user — verify and webhooks
+    // resolve through it; the amount lives HERE, never in the client.
+    await createProPendingOrder(req.user!.id, order.id);
+    res.json({ success: true, data: { order, key: RAZORPAY_KEY_ID, priceInr: PREP_PRO_PRICE_INR } });
   } catch (err) {
-    console.error("[prep] pro purchase failed:", err);
-    res.status(500).json({ success: false, message: "Purchase failed" });
+    console.error("[prep] pro order failed:", err);
+    res.status(500).json({ success: false, message: "Could not start checkout" });
+  }
+});
+
+prepRouter.post("/pro/verify", authenticate, purchaseLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  const { razorpayOrderId, razorpayPaymentId } = req.body as { razorpayOrderId?: string; razorpayPaymentId?: string };
+  if (!razorpayConfigured()) {
+    res.status(503).json({ success: false, message: "Payment gateway not configured" });
+    return;
+  }
+  if (!razorpayOrderId || !razorpayPaymentId) {
+    res.status(400).json({ success: false, message: "Missing payment details" });
+    return;
+  }
+  try {
+    const txn = await findProOrder(razorpayOrderId, req.user!.id);
+    if (!txn) {
+      res.status(404).json({ success: false, message: "Payment order not found" });
+      return;
+    }
+    if (txn.status === "COMPLETED") {
+      res.json({ success: true, message: "Already processed" });
+      return;
+    }
+
+    // Server-side verify with Razorpay — never trust the client. A payment
+    // that cannot be confirmed as captured must never activate Prep Pro.
+    const amtInr = Number(txn.amount);
+    const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
+    const pmtResp = await fetch(`https://api.razorpay.com/v1/payments/${razorpayPaymentId}`, {
+      headers: { Authorization: `Basic ${auth}` },
+    });
+    if (!pmtResp.ok) {
+      res.status(502).json({ success: false, message: "Unable to verify payment with Razorpay" });
+      return;
+    }
+    const payment = await pmtResp.json() as { status: string; amount: number; order_id: string };
+    if (payment.status !== "captured") {
+      res.status(400).json({ success: false, message: "Payment not captured" });
+      return;
+    }
+    if (payment.order_id !== razorpayOrderId) {
+      res.status(400).json({ success: false, message: "Order mismatch" });
+      return;
+    }
+    if (payment.amount !== Math.round(amtInr * 100)) {
+      res.status(400).json({ success: false, message: "Amount mismatch" });
+      return;
+    }
+
+    const result = await completeProOrder(req.user!.id, razorpayOrderId, razorpayPaymentId);
+    if (result.ok) {
+      res.status(201).json({
+        success: true,
+        data: {
+          entitlement: {
+            expiresAt: result.entitlement.expiresAt,
+            pricePaidInr: result.entitlement.pricePaidInr,
+          },
+        },
+      });
+      return;
+    }
+    if (result.reason === "already-active") {
+      res.status(409).json({ success: false, message: "Prep Pro is already active on your account." });
+      return;
+    }
+    res.json({ success: true, message: "Already processed" });
+  } catch (err) {
+    console.error("[prep] pro verify failed:", err);
+    res.status(500).json({ success: false, message: "Verification failed" });
   }
 });

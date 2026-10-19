@@ -9,6 +9,7 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 import { prepRouter } from "./prep/router";
 import { makePrepPages } from "./prep/pages";
+import { isPrepEnabled } from "./prep/feature";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -79,6 +80,20 @@ app.use("/uploads", express.static(path.join(rootDir, "uploads")));
 // would make every /api/prep/* route answer "Route not found".
 app.use("/api/prep", prepRouter);
 app.use("/api", router);
+
+// Prep nav flash fix: ship the flag as a cookie on every response (including
+// the HTML itself), so prep-nav.js can paint the Prep icon synchronously at
+// script time instead of after a /api/prep/flag round-trip. The fetch still
+// revalidates; the cookie only removes the 2s gap on tab switches. When the
+// flag is off the cookie is actively cleared so stale browsers lose the icon.
+app.use((_req, res, next) => {
+  if (isPrepEnabled()) {
+    res.cookie("prep_nav", "1", { path: "/", maxAge: 365 * 24 * 60 * 60 * 1000, sameSite: "lax" });
+  } else {
+    res.clearCookie("prep_nav", { path: "/" });
+  }
+  next();
+});
 
 // Serve frontend static files (public/ folder next to server)
 const publicPath = path.join(rootDir, "public");

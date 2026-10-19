@@ -135,7 +135,9 @@ describe("quota + abuse surface", () => {
     expect(router).toMatch(/post\("\/aptitude\/submit", aptitudeLimiter/);
     expect(router).toMatch(/post\("\/interview\/mock\/submit", interviewLimiter/);
     expect(router).toMatch(/post\("\/proof", authenticate, proofSubmitLimiter/);
-    expect(router).toMatch(/post\("\/pro\/purchase", authenticate, purchaseLimiter/);
+    expect(router).toMatch(/post\("\/pro\/order", authenticate, purchaseLimiter/);
+    expect(router).toMatch(/post\("\/pro\/verify", authenticate, purchaseLimiter/);
+    expect(router).not.toMatch(/post\("\/pro\/purchase"/);
   });
   it("aggregates endpoints are rate-limited too", () => {
     expect(router).toMatch(/get\("\/companies\/:slug\/pay-aggregates", aggregateLimiter/);

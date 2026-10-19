@@ -181,3 +181,94 @@ describe("secret hygiene", () => {
     expect(read(".env.example")).toMatch(/^# GEMINI_API_KEY=/m);
   });
 });
+
+describe("nav stability: flash, wallet, avatar on prep pages", () => {
+  const nav = read("public/js/prep-nav.js");
+  it("injects the Prep icon from the prep_nav cookie BEFORE any fetch (no 2s flash)", () => {
+    expect(nav).toContain('if (cookieEnabled()) inject(true);');
+    expect(nav).toContain("prep_nav=1");
+    expect(nav.indexOf("if (cookieEnabled()) inject(true);")).toBeLessThan(
+      nav.indexOf('fetch("/api/prep/flag"'),
+    );
+    expect(nav).toContain("document.cookie = \"prep_nav=; Max-Age=0; Path=/\";"); // flag-off clears it
+  });
+  it("the server ships the cookie with every page response", () => {
+    const app = read("src/app.ts");
+    expect(app).toContain('res.cookie("prep_nav", "1"');
+    expect(app).toContain('res.clearCookie("prep_nav"');
+    expect(app).toContain("if (isPrepEnabled())");
+    // must run before static serving so HTML responses carry it
+    expect(app.indexOf('res.cookie("prep_nav"')).toBeLessThan(app.indexOf("express.static(publicPath)"));
+  });
+  it("wallet icon is injected on prep pages (feed-app.js is not loaded there)", () => {
+    expect(nav).toContain('a[href="/wallet.html"]');
+    expect(nav).toContain('w.title = "Wallet"');
+    expect(nav).toContain("row.insertBefore(w, anchor)");
+  });
+  it("nav avatar comes from the cached session, refreshed via /api/auth/me", () => {
+    expect(nav).toContain('document.getElementById("navAv")');
+    expect(nav).toContain('localStorage.getItem("se_user")');
+    expect(nav).toContain("profilePhoto");
+    expect(nav).toContain('fetch("/api/auth/me"');
+    expect(nav).toContain("d.data.user");
+  });
+});
+
+describe("Prep Pro is pay-only (Razorpay order + verify)", () => {
+  const router = read("src/prep/router.ts");
+  const dbLayer = read("src/prep/monetization-db.ts");
+  const home = read("public/prep/index.html");
+  it("router exposes order/verify and nothing that activates on click", () => {
+    expect(router).toContain('prepRouter.post("/pro/order"');
+    expect(router).toContain('prepRouter.post("/pro/verify"');
+    expect(router).not.toContain('prepRouter.post("/pro/purchase"');
+    expect(dbLayer).not.toContain("purchasePro");
+    expect(dbLayer).not.toContain("paymentMethod: \"wallet\"");
+  });
+  it("home page drives the checkout modal, not the old purchase call", () => {
+    expect(home).toContain("/api/prep/pro/order");
+    expect(home).toContain("/api/prep/pro/verify");
+    expect(home).not.toContain("/api/prep/pro/purchase");
+    expect(home).toContain("new Razorpay({");
+    expect(home).toContain("order_id: order.id");
+    expect(home).toContain("Payment cancelled. You were not charged.");
+  });
+  it("verify checks captured + order + amount before calling completeProOrder", () => {
+    const verifyIdx = router.indexOf('prepRouter.post("/pro/verify"');
+    const capturedIdx = router.indexOf('payment.status !== "captured"', verifyIdx);
+    const amountIdx = router.indexOf("payment.amount !== Math.round(amtInr * 100)", verifyIdx);
+    const completeIdx = router.indexOf("completeProOrder(", verifyIdx);
+    expect(verifyIdx).toBeGreaterThan(-1);
+    expect(capturedIdx).toBeGreaterThan(verifyIdx);
+    expect(amountIdx).toBeGreaterThan(capturedIdx);
+    expect(completeIdx).toBeGreaterThan(amountIdx); // grant strictly after all checks
+  });
+});
+
+describe("design: product-grade presentation", () => {
+  const home = read("public/prep/index.html");
+  const css = read("public/prep/prep.css");
+  it("hero has CTAs, stats and a grid backdrop", () => {
+    expect(home).toContain('class="prep-hero-ctas"');
+    expect(home).toContain('href="#prepSearchForm"');
+    expect(home).toContain('id="prepFeatures"');
+    expect(home).toContain('class="prep-stats prep-hero-stats"');
+    expect(home).toContain("<b>55</b>");
+    expect(css).toContain("background-size: 34px 34px");
+    expect(css).toContain("background-clip: text");
+  });
+  it("feature cards use real SVG icons in gradient tiles", () => {
+    expect(home).toMatch(/class="prep-feature-k"><svg viewBox="0 0 24 24"/);
+    expect(home).not.toMatch(/class="prep-feature-k">C[RA]<\//); // letter tiles are gone
+    expect(css).toContain(".prep-feature-k svg");
+    expect(css).toContain("linear-gradient(135deg, var(--prep-violet)");
+  });
+  it("steps are numbered, buttons are gradient, Pro card is premium", () => {
+    expect(css).toContain("counter-reset: prep-step");
+    expect(css).toContain("scroll-margin-top: 76px"); // anchors clear the fixed nav
+    expect(home).toContain('class="prep-card prep-card-pro"');
+    expect(home).toContain('class="prep-pro-badge"');
+    expect(home).toContain('class="prep-foot-brand"');
+    expect(css).toContain(".prep-card-pro");
+  });
+});

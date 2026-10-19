@@ -112,13 +112,29 @@ describe("wiring (source-level)", () => {
   it("pro endpoints exist behind the flag gate + auth, rate-limited", () => {
     const gateIdx = router.indexOf("prepRouter.use(");
     const statusIdx = router.indexOf('prepRouter.get("/pro/status"');
-    const buyIdx = router.indexOf('prepRouter.post("/pro/purchase"');
+    const orderIdx = router.indexOf('prepRouter.post("/pro/order"');
+    const verifyIdx = router.indexOf('prepRouter.post("/pro/verify"');
     expect(statusIdx).toBeGreaterThan(gateIdx);
-    expect(buyIdx).toBeGreaterThan(gateIdx);
+    expect(orderIdx).toBeGreaterThan(gateIdx);
+    expect(verifyIdx).toBeGreaterThan(orderIdx);
     expect(router).toContain("purchaseLimiter");
     expect(router).toContain("proLimiter");
     expect(router).toContain('reason === "already-active"');
-    expect(router).toContain("Not enough wallet balance");
+    // the old wallet purchase route must be gone: clicking alone never activates
+    expect(router).not.toContain("/pro/purchase");
+    expect(router).not.toContain("Top up your wallet");
+  });
+
+  it("activation requires a server-side Razorpay capture (client never trusted)", () => {
+    expect(router).toContain("razorpayConfigured()");
+    expect(router).toContain("https://api.razorpay.com/v1/orders");
+    expect(router).toContain("https://api.razorpay.com/v1/payments/");
+    expect(router).toContain('payment.status !== "captured"');
+    expect(router).toContain("payment.order_id !== razorpayOrderId");
+    expect(router).toContain("payment.amount !== Math.round(amtInr * 100)");
+    expect(router).toContain('notes: { purpose: "prep_pro" }');
+    expect(router).toContain("createProPendingOrder("); // PENDING row owns the amount
+    expect(router).toContain("completeProOrder("); // grant happens only here
   });
 
   it("review flow approves AND pays in one transaction via reviewAndAward", () => {
@@ -134,11 +150,16 @@ describe("wiring (source-level)", () => {
     expect(dbLayer).toContain("PREP_PROOF_AWARD_INR");
   });
 
-  it("wallet debit is atomic (balance >= price in the UPDATE) with 23505 race fallback", () => {
-    expect(dbLayer).toContain("balance >= ${price}");
+  it("entitlement is granted only inside completeProOrder, after capture", () => {
+    expect(dbLayer).toContain("PREP_PRO:Prep Pro - 30 days"); // prep orders are tagged
+    expect(dbLayer).toContain('set({ status: "COMPLETED", gatewayTxnId })');
+    expect(dbLayer).toContain('eq(transactionsTable.status, "PENDING")'); // first completion wins
     expect(dbLayer).toContain('"23505"');
     expect(dbLayer).toContain('"already-active"');
-    expect(dbLayer).toContain('"insufficient-balance"');
+    // no wallet path remains anywhere in the DB layer
+    expect(dbLayer).not.toContain("balance >= ${price}");
+    expect(dbLayer).not.toContain('"insufficient-balance"');
+    expect(dbLayer).not.toContain("purchasePro");
   });
 
   it("uses only existing transaction_type enum values (SUBSCRIPTION / SERVICE_EARNING)", () => {
@@ -159,7 +180,11 @@ describe("wiring (source-level)", () => {
 
   it("home page shows quota + buy flow with the quoted price", () => {
     expect(index).toContain("/api/prep/pro/status");
-    expect(index).toContain("/api/prep/pro/purchase");
+    expect(index).toContain("/api/prep/pro/order");
+    expect(index).toContain("/api/prep/pro/verify");
+    expect(index).not.toContain("/api/prep/pro/purchase");
+    expect(index).toContain("checkout.razorpay.com/v1/checkout.js");
+    expect(index).toContain("payment.failed");
     expect(index).toContain("Buy Prep Pro — ₹199 / 30 days");
     expect(index).toContain("report generations left today");
     expect(index).toContain("se_token");
