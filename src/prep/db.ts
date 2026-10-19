@@ -98,6 +98,21 @@ CREATE TABLE IF NOT EXISTS prep_credit_awards (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE UNIQUE INDEX IF NOT EXISTS prep_credit_awards_reason_uniq ON prep_credit_awards (reason);
+CREATE TABLE IF NOT EXISTS prep_ai_plans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL,
+  role_key VARCHAR(160) NOT NULL DEFAULT '',
+  plan JSONB NOT NULL,
+  model VARCHAR(80),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS prep_ai_plans_key_uniq ON prep_ai_plans (company_id, role_key);
+CREATE TABLE IF NOT EXISTS prep_ai_plan_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS prep_ai_plan_requests_user_idx ON prep_ai_plan_requests (user_id, created_at DESC);
 `;
 
 /** Raw evidence is deleted after 30 days (spec): drop the stored file, keep

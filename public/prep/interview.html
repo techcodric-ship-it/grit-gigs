@@ -68,6 +68,36 @@
     <div class="prep-err" id="ivErr" role="alert"></div>
   </section>
 
+  <section class="prep-card prep-card-plan">
+    <span class="plan-kicker">AI prep coach</span>
+    <h2 class="prep-h2">Company + role plan, researched for you</h2>
+    <p class="prep-sub">Pick your target &mdash; the coach searches the company's official pages and recent
+      news across the web, then returns the exact topics, likely rounds and questions to prepare.</p>
+    <div class="plan-form">
+      <div class="prep-field">
+        <label for="ivPlanCompany">Company</label>
+        <input id="ivPlanCompany" list="ivPlanCompanies" placeholder="e.g. Infosys" maxlength="200" autocomplete="off"/>
+        <datalist id="ivPlanCompanies">
+          <option>Infosys</option><option>TCS</option><option>Wipro</option><option>HCLTech</option><option>Tech Mahindra</option>
+          <option>Accenture</option><option>Cognizant</option><option>Deloitte</option><option>Amazon</option><option>Microsoft</option>
+          <option>Google</option><option>Flipkart</option><option>Zomato</option><option>Swiggy</option><option>Paytm</option>
+        </datalist>
+      </div>
+      <div class="prep-field">
+        <label for="ivPlanRole">Role</label>
+        <input id="ivPlanRole" list="ivPlanRoles" placeholder="e.g. Software Engineer" maxlength="120" autocomplete="off"/>
+        <datalist id="ivPlanRoles">
+          <option>Software Engineer</option><option>Graduate Engineer Trainee</option><option>Business Analyst</option>
+          <option>Data Analyst</option><option>Product Manager</option><option>Quality Analyst</option>
+          <option>DevOps Engineer</option><option>Sales Associate</option><option>Human Resources</option>
+        </datalist>
+      </div>
+      <button class="prep-btn" id="ivPlanBtn" type="button">Build my AI plan</button>
+    </div>
+    <div class="prep-err" id="ivPlanErr" role="alert"></div>
+    <div class="plan-out" id="ivPlanOut" hidden></div>
+  </section>
+
   <section class="prep-card" id="browseCard">
     <div id="browseList"><div class="prep-empty">Loading questions…</div></div>
   </section>
@@ -143,7 +173,91 @@
   function renderChips() {
     chips(document.getElementById("trackChips"), tracks, track, function (v) {
       track = (track === v) ? null : v;
-      renderChips();
+    
+  // ---- AI company + role plan (grounded research, cached server-side) ----
+  var planBtn = document.getElementById("ivPlanBtn");
+  var planErr = document.getElementById("ivPlanErr");
+  var planOut = document.getElementById("ivPlanOut");
+  function renderPlan(p) {
+    var h = "";
+    h += '<div class="plan-head"><b>' + (p.grounded
+      ? "Sourced plan for your target"
+      : "Starter plan \u2014 no public sources found yet") + "</b>" +
+      (p.sources && p.sources.length ? '<span class="prep-chip">' + p.sources.length + " sources</span>" : "") + "</div>";
+    h += '<p class="prep-body">' + esc(p.overview) + "</p>";
+    if (p.highlights && p.highlights.length) {
+      h += '<ul class="plan-bullets">' + p.highlights.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>";
+    }
+    if (p.aptitudeTopics && p.aptitudeTopics.length) {
+      h += '<h3 class="plan-h3">Aptitude weightage for this role</h3><div class="plan-topics">' + p.aptitudeTopics.map(function (t) {
+        var w = Math.max(1, Math.min(100, Number(t.weight) || 1));
+        return '<div class="plan-topic"><span class="plan-topic-name">' + esc(t.topic) +
+          '</span><span class="plan-bar"><i style="width:' + w + '%"></i></span><span class="plan-weight">' + w +
+          '%</span><p class="plan-tip">' + esc(t.tip) + "</p></div>";
+      }).join("") + "</div>";
+    }
+    if (p.rounds && p.rounds.length) {
+      h += '<h3 class="plan-h3">Likely interview rounds</h3><ol class="plan-rounds">' + p.rounds.map(function (r) {
+        return "<li><b>" + esc(r.name) + "</b><span>" + esc(r.focus) + "</span></li>";
+      }).join("") + "</ol>";
+    }
+    if (p.questions && p.questions.length) {
+      h += '<h3 class="plan-h3">Questions to prepare</h3><div class="plan-qs">' + p.questions.map(function (q, i) {
+        return '<div class="plan-q"><span class="plan-q-n">' + (i + 1) + '</span><div><p class="plan-q-t">' +
+          esc(q.question) + '</p><p class="plan-q-w"><span class="prep-chip">' + esc(q.difficulty) + "</span> " +
+          esc(q.topic) + (q.why ? " \u2014 " + esc(q.why) : "") + "</p></div></div>";
+      }).join("") + "</div>";
+    }
+    if (p.sources && p.sources.length) {
+      h += '<div class="plan-sources">Grounded in: ' + p.sources.map(function (s) {
+        var u = /^https?:\/\//.test(s.url || "") ? s.url : "#";
+        return '<a class="prep-chip" href="' + esc(u) + '" target="_blank" rel="noopener nofollow">' + esc(s.label) + "</a>";
+      }).join(" ") + "</div>";
+    }
+    planOut.innerHTML = h;
+    planOut.hidden = false;
+    planOut.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  planBtn.addEventListener("click", function () {
+    planErr.textContent = "";
+    var company = document.getElementById("ivPlanCompany").value.trim();
+    var role = document.getElementById("ivPlanRole").value.trim();
+    if (company.length < 2 || role.length < 2) {
+      planErr.textContent = "Enter both a company and a role (2+ characters).";
+      return;
+    }
+    var tok = "";
+    try { tok = localStorage.getItem("se_token") || ""; } catch (e) { /* private mode */ }
+    planBtn.disabled = true;
+    planBtn.textContent = "Researching the web...";
+    fetch("/api/prep/ai/plan", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "content-type": "application/json", Authorization: "Bearer " + tok },
+      body: JSON.stringify({ company: company, role: role }),
+    })
+      .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
+      .then(function (res) {
+        planBtn.disabled = false;
+        planBtn.textContent = "Build my AI plan";
+        if (res.status === 401) {
+          planErr.innerHTML = 'Sign in to build AI plans. <a href="/login?next=' +
+            encodeURIComponent(location.pathname) + '">Sign in</a>.';
+          return;
+        }
+        if ((res.status !== 200 && res.status !== 201) || !res.d.success) {
+          planErr.textContent = (res.d && res.d.message) || "Could not build the plan. Try again.";
+          return;
+        }
+        renderPlan(res.d.data.plan);
+      })
+      .catch(function () {
+        planBtn.disabled = false;
+        planBtn.textContent = "Build my AI plan";
+        planErr.textContent = "Network error. Try again.";
+      });
+  });
+  renderChips();
       if (mode === "browse") loadBrowse();
     });
     chips(document.getElementById("catChips"), cats, cat, function (v) {

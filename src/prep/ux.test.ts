@@ -625,3 +625,70 @@ describe("a member never loses badges to a flaky status call (round 8)", () => {
     expect(router).toMatch(/const proLimiter = rateLimit\(\{\s*windowMs: 60 \* 1000,\s*max: 30,/);
   });
 });
+
+describe("AI company + role plans on aptitude & interview (round 9)", () => {
+  const router = read("src/prep/router.ts");
+  const ai = read("src/prep/ai.ts");
+  const plans = read("src/prep/ai-plans.ts");
+  const schema = read("src/prep/schema.ts");
+  const db = read("src/prep/db.ts");
+  const apt = read("public/prep/aptitude.html");
+  const iv = read("public/prep/interview.html");
+  const css = read("public/prep/prep.css");
+  it("POST /ai/plan resolves the company, reuses cache, gates the free tier", () => {
+    expect(router).toContain('prepRouter.post("/ai/plan", authenticate, aiPlanLimiter, prepDbGate');
+    expect(router).toContain("const FREE_AI_PLANS_PER_DAY = 5;");
+    expect(router).toContain("getCachedAiPlan(company.id, roleKey)");
+    expect(router).toContain("countAiPlanRequestsToday(req.user!.id)");
+    expect(router).toContain("recordAiPlanRequest(req.user!.id)");
+    expect(router).toContain("gatherSourcesWithBudget(");
+    expect(router).toContain("generatePrepPlan(");
+    expect(router).toContain("fallbackPlan(company.name, role)");
+    expect(router).toMatch(/res\.status\(402\)\.json\(\{\s*success: false,\s*message: `Free AI plans reset daily/);
+    expect(router).not.toContain("gatherSources(");
+  });
+  it("the plan is grounded like a report and degrades honestly", () => {
+    expect(ai).toContain("PLAN_SYSTEM_PROMPT");
+    expect(ai).toContain("STRICT JSON");
+    expect(ai).toContain("export function parsePlanResponse");
+    expect(ai).toContain("export function fallbackPlan");
+    expect(ai).toContain("export async function generatePrepPlan");
+    expect(ai).toContain('grounded: false');
+    expect(ai).toContain("maxOutputTokens = 700");
+    expect(ai).toContain("1600");
+  });
+  it("plans persist per company+role with a 30-minute freshness window", () => {
+    expect(plans).toContain("PLAN_CACHE_TTL_MS = 30 * 60 * 1000");
+    expect(plans).toContain("onConflictDoUpdate");
+    expect(plans).toContain("countAiPlanRequestsToday");
+    expect(schema).toContain('pgTable("prep_ai_plans"');
+    expect(schema).toContain('pgTable("prep_ai_plan_requests"');
+    expect(db).toContain("CREATE TABLE IF NOT EXISTS prep_ai_plans");
+    expect(db).toContain("CREATE TABLE IF NOT EXISTS prep_ai_plan_requests");
+    expect(db).toContain("prep_ai_plans_key_uniq");
+  });
+  it("both pages carry the company + role picker and the plan renderer", () => {
+    for (const [page, p] of [
+      ["public/prep/aptitude.html", "apt"],
+      ["public/prep/interview.html", "iv"],
+    ]) {
+      const html = read(page);
+      expect(html, page).toContain('id="' + p + 'PlanCompany"');
+      expect(html, page).toContain('id="' + p + 'PlanRole"');
+      expect(html, page).toContain('id="' + p + 'PlanBtn"');
+      expect(html, page).toContain('id="' + p + 'PlanOut"');
+      expect(html, page).toContain("/api/prep/ai/plan");
+      expect(html, page).toContain("Build my AI plan");
+      expect(html, page).toContain("Researching the web");
+      expect(html, page).toContain("function renderPlan(");
+      expect(html, page).toContain('id="' + p + 'PlanCompanies"');
+      expect(html, page).toContain('id="' + p + 'PlanRoles"');
+      expect(html, page).toContain("(res.status !== 200 && res.status !== 201) || !res.d.success");
+    }
+    expect(css).toContain(".plan-form");
+    expect(css).toContain(".plan-topics");
+    expect(css).toContain(".plan-rounds");
+    expect(css).toContain(".plan-q-n");
+    expect(css).toContain(".plan-kicker");
+  });
+});

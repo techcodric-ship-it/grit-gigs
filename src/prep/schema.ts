@@ -128,3 +128,24 @@ export const prepCreditAwardsTable = pgTable("prep_credit_awards", {
 });
 
 export type PrepCreditAward = typeof prepCreditAwardsTable.$inferSelect;
+
+// Cached AI prep plans: one per company + role key, latest regeneration wins.
+export const prepAiPlansTable = pgTable("prep_ai_plans", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id").notNull(),
+  roleKey: varchar("role_key", { length: 160 }).notNull().default(""),
+  plan: jsonb("plan").notNull(),
+  model: varchar("model", { length: 80 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type PrepAiPlanRow = typeof prepAiPlansTable.$inferSelect;
+
+// Per-user daily free-tier AI plan generations (Prep Pro skips the count).
+export const prepAiPlanRequestsTable = pgTable("prep_ai_plan_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type PrepAiPlanRequest = typeof prepAiPlanRequestsTable.$inferSelect;

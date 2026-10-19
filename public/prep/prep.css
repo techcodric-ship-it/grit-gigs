@@ -387,3 +387,61 @@ a.prep-feature:hover {
   position: absolute; left: 0; top: -1px;
   color: #128C4A; font-weight: 800;
 }
+
+/* ---- AI prep plan (company + role card on aptitude & interview) ---- */
+.plan-kicker {
+  display: inline-block; font-size: 0.64rem; font-weight: 800;
+  letter-spacing: 0.1em; text-transform: uppercase; color: #5430C9;
+  background: #F0ECFD; border: 1px solid rgba(108, 63, 232, 0.2);
+  border-radius: 999px; padding: 4px 10px; margin-bottom: 10px;
+}
+.plan-form { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-top: 14px; }
+.plan-form .prep-field { flex: 1 1 200px; margin: 0; }
+.plan-out { margin-top: 18px; border-top: 1px dashed var(--prep-line); padding-top: 16px; }
+.plan-head { display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
+.plan-head b { font-size: 0.98rem; color: var(--prep-ink); }
+.plan-bullets { margin: 10px 0 0; padding-left: 18px; font-size: 0.92rem; line-height: 1.6; color: var(--prep-ink-2); }
+.plan-bullets li { margin-top: 5px; }
+.plan-h3 {
+  font-size: 0.84rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--prep-muted); margin: 18px 0 8px;
+}
+.plan-topics { display: grid; gap: 10px; }
+.plan-topic {
+  display: grid; grid-template-columns: minmax(120px, 1fr) minmax(90px, 140px) auto;
+  gap: 4px 10px; align-items: center; font-size: 0.9rem;
+}
+.plan-topic-name { font-weight: 700; color: var(--prep-ink); }
+.plan-bar { height: 8px; background: #EEEBF7; border-radius: 999px; overflow: hidden; }
+.plan-bar i { display: block; height: 100%; background: linear-gradient(90deg, #6C3FE8, #B929E8); border-radius: 999px; }
+.plan-weight { font-weight: 800; color: var(--prep-violet-deep); font-size: 0.82rem; }
+.plan-tip { grid-column: 1 / -1; margin: 0; font-size: 0.82rem; color: var(--prep-muted); line-height: 1.5; }
+.plan-rounds { margin: 0; padding: 0; list-style: none; counter-reset: rnd; display: grid; gap: 8px; }
+.plan-rounds li {
+  counter-increment: rnd; position: relative;
+  padding: 10px 12px 10px 44px; border: 1px solid var(--prep-line);
+  border-radius: 10px; background: #fff;
+}
+.plan-rounds li::before {
+  content: counter(rnd); position: absolute; left: 12px; top: 50%;
+  transform: translateY(-50%); width: 22px; height: 22px; border-radius: 50%;
+  background: var(--prep-violet); color: #fff; font-size: 0.75rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+}
+.plan-rounds b { display: block; font-size: 0.92rem; color: var(--prep-ink); }
+.plan-rounds span { font-size: 0.84rem; color: var(--prep-muted); line-height: 1.5; }
+.plan-qs { display: grid; gap: 10px; }
+.plan-q { display: flex; gap: 12px; border: 1px solid var(--prep-line); border-radius: 10px; padding: 12px; background: #fff; }
+.plan-q-n {
+  flex: 0 0 26px; height: 26px; border-radius: 50%; background: #F0ECFD;
+  color: #5430C9; font-weight: 800; font-size: 0.8rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.plan-q-t { margin: 0 0 4px; font-weight: 700; font-size: 0.94rem; line-height: 1.45; color: var(--prep-ink); }
+.plan-q-w { margin: 0; font-size: 0.82rem; color: var(--prep-muted); line-height: 1.5; }
+.plan-sources {
+  margin-top: 14px; font-size: 0.82rem; color: var(--prep-muted);
+  display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+}
+.plan-sources a.prep-chip { text-decoration: none; }
+.plan-sources a.prep-chip:hover { border-color: var(--prep-violet); color: var(--prep-violet); }

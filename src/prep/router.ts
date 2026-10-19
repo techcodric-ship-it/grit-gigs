@@ -15,7 +15,8 @@ import { isPrepEnabled } from "./feature";
 import { ensurePrepDb } from "./db";
 import { resolveCompany, createPendingCompany, slugifyCompanyName } from "./companies";
 import { gatherSourcesWithBudget } from "./sources/gather";
-import { summarizeReport } from "./ai";
+import { fallbackPlan, generatePrepPlan, summarizeReport } from "./ai";
+import { countAiPlanRequestsToday, getCachedAiPlan, recordAiPlanRequest, saveAiPlan } from "./ai-plans";
 import { APTITUDE_TOPICS, prepAptitudeQuestionsTable, prepInterviewQuestionsTable } from "./schema";
 import { clampCount, pickQuiz, scoreQuiz, signQuizToken, toPublicQuestion, verifyQuizToken } from "./aptitude";
 import {
@@ -370,6 +371,93 @@ prepRouter.get("/companies/:slug/report", authenticate, reportLimiter, prepDbGat
   } catch (err) {
     console.error("[prep] latest report failed:", err);
     res.status(500).json({ success: false, message: "Report generation failed" });
+  }
+});
+
+// ---- AI prep plan (company + role, used by aptitude & interview pages) ----
+// Grounded like a report: gather bounded sources, let Gemini shape them into
+// a plan (rounds, questions, topic weightage), cache per company+role for
+// 30 minutes. Free tier: 5 fresh AI generations per day, Prep Pro unlimited;
+// cache hits and non-AI fallbacks never consume the allowance.
+
+const aiPlanLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 12,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many AI plan requests, try again shortly." },
+});
+
+const FREE_AI_PLANS_PER_DAY = 5;
+
+const aiPlanBody = z.object({
+  company: z.string().min(2).max(200),
+  role: z.string().min(2).max(120),
+});
+
+prepRouter.post("/ai/plan", authenticate, aiPlanLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const parsed = aiPlanBody.safeParse({
+      company: String(req.body?.company ?? "").trim().slice(0, 200),
+      role: String(req.body?.role ?? "").trim().slice(0, 120),
+    });
+    if (!parsed.success) {
+      res.status(400).json({ success: false, message: "Choose a company and a role (at least 2 characters each)." });
+      return;
+    }
+    const { company: companyName, role } = parsed.data;
+    const roleKey = role.toLowerCase();
+
+    // Same company resolution as reports: exact row reuse, else a PENDING row.
+    const exact = (await resolveCompany(db, companyName)).find((c) => c.score === 3);
+    let company = exact ? await findCompanyBySlug(exact.slug) : null;
+    if (!company) {
+      company = await createPendingCompany(db, { name: companyName, createdBy: req.user!.id });
+    }
+
+    // Cache hit first — never burns the daily allowance.
+    const cached = await getCachedAiPlan(company.id, roleKey);
+    if (cached) {
+      res.json({ success: true, data: { plan: cached.plan, cached: true, aiUsed: true } });
+      return;
+    }
+
+    const isProUser = isEntitlementActive(await getActiveEntitlement(req.user!.id));
+    if (!isProUser) {
+      const used = await countAiPlanRequestsToday(req.user!.id);
+      if (used >= FREE_AI_PLANS_PER_DAY) {
+        res.status(402).json({
+          success: false,
+          message: `Free AI plans reset daily (${FREE_AI_PLANS_PER_DAY}/day). Prep Pro unlocks unlimited company + role plans.`,
+          used,
+          limit: FREE_AI_PLANS_PER_DAY,
+        });
+        return;
+      }
+    }
+
+    const gathered = await gatherSourcesWithBudget(
+      { name: company.name, domain: company.domain, website: company.website },
+      12_000,
+    );
+    const generated = await generatePrepPlan({ company: { name: company.name }, role, gathered });
+    const plan = generated ? generated.plan : fallbackPlan(company.name, role);
+    plan.sources = gathered.documents.slice(0, 6).map((d) => ({ label: d.label, url: d.url, publisher: d.publisher }));
+    plan.grounded = plan.sources.length > 0 && generated !== null;
+
+    if (generated) {
+      // Only genuine AI generations count against the free allowance.
+      await recordAiPlanRequest(req.user!.id);
+      await saveAiPlan(company.id, roleKey, plan, generated.model);
+      res.status(201).json({ success: true, data: { plan, cached: false, aiUsed: true } });
+      return;
+    }
+    // No AI this pass: return the honest starter plan without caching it,
+    // so the very next attempt can pick up a recovered provider.
+    res.status(201).json({ success: true, data: { plan, cached: false, aiUsed: false } });
+  } catch (err) {
+    console.error("[prep] ai plan failed:", err);
+    res.status(500).json({ success: false, message: "AI plan generation failed" });
   }
 });
 
