@@ -876,9 +876,11 @@ router.post("/community/posts", authenticate, async (req: Request, res: Response
         .filter((x): x is { type: "image" | "video"; url: string } => !!x)
     : [];
 
-  const cover = coverUrl ? String(coverUrl) : cleanMedia.length ? cleanMedia[0].url : null;
-  if (!cover) {
-    res.status(400).json({ success: false, message: "Every post needs a cover — add a photo or video first." });
+  // A cover is optional for every kind — text-only posts are fine. Clips are
+  // the one exception: a REEL without a video is not a clip.
+  const cover = coverUrl ? String(coverUrl) : cleanMedia.length ? cleanMedia[0]!.url : null;
+  if (k === "REEL" && !cleanMedia.some((m) => m.type === "video")) {
+    res.status(400).json({ success: false, message: "Clips need a short video — add one before posting." });
     return;
   }
 

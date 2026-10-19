@@ -9,6 +9,15 @@ export const INTERVIEW_TRACKS: InterviewTrack[] = ["general", "engineering", "da
 export const INTERVIEW_CATEGORIES: InterviewCategory[] = ["behavioral", "technical", "hr"];
 export const MOCK_DEFAULT_COUNT = 5;
 
+/** Free public sample: one question per category, universally asked, with the
+ * guidance that sells Prep Pro. Codes are stable for tests and seeding. */
+export const SAMPLE_QUESTION_CODES = ["iv-gen-b1", "iv-gen-t1", "iv-gen-h1"] as const;
+
+export function sampleInterviewQuestions(bank: InterviewBankQuestion[] = INTERVIEW_BANK): InterviewBankQuestion[] {
+  const byCode = new Map(bank.map((q) => [q.code, q]));
+  return SAMPLE_QUESTION_CODES.map((c) => byCode.get(c)).filter((q): q is InterviewBankQuestion => !!q);
+}
+
 export interface InterviewQuestionPublic {
   id: string;
   code: string;

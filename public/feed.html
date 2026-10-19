@@ -60,7 +60,7 @@
 <div class="modal-backdrop" id="composeModal">
   <div class="modal">
     <h3 id="compTitle">Share your grind</h3>
-    <div class="sub">Pick a type, add a cover image or short video (clip).</div>
+    <div class="sub">Pick a type — a photo or clip is optional, text-only posts are fine.</div>
     <div class="kind-row" id="kindRow">
       <button class="kind on" data-kind="POST">Post</button>
       <button class="kind" data-kind="BARTER">Barter</button>
@@ -74,7 +74,7 @@
     </div>
     <div class="media-pick" id="mediaPick"></div>
     <div class="fld">
-      <label>Covers / media (image or short video)</label>
+      <label>Media <span style="font-weight:400;color:var(--muted,#888);">(optional — image or short video)</span></label>
       <label class="choose-media" for="pFile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.7a1 1 0 0 0 .83-.45l.94-1.4A1 1 0 0 1 9.8 3.7h4.4a1 1 0 0 1 .83.45l.94 1.4a1 1 0 0 0 .83.45h1.7A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5v-9Z"/><circle cx="12" cy="13" r="3.5"/></svg>Choose files</label>
       <input type="file" id="pFile" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" multiple hidden/>
     </div>
@@ -346,9 +346,6 @@
     if (!content) { c.toast('Write something first.', true); return; }
     if (currentKind === 'REEL' && !pickedMedia.some(function (m) { return m.type === 'video'; })) {
       c.toast('Add a short video for your clip.', true); return;
-    }
-    if (!pickedMedia.length) {
-      c.toast('Every post needs a cover — add at least one photo or video.', true); return;
     }
     var tags = ($('pTags').value || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean);
     var body = {

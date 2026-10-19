@@ -8,8 +8,10 @@ import {
   INTERVIEW_TRACKS,
   INTERVIEW_CATEGORIES,
   MOCK_DEFAULT_COUNT,
+  SAMPLE_QUESTION_CODES,
   filterInterviewBank,
   pickMock,
+  sampleInterviewQuestions,
   signInterviewMock,
   verifyInterviewMock,
   aggregateFeedback,
@@ -140,5 +142,22 @@ describe("interview wiring (source-level)", () => {
     expect(page).toContain("/api/prep/interview/mock");
     expect(page).toContain("/api/prep/interview/mock/submit");
     expect(page).toContain("esc(it.guidance)");
+  });
+});
+
+describe("free sample (the quality proof that sells Pro)", () => {
+  it("picks one question per category, all with guidance", () => {
+    const sample = sampleInterviewQuestions();
+    expect(sample.length).toBe(3);
+    expect(sample.map((q) => q.category).sort()).toEqual(["behavioral", "hr", "technical"]);
+    for (const q of sample) {
+      expect(q.guidance.length).toBeGreaterThan(40);
+      expect(q.question.length).toBeGreaterThan(5);
+    }
+  });
+  it("codes are stable and resolve against the real bank", () => {
+    expect([...SAMPLE_QUESTION_CODES]).toEqual(["iv-gen-b1", "iv-gen-t1", "iv-gen-h1"]);
+    const codes = new Set(INTERVIEW_BANK.map((q) => q.code));
+    for (const c of SAMPLE_QUESTION_CODES) expect(codes.has(c)).toBe(true);
   });
 });

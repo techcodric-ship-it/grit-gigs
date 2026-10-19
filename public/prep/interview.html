@@ -7,8 +7,8 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 8;</script>
-<link rel="stylesheet" href="/prep/prep.css?v=9"/>
+<script>window.PREP_V = 9;</script>
+<link rel="stylesheet" href="/prep/prep.css?v=10"/>
 <style>
   .iv-tabs { display:flex; gap:8px; margin-bottom:16px; }
   .iv-tab { border:1px solid var(--prep-line); background:#fff; border-radius:999px; padding:8px 18px; font:inherit; font-size:0.9rem; font-weight:700; cursor:pointer; color:var(--prep-ink-2); }
@@ -32,6 +32,9 @@
   .iv-q { font-weight:700; color:var(--prep-ink); font-size:0.98rem; line-height:1.5; margin:0 0 6px; }
   .mock-brief { border:1px solid var(--prep-line); background:linear-gradient(180deg,#FFF 0%, var(--prep-bg) 100%); border-radius:12px; padding:16px; margin-bottom:16px; }
   .mock-brief[hidden] { display:none; }
+  .mock-co { margin-bottom:16px; }
+  .mock-co[hidden] { display:none; }
+  .mock-co .plan-kicker { display:block; margin-bottom:8px; }
   .mock-brief-head { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:6px 0 8px; }
   .mock-brief-head b { font-size:1.02rem; color:var(--prep-ink); }
   .iv-guide { font-size:0.9rem; line-height:1.55; color:var(--prep-ink-2); background:#F7F7F9; border-radius:8px; padding:9px 11px; margin-top:8px; }
@@ -41,6 +44,13 @@
   .iv-rate button[aria-pressed="true"] { background:var(--prep-violet); border-color:var(--prep-violet); color:#fff; }
   .iv-stat { font-size:0.95rem; font-weight:700; color:var(--prep-ink); margin-bottom:10px; }
   .iv-stat b { color:var(--prep-violet); font-size:1.3rem; }
+  .iv-star-btn { border:1px solid var(--prep-line); background:#fff; border-radius:8px; width:30px; height:30px; cursor:pointer; color:#B45309; font-size:0.95rem; padding:0; line-height:1; }
+  .iv-star-btn[aria-pressed="true"] { background:#FEF3C7; border-color:#F59E0B; }
+  .iv-star-tip { font-size:0.82rem; font-weight:700; color:#8A5A2B; background:#FDF3E0; border:1px solid #F3E0BC; border-radius:8px; padding:6px 10px; margin-top:8px; }
+  .iv-timer { display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+  .iv-timer-btn { border:1px solid var(--prep-line); background:#fff; border-radius:8px; padding:6px 12px; font:inherit; font-size:0.82rem; font-weight:800; cursor:pointer; color:var(--prep-ink-2); }
+  .iv-timer-clock { font-weight:800; font-variant-numeric:tabular-nums; color:var(--prep-violet); font-size:0.95rem; }
+  .iv-timer-clock.done { color:#B03027; }
 </style>
 </head>
 <body>
@@ -73,6 +83,7 @@
       <li>Behavioural &middot; Technical &middot; HR</li>
       <li>Mock + self-rating feedback</li>
       <li>Post-mock feedback: what interviewers look for</li>
+      <li>2-min timed answers &middot; saved drills &middot; STAR tips</li>
     </ul>
     <ol class="prep-steps">
       <li><b>Fill company + role</b><span>the coach researches it live</span></li>
@@ -85,11 +96,23 @@
     </div>
   </section>
 
+  <section class="prep-card" id="sampleCard">
+    <span class="plan-kicker">Free sample</span>
+    <h2 class="prep-h2">Three questions interviewers actually open with</h2>
+    <p class="prep-sub">A real taste of the bank &mdash; including what interviewers look for in each answer.
+      Prep Pro unlocks all 24 questions, company-grounded mocks and post-mock feedback.</p>
+    <div id="sampleList"><div class="prep-empty">Loading&hellip;</div></div>
+    <div class="prep-hero-ctas" style="margin-top:14px;">
+      <a class="prep-btn" href="/prep#prepProCard">Unlock all 24 + company mocks &#8377;199</a>
+    </div>
+  </section>
+
   <section class="prep-card prep-paywall" id="ivPaywall" hidden>
     <span class="plan-kicker">Prep Pro perk</span>
-    <h2 class="prep-h2">Interview sessions are part of Prep Pro</h2>
-    <p class="prep-sub">Browse the question bank, run mock sessions and get category feedback with Prep Pro &mdash;
-      &#8377;199 for 30 days, one-time payment, nothing auto-renews.</p>
+    <h2 class="prep-h2">Practice<span id="ivPaywallCo"></span> the way the panel will</h2>
+    <p class="prep-sub">You&rsquo;ve seen the free sample above. Prep Pro is the full loop: all 24 questions,
+      mocks that research your target company&rsquo;s likely rounds, timed practice and post-mock feedback on
+      what interviewers actually look for &mdash; &#8377;199 for 30 days, one-time payment, nothing auto-renews.</p>
     <div class="prep-paywall-ctas">
       <a class="prep-btn" id="ivPaywallPrimary" href="/prep#prepProCard">Get Prep Pro &mdash; &#8377;199</a>
       <a class="prep-btn prep-btn-ghost" id="ivPaywallAlt" href="/login?next=/prep/interview">Sign in</a>
@@ -110,6 +133,8 @@
     </div>
     <div class="iv-chips" id="trackChips"></div>
     <div class="iv-chips" id="catChips"></div>
+    <div class="iv-chips" id="diffChips"></div>
+    <div class="iv-chips" id="savedRow"><button type="button" class="iv-chip" id="savedToggle" aria-pressed="false">&#9733; Saved (0)</button></div>
     <div class="prep-err" id="ivErr" role="alert"></div>
   </section>
 
@@ -149,9 +174,11 @@
 
   <section class="prep-card" id="mockCard" data-pro-content hidden>
     <div class="mock-brief" id="mockBrief" hidden></div>
+    <div class="mock-co" id="mockCo" hidden></div>
     <div id="mockIntro">
       <p class="prep-sub">Set your company + role in the AI coach above — the mock researches it first and
         shows the sourced brief, then you answer each question out loud in ~2 minutes and rate it 1&ndash;5.</p>
+      <p class="prep-sub" id="ivMockStat"></p>
       <button class="prep-btn" type="button" id="mockStart">Start mock (5 questions)</button>
     </div>
     <div id="mockForm" hidden></div>
@@ -173,7 +200,7 @@
 
 </main>
 
-<script src="/js/prep-nav.js?v=7" defer></script>
+<script src="/js/prep-nav.js?v=8" defer></script>
 <script>
 (function () {
   "use strict";
@@ -186,7 +213,53 @@
   var tracks = ["general", "engineering", "data", "business"];
   var cats = ["behavioral", "technical", "hr"];
   var track = null, cat = null, mode = "browse";
+  var diff = null, savedOnly = false;
   var mockQuestions = [], mockToken = "", ratings = {};
+
+  // ---- Saved questions (localStorage drill list, Interviewing.io-style) ----
+  var SAVED_KEY = "se_iv_bookmarks";
+  var savedMap = {};
+  (function loadSaved() {
+    try {
+      var arr = JSON.parse(localStorage.getItem(SAVED_KEY) || "[]") || [];
+      arr.forEach(function (id) { if (id) savedMap[String(id)] = true; });
+    } catch (e) { savedMap = {}; }
+  })();
+  function persistSaved() {
+    try { localStorage.setItem(SAVED_KEY, JSON.stringify(Object.keys(savedMap))); } catch (e) { /* private mode */ }
+  }
+  function toggleSaved(id) {
+    id = String(id);
+    if (savedMap[id]) delete savedMap[id]; else savedMap[id] = true;
+    persistSaved();
+  }
+  function savedCount() { return Object.keys(savedMap).length; }
+  function starBtn(id) {
+    var on = !!savedMap[String(id)];
+    return '<button type="button" class="iv-star-btn" data-star="' + esc(id) +
+      '" aria-pressed="' + (on ? "true" : "false") +
+      '" title="Save for drilling later" aria-label="Save for drilling later">' + (on ? "\u2605" : "\u2606") + "</button>";
+  }
+
+  // ---- Mock counter (local streak, AmbitionBox-style progress) ----
+  var STATS_KEY = "se_iv_stats";
+  function renderMockCount() {
+    var n = 0;
+    try {
+      var st = JSON.parse(localStorage.getItem(STATS_KEY) || "{}") || {};
+      n = (st && Number(st.mocks)) || 0;
+    } catch (e) { n = 0; }
+    document.getElementById("ivMockStat").innerHTML = n
+      ? "Mocks completed on this device: <b>" + n + "</b> \u2014 keep stacking reps before the real panel."
+      : "Mocks completed on this device: 0 \u2014 finish one to start your streak.";
+  }
+  function bumpMockCount() {
+    try {
+      var st = JSON.parse(localStorage.getItem(STATS_KEY) || "{}") || {};
+      st.mocks = (Number(st.mocks) || 0) + 1;
+      localStorage.setItem(STATS_KEY, JSON.stringify(st));
+    } catch (e) { /* private mode */ }
+  }
 
   // ---- Prep Pro session gate (interview sessions are member-only) ----
   var paywall = document.getElementById("ivPaywall");
@@ -208,7 +281,10 @@
       alt.href = "/prep#prepProCard";
       alt.style.display = "";
     } else {
-      primary.textContent = "Get Prep Pro";
+      var t = typeof currentTarget === "function" ? currentTarget() : null;
+      var coEl = document.getElementById("ivPaywallCo");
+      if (coEl) coEl.textContent = t && t.company ? " for " + t.company : "";
+      primary.textContent = "Get Prep Pro \u2014 \u20B9199";
       primary.href = "/prep#prepProCard";
       alt.style.display = "none";
     }
@@ -256,19 +332,24 @@
   }
 
   function questionHtml(q) {
-    // Clean chip card: track/category/difficulty tags only. What-interviewers-
-    // look-for guidance moved to POST-mock feedback (fbList), where it lands
-    // right after the answer it comments on.
+    // Clean chip card: track/category/difficulty tags plus a save-star.
+    // What-interviewers-look-for guidance moved to POST-mock feedback (fbList),
+    // where it lands right after the answer it comments on.
     return '<div class="iv-item"><div class="iv-tags">' +
       tagHtml("track", q.track) + tagHtml("cat", q.category) + tagHtml("diff", q.difficulty) +
+      starBtn(q.id) +
       '</div><p class="iv-q">' + esc(q.question) + "</p>" +
       "</div>";
   }
 
   function loadBrowse() {
     var qs = [];
-    if (track) qs.push("track=" + encodeURIComponent(track));
-    if (cat) qs.push("category=" + encodeURIComponent(cat));
+    // Saved mode loads the whole bank, then filters client-side so saved
+    // questions still show when a track/category chip is also active.
+    if (!savedOnly) {
+      if (track) qs.push("track=" + encodeURIComponent(track));
+      if (cat) qs.push("category=" + encodeURIComponent(cat));
+    }
     var url = "/api/prep/interview/questions" + (qs.length ? "?" + qs.join("&") : "");
     fetch(url, { credentials: "same-origin", headers: authHeaders() })
       .then(function (r) { return r.json().then(function (x) { return { status: r.status, d: x }; }); })
@@ -279,10 +360,12 @@
         if (!d || !d.success) { errEl.textContent = (d && d.message) || "Could not load questions."; return; }
         errEl.textContent = "";
         var list = d.data.questions || [];
+        if (diff) list = list.filter(function (q) { return String(q.difficulty || "").toLowerCase() === diff; });
+        if (savedOnly) list = list.filter(function (q) { return !!(savedMap[String(q.id)] || savedMap[String(q.code)]); });
         var listEl = document.getElementById("browseList");
         listEl.innerHTML = list.length
           ? list.map(questionHtml).join("")
-          : '<div class="prep-empty"><b>No questions match</b>Try another track or category.</div>';
+          : '<div class="prep-empty"><b>No questions match</b>Try another track, category or difficulty.</div>';
       })
       .catch(function () { errEl.textContent = "Network error. Try again."; });
   }
@@ -290,7 +373,7 @@
   function renderChips() {
     chips(document.getElementById("trackChips"), tracks, track, function (v) {
       track = (track === v) ? null : v;
-    
+
       renderChips();
       if (mode === "browse") loadBrowse();
     });
@@ -299,6 +382,33 @@
       renderChips();
       if (mode === "browse") loadBrowse();
     });
+    chips(document.getElementById("diffChips"), ["easy", "medium", "hard"], diff, function (v) {
+      diff = (diff === v) ? null : v;
+      renderChips();
+      if (mode === "browse") loadBrowse();
+    });
+    var sv = document.getElementById("savedToggle");
+    sv.textContent = "\u2605 Saved (" + savedCount() + ")";
+    sv.setAttribute("aria-pressed", savedOnly ? "true" : "false");
+  }
+  document.getElementById("savedToggle").addEventListener("click", function () {
+    savedOnly = !savedOnly;
+    renderChips();
+    if (mode === "browse") loadBrowse();
+  });
+  function onStarClick(e) {
+    var b = e.target.closest("[data-star]");
+    if (!b) return;
+    var id = b.getAttribute("data-star");
+    toggleSaved(id);
+    document.querySelectorAll('[data-star="' + id + '"]').forEach(function (x) {
+      var on = !!savedMap[id];
+      x.setAttribute("aria-pressed", on ? "true" : "false");
+      x.textContent = on ? "\u2605" : "\u2606";
+    });
+    var sv = document.getElementById("savedToggle");
+    sv.textContent = "\u2605 Saved (" + savedCount() + ")";
+    if (savedOnly && mode === "browse") loadBrowse();
   }
 
   // ---- Shared target (company + role): inherited from the aptitude page ----
@@ -434,11 +544,90 @@
     document.getElementById("feedbackCard").hidden = true;
     document.getElementById("trackChips").style.display = m === "browse" ? "" : "none";
     document.getElementById("catChips").style.display = m === "browse" ? "" : "none";
+    document.getElementById("diffChips").style.display = m === "browse" ? "" : "none";
+    document.getElementById("savedRow").style.display = m === "browse" ? "" : "none";
     if (m === "browse") loadBrowse();
   }
 
   document.getElementById("tabBrowse").addEventListener("click", function () { setMode("browse"); });
   document.getElementById("tabMock").addEventListener("click", function () { setMode("mock"); });
+  document.getElementById("browseList").addEventListener("click", onStarClick);
+
+  // ---- 2:00 answer timer (Pramp-style timed practice, per question) ----
+  var timerIntervals = {};
+  function onTimerClick(e) {
+    var b = e.target.closest("[data-timer]");
+    if (!b) return;
+    var qid = b.getAttribute("data-timer");
+    var clock = b.parentNode.querySelector(".iv-timer-clock");
+    if (timerIntervals[qid]) {
+      clearInterval(timerIntervals[qid]);
+      delete timerIntervals[qid];
+      clock.hidden = true;
+      clock.textContent = "";
+      clock.classList.remove("done");
+      b.textContent = "Start 2:00 answer timer";
+      return;
+    }
+    var left = 120;
+    clock.hidden = false;
+    clock.classList.remove("done");
+    function tick() {
+      var m = Math.floor(left / 60), s = left % 60;
+      clock.textContent = m + ":" + (s < 10 ? "0" : "") + s;
+      if (left <= 0) {
+        clearInterval(timerIntervals[qid]);
+        delete timerIntervals[qid];
+        clock.textContent = "Time \u2014 land your closing line.";
+        clock.classList.add("done");
+        b.textContent = "Start again";
+        return;
+      }
+      left--;
+    }
+    tick();
+    timerIntervals[qid] = setInterval(tick, 1000);
+    b.textContent = "Stop";
+  }
+  document.getElementById("mockCard").addEventListener("click", function (e) {
+    onStarClick(e);
+    onTimerClick(e);
+  });
+
+  // ---- Free public sample: the quality proof that sells Pro (no auth) ----
+  function sampleHtml(q) {
+    return '<div class="iv-item"><div class="iv-tags">' +
+      tagHtml("track", q.track) + tagHtml("cat", q.category) + tagHtml("diff", q.difficulty) +
+      starBtn(q.code) +
+      '</div><p class="iv-q">' + esc(q.question) + "</p>" +
+      '<div class="iv-guide" id="sg-' + esc(q.code) + '" hidden>' + esc(q.guidance) + "</div>" +
+      '<button type="button" class="iv-timer-btn" data-guide="sg-' + esc(q.code) + '" style="margin-top:8px;">What interviewers look for</button>' +
+      "</div>";
+  }
+  document.getElementById("sampleList").addEventListener("click", function (e) {
+    var g = e.target.closest("[data-guide]");
+    if (g) {
+      var el = document.getElementById(g.getAttribute("data-guide"));
+      if (el) {
+        el.hidden = !el.hidden;
+        g.textContent = el.hidden ? "What interviewers look for" : "Hide";
+      }
+      return;
+    }
+    onStarClick(e);
+  });
+  fetch("/api/prep/interview/sample", { credentials: "same-origin" })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (!d || !d.success || !d.data.questions || !d.data.questions.length) {
+        document.getElementById("sampleList").innerHTML = '<div class="prep-empty">Sample unavailable &mdash; refresh to retry.</div>';
+        return;
+      }
+      document.getElementById("sampleList").innerHTML = d.data.questions.map(sampleHtml).join("");
+    })
+    .catch(function () {
+      document.getElementById("sampleList").innerHTML = '<div class="prep-empty">Sample unavailable &mdash; refresh to retry.</div>';
+    });
 
   // The server answers with a researched brief (cached plan or one live
   // research pass). Sourced briefs show their links; unsourced ones are
@@ -504,7 +693,24 @@
         if (res.status !== 200 || !res.d.success) { errEl.textContent = (res.d && res.d.message) || "Could not start."; return; }
         mockQuestions = res.d.data.questions;
         mockToken = res.d.data.token;
-        renderBrief(res.d.data.brief || null);
+        var brief = res.d.data.brief || null;
+        renderBrief(brief);
+        var co = document.getElementById("mockCo");
+        if (brief && brief.grounded && brief.expect && brief.expect.length) {
+          co.innerHTML = '<span class="plan-kicker">Research says ' + esc(brief.company) + ' asks these</span>' +
+            brief.expect.map(function (q, i) {
+              return '<div class="iv-item"><div class="iv-tags"><span class="iv-tag">Likely ' + (i + 1) +
+                '</span><span class="iv-tag iv-tag-cat">' + esc(q.topic) + "</span></div>" +
+                '<p class="iv-q">' + esc(q.question) + "</p>" +
+                '<div class="iv-star-tip">Practice this out loud with the timer &mdash; no self-rating needed.</div>' +
+                '<div class="iv-timer"><button type="button" class="iv-timer-btn" data-timer="co-' + i +
+                '">Start 2:00 answer timer</button><span class="iv-timer-clock" hidden></span></div></div>';
+            }).join("");
+          co.hidden = false;
+        } else {
+          co.hidden = true;
+          co.innerHTML = "";
+        }
         ratings = {};
         document.getElementById("mockIntro").hidden = true;
         var form = document.getElementById("mockForm");
@@ -512,9 +718,15 @@
           var rate = [1, 2, 3, 4, 5].map(function (n) {
             return '<button type="button" data-q="' + esc(q.id) + '" data-n="' + n + '" aria-pressed="false">' + n + "</button>";
           }).join("");
+          var starTip = q.category === "behavioral"
+            ? '<div class="iv-star-tip">STAR: Situation \u2192 Task \u2192 Action \u2192 Result \u2014 about 30 seconds each.</div>'
+            : "";
           return '<div class="iv-item"><div class="iv-tags"><span class="iv-tag">Question ' + (i + 1) +
-            "</span>" + tagHtml("cat", q.category) + tagHtml("diff", q.difficulty) +
-            '</div><p class="iv-q">' + esc(q.question) + '</p><div class="iv-rate"><span>My answer:</span>' + rate + "</div></div>";
+            "</span>" + tagHtml("cat", q.category) + tagHtml("diff", q.difficulty) + starBtn(q.id) +
+            '</div><p class="iv-q">' + esc(q.question) + "</p>" + starTip +
+            '<div class="iv-rate"><span>My answer:</span>' + rate + "</div>" +
+            '<div class="iv-timer"><button type="button" class="iv-timer-btn" data-timer="' + esc(q.id) +
+            '">Start 2:00 answer timer</button><span class="iv-timer-clock" hidden></span></div></div>';
         }).join("");
         form.hidden = false;
         document.getElementById("mockSubmit").hidden = false;
@@ -554,6 +766,8 @@
         if (res.status === 400) { errEl.textContent = res.d.message; return; }
         if (res.status !== 200 || !res.d.success) { errEl.textContent = (res.d && res.d.message) || "Feedback failed."; return; }
         var data = res.d.data;
+        bumpMockCount();
+        renderMockCount();
         var stat = "Average confidence: <b>" + (data.avgConfidence === null ? "—" : data.avgConfidence + "/5") + "</b>";
         if (data.weakestCategory) stat += " · Weakest area: <b>" + esc(data.weakestCategory) + "</b>";
         document.getElementById("fbStat").innerHTML = stat;
@@ -576,8 +790,12 @@
     document.getElementById("mockIntro").hidden = false;
     document.getElementById("mockForm").hidden = true;
     document.getElementById("mockSubmit").hidden = true;
+    var co = document.getElementById("mockCo");
+    co.hidden = true;
+    co.innerHTML = "";
   });
 
+  renderMockCount();
   gate();
 })();
 </script>

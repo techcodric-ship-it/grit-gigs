@@ -407,7 +407,7 @@ describe("the Buy button can never look dead; members look like members (round 5
   const nav = read("public/js/prep-nav.js");
   const css = read("public/prep/prep.css");
   it("stale prep HTML is detected by the always-fresh nav script and re-fetched exactly once", () => {
-    expect(nav).toContain("var WANT_V = 8;");
+    expect(nav).toContain("var WANT_V = 9;");
     expect(nav).toContain("window.PREP_V !== WANT_V");
     expect(nav).toContain('!/[?&]_pv=/.test(location.search)');
     expect(nav).toContain("location.replace(location.pathname + location.search +");
@@ -418,7 +418,7 @@ describe("the Buy button can never look dead; members look like members (round 5
       "public/prep/interview.html",
       "public/prep/proof.html",
     ]) {
-      expect(read(p), p).toContain("window.PREP_V = 8;");
+      expect(read(p), p).toContain("window.PREP_V = 9;");
       expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
     }
   });
@@ -735,19 +735,19 @@ describe("corporate redesign: promos, heroes, banners, live stats (round 10)", (
     expect(apt).toContain("Beat the cut-off with the drills that actually repeat");
     expect(apt).toContain('id="aptTargetCard"');
     expect(apt).toContain('class="prep-banner"');
-    expect(apt).toContain("prep/prep.css?v=9");
+    expect(apt).toContain("prep/prep.css?v=10");
     expect(iv).toContain('class="prep-hero-sm"');
     expect(iv).toContain("24 questions, 4 tracks");
     expect(iv).toContain('id="ivPlanCard"');
     expect(iv).toContain('class="prep-banner"');
-    expect(iv).toContain("prep/prep.css?v=9");
+    expect(iv).toContain("prep/prep.css?v=10");
   });
   it("proof sells the contribution with the anonymity promise up top", () => {
     expect(pf).toContain('class="prep-hero-sm"');
     expect(pf).toContain("One anonymised slip from you unlocks pay data for thousands");
     expect(pf).toContain('href="#pfForm"');
     expect(pf).toContain('class="prep-banner"');
-    expect(pf).toContain("prep/prep.css?v=9");
+    expect(pf).toContain("prep/prep.css?v=10");
     expect(pf).toContain("<b>3 \u00B7 Unlocks</b>"); // original 3-step flow intact
   });
   it("the promo system is fully styled", () => {
@@ -819,7 +819,7 @@ describe("round 11: aptitude/interview sessions are Prep Pro; upgrade CTAs hide 
 
   it("interview sessions gate the same way and the plan block is top-level", () => {
     expect(iv).toContain('id="ivPaywall"');
-    expect(iv).toContain("Interview sessions are part of Prep Pro");
+    expect(iv).toContain("the way the panel will"); // outcome-selling paywall headline
     expect(iv).toContain("data-pro-content");
     expect(iv).toContain("function gate()");
     expect(iv).toContain("headers: authHeaders()");
@@ -827,14 +827,14 @@ describe("round 11: aptitude/interview sessions are Prep Pro; upgrade CTAs hide 
     // callback, which left the plan button dead until a chip was clicked.
     const rc = iv.slice(iv.indexOf("function renderChips()"), iv.indexOf("// ---- AI company + role plan"));
     expect(rc).not.toBe("");
-    expect((rc.match(/chips\(/g) || []).length).toBe(2);
+    expect((rc.match(/chips\(/g) || []).length).toBe(3); // track + category + difficulty
     expect(rc).not.toContain("planBtn");
   });
 
   it("the paywall ships styled and every prep page cache-busts the stylesheet", () => {
     expect(css).toContain(".prep-paywall {");
     expect(css).toContain(".prep-paywall-ctas");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("prep/prep.css?v=9");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("prep/prep.css?v=10");
   });
 });
 
@@ -971,6 +971,114 @@ describe("round 13: role-weighted aptitude, researched mock brief, member CTA fi
     expect(iv).toContain("Read the sourced brief");
     expect(iv).not.toContain("last 10 years"); // no fabricated history claims
     expect(apt).toContain('class="apt-focus"'); // weighted-drill evidence renders in the quiz card
+  });
+});
+
+describe("round 14: optional post covers (text-only posts allowed)", () => {
+  const community = read("src/routes/community.ts");
+  const schema = read("src/db/schema/community.ts");
+  const feed = read("public/feed.html");
+
+  it("server drops the cover-required 400 but keeps the REEL video rule", () => {
+    expect(community).not.toContain("Every post needs a cover");
+    expect(community).toContain('if (k === "REEL" && !cleanMedia.some((m) => m.type === "video"))');
+    expect(community).toContain("Clips need a short video");
+  });
+  it("coverUrl stays nullable in the schema — no DDL needed", () => {
+    expect(schema).toMatch(/coverUrl: text\("cover_url"\)/);
+  });
+  it("composer copy and client validation treat media as optional", () => {
+    expect(feed).not.toContain("Every post needs a cover");
+    expect(feed).toContain("Add a short video for your clip."); // REEL keeps its video check
+    expect(feed).toMatch(/\(optional \u2014 image or short video\)/);
+    expect(feed).toContain("a photo or clip is optional");
+  });
+});
+
+describe("round 14: orders page is barter-only (Community + Exchanges)", () => {
+  const orders = read("public/orders.html");
+
+  it("keeps the two barter tabs and drops the retired marketplaces", () => {
+    expect(orders).toContain('data-tab="community"');
+    expect(orders).toContain(">Barter<");
+    expect(orders).toContain('data-tab="exchanges"');
+    expect(orders).not.toContain("Services (old)");
+    expect(orders).not.toContain("Projects (old)");
+  });
+  it("drops the Buying/Selling scope row and its handlers", () => {
+    expect(orders).not.toContain("scopeSeg");
+    expect(orders).not.toContain("as-buyer");
+    expect(orders).not.toContain("as-seller");
+  });
+  it("no dead JS: legacy/projects loaders are gone and pending-open is community-only", () => {
+    expect(orders).not.toContain("loadLegacy");
+    expect(orders).not.toContain("loadProjects");
+    expect(orders).not.toContain("handleProj");
+    expect(orders).not.toContain("openLegacyDetail");
+    expect(orders).not.toContain("projCard");
+    expect(orders).toContain("function loadExchanges()");
+    expect(orders).toContain("function loadCommunity()");
+    expect(orders).toContain("var kindLabels = { BARTER: 'Barter offers' };");
+    expect(orders).toContain("Post a barter on the feed");
+  });
+});
+
+describe("round 14: interview practice upgrades (timer, saved drills, STAR)", () => {
+  const ivPage = read("public/prep/interview.html");
+
+  it("browse cards get a save-star backed by localStorage", () => {
+    expect(ivPage).toContain("se_iv_bookmarks");
+    expect(ivPage).toContain("data-star=");
+    expect(ivPage).toContain("function starBtn(id)");
+    expect(ivPage).toContain("Saved (");
+  });
+  it("difficulty chips and the saved filter narrow the browse list client-side", () => {
+    expect(ivPage).toContain('id="diffChips"');
+    expect(ivPage).toContain('id="savedToggle"');
+    expect(ivPage).toContain('if (savedOnly) list = list.filter');
+    expect(ivPage).toContain("String(q.difficulty || \"\").toLowerCase() === diff");
+  });
+  it("mock questions carry a 2:00 answer timer and behavioural STAR tips", () => {
+    expect(ivPage).toContain("Start 2:00 answer timer");
+    expect(ivPage).toContain("data-timer=");
+    expect(ivPage).toContain("iv-star-tip");
+    expect(ivPage).toContain("STAR: Situation");
+  });
+  it("mocks completed on the device are counted in the intro", () => {
+    expect(ivPage).toContain('id="ivMockStat"');
+    expect(ivPage).toContain("se_iv_stats");
+    expect(ivPage).toContain("bumpMockCount()");
+  });
+});
+
+describe("round 14: the free taste that sells Pro (sample + grounded mock + outcome paywall)", () => {
+  const router = read("src/prep/router.ts");
+  const ivPage = read("public/prep/interview.html");
+
+  it("public sample endpoint serves 3 questions WITH guidance, no auth", () => {
+    expect(router).toContain('prepRouter.get("/interview/sample", interviewLimiter, prepDbGate');
+    expect(router).not.toMatch(/interview\/sample", authenticate/);
+    expect(router).toContain("sampleInterviewQuestions()");
+  });
+  it("the sample card sits outside the Pro lock so free visitors always see quality", () => {
+    expect(ivPage).toContain('id="sampleCard"');
+    expect(ivPage).toMatch(/id="sampleCard">[\s\S]*?<\/section>/);
+    const sample = ivPage.slice(ivPage.indexOf('id="sampleCard"'), ivPage.indexOf('id="ivPaywall"'));
+    expect(sample).not.toContain("data-pro-content");
+    expect(ivPage).toContain("/api/prep/interview/sample");
+    expect(ivPage).toContain("What interviewers look for");
+  });
+  it("grounded mocks inject company-researched practice questions", () => {
+    expect(ivPage).toContain('id="mockCo"');
+    expect(ivPage).toContain("Research says ");
+    expect(ivPage).toContain("brief.grounded && brief.expect");
+    expect(ivPage).toContain('data-timer="co-');
+  });
+  it("the paywall sells the loop and names the visitor's target company", () => {
+    expect(ivPage).toContain('id="ivPaywallCo"');
+    expect(ivPage).toContain("You&rsquo;ve seen the free sample above");
+    expect(ivPage).toContain("the way the panel will");
+    expect(ivPage).toContain('coEl.textContent = t && t.company');
   });
 });
 

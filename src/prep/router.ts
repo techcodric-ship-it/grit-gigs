@@ -56,10 +56,12 @@ import {
   INTERVIEW_CATEGORIES,
   INTERVIEW_TRACKS,
   MOCK_DEFAULT_COUNT,
+  SAMPLE_QUESTION_CODES,
   aggregateFeedback,
   isValidCategory,
   isValidTrack,
   pickMock,
+  sampleInterviewQuestions,
   signInterviewMock,
   toPublicInterviewQuestion,
   verifyInterviewMock,
@@ -667,6 +669,41 @@ const interviewLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: "Too many interview requests, try again shortly." },
+});
+
+// Free taste of quality: three universally-asked questions WITH guidance, no
+// auth — this is what sells Prep Pro. The full bank, mocks and feedback stay
+// Pro-gated. Never dead-ends: falls back to the in-repo bank copy.
+prepRouter.get("/interview/sample", interviewLimiter, prepDbGate, async (_req: Request, res: Response): Promise<void> => {
+  const fallback = sampleInterviewQuestions().map((q, i) => ({
+    id: `sample-${i}`,
+    code: q.code,
+    track: q.track,
+    category: q.category,
+    difficulty: q.difficulty,
+    question: q.question,
+    guidance: q.guidance,
+  }));
+  try {
+    const rows = await db.select().from(prepInterviewQuestionsTable);
+    const byCode = new Map(rows.map((r) => [r.code, r]));
+    const picked = SAMPLE_QUESTION_CODES.map((c) => byCode.get(c)).filter((r): r is NonNullable<typeof r> => !!r);
+    const out = picked.length
+      ? picked.map((r) => ({
+          id: r.id,
+          code: r.code,
+          track: r.track,
+          category: r.category,
+          difficulty: r.difficulty,
+          question: r.question,
+          guidance: r.guidance,
+        }))
+      : fallback;
+    res.json({ success: true, data: { questions: out } });
+  } catch (err) {
+    console.error("[prep] interview sample failed:", err);
+    res.json({ success: true, data: { questions: fallback } });
+  }
 });
 
 prepRouter.get("/interview/questions", authenticate, interviewLimiter, requirePrepPro, prepDbGate, async (req: Request, res: Response): Promise<void> => {
