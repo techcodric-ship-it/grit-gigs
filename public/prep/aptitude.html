@@ -7,8 +7,8 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 5;</script>
-<link rel="stylesheet" href="/prep/prep.css?v=6"/>
+<script>window.PREP_V = 6;</script>
+<link rel="stylesheet" href="/prep/prep.css?v=7"/>
 <style>
   .apt-option { display:flex; gap:10px; align-items:flex-start; border:1px solid var(--prep-line); border-radius:10px; padding:10px 12px; margin-top:8px; cursor:pointer; }
   .apt-option:hover { border-color: var(--prep-violet); background: var(--prep-violet-light); }
@@ -62,7 +62,18 @@
     </div>
   </section>
 
-  <section class="prep-card">
+  <section class="prep-card prep-paywall" id="aptPaywall" hidden>
+    <span class="plan-kicker">Prep Pro perk</span>
+    <h2 class="prep-h2">Aptitude sessions are part of Prep Pro</h2>
+    <p class="prep-sub">Timed quizzes, server scoring and answer explanations unlock with Prep Pro &mdash;
+      &#8377;199 for 30 days, one-time payment, nothing auto-renews.</p>
+    <div class="prep-paywall-ctas">
+      <a class="prep-btn" id="aptPaywallPrimary" href="/prep#prepProCard">Get Prep Pro &mdash; &#8377;199</a>
+      <a class="prep-btn prep-btn-ghost" id="aptPaywallAlt" href="/login?next=/prep/aptitude">Sign in</a>
+    </div>
+  </section>
+
+  <section class="prep-card" data-pro-content>
     <h1 class="prep-h1">Aptitude practice</h1>
     <p class="prep-sub">Original practice questions in quant, logical and verbal. Answers are scored on the server — explanations unlock after you submit.</p>
     <ul class="prep-stats">
@@ -113,12 +124,12 @@
     <div class="plan-out" id="aptPlanOut" hidden></div>
   </section>
 
-  <section class="prep-card" id="aptQuizCard" hidden>
+  <section class="prep-card" id="aptQuizCard" data-pro-content hidden>
     <div id="aptQuizForm"></div>
     <button class="prep-btn" id="aptSubmit" type="button" style="margin-top:16px;">Submit answers</button>
   </section>
 
-  <section class="prep-card" id="aptResultCard" hidden>
+  <section class="prep-card" id="aptResultCard" data-pro-content hidden>
     <div class="apt-score" id="aptScore"></div>
     <div id="aptResults"></div>
     <button class="prep-btn" id="aptAgain" type="button" style="margin-top:16px;">Try another quiz</button>
@@ -151,10 +162,60 @@
   var token = "";
   var questions = [];
 
-  function loadTopics() {
-    fetch("/api/prep/aptitude/topics", { credentials: "same-origin" })
-      .then(function (r) { return r.json(); })
+  // ---- Prep Pro session gate (aptitude sessions are member-only) ----
+  var paywall = document.getElementById("aptPaywall");
+  var lockedSections = document.querySelectorAll("[data-pro-content]");
+  function seToken() { try { return localStorage.getItem("se_token") || ""; } catch (e) { return ""; } }
+  function authHeaders() { return { Authorization: "Bearer " + seToken() }; }
+  function setLocked(hidden) {
+    for (var i = 0; i < lockedSections.length; i++) lockedSections[i].style.display = hidden ? "none" : "";
+  }
+  function showPaywall(kind) {
+    paywall.hidden = false;
+    setLocked(true);
+    var primary = document.getElementById("aptPaywallPrimary");
+    var alt = document.getElementById("aptPaywallAlt");
+    if (kind === "signin") {
+      primary.textContent = "Sign in to continue";
+      primary.href = "/login?next=" + encodeURIComponent(location.pathname);
+      alt.textContent = "See Prep Pro";
+      alt.href = "/prep#prepProCard";
+      alt.style.display = "";
+    } else {
+      primary.textContent = "Get Prep Pro";
+      primary.href = "/prep#prepProCard";
+      alt.style.display = "none";
+    }
+  }
+  function showSessions() {
+    paywall.hidden = true;
+    setLocked(false);
+  }
+  function gate() {
+    if (!seToken()) { showPaywall("signin"); return; }
+    fetch("/api/prep/pro/status", { credentials: "same-origin", headers: authHeaders() })
+      .then(function (r) {
+        if (r.status === 401) { showPaywall("signin"); return null; }
+        // Rate limit / hiccup: show the session area anyway — every call the
+        // server makes still enforces the entitlement and flips the paywall.
+        if (!r.ok) { showSessions(); loadTopics(); return null; }
+        return r.json();
+      })
       .then(function (d) {
+        if (!d || !d.success) return;
+        if (d.data && d.data.isPro) { showSessions(); loadTopics(); return; }
+        showPaywall("upgrade");
+      })
+      .catch(function () { showSessions(); loadTopics(); });
+  }
+
+  function loadTopics() {
+    fetch("/api/prep/aptitude/topics", { credentials: "same-origin", headers: authHeaders() })
+      .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
+      .then(function (res) {
+        if (res.status === 401) { showPaywall("signin"); return; }
+        if (res.status === 402) { showPaywall("upgrade"); return; }
+        var d = res.d;
         var topics = (d && d.success && d.data.topics) || [];
         if (!topics.length) { errEl.textContent = "Question bank is being prepared. Check back soon."; return; }
         selectedTopic = topics[0].topic;
@@ -193,9 +254,11 @@
   document.getElementById("aptStart").addEventListener("click", function () {
     errEl.textContent = "";
     var count = document.getElementById("aptCount").value;
-    fetch("/api/prep/aptitude/quiz?topic=" + encodeURIComponent(selectedTopic) + "&count=" + encodeURIComponent(count), { credentials: "same-origin" })
+    fetch("/api/prep/aptitude/quiz?topic=" + encodeURIComponent(selectedTopic) + "&count=" + encodeURIComponent(count), { credentials: "same-origin", headers: authHeaders() })
       .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
       .then(function (res) {
+        if (res.status === 401) { showPaywall("signin"); return; }
+        if (res.status === 402) { showPaywall("upgrade"); errEl.textContent = res.d.message; return; }
         if (res.status !== 200 || !res.d.success) {
           errEl.textContent = (res.d && res.d.message) || "Could not start the quiz.";
           return;
@@ -218,11 +281,13 @@
     fetch("/api/prep/aptitude/submit", {
       method: "POST",
       credentials: "same-origin",
-      headers: { "content-type": "application/json" },
+      headers: Object.assign({ "content-type": "application/json" }, authHeaders()),
       body: JSON.stringify({ token: token, answers: answers }),
     })
       .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
       .then(function (res) {
+        if (res.status === 401) { showPaywall("signin"); return; }
+        if (res.status === 402) { showPaywall("upgrade"); return; }
         if (res.status === 400) { errEl.textContent = res.d.message; return; }
         if (res.status !== 200 || !res.d.success) {
           errEl.textContent = (res.d && res.d.message) || "Scoring failed.";
@@ -338,7 +403,7 @@
         planErr.textContent = "Network error. Try again.";
       });
   });
-  loadTopics();
+  gate();
 })();
 </script>
 </body>

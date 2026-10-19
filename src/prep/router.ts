@@ -510,7 +510,27 @@ const aptitudeLimiter = rateLimit({
   message: { success: false, message: "Too many quiz requests, try again shortly." },
 });
 
-prepRouter.get("/aptitude/topics", prepDbGate, async (_req: Request, res: Response): Promise<void> => {
+// Aptitude and interview SESSIONS are Prep Pro perks (browse + quiz + mock +
+// submit). Runs after authenticate; free accounts get an explicit 402 the UI
+// turns into the upgrade card instead of a dead button.
+async function requirePrepPro(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const entitlement = await getActiveEntitlement(req.user!.id);
+    if (isEntitlementActive(entitlement)) { next(); return; }
+    res.status(402).json({
+      success: false,
+      code: "UPGRADE_REQUIRED",
+      message: "Aptitude and interview sessions are part of Prep Pro. Upgrade to unlock every session.",
+      priceInr: PREP_PRO_PRICE_INR,
+      days: PREP_PRO_DAYS,
+    });
+  } catch (err) {
+    console.error("[prep] pro session gate failed:", err);
+    res.status(500).json({ success: false, message: "Could not check your plan. Try again." });
+  }
+}
+
+prepRouter.get("/aptitude/topics", authenticate, requirePrepPro, prepDbGate, async (_req: Request, res: Response): Promise<void> => {
   try {
     const rows = await db
       .select({
@@ -530,7 +550,7 @@ prepRouter.get("/aptitude/topics", prepDbGate, async (_req: Request, res: Respon
   }
 });
 
-prepRouter.get("/aptitude/quiz", aptitudeLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+prepRouter.get("/aptitude/quiz", authenticate, aptitudeLimiter, requirePrepPro, prepDbGate, async (req: Request, res: Response): Promise<void> => {
   try {
     const rawTopic = typeof req.query.topic === "string" ? req.query.topic : "";
     const topic = (APTITUDE_TOPICS as readonly string[]).includes(rawTopic) ? rawTopic : null;
@@ -561,7 +581,7 @@ const submitBody = z.object({
   answers: z.record(z.string(), z.number().int().min(0).max(20)),
 });
 
-prepRouter.post("/aptitude/submit", aptitudeLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+prepRouter.post("/aptitude/submit", authenticate, aptitudeLimiter, requirePrepPro, prepDbGate, async (req: Request, res: Response): Promise<void> => {
   const parsed = submitBody.safeParse(req.body ?? {});
   if (!parsed.success) {
     res.status(400).json({ success: false, message: "token and answers are required" });
@@ -595,7 +615,7 @@ const interviewLimiter = rateLimit({
   message: { success: false, message: "Too many interview requests, try again shortly." },
 });
 
-prepRouter.get("/interview/questions", interviewLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+prepRouter.get("/interview/questions", authenticate, interviewLimiter, requirePrepPro, prepDbGate, async (req: Request, res: Response): Promise<void> => {
   try {
     const track = isValidTrack(req.query.track) ? req.query.track : null;
     const category = isValidCategory(req.query.category) ? req.query.category : null;
@@ -619,7 +639,7 @@ prepRouter.get("/interview/questions", interviewLimiter, prepDbGate, async (req:
   }
 });
 
-prepRouter.get("/interview/mock", interviewLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+prepRouter.get("/interview/mock", authenticate, interviewLimiter, requirePrepPro, prepDbGate, async (req: Request, res: Response): Promise<void> => {
   try {
     const track = isValidTrack(req.query.track) ? req.query.track : null;
     const rows = await db
@@ -648,7 +668,7 @@ const mockSubmitBody = z.object({
   ratings: z.record(z.string(), z.number().int().min(1).max(5)).default({}),
 });
 
-prepRouter.post("/interview/mock/submit", interviewLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+prepRouter.post("/interview/mock/submit", authenticate, interviewLimiter, requirePrepPro, prepDbGate, async (req: Request, res: Response): Promise<void> => {
   const parsed = mockSubmitBody.safeParse(req.body ?? {});
   if (!parsed.success) {
     res.status(400).json({ success: false, message: "token and ratings (1-5) are required" });

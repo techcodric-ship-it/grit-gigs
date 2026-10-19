@@ -499,6 +499,16 @@ a.prep-feature:hover {
 .prep-banner-final span { color: #D9D3F5; }
 .prep-banner-final .prep-btn { background: #fff; color: #3A1F9E; border: none; }
 
+/* Prep Pro paywall: aptitude & interview sessions are member-only. The card
+   swaps its primary CTA between "Get Prep Pro" and "Sign in to continue". */
+.prep-paywall {
+  border: 1px solid rgba(108, 63, 232, 0.35);
+  background: linear-gradient(160deg, #F7F5FF 0%, #FFFFFF 55%, #FDF2FF 100%);
+  box-shadow: 0 10px 28px rgba(108, 63, 232, 0.12);
+}
+.prep-paywall .prep-h2 { margin-top: 4px; }
+.prep-paywall-ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; align-items: center; }
+
 .prep-live {
   margin: 14px 0 0; font-size: 0.85rem; font-weight: 600; color: var(--prep-muted);
 }

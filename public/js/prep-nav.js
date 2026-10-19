@@ -27,7 +27,7 @@
   //    Reload once through a cache-busting query: never a loop, because the
   //    re-fetched document carries the stamp, and _pv already present stops
   //    us from trying again.
-  var WANT_V = 5;
+  var WANT_V = 6;
   if (window.PREP_V !== WANT_V &&
       /\/prep(?:\/|$)/.test(location.pathname) &&
       !/[?&]_pv=/.test(location.search)) {
@@ -156,6 +156,10 @@
     var proTok = localStorage.getItem("se_token");
     var verdict = JSON.parse(localStorage.getItem("se_pro") || "null");
     function paintPro(on) {
+      // Upgrade CTAs (e.g. "See Prep Pro") must disappear the moment the
+      // account is a member — a paid user should never see the buy button.
+      var ups = document.querySelectorAll("[data-pro-upgrade]");
+      for (var ui = 0; ui < ups.length; ui++) ups[ui].style.display = on ? "none" : "";
       var chip = row.querySelector("[data-prep-pro-chip]");
       if (!on) { if (chip && chip.parentNode) chip.parentNode.removeChild(chip); return; }
       if (chip) return;

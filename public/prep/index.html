@@ -7,8 +7,8 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 5;</script>
-<link rel="stylesheet" href="/prep/prep.css?v=6"/>
+<script>window.PREP_V = 6;</script>
+<link rel="stylesheet" href="/prep/prep.css?v=7"/>
 </head>
 <body>
 <header class="topnav">
@@ -138,7 +138,7 @@
       <b>Prep Pro &middot; &#8377;199 for 30 days</b>
       <span>Unlimited reports, AI company plans, pay-aside free — pay once, no auto-renewal.</span>
     </div>
-    <a class="prep-btn" href="#prepProCard">See Prep Pro</a>
+    <a class="prep-btn" href="#prepProCard" data-pro-upgrade>See Prep Pro</a>
   </section>
 
 <section class="prep-card prep-card-pro" id="prepProCard">
@@ -256,8 +256,16 @@
 
   function proReset() { proBuy.disabled = false; proBuy.textContent = BUY_LABEL; }
 
+  // Every upgrade CTA on the page hides the moment the account is a member
+  // and returns only for logged-out / free viewers.
+  function setUpgradeCtas(on) {
+    var ups = document.querySelectorAll("[data-pro-upgrade]");
+    for (var i = 0; i < ups.length; i++) ups[i].style.display = on ? "none" : "";
+  }
+
   function showLoggedOutPro() {
     try { localStorage.removeItem("se_pro_last"); localStorage.removeItem("se_pro"); } catch (e) { /* private mode */ }
+    setUpgradeCtas(false);
     proLoading.hidden = true;
     proContent.hidden = false;
     proBuy.hidden = true;
@@ -277,6 +285,7 @@
     var card = document.getElementById("prepProCard");
     if (d.isPro) {
       proBuy.hidden = true;
+      setUpgradeCtas(true);
       proReset();
       card.classList.add("is-active");
       var until = d.expiresAt
@@ -297,6 +306,7 @@
       return;
     }
     card.classList.remove("is-active");
+    setUpgradeCtas(false);
     proBody.className = "prep-empty";
     proReset();
     proBuy.hidden = false;

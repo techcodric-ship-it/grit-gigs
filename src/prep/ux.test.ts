@@ -407,7 +407,7 @@ describe("the Buy button can never look dead; members look like members (round 5
   const nav = read("public/js/prep-nav.js");
   const css = read("public/prep/prep.css");
   it("stale prep HTML is detected by the always-fresh nav script and re-fetched exactly once", () => {
-    expect(nav).toContain("var WANT_V = 5;");
+    expect(nav).toContain("var WANT_V = 6;");
     expect(nav).toContain("window.PREP_V !== WANT_V");
     expect(nav).toContain('!/[?&]_pv=/.test(location.search)');
     expect(nav).toContain("location.replace(location.pathname + location.search +");
@@ -418,7 +418,7 @@ describe("the Buy button can never look dead; members look like members (round 5
       "public/prep/interview.html",
       "public/prep/proof.html",
     ]) {
-      expect(read(p), p).toContain("window.PREP_V = 5;");
+      expect(read(p), p).toContain("window.PREP_V = 6;");
       expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
     }
   });
@@ -724,19 +724,19 @@ describe("corporate redesign: promos, heroes, banners, live stats (round 10)", (
     expect(apt).toContain("Beat the cut-off with the drills that actually repeat");
     expect(apt).toContain('id="aptPlanCard"');
     expect(apt).toContain('class="prep-banner"');
-    expect(apt).toContain("prep/prep.css?v=6");
+    expect(apt).toContain("prep/prep.css?v=7");
     expect(iv).toContain('class="prep-hero-sm"');
     expect(iv).toContain("24 questions, 4 tracks");
     expect(iv).toContain('id="ivPlanCard"');
     expect(iv).toContain('class="prep-banner"');
-    expect(iv).toContain("prep/prep.css?v=6");
+    expect(iv).toContain("prep/prep.css?v=7");
   });
   it("proof sells the contribution with the anonymity promise up top", () => {
     expect(pf).toContain('class="prep-hero-sm"');
     expect(pf).toContain("One anonymised slip from you unlocks pay data for thousands");
     expect(pf).toContain('href="#pfForm"');
     expect(pf).toContain('class="prep-banner"');
-    expect(pf).toContain("prep/prep.css?v=6");
+    expect(pf).toContain("prep/prep.css?v=7");
     expect(pf).toContain("<b>3 \u00B7 Unlocks</b>"); // original 3-step flow intact
   });
   it("the promo system is fully styled", () => {
@@ -765,5 +765,64 @@ describe("messaging is open: anyone can start a chat with anyone", () => {
     expect(profile).not.toContain("/community/connected/");
     expect(profile).toContain("messages.html?to=");
     expect(profile).toContain("paintPresence");
+  });
+});
+
+describe("round 11: aptitude/interview sessions are Prep Pro; upgrade CTAs hide for members", () => {
+  const router = read("src/prep/router.ts");
+  const home = read("public/prep/index.html");
+  const nav = read("public/js/prep-nav.js");
+  const apt = read("public/prep/aptitude.html");
+  const iv = read("public/prep/interview.html");
+  const css = read("public/prep/prep.css");
+
+  it("the server gates every aptitude and interview session route behind Prep Pro", () => {
+    expect(router).toContain("async function requirePrepPro(");
+    expect(router).toContain('code: "UPGRADE_REQUIRED"');
+    for (const route of [
+      'prepRouter.get("/aptitude/topics", authenticate, requirePrepPro',
+      'prepRouter.get("/aptitude/quiz", authenticate, aptitudeLimiter, requirePrepPro',
+      'prepRouter.post("/aptitude/submit", authenticate, aptitudeLimiter, requirePrepPro',
+      'prepRouter.get("/interview/questions", authenticate, interviewLimiter, requirePrepPro',
+      'prepRouter.get("/interview/mock", authenticate, interviewLimiter, requirePrepPro',
+      'prepRouter.post("/interview/mock/submit", authenticate, interviewLimiter, requirePrepPro',
+    ]) expect(router).toContain(route);
+  });
+
+  it("upgrade CTAs are marked for hiding and both painters honour the verdict", () => {
+    expect(home).toContain('href="#prepProCard" data-pro-upgrade');
+    expect(home).toContain("function setUpgradeCtas(on)");
+    expect(nav).toContain('document.querySelectorAll("[data-pro-upgrade]")');
+    expect(nav).toContain('ups[ui].style.display = on ? "none" : ""');
+  });
+
+  it("aptitude sessions render a Prep Pro paywall instead of the quiz controls", () => {
+    expect(apt).toContain('id="aptPaywall"');
+    expect(apt).toContain('id="aptPaywallPrimary"');
+    expect(apt).toContain("Aptitude sessions are part of Prep Pro");
+    expect(apt).toContain("data-pro-content");
+    expect(apt).toContain("function gate()");
+    expect(apt).toContain("headers: authHeaders()");
+    expect(apt).toContain('if (res.status === 402) { showPaywall("upgrade")');
+  });
+
+  it("interview sessions gate the same way and the plan block is top-level", () => {
+    expect(iv).toContain('id="ivPaywall"');
+    expect(iv).toContain("Interview sessions are part of Prep Pro");
+    expect(iv).toContain("data-pro-content");
+    expect(iv).toContain("function gate()");
+    expect(iv).toContain("headers: authHeaders()");
+    // Regression guard: the AI-plan block once landed INSIDE the track-chip
+    // callback, which left the plan button dead until a chip was clicked.
+    const rc = iv.slice(iv.indexOf("function renderChips()"), iv.indexOf("// ---- AI company + role plan"));
+    expect(rc).not.toBe("");
+    expect((rc.match(/chips\(/g) || []).length).toBe(2);
+    expect(rc).not.toContain("planBtn");
+  });
+
+  it("the paywall ships styled and every prep page cache-busts the stylesheet", () => {
+    expect(css).toContain(".prep-paywall {");
+    expect(css).toContain(".prep-paywall-ctas");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("prep/prep.css?v=7");
   });
 });

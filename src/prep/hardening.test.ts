@@ -132,8 +132,8 @@ describe("quota + abuse surface", () => {
   it("every mutating prep endpoint is rate-limited", () => {
     expect(router).toMatch(/post\("\/reports", authenticate, reportLimiter/);
     expect(router).toMatch(/post\("\/companies", authenticate, createCompanyLimiter/);
-    expect(router).toMatch(/post\("\/aptitude\/submit", aptitudeLimiter/);
-    expect(router).toMatch(/post\("\/interview\/mock\/submit", interviewLimiter/);
+    expect(router).toMatch(/post\("\/aptitude\/submit", authenticate, aptitudeLimiter/);
+    expect(router).toMatch(/post\("\/interview\/mock\/submit", authenticate, interviewLimiter/);
     expect(router).toMatch(/post\("\/proof", authenticate, proofSubmitLimiter/);
     expect(router).toMatch(/post\("\/ai\/plan", authenticate, aiPlanLimiter/);
     expect(router).toMatch(/post\("\/pro\/order", authenticate, purchaseLimiter/);

@@ -7,8 +7,8 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 5;</script>
-<link rel="stylesheet" href="/prep/prep.css?v=6"/>
+<script>window.PREP_V = 6;</script>
+<link rel="stylesheet" href="/prep/prep.css?v=7"/>
 <style>
   .iv-tabs { display:flex; gap:8px; margin-bottom:16px; }
   .iv-tab { border:1px solid var(--prep-line); background:#fff; border-radius:999px; padding:8px 18px; font:inherit; font-size:0.9rem; font-weight:700; cursor:pointer; color:var(--prep-ink-2); }
@@ -66,7 +66,18 @@
     </div>
   </section>
 
-  <section class="prep-card">
+  <section class="prep-card prep-paywall" id="ivPaywall" hidden>
+    <span class="plan-kicker">Prep Pro perk</span>
+    <h2 class="prep-h2">Interview sessions are part of Prep Pro</h2>
+    <p class="prep-sub">Browse the question bank, run mock sessions and get category feedback with Prep Pro &mdash;
+      &#8377;199 for 30 days, one-time payment, nothing auto-renews.</p>
+    <div class="prep-paywall-ctas">
+      <a class="prep-btn" id="ivPaywallPrimary" href="/prep#prepProCard">Get Prep Pro &mdash; &#8377;199</a>
+      <a class="prep-btn prep-btn-ghost" id="ivPaywallAlt" href="/login?next=/prep/interview">Sign in</a>
+    </div>
+  </section>
+
+  <section class="prep-card" data-pro-content>
     <h1 class="prep-h1">Interview prep</h1>
     <p class="prep-sub">Original question sets with guidance on what interviewers actually look for. Browse to study, or run a mock session and rate your own answers.</p>
     <ul class="prep-stats">
@@ -113,11 +124,11 @@
     <div class="plan-out" id="ivPlanOut" hidden></div>
   </section>
 
-  <section class="prep-card" id="browseCard">
+  <section class="prep-card" id="browseCard" data-pro-content>
     <div id="browseList"><div class="prep-empty">Loading questions…</div></div>
   </section>
 
-  <section class="prep-card" id="mockCard" hidden>
+  <section class="prep-card" id="mockCard" data-pro-content hidden>
     <div id="mockIntro">
       <p class="prep-sub">Answer each question out loud in ~2 minutes, then rate your answer 1–5. You'll get the guidance and a confidence summary.</p>
       <button class="prep-btn" type="button" id="mockStart">Start mock (5 questions)</button>
@@ -126,7 +137,7 @@
     <button class="prep-btn" type="button" id="mockSubmit" hidden style="margin-top:14px;">Finish &amp; get feedback</button>
   </section>
 
-  <section class="prep-card" id="feedbackCard" hidden>
+  <section class="prep-card" id="feedbackCard" data-pro-content hidden>
     <div class="iv-stat" id="fbStat"></div>
     <div id="fbList"></div>
     <button class="prep-btn" type="button" id="fbAgain" style="margin-top:14px;">Try another mock</button>
@@ -156,6 +167,53 @@
   var track = null, cat = null, mode = "browse";
   var mockQuestions = [], mockToken = "", ratings = {};
 
+  // ---- Prep Pro session gate (interview sessions are member-only) ----
+  var paywall = document.getElementById("ivPaywall");
+  var lockedSections = document.querySelectorAll("[data-pro-content]");
+  function seToken() { try { return localStorage.getItem("se_token") || ""; } catch (e) { return ""; } }
+  function authHeaders() { return { Authorization: "Bearer " + seToken() }; }
+  function setLocked(hidden) {
+    for (var i = 0; i < lockedSections.length; i++) lockedSections[i].style.display = hidden ? "none" : "";
+  }
+  function showPaywall(kind) {
+    paywall.hidden = false;
+    setLocked(true);
+    var primary = document.getElementById("ivPaywallPrimary");
+    var alt = document.getElementById("ivPaywallAlt");
+    if (kind === "signin") {
+      primary.textContent = "Sign in to continue";
+      primary.href = "/login?next=" + encodeURIComponent(location.pathname);
+      alt.textContent = "See Prep Pro";
+      alt.href = "/prep#prepProCard";
+      alt.style.display = "";
+    } else {
+      primary.textContent = "Get Prep Pro";
+      primary.href = "/prep#prepProCard";
+      alt.style.display = "none";
+    }
+  }
+  function showSessions() {
+    paywall.hidden = true;
+    setLocked(false);
+  }
+  function gate() {
+    if (!seToken()) { showPaywall("signin"); return; }
+    fetch("/api/prep/pro/status", { credentials: "same-origin", headers: authHeaders() })
+      .then(function (r) {
+        if (r.status === 401) { showPaywall("signin"); return null; }
+        // Rate limit / hiccup: show the session area anyway — every call the
+        // server makes still enforces the entitlement and flips the paywall.
+        if (!r.ok) { showSessions(); renderChips(); loadBrowse(); return null; }
+        return r.json();
+      })
+      .then(function (d) {
+        if (!d || !d.success) return;
+        if (d.data && d.data.isPro) { showSessions(); renderChips(); loadBrowse(); return; }
+        showPaywall("upgrade");
+      })
+      .catch(function () { showSessions(); renderChips(); loadBrowse(); });
+  }
+
   function chips(el, values, current, onPick) {
     el.innerHTML = "";
     values.forEach(function (v) {
@@ -180,10 +238,13 @@
     if (track) qs.push("track=" + encodeURIComponent(track));
     if (cat) qs.push("category=" + encodeURIComponent(cat));
     var url = "/api/prep/interview/questions" + (qs.length ? "?" + qs.join("&") : "");
-    fetch(url, { credentials: "same-origin" })
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        if (!d.success) { errEl.textContent = d.message || "Could not load questions."; return; }
+    fetch(url, { credentials: "same-origin", headers: authHeaders() })
+      .then(function (r) { return r.json().then(function (x) { return { status: r.status, d: x }; }); })
+      .then(function (res) {
+        if (res.status === 401) { showPaywall("signin"); return; }
+        if (res.status === 402) { showPaywall("upgrade"); return; }
+        var d = res.d;
+        if (!d || !d.success) { errEl.textContent = (d && d.message) || "Could not load questions."; return; }
         errEl.textContent = "";
         var list = d.data.questions || [];
         document.getElementById("browseList").innerHTML = list.length
@@ -197,6 +258,16 @@
     chips(document.getElementById("trackChips"), tracks, track, function (v) {
       track = (track === v) ? null : v;
     
+      renderChips();
+      if (mode === "browse") loadBrowse();
+    });
+    chips(document.getElementById("catChips"), cats, cat, function (v) {
+      cat = (cat === v) ? null : v;
+      renderChips();
+      if (mode === "browse") loadBrowse();
+    });
+  }
+
   // ---- AI company + role plan (grounded research, cached server-side) ----
   var planBtn = document.getElementById("ivPlanBtn");
   var planErr = document.getElementById("ivPlanErr");
@@ -280,15 +351,6 @@
         planErr.textContent = "Network error. Try again.";
       });
   });
-  renderChips();
-      if (mode === "browse") loadBrowse();
-    });
-    chips(document.getElementById("catChips"), cats, cat, function (v) {
-      cat = (cat === v) ? null : v;
-      renderChips();
-      if (mode === "browse") loadBrowse();
-    });
-  }
 
   function setMode(m) {
     mode = m;
@@ -308,9 +370,11 @@
   document.getElementById("mockStart").addEventListener("click", function () {
     errEl.textContent = "";
     var url = "/api/prep/interview/mock" + (track ? "?track=" + encodeURIComponent(track) : "");
-    fetch(url, { credentials: "same-origin" })
+    fetch(url, { credentials: "same-origin", headers: authHeaders() })
       .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
       .then(function (res) {
+        if (res.status === 401) { showPaywall("signin"); return; }
+        if (res.status === 402) { showPaywall("upgrade"); errEl.textContent = res.d.message; return; }
         if (res.status !== 200 || !res.d.success) { errEl.textContent = (res.d && res.d.message) || "Could not start."; return; }
         mockQuestions = res.d.data.questions;
         mockToken = res.d.data.token;
@@ -348,11 +412,13 @@
     fetch("/api/prep/interview/mock/submit", {
       method: "POST",
       credentials: "same-origin",
-      headers: { "content-type": "application/json" },
+      headers: Object.assign({ "content-type": "application/json" }, authHeaders()),
       body: JSON.stringify({ token: mockToken, ratings: ratings }),
     })
       .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
       .then(function (res) {
+        if (res.status === 401) { showPaywall("signin"); return; }
+        if (res.status === 402) { showPaywall("upgrade"); return; }
         if (res.status === 400) { errEl.textContent = res.d.message; return; }
         if (res.status !== 200 || !res.d.success) { errEl.textContent = (res.d && res.d.message) || "Feedback failed."; return; }
         var data = res.d.data;
@@ -379,8 +445,7 @@
     document.getElementById("mockSubmit").hidden = true;
   });
 
-  renderChips();
-  loadBrowse();
+  gate();
 })();
 </script>
 </body>
