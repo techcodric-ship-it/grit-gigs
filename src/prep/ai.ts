@@ -1,4 +1,4 @@
-// PrepAiService: Groq-backed report summarization. Hard rules enforced here:
+// PrepAiService: Gemini-backed report summarization. Hard rules enforced here:
 // - the model may only use the provided SourceDocuments (no browsing, no
 //   outside knowledge encouraged);
 // - every summary sentence must carry a valid [n] source marker or it is
@@ -8,16 +8,17 @@
 //   (prompt-injection defense, tested);
 // - AI output is labeled AI_ESTIMATE downstream and never overwrites sourced
 //   skeleton sections.
-// When GROQ_API_KEY is missing, summarizeReport returns null and the report
+// When GEMINI_API_KEY is missing, summarizeReport returns null and the report
 // simply ships without an AI summary (honest "not available" behavior).
 
 import { SOURCE_UA } from "./sources/fetcher";
 import type { SourceDocument } from "./sources/types";
 import type { GatheredSources } from "./sources/gather";
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
-const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
-const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+const geminiUrl = (model: string): string =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
 const AI_TIMEOUT_MS = 25_000;
 const MAX_SUMMARY_CHARS = 1200;
 const MAX_CLAIMS = 12;
@@ -134,35 +135,39 @@ export function parseAiResponse(raw: string, allowedUrls: Set<string>, docCount:
   }
 
   if (!summary && claims.length === 0) return null;
-  return { summary, claims, model: GROQ_MODEL };
+  return { summary, claims, model: GEMINI_MODEL };
 }
 
+/** Gemini generateContent: system prompt rides as systemInstruction, the
+ * numbered source payload as the single user turn. */
 export async function chatCompletion(
   messages: { role: "system" | "user"; content: string }[],
   fetchImpl: ChatFetch = defaultChatFetch,
 ): Promise<string> {
-  if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY not configured");
-  const res = await fetchImpl(GROQ_URL, {
+  if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
+  const system = messages.filter((m) => m.role === "system").map((m) => m.content).join("\n\n");
+  const user = messages.filter((m) => m.role === "user").map((m) => m.content).join("\n\n");
+  const res = await fetchImpl(geminiUrl(GEMINI_MODEL), {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${GROQ_API_KEY}`,
+      "x-goog-api-key": GEMINI_API_KEY,
       "user-agent": SOURCE_UA,
     },
     body: JSON.stringify({
-      model: GROQ_MODEL,
-      messages,
-      temperature: 0.2,
-      max_tokens: 700,
+      systemInstruction: system ? { parts: [{ text: system }] } : undefined,
+      contents: [{ role: "user", parts: [{ text: user }] }],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 700 },
     }),
     signal: AbortSignal.timeout(AI_TIMEOUT_MS),
   });
   const payload = (await res.json().catch(() => null)) as {
-    choices?: { message?: { content?: string } }[];
+    candidates?: { content?: { parts?: { text?: string }[] } }[];
   };
-  const content = payload?.choices?.[0]?.message?.content;
+  const parts = payload?.candidates?.[0]?.content?.parts ?? [];
+  const content = parts.map((p) => p.text ?? "").join("");
   if (!res.ok || !content) {
-    throw new Error(`Groq error ${res.status}`);
+    throw new Error(`Gemini error ${res.status}`);
   }
   return content;
 }
@@ -176,7 +181,7 @@ export interface SummarizeInput {
 
 /** Returns null when AI is unconfigured, sources are empty, or parsing fails. */
 export async function summarizeReport(input: SummarizeInput): Promise<PrepAiResult | null> {
-  if (!GROQ_API_KEY) return null;
+  if (!GEMINI_API_KEY) return null;
   const docs = input.gathered.documents.filter((d) => d.label !== "AI_ESTIMATE");
   if (docs.length === 0) return null;
   const allowedUrls = new Set(docs.map((d) => d.url));

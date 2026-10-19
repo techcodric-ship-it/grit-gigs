@@ -6,27 +6,43 @@
 <title>Prep — company reports | Grit&amp;Gigs</title>
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
-<link rel="stylesheet" href="/css/main.css?v=3"/>
-<link rel="stylesheet" href="/prep/prep.css?v=1"/>
+<link rel="stylesheet" href="/assets/feed.css?v=36"/>
+<link rel="stylesheet" href="/prep/prep.css?v=2"/>
 </head>
 <body>
 <header class="topnav">
   <a class="nav-logo" href="/feed" title="Grit&Gigs home"><div class="nav-logo-mark"><img src="/logo.svg?v=3" alt="" width="32" height="32"></div><span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span></a>
   <div class="icons">
+    <a href="/prep" id="navPrep" title="Prep" class="on"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M9 7.5h6"/></svg></a>
     <a href="/feed" title="Feed"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.7V21h14V9.7"/></svg></a>
     <a href="/explore.html" title="Explore"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.3 16.3 4.2 4.2"/></svg></a>
     <a class="badge" href="/messages.html" title="Messages"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/></svg><span class="cnt" id="msgBadge" style="display:none;">0</span></a>
     <a href="/notifications.html" class="badge" title="Inbox"><svg viewBox="0 0 24 24"><path d="M12 20.3 4.9 13a4.7 4.7 0 0 1 6.6-6.6l.5.5.5-.5A4.7 4.7 0 0 1 19 13Z"/></svg><span class="cnt" id="notifBadge" style="display:none;">0</span></a>
     <a href="/orders.html" title="Orders"><svg viewBox="0 0 24 24"><path d="M21 8.2 12 3 3 8.2v7.6L12 21l9-5.2Z"/><path d="M3.3 8.3 12 13.3l8.7-5"/><path d="M12 13.3V21"/></svg></a>
-    <a href="/prep" id="navPrep" title="Prep" class="on"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M9 7.5h6"/></svg></a>
+
     <a href="/profile.html" id="navProfile" title="Profile"><img id="navAv" class="avatar" src="https://api.dicebear.com/9.x/initials/svg?seed=grit&backgroundColor=f0f0f0&textColor=262626" alt=""/></a>
   </div>
 </header>
 
 <main class="prep-wrap">
+  <section class="prep-hero">
+    <span class="prep-eyebrow">Prep · by Grit&amp;Gigs</span>
+    <h1 class="prep-h1">Company research you can trust — before you apply</h1>
+    <p class="prep-sub">Sourced employer reports, aptitude drills, interview mocks and anonymised
+      pay &amp; placement signals for job seekers and students in India.
+      Every claim carries its source. Nothing is scraped from job boards.</p>
+    <ul class="prep-trust-chips">
+      <li>Source on every line</li>
+      <li>No Glassdoor / LinkedIn scraping</li>
+      <li>Aggregates unlock at 5 reports</li>
+      <li>Contributors stay anonymous</li>
+    </ul>
+  </section>
+
   <section class="prep-card">
-    <h1 class="prep-h1">Company reports</h1>
-    <p class="prep-sub">Enter a company and the role you care about. The report sources every claim it shows and labels each one. Nothing here is legal advice.</p>
+    <h2 class="prep-h2">Start a company report</h2>
+    <p class="prep-sub">Pick a company and the role you care about. The report pulls official
+      careers pages and recent news, labels every source, and adds an AI summary marked as an estimate.</p>
     <form id="prepSearchForm" autocomplete="off">
       <div class="prep-field">
         <label for="prepCompany">Company name</label>
@@ -50,7 +66,48 @@
     <ul class="prep-matches" id="prepMatches" hidden></ul>
   </section>
 
+  <section class="prep-features">
+    <h2 class="prep-h2">Everything Prep includes</h2>
+    <div class="prep-feature-grid">
+      <div class="prep-feature">
+        <div class="prep-feature-k">CR</div>
+        <b>Company reports</b>
+        <p>Official careers pages and recent news, fetched directly from the source. Each line
+          carries a source chip and a link you can open yourself.</p>
+      </div>
+      <div class="prep-feature">
+        <div class="prep-feature-k">AQ</div>
+        <b>Aptitude practice</b>
+        <p>31 original questions across quant, logical and verbal. Timed quizzes, scored on the
+          server — explanations unlock after you submit.</p>
+      </div>
+      <div class="prep-feature">
+        <div class="prep-feature-k">IV</div>
+        <b>Interview prep</b>
+        <p>24 questions across behavioural, technical and HR rounds, plus mock sessions that
+          score your answers by category and flag the weakest one.</p>
+      </div>
+      <div class="prep-feature">
+        <div class="prep-feature-k">TC</div>
+        <b>Trust checks</b>
+        <p>Employer pay records and college placement outcomes, released only as aggregates once
+          a company has at least 5 approved reports — never individual rows.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="prep-card">
+    <h2 class="prep-h2">How it works</h2>
+    <ol class="prep-steps">
+      <li><b>Search a company</b> — choose the role you are applying for.</li>
+      <li><b>Read the sourced report</b> — official links, recent news, full provenance and an AI summary marked as an estimate.</li>
+      <li><b>Practise aptitude and interviews</b> — timed quizzes with explanations, mock sessions with category feedback.</li>
+      <li><b>Contribute proof, unlock aggregates</b> — approved pay or placement records release anonymised company figures for everyone.</li>
+    </ol>
+  </section>
+
   <section class="prep-card" id="prepProCard">
+    <h2 class="prep-h2">Prep Pro</h2>
     <div class="prep-empty" id="prepProLoading"><b>Prep Pro</b> Checking your plan…</div>
     <div id="prepProContent" hidden>
       <div class="prep-empty" id="prepProBody" style="text-align:left;"></div>
@@ -72,9 +129,15 @@
       Save a report to revisit it later.
     </div>
   </section>
+
+  <footer class="prep-foot">
+    Prep reports are informational, not legal or financial advice. Sources are official company
+    sites and public news feeds only. Pay and placement figures are member-reported and shown
+    only as aggregates from a minimum of 5 approved records — individuals are never exposed.
+  </footer>
 </main>
 
-<script src="/js/prep-nav.js?v=1" defer></script>
+<script src="/js/prep-nav.js?v=2" defer></script>
 <script>
 (function () {
   "use strict";

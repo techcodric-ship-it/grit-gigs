@@ -24,7 +24,7 @@ const ICON_NAV_PAGES = [
 describe("prep nav script tag on icon-nav pages", () => {
   for (const page of ICON_NAV_PAGES) {
     it(`${page} loads /js/prep-nav.js`, () => {
-      expect(read(`public/${page}`)).toContain('<script src="/js/prep-nav.js?v=1" defer></script>');
+      expect(read(`public/${page}`)).toMatch(/<script src="\/js\/prep-nav\.js\?v=\d+" defer><\/script>/);
     });
   }
 });
@@ -37,9 +37,10 @@ describe("prep-nav.js flag gating", () => {
   it("only injects when the flag response is enabled", () => {
     expect(src).toMatch(/d\.data && d\.data\.enabled/);
   });
-  it("inserts before the Profile anchor, keeping existing icon order", () => {
-    expect(src).toContain('a[title="Profile"]');
-    expect(src).toContain("row.insertBefore(a, profile)");
+  it("inserts the Prep icon FIRST, ahead of the Home/Feed button", () => {
+    expect(src).toContain("var first = row.firstElementChild;");
+    expect(src).toContain("row.insertBefore(a, first)");
+    expect(src).not.toContain('row.insertBefore(a, profile)');
   });
   it("is idempotent (skips if a /prep link already exists)", () => {
     expect(src).toContain('a[href="/prep"]');
@@ -56,8 +57,8 @@ describe("prep home shell", () => {
     expect(home).toContain("<title>Prep — company reports | Grit&amp;Gigs</title>");
   });
   it("links its own prep.css and the prep nav script", () => {
-    expect(home).toContain("/prep/prep.css?v=1");
-    expect(home).toContain("/js/prep-nav.js?v=1");
+    expect(home).toMatch(/\/prep\/prep\.css\?v=\d+/);
+    expect(home).toMatch(/\/js\/prep-nav\.js\?v=\d+/);
   });
   it("searches /api/prep/companies and builds report links", () => {
     expect(home).toContain("/api/prep/companies?q=");

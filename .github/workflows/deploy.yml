@@ -58,6 +58,20 @@ jobs:
             fi
             echo "FEATURE_PREP: $(grep '^FEATURE_PREP=' "$ENVF")"
 
+            # Gemini key for Prep AI summaries (src/prep/ai.ts reads GEMINI_API_KEY
+            # at boot via dotenv). Value comes from the repo secret and is never
+            # echoed — only whether it was set. Rewritten atomially each deploy so
+            # a rotated secret replaces the old line exactly once.
+            if [ -n "${{ secrets.GEMINI_API_KEY }}" ]; then
+              GEMTMP=$(mktemp)
+              grep -v '^GEMINI_API_KEY=' "$ENVF" > "$GEMTMP" || true
+              printf 'GEMINI_API_KEY=%s\n' "${{ secrets.GEMINI_API_KEY }}" >> "$GEMTMP"
+              mv "$GEMTMP" "$ENVF"
+              echo "GEMINI_API_KEY: written (value masked)"
+            else
+              echo "::warning::GEMINI_API_KEY repo secret not set — Prep AI summaries stay disabled"
+            fi
+
             # A git reset leaves the old process running the old code. TypeScript
             # changes are inert until PM2 picks them up, so restart here rather
             # than relying on someone doing it by hand afterwards.

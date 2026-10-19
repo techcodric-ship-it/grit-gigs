@@ -138,7 +138,7 @@ describe("summarizeReport environment behavior", () => {
     async () => ({
       ok: true,
       status: 200,
-      json: async () => ({ choices: [{ message: { content } }] }),
+      json: async () => ({ candidates: [{ content: { parts: [{ text: content }] } }] }),
     });
 
   beforeEach(() => {
@@ -150,8 +150,8 @@ describe("summarizeReport environment behavior", () => {
   });
 
   async function loadAi(key: string) {
-    vi.stubEnv("GROQ_API_KEY", key);
-    vi.stubEnv("GROQ_MODEL", "test-model");
+    vi.stubEnv("GEMINI_API_KEY", key);
+    vi.stubEnv("GEMINI_MODEL", "test-model");
     return import("./ai");
   }
 
@@ -164,27 +164,33 @@ describe("summarizeReport environment behavior", () => {
     expect(out).toBeNull();
   });
 
-  it("calls Groq with system+user messages and parses grounded output", async () => {
+  it("calls Gemini with systemInstruction + user turn and parses grounded output", async () => {
     const ai = await loadAi("test-key");
     let calledUrl = "";
     let calledBody = "";
+    let calledHeaders: Record<string, string> = {};
     const fetchImpl: ChatFetch = async (url, init) => {
       calledUrl = url;
       calledBody = init.body;
+      calledHeaders = init.headers;
       return {
         ok: true,
         status: 200,
         json: async () => ({
-          choices: [{ message: { content: '{"summary":"Acme makes widgets [1].","claims":[{"text":"Acme makes widgets","sourceUrl":"https://a.example/1"}]}' } }],
+          candidates: [{ content: { parts: [{ text: '{"summary":"Acme makes widgets [1].","claims":[{"text":"Acme makes widgets","sourceUrl":"https://a.example/1"}]}' }] } }],
         }),
       };
     };
     const out = await ai.summarizeReport({ company: { name: "Acme" }, role: "SDE-1", gathered, fetchImpl });
-    expect(calledUrl).toContain("api.groq.com");
+    expect(calledUrl).toContain("generativelanguage.googleapis.com");
+    expect(calledUrl).toContain("test-model");
+    expect(calledUrl).toContain(":generateContent");
+    expect(calledHeaders["x-goog-api-key"]).toBe("test-key");
     const body = JSON.parse(calledBody);
-    expect(body.model).toBe("test-model");
-    expect(body.messages[0].role).toBe("system");
-    expect(body.messages[1].content).toContain('<source id="1"');
+    expect(body.systemInstruction.parts[0].text).toContain("untrusted data");
+    expect(body.contents[0].role).toBe("user");
+    expect(body.contents[0].parts[0].text).toContain('<source id="1"');
+    expect(body.generationConfig.temperature).toBe(0.2);
     expect(out).not.toBeNull();
     expect(out!.model).toBe("test-model");
     expect(out!.claims[0]!.sourceUrl).toBe("https://a.example/1");
@@ -197,7 +203,7 @@ describe("summarizeReport environment behavior", () => {
     const junk: ChatFetch = async () => ({
       ok: true,
       status: 200,
-      json: async () => ({ choices: [{ message: { content: "totally not json" } }] }),
+      json: async () => ({ candidates: [{ content: { parts: [{ text: "totally not json" }] } }] }),
     });
     expect(await ai.summarizeReport({ company: { name: "Acme" }, role: null, gathered, fetchImpl: junk })).toBeNull();
   });

@@ -6,8 +6,8 @@
 <title>Aptitude practice | Prep | Grit&amp;Gigs</title>
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
-<link rel="stylesheet" href="/css/main.css?v=3"/>
-<link rel="stylesheet" href="/prep/prep.css?v=1"/>
+<link rel="stylesheet" href="/assets/feed.css?v=36"/>
+<link rel="stylesheet" href="/prep/prep.css?v=2"/>
 <style>
   .apt-option { display:flex; gap:10px; align-items:flex-start; border:1px solid var(--prep-line); border-radius:10px; padding:10px 12px; margin-top:8px; cursor:pointer; }
   .apt-option:hover { border-color: var(--prep-violet); background: var(--prep-violet-light); }
@@ -28,12 +28,13 @@
 <header class="topnav">
   <a class="nav-logo" href="/feed" title="Grit&Gigs home"><div class="nav-logo-mark"><img src="/logo.svg?v=3" alt="" width="32" height="32"></div><span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span></a>
   <div class="icons">
+    <a href="/prep" id="navPrep" title="Prep" class="on"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M9 7.5h6"/></svg></a>
     <a href="/feed" title="Feed"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.7V21h14V9.7"/></svg></a>
     <a href="/explore.html" title="Explore"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.3 16.3 4.2 4.2"/></svg></a>
     <a class="badge" href="/messages.html" title="Messages"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/></svg><span class="cnt" id="msgBadge" style="display:none;">0</span></a>
     <a href="/notifications.html" class="badge" title="Inbox"><svg viewBox="0 0 24 24"><path d="M12 20.3 4.9 13a4.7 4.7 0 0 1 6.6-6.6l.5.5.5-.5A4.7 4.7 0 0 1 19 13Z"/></svg><span class="cnt" id="notifBadge" style="display:none;">0</span></a>
     <a href="/orders.html" title="Orders"><svg viewBox="0 0 24 24"><path d="M21 8.2 12 3 3 8.2v7.6L12 21l9-5.2Z"/><path d="M3.3 8.3 12 13.3l8.7-5"/><path d="M12 13.3V21"/></svg></a>
-    <a href="/prep" id="navPrep" title="Prep" class="on"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M9 7.5h6"/></svg></a>
+
     <a href="/profile.html" id="navProfile" title="Profile"><img id="navAv" class="avatar" src="https://api.dicebear.com/9.x/initials/svg?seed=grit&backgroundColor=f0f0f0&textColor=262626" alt=""/></a>
   </div>
 </header>
@@ -42,6 +43,11 @@
   <section class="prep-card">
     <h1 class="prep-h1">Aptitude practice</h1>
     <p class="prep-sub">Original practice questions in quant, logical and verbal. Answers are scored on the server — explanations unlock after you submit.</p>
+    <ul class="prep-stats">
+      <li><b>31</b><span>original questions</span></li>
+      <li><b>3</b><span>topics — quant, logical, verbal</span></li>
+      <li><b>5 / 10 / 15</b><span>questions per timed set</span></li>
+    </ul>
     <div class="apt-topics" id="aptTopics"></div>
     <div class="prep-field">
       <label for="aptCount">Questions</label>
@@ -67,7 +73,7 @@
   </section>
 </main>
 
-<script src="/js/prep-nav.js?v=1" defer></script>
+<script src="/js/prep-nav.js?v=2" defer></script>
 <script>
 (function () {
   "use strict";
