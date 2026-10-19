@@ -308,3 +308,55 @@
   fill: none; stroke: var(--prep-violet-deep); stroke-width: 1.7; stroke-linecap: round;
 }
 .prep-err.info { color: var(--prep-violet-deep); font-weight: 600; }
+
+/* Prep Pro active member state — the card itself celebrates the purchase:
+ * gradient border, tinted panel, tick badge, unlocked-benefits list. The Buy
+ * button is gone; this is the professional "you're in" surface. */
+.prep-card-pro.is-active {
+  border-color: rgba(108, 63, 232, 0.55);
+  box-shadow: 0 12px 36px rgba(108, 63, 232, 0.16);
+}
+.prep-card-pro.is-active .prep-pro-badge {
+  background: linear-gradient(135deg, #6C3FE8, #B929E8);
+  color: #fff; border-color: transparent;
+}
+.prep-pro-on {
+  text-align: left;
+  background: linear-gradient(135deg, #F6F2FF 0%, #FDF1FB 100%);
+  border: 1px solid rgba(108, 63, 232, 0.25);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+.prep-pro-tick {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, #6C3FE8, #B929E8);
+  margin-bottom: 9px;
+}
+.prep-pro-tick svg {
+  width: 18px; height: 18px;
+  fill: none; stroke: #fff; stroke-width: 2.6;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.prep-pro-on b {
+  display: block;
+  font-size: 1.15rem; font-weight: 800;
+  color: var(--prep-violet-deep);
+}
+.prep-pro-until {
+  display: block;
+  font-size: 0.85rem; color: #555; margin-top: 3px;
+}
+.prep-pro-live {
+  list-style: none; margin: 12px 0 0; padding: 0;
+  display: grid; gap: 6px;
+}
+.prep-pro-live li {
+  position: relative; padding-left: 24px;
+  font-size: 0.86rem; color: #333;
+}
+.prep-pro-live li::before {
+  content: "✓";
+  position: absolute; left: 0; top: -1px;
+  color: #128C4A; font-weight: 800;
+}

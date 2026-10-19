@@ -401,3 +401,71 @@ describe("report page forwards its query string (round 4)", () => {
     expect(rp).toContain('"/report" + qs');
   });
 });
+
+describe("the Buy button can never look dead; members look like members (round 5)", () => {
+  const home = read("public/prep/index.html");
+  const nav = read("public/js/prep-nav.js");
+  const css = read("public/prep/prep.css");
+  it("stale prep HTML is detected by the always-fresh nav script and re-fetched exactly once", () => {
+    expect(nav).toContain("var WANT_V = 5;");
+    expect(nav).toContain("window.PREP_V !== WANT_V");
+    expect(nav).toContain('!/[?&]_pv=/.test(location.search)');
+    expect(nav).toContain("location.replace(location.pathname + location.search +");
+    for (const p of [
+      "public/prep/index.html",
+      "public/prep/report.html",
+      "public/prep/aptitude.html",
+      "public/prep/interview.html",
+      "public/prep/proof.html",
+    ]) {
+      expect(read(p), p).toContain("window.PREP_V = 5;");
+      expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
+    }
+  });
+  it("every click path labels the button itself and nothing reloads the page", () => {
+    expect(home).toContain("e.preventDefault();");
+    expect(home).toContain('proBuy.textContent = "Opening secure checkout...";');
+    expect(home).toContain("function proReset()");
+    expect(home).toContain("var BUY_LABEL = proBuy.textContent;");
+    expect(home).not.toContain("window.location.reload()");
+    expect(home).toContain("if (res.status === 401) { sessionExpiredPro(); return; }");
+    expect(home).toContain("if (v.status === 401) { sessionExpiredPro(); return; }");
+    expect(home).toContain("function sessionExpiredPro()");
+    expect(home).toContain('location.replace("/login?next="');
+  });
+  it("a confirmed entitlement renders the professional member panel in place", () => {
+    expect(home).toContain("showActiveNow(");
+    expect(home).toContain("function showActiveNow(expiresAt)");
+    expect(home).toContain("You\u2019re Prep Pro"); // in-file escape, no raw unicode in tests
+    expect(home).toContain("prep-pro-tick");
+    expect(home).toContain("prep-pro-live");
+    expect(home).toContain("prep-pro-until");
+    expect(home).toContain("Enjoy unlimited reports");
+    expect(home).toContain('card.classList.add("is-active")');
+    expect(css).toContain(".prep-card-pro.is-active");
+    expect(css).toContain(".prep-pro-on");
+    expect(css).toContain(".prep-pro-tick");
+    expect(css).toContain(".prep-pro-live li::before");
+  });
+  it("the logged-out card hides the Buy button instead of leaving a dead target", () => {
+    const idx = home.indexOf("function showLoggedOutPro()");
+    expect(idx).toBeGreaterThan(-1);
+    expect(home.indexOf("proBuy.hidden = true;", idx)).toBeLessThan(
+      home.indexOf("function showPro(d)", idx),
+    );
+  });
+  it("the wallet is never debited: copy says so and no wallet route exists client-side", () => {
+    expect(home).toContain("wallet balance is never used");
+    expect(home).not.toContain("/api/prep/pro/purchase");
+    expect(home).not.toContain("insufficient-balance");
+  });
+  it("the nav shows a PRO chip from a cached verdict, refreshed at most every 5 minutes", () => {
+    expect(nav).toContain("data-prep-pro-chip");
+    expect(nav).toContain('chip.textContent = "PRO"');
+    expect(nav).toContain("5 * 60 * 1000");
+    expect(nav).toContain("/api/prep/pro/status");
+    expect(nav).toContain("verdict.pro === true");
+    expect(home).toContain("JSON.stringify({ v: 1, ts: Date.now(), pro: true })");
+    expect(home).toContain("JSON.stringify({ v: 1, ts: Date.now(), pro: false })");
+  });
+});

@@ -3,7 +3,8 @@
 // byte-for-byte what it was before (src/lib/nav-badge.test.ts keeps guarding
 // the static markup).
 //
-// Four jobs, all idempotent:
+// Jobs, all idempotent:
+// 0. Stale prep-page self-heal (see below): re-fetch outdated prep HTML once.
 // 1. Prep icon FIRST in the row, ahead of Home/Feed. The server ships a
 //    prep_nav cookie WITH the HTML response, so on flag-on the icon paints
 //    synchronously at script time — no 2s gap while /flag round-trips when
@@ -18,6 +19,22 @@
 //    refresh from /api/auth/me (the authoritative account read).
 (function () {
   "use strict";
+  // 0. Stale-HTML self-heal: prep documents stamp window.PREP_V inline. The
+  //    server ships this script with max-age=0, so the nav script is always
+  //    current even when the page HTML came from an old browser cache — which
+  //    would otherwise leave users tapping dead buttons on outdated prep
+  //    markup (a Buy click that "does nothing", a report link that 404s).
+  //    Reload once through a cache-busting query: never a loop, because the
+  //    re-fetched document carries the stamp, and _pv already present stops
+  //    us from trying again.
+  var WANT_V = 5;
+  if (window.PREP_V !== WANT_V &&
+      /\/prep(?:\/|$)/.test(location.pathname) &&
+      !/[?&]_pv=/.test(location.search)) {
+    location.replace(location.pathname + location.search +
+      (location.search ? "&" : "?") + "_pv=" + WANT_V);
+    return;
+  }
   var ICONS = ".topnav .icons";
   var row = document.querySelector(ICONS);
   if (!row) return;
@@ -117,16 +134,59 @@
       if (cached && (cached.id || cached.email)) applyAvatar(cached);
     } catch (e) { /* corrupted cache: fall through to the server read */ }
     var token = localStorage.getItem("se_token");
-    if (token) {
-      fetch("/api/auth/me", { headers: { Authorization: "Bearer " + token } })
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (d) {
-          var fresh = d && d.success && d.data && d.data.user;
-          if (!fresh || !fresh.id) return;
-          applyAvatar(fresh);
-          try { localStorage.setItem("se_user", JSON.stringify(Object.assign({}, cached, fresh))); } catch (e) { /* private mode */ }
-        })
-        .catch(function () { /* keep the cached avatar */ });
+      if (token) {
+        fetch("/api/auth/me", { headers: { Authorization: "Bearer " + token } })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (d) {
+            var fresh = d && d.success && d.data && d.data.user;
+            if (!fresh || !fresh.id) return;
+            applyAvatar(fresh);
+            try { localStorage.setItem("se_user", JSON.stringify(Object.assign({}, cached, fresh))); } catch (e) { /* private mode */ }
+          })
+          .catch(function () { /* keep the cached avatar */ });
+      }
     }
-  }
+
+  // ── 5. Prep Pro chip ──
+  // A small PRO pill next to the prep icon while the account holds an active
+  // Prep Pro entitlement. Painted from the cached verdict instantly; the
+  // server read happens at most once per 5 minutes so normal browsing never
+  // crowds the shared /pro/status rate limit.
+  try {
+    var proTok = localStorage.getItem("se_token");
+    var verdict = JSON.parse(localStorage.getItem("se_pro") || "null");
+    function paintPro(on) {
+      var chip = row.querySelector("[data-prep-pro-chip]");
+      if (!on) { if (chip && chip.parentNode) chip.parentNode.removeChild(chip); return; }
+      if (chip) return;
+      chip = document.createElement("span");
+      chip.setAttribute("data-prep-pro-chip", "1");
+      chip.textContent = "PRO";
+      chip.title = "Prep Pro member";
+      chip.style.cssText = "font-size:0.6rem;font-weight:800;letter-spacing:0.08em;padding:3px 8px;border-radius:999px;" +
+        "background:linear-gradient(135deg,#6C3FE8,#B929E8);color:#fff;line-height:1.4;cursor:default;";
+      var chipAnchor = row.querySelector('a[href="/prep"]') || row.querySelector("#navProfile") || row.lastElementChild;
+      if (chipAnchor) row.insertBefore(chip, chipAnchor.nextSibling);
+      else row.appendChild(chip);
+    }
+    if (!proTok) {
+      localStorage.removeItem("se_pro");
+      paintPro(false);
+    } else {
+      var stamp = verdict && verdict.ts ? verdict.ts : 0;
+      var fresh = stamp && (Date.now() - stamp) < 5 * 60 * 1000;
+      if (fresh) {
+        paintPro(verdict.pro === true);
+      } else {
+        fetch("/api/prep/pro/status", { credentials: "same-origin", headers: { Authorization: "Bearer " + proTok } })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (d) {
+            var on = !!(d && d.success && d.data && d.data.isPro);
+            try { localStorage.setItem("se_pro", JSON.stringify({ v: 1, ts: Date.now(), pro: on })); } catch (e) { /* private mode */ }
+            paintPro(on);
+          })
+          .catch(function () { /* offline: keep whatever is painted */ });
+      }
+    }
+  } catch (e) { /* private mode: no chip, no cache */ }
 })();
