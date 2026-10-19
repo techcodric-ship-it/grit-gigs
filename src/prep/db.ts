@@ -113,6 +113,12 @@ CREATE TABLE IF NOT EXISTS prep_ai_plan_requests (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS prep_ai_plan_requests_user_idx ON prep_ai_plan_requests (user_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS prep_resume_checks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS prep_resume_checks_user_idx ON prep_resume_checks (user_id, created_at DESC);
 `;
 
 /** Raw evidence is deleted after 30 days (spec): drop the stored file, keep

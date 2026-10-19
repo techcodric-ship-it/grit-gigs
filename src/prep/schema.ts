@@ -149,3 +149,14 @@ export const prepAiPlanRequestsTable = pgTable("prep_ai_plan_requests", {
 });
 
 export type PrepAiPlanRequest = typeof prepAiPlanRequestsTable.$inferSelect;
+
+// Per-user daily free-tier resume checks (Prep Pro skips the count).
+// Usage count ONLY — the resume text itself is analysed in memory and never
+// stored, so this table can never become a resume honeypot.
+export const prepResumeChecksTable = pgTable("prep_resume_checks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type PrepResumeCheck = typeof prepResumeChecksTable.$inferSelect;

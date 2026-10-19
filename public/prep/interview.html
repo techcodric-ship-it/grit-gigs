@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 9;</script>
+<script>window.PREP_V = 10;</script>
 <link rel="stylesheet" href="/prep/prep.css?v=10"/>
 <style>
   .iv-tabs { display:flex; gap:8px; margin-bottom:16px; }
@@ -51,6 +51,12 @@
   .iv-timer-btn { border:1px solid var(--prep-line); background:#fff; border-radius:8px; padding:6px 12px; font:inherit; font-size:0.82rem; font-weight:800; cursor:pointer; color:var(--prep-ink-2); }
   .iv-timer-clock { font-weight:800; font-variant-numeric:tabular-nums; color:var(--prep-violet); font-size:0.95rem; }
   .iv-timer-clock.done { color:#B03027; }
+  .resume-ta { width:100%; box-sizing:border-box; border:1px solid var(--prep-line); border-radius:10px; padding:10px 12px; font:inherit; font-size:0.92rem; resize:vertical; margin-top:8px; }
+  .resume-count { font-size:0.78rem; color:var(--prep-ink-2); margin:4px 0 10px; }
+  .resume-band { display:inline-block; border-radius:999px; padding:2px 10px; font-size:0.8rem; font-weight:800; }
+  .resume-band-strong { background:#E7F7EE; color:#137A4B; }
+  .resume-band-work { background:#FDF3E0; color:#8A5A2B; }
+  .resume-band-thin { background:#FDECEA; color:#B03027; }
 </style>
 </head>
 <body>
@@ -105,6 +111,19 @@
     <div class="prep-hero-ctas" style="margin-top:14px;">
       <a class="prep-btn" href="/prep#prepProCard">Unlock all 24 + company mocks &#8377;199</a>
     </div>
+  </section>
+
+  <section class="prep-card" id="resumeCard">
+    <span class="plan-kicker">Free AI check &middot; 1 a day</span>
+    <h2 class="prep-h2">Will your resume pass the screen<span id="resTargetCo"></span>?</h2>
+    <p class="prep-sub">Paste your resume text &mdash; the coach compares it against your target role&rsquo;s required
+      skills and returns honest gaps, bullet rewrites and next steps. AI estimate, not a guarantee; your text is
+      analysed in memory and never stored.</p>
+    <textarea class="resume-ta" id="resumeText" rows="8" maxlength="12000" placeholder="Paste your resume text here — select all in your PDF/DOC and paste."></textarea>
+    <div class="resume-count"><span id="resCount">0</span>/12000 characters</div>
+    <button class="prep-btn" type="button" id="resumeBtn">Check my resume</button>
+    <div class="prep-err" id="resumeErr" role="alert"></div>
+    <div class="plan-out" id="resumeOut" hidden></div>
   </section>
 
   <section class="prep-card prep-paywall" id="ivPaywall" hidden>
@@ -200,7 +219,7 @@
 
 </main>
 
-<script src="/js/prep-nav.js?v=8" defer></script>
+<script src="/js/prep-nav.js?v=9" defer></script>
 <script>
 (function () {
   "use strict";
@@ -526,6 +545,7 @@
         }
         // A built plan is the user's active target: the mock inherits it.
         writeTarget(company, role);
+        updateResumeTarget();
         renderPlan(res.d.data.plan, !!res.d.data.limited);
       })
       .catch(function () {
@@ -628,6 +648,107 @@
     .catch(function () {
       document.getElementById("sampleList").innerHTML = '<div class="prep-empty">Sample unavailable &mdash; refresh to retry.</div>';
     });
+
+  // ---- Free resume gap check: 1 AI check/day (Pro unlimited), text never stored ----
+  var resText = document.getElementById("resumeText");
+  var resCount = document.getElementById("resCount");
+  var resBtn = document.getElementById("resumeBtn");
+  var resErr = document.getElementById("resumeErr");
+  var resOut = document.getElementById("resumeOut");
+
+  function updateResumeTarget() {
+    var t = typeof currentTarget === "function" ? currentTarget() : null;
+    var co = document.getElementById("resTargetCo");
+    if (co) co.textContent = t && t.company ? " for " + t.company : "";
+  }
+  resText.addEventListener("input", function () {
+    resCount.textContent = String(resText.value.length);
+  });
+
+  function renderResumeOut(d) {
+    var h = "";
+    var t = d.target || null;
+    h += '<div class="plan-head"><b>' + (t && (t.company || t.role)
+      ? "Compared against" + (t.company ? " " + esc(t.company) : "") + (t.role ? " \u00B7 " + esc(t.role) : "")
+      : "Compared against the usual skills for this kind of role") +
+      '</b><span class="prep-chip">AI estimate</span></div>';
+    if (d.check) {
+      var band = { "Strong": "resume-band-strong", "Thin": "resume-band-thin" };
+      h += '<p class="prep-body"><b class="resume-band ' + (band[d.check.readiness] || "resume-band-work") + '">' +
+        esc(d.check.readiness) + "</b> &mdash; " + esc(d.check.overview) + "</p>";
+      if (d.check.strengths.length) {
+        h += '<h3 class="plan-h3">What is already working</h3><ul class="plan-bullets">' +
+          d.check.strengths.map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + "</ul>";
+      }
+      if (d.check.gaps.length) {
+        h += '<h3 class="plan-h3">Gaps for this target</h3><div class="plan-qs">' + d.check.gaps.map(function (g, i) {
+          return '<div class="plan-q"><span class="plan-q-n">' + (i + 1) + '</span><div><p class="plan-q-t">' +
+            esc(g.skill) + '</p><p class="plan-q-w"><b>Why:</b> ' + esc(g.why) + " <b>Fix:</b> " + esc(g.fix) + "</p></div></div>";
+        }).join("") + "</div>";
+      }
+      if (d.check.rewrites.length) {
+        h += '<h3 class="plan-h3">Bullet rewrites (your material, sharper wording)</h3>' + d.check.rewrites.map(function (r) {
+          return '<div class="iv-guide" style="margin-top:8px;"><s>' + esc(r.before) + "</s><br/>" + esc(r.after) + "</div>";
+        }).join("");
+      }
+      if (d.check.nextSteps.length) {
+        h += '<h3 class="plan-h3">Next steps</h3><ul class="plan-bullets">' +
+          d.check.nextSteps.map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + "</ul>";
+      }
+    } else if (d.checklist && d.checklist.length) {
+      h += '<p class="prep-body">' + (d.limited
+        ? "Your free AI check for today is used. Prep Pro runs it unlimited times \u2014 meanwhile, make sure your resume clearly shows:"
+        : (d.note ? esc(d.note) + " Meanwhile, make sure your resume clearly shows:"
+          : "Checklist for this role:")) + "</p>";
+      h += '<ul class="plan-bullets">' + d.checklist.map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + "</ul>";
+      if (d.limited) {
+        h += '<p class="prep-err info" style="margin-top:6px;">Prep Pro (&#8377;199/30 days): unlimited resume checks, company-grounded mocks and researched plans. <a href="/prep#prepProCard">Upgrade</a>.</p>';
+      }
+    }
+    h += '<p class="prep-body" style="color:var(--prep-ink-2);font-size:0.85rem;margin-top:8px;">AI estimate from the text you pasted &mdash; not a guarantee of interviews. Your resume text was analysed in memory and never stored.</p>';
+    resOut.innerHTML = h;
+    resOut.hidden = false;
+  }
+
+  resBtn.addEventListener("click", function () {
+    resErr.textContent = "";
+    var text = resText.value.trim();
+    if (text.length < 100) {
+      resErr.textContent = "Paste at least 100 characters of your resume text (select-all in your PDF/DOC and paste).";
+      return;
+    }
+    var t = typeof currentTarget === "function" ? currentTarget() : null;
+    resBtn.disabled = true;
+    resBtn.textContent = "Checking your resume...";
+    fetch("/api/prep/resume/check", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: Object.assign({ "content-type": "application/json" }, authHeaders()),
+      body: JSON.stringify({
+        text: text,
+        company: t && t.company ? t.company : "",
+        role: t && t.role ? t.role : "",
+      }),
+    })
+      .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
+      .then(function (res) {
+        resBtn.disabled = false;
+        resBtn.textContent = "Check my resume";
+        if (res.status === 401) { showPaywall("signin"); return; }
+        if (res.status === 400 || !res.d.success) {
+          resErr.textContent = (res.d && res.d.message) || "Could not check the resume.";
+          return;
+        }
+        renderResumeOut(res.d.data);
+        resOut.scrollIntoView({ behavior: "smooth", block: "start" });
+      })
+      .catch(function () {
+        resBtn.disabled = false;
+        resBtn.textContent = "Check my resume";
+        resErr.textContent = "Network error. Try again.";
+      });
+  });
+  updateResumeTarget();
 
   // The server answers with a researched brief (cached plan or one live
   // research pass). Sourced briefs show their links; unsourced ones are

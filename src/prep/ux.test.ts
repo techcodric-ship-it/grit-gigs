@@ -407,7 +407,7 @@ describe("the Buy button can never look dead; members look like members (round 5
   const nav = read("public/js/prep-nav.js");
   const css = read("public/prep/prep.css");
   it("stale prep HTML is detected by the always-fresh nav script and re-fetched exactly once", () => {
-    expect(nav).toContain("var WANT_V = 9;");
+    expect(nav).toContain("var WANT_V = 10;");
     expect(nav).toContain("window.PREP_V !== WANT_V");
     expect(nav).toContain('!/[?&]_pv=/.test(location.search)');
     expect(nav).toContain("location.replace(location.pathname + location.search +");
@@ -418,7 +418,7 @@ describe("the Buy button can never look dead; members look like members (round 5
       "public/prep/interview.html",
       "public/prep/proof.html",
     ]) {
-      expect(read(p), p).toContain("window.PREP_V = 9;");
+      expect(read(p), p).toContain("window.PREP_V = 10;");
       expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
     }
   });
@@ -1079,6 +1079,48 @@ describe("round 14: the free taste that sells Pro (sample + grounded mock + outc
     expect(ivPage).toContain("You&rsquo;ve seen the free sample above");
     expect(ivPage).toContain("the way the panel will");
     expect(ivPage).toContain('coEl.textContent = t && t.company');
+  });
+});
+
+describe("round 15: resume vs target role — free AI taste, text never stored", () => {
+  const router = read("src/prep/router.ts");
+  const schema = read("src/prep/schema.ts");
+  const ddl = read("src/prep/db.ts");
+  const ivPage = read("public/prep/interview.html");
+
+  it("check endpoint: auth + limiter + free daily quota, NOT Pro-gated", () => {
+    expect(router).toMatch(/prepRouter\.post\(\s*"\/resume\/check",\s*authenticate,\s*resumeCheckLimiter,\s*prepDbGate/);
+    expect(router).not.toMatch(/"\/resume\/check",[\s\S]{0,120}?requirePrepPro/);
+    expect(router).toContain("const FREE_RESUME_CHECKS_PER_DAY = 1;");
+    expect(router).toContain("countResumeChecksToday(req.user!.id)");
+    expect(router).toContain("generateResumeCheck({ resume: text");
+  });
+  it("the resume text is never persisted — usage count table only", () => {
+    expect(schema).toContain('pgTable("prep_resume_checks"');
+    expect(schema).toMatch(/prepResumeChecksTable = pgTable\("prep_resume_checks", \{\s*id: uuid\("id"\)[\s\S]*?userId: uuid\("user_id"\)[\s\S]*?createdAt/);
+    expect(schema).not.toMatch(/prep_resume_checks"[\s\S]{0,300}?text\(/);
+    expect(ddl).toContain("CREATE TABLE IF NOT EXISTS prep_resume_checks");
+    expect(ddl).toContain("prep_resume_checks_user_idx");
+  });
+  it("exhausted quota or dead AI answers with the checklist — never an error", () => {
+    expect(router).toContain("limited: true, used, limit, target, checklist: skills");
+    expect(router).toContain('note: "AI check is unavailable right now');
+    expect(router).toContain("honest checklist, no usage consumed, never 500");
+  });
+  it("the card is a free taste outside the Pro lock, honestly labeled", () => {
+    const slice = ivPage.slice(ivPage.indexOf('id="resumeCard"'), ivPage.indexOf('id="ivPaywall"'));
+    expect(slice).not.toBe("");
+    expect(slice).not.toContain("data-pro-content");
+    expect(ivPage).toContain("/api/prep/resume/check");
+    expect(ivPage).toContain("Free AI check");
+    expect(ivPage).toContain("never stored");
+    expect(ivPage).toContain("not a guarantee");
+    expect(ivPage).toContain("Paste at least 100 characters");
+  });
+  it("the check follows the active target and updates when a plan is built", () => {
+    expect(ivPage).toContain("function updateResumeTarget()");
+    expect(ivPage).toContain("updateResumeTarget();");
+    expect(ivPage).toContain("currentTarget()");
   });
 });
 

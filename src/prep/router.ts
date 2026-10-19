@@ -15,8 +15,9 @@ import { isPrepEnabled } from "./feature";
 import { ensurePrepDb } from "./db";
 import { resolveCompany, createPendingCompany, slugifyCompanyName } from "./companies";
 import { gatherSourcesWithBudget } from "./sources/gather";
-import { fallbackPlan, generatePrepPlan, summarizeReport, type PrepAiPlanPayload } from "./ai";
+import { fallbackPlan, generatePrepPlan, generateResumeCheck, summarizeReport, type PrepAiPlanPayload } from "./ai";
 import { countAiPlanRequestsToday, getCachedAiPlan, recordAiPlanRequest, saveAiPlan } from "./ai-plans";
+import { countResumeChecksToday, recordResumeCheck } from "./resume-checks";
 import { aptitudeWeights, trackForRole, weightsFromPlanTopics, type AptitudeWeights } from "./role-skills";
 import { APTITUDE_TOPICS, prepAptitudeQuestionsTable, prepCompaniesTable, prepInterviewQuestionsTable, prepReportsTable } from "./schema";
 import { clampCount, pickQuiz, pickQuizWeighted, scoreQuiz, signQuizToken, toPublicQuestion, verifyQuizToken } from "./aptitude";
@@ -847,6 +848,94 @@ prepRouter.post("/interview/mock/submit", authenticate, interviewLimiter, requir
     res.status(500).json({ success: false, message: "Feedback generation failed" });
   }
 });
+
+// ---- Resume vs target role gap check (free AI taste: 1/day; Pro unlimited) ----
+// The resume TEXT is analysed in memory and NEVER stored — only the usage
+// count is persisted (prep_resume_checks). Free tier gets one live AI check
+// per day; an exhausted allowance or an unavailable AI still answers with the
+// target role's skill checklist, so the page always lands on something
+// actionable instead of a dead error.
+
+const resumeCheckLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many resume checks, try again shortly." },
+});
+
+const FREE_RESUME_CHECKS_PER_DAY = 1;
+
+const resumeCheckBody = z.object({
+  text: z.string().min(100).max(12000),
+  company: z.string().max(200).optional(),
+  role: z.string().max(120).optional(),
+});
+
+prepRouter.post(
+  "/resume/check",
+  authenticate,
+  resumeCheckLimiter,
+  prepDbGate,
+  async (req: Request, res: Response): Promise<void> => {
+    const parsed = resumeCheckBody.safeParse({
+      text: String(req.body?.text ?? "").trim().slice(0, 12000),
+      company: req.body?.company ? String(req.body.company).trim().slice(0, 200) : undefined,
+      role: req.body?.role ? String(req.body.role).trim().slice(0, 120) : undefined,
+    });
+    if (!parsed.success) {
+      res.status(400).json({ success: false, message: "Paste at least 100 characters of your resume text." });
+      return;
+    }
+    const { text, company = "", role = "" } = parsed.data;
+    try {
+      // Target context: exact cached plan only (never creates companies), else
+      // the role profile's skills — so the check is useful without a company.
+      const plan = company && role ? await cachedPlanFor(company, role) : null;
+      const skills = (plan ? plan.skillsRequired : fallbackPlan(company, role).skillsRequired).slice(0, 8);
+      const target = company || role ? { company, role } : null;
+      const limit = FREE_RESUME_CHECKS_PER_DAY;
+
+      const isProUser = isEntitlementActive(await getActiveEntitlement(req.user!.id));
+      let used = 0;
+      if (!isProUser) used = await countResumeChecksToday(req.user!.id);
+      if (!isProUser && used >= limit) {
+        res.json({
+          success: true,
+          data: { check: null, aiUsed: false, limited: true, used, limit, target, checklist: skills },
+        });
+        return;
+      }
+
+      const generated = await generateResumeCheck({ resume: text, company, role, skillsRequired: skills });
+      if (generated) {
+        await recordResumeCheck(req.user!.id); // only genuine AI checks count
+        res.status(201).json({
+          success: true,
+          data: { check: generated.check, aiUsed: true, limited: false, used: used + 1, limit, target, checklist: skills },
+        });
+        return;
+      }
+      // AI unconfigured/failed: honest checklist, no usage consumed, never 500.
+      res.json({
+        success: true,
+        data: {
+          check: null,
+          aiUsed: false,
+          limited: false,
+          used,
+          limit,
+          target,
+          checklist: skills,
+          note: "AI check is unavailable right now - try again in a few minutes.",
+        },
+      });
+    } catch (err) {
+      console.error("[prep] resume check failed:", err);
+      res.status(500).json({ success: false, message: "Could not run the resume check. Try again." });
+    }
+  },
+);
 
 // ---- Proof / evidence pipeline (Phase 7) ----
 // Raw evidence (optional file) is stored server-side only, never returned to
