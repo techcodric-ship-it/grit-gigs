@@ -18,6 +18,7 @@ import { gatherSourcesWithBudget } from "./sources/gather";
 import { fallbackPlan, generatePrepPlan, generateResumeCheck, summarizeReport, type PrepAiPlanPayload } from "./ai";
 import { countAiPlanRequestsToday, getCachedAiPlan, recordAiPlanRequest, saveAiPlan } from "./ai-plans";
 import { countResumeChecksToday, recordResumeCheck } from "./resume-checks";
+import { extractResumeText } from "./resume-text";
 import { aptitudeWeights, trackForRole, weightsFromPlanTopics, type AptitudeWeights } from "./role-skills";
 import { APTITUDE_TOPICS, prepAptitudeQuestionsTable, prepCompaniesTable, prepInterviewQuestionsTable, prepReportsTable } from "./schema";
 import { clampCount, pickQuiz, pickQuizWeighted, scoreQuiz, signQuizToken, toPublicQuestion, verifyQuizToken } from "./aptitude";
@@ -934,6 +935,56 @@ prepRouter.post(
       console.error("[prep] resume check failed:", err);
       res.status(500).json({ success: false, message: "Could not run the resume check. Try again." });
     }
+  },
+);
+
+// ---- Resume file upload (PDF / DOCX / TXT) -> plain text for the check ----
+// The file lives only in request memory: extraction happens in-process with
+// zero npm dependencies (the deploy pipeline runs no install step, so a new
+// package would crash production). Nothing about the file or its text is
+// ever written to disk or stored in the database.
+
+const resumeDocUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+});
+
+const resumeUploadLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many uploads, try again shortly." },
+});
+
+prepRouter.post(
+  "/resume/upload",
+  authenticate,
+  resumeUploadLimiter,
+  prepDbGate,
+  resumeDocUpload.single("file"),
+  async (req: Request, res: Response): Promise<void> => {
+    if (!req.file || !req.file.buffer || !req.file.buffer.length) {
+      res.status(400).json({ success: false, message: "Attach a file first (PDF, DOCX or .txt)." });
+      return;
+    }
+    const originalName = String(req.file.originalname || "resume").slice(0, 160);
+    const extracted = extractResumeText(req.file.buffer, originalName, req.file.mimetype);
+    if (!extracted.ok) {
+      res.status(400).json({ success: false, message: extracted.error });
+      return;
+    }
+    const full = extracted.text;
+    res.json({
+      success: true,
+      data: {
+        text: full.slice(0, 12000),
+        chars: Math.min(full.length, 12000),
+        totalChars: full.length,
+        name: originalName,
+        truncated: full.length > 12000,
+      },
+    });
   },
 );
 

@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 10;</script>
+<script>window.PREP_V = 11;</script>
 <link rel="stylesheet" href="/prep/prep.css?v=10"/>
 <style>
   .iv-tabs { display:flex; gap:8px; margin-bottom:16px; }
@@ -105,21 +105,27 @@
   <section class="prep-card" id="sampleCard">
     <span class="plan-kicker">Free sample</span>
     <h2 class="prep-h2">Three questions interviewers actually open with</h2>
-    <p class="prep-sub">A real taste of the bank &mdash; including what interviewers look for in each answer.
+    <p class="prep-sub" id="sampleSub">A real taste of the bank &mdash; including what interviewers look for in each answer.
       Prep Pro unlocks all 24 questions, company-grounded mocks and post-mock feedback.</p>
     <div id="sampleList"><div class="prep-empty">Loading&hellip;</div></div>
-    <div class="prep-hero-ctas" style="margin-top:14px;">
+    <div class="prep-hero-ctas" id="sampleUpsell" style="margin-top:14px;">
       <a class="prep-btn" href="/prep#prepProCard">Unlock all 24 + company mocks &#8377;199</a>
     </div>
   </section>
 
   <section class="prep-card" id="resumeCard">
-    <span class="plan-kicker">Free AI check &middot; 1 a day</span>
+    <span class="plan-kicker" id="resumeKick">Free AI check &middot; 1 a day</span>
     <h2 class="prep-h2">Will your resume pass the screen<span id="resTargetCo"></span>?</h2>
-    <p class="prep-sub">Paste your resume text &mdash; the coach compares it against your target role&rsquo;s required
-      skills and returns honest gaps, bullet rewrites and next steps. AI estimate, not a guarantee; your text is
-      analysed in memory and never stored.</p>
-    <textarea class="resume-ta" id="resumeText" rows="8" maxlength="12000" placeholder="Paste your resume text here — select all in your PDF/DOC and paste."></textarea>
+    <p class="prep-sub">Upload your resume file (PDF, DOCX, TXT) or paste its text &mdash; the coach compares it
+      against your target role&rsquo;s required skills and returns honest gaps, bullet rewrites and next steps.
+      AI estimate, not a guarantee; your file and text are analysed in memory and never stored.</p>
+    <div class="resume-file-row" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 8px;">
+      <label class="prep-btn prep-btn-ghost" for="resumeFile" style="cursor:pointer;">Upload file (PDF, DOCX, TXT)</label>
+      <input type="file" id="resumeFile" hidden
+        accept=".pdf,.docx,.txt,.md,.text,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown">
+      <span class="plan-kicker" id="resFileStatus">or paste below</span>
+    </div>
+    <textarea class="resume-ta" id="resumeText" rows="8" maxlength="12000" placeholder="Paste your resume text here, or use Upload file above."></textarea>
     <div class="resume-count"><span id="resCount">0</span>/12000 characters</div>
     <button class="prep-btn" type="button" id="resumeBtn">Check my resume</button>
     <div class="prep-err" id="resumeErr" role="alert"></div>
@@ -219,7 +225,7 @@
 
 </main>
 
-<script src="/js/prep-nav.js?v=9" defer></script>
+<script src="/js/prep-nav.js?v=10" defer></script>
 <script>
 (function () {
   "use strict";
@@ -312,6 +318,17 @@
     paywall.hidden = true;
     setLocked(false);
   }
+  // Pro owns everything the free sample sells — a paid member must never see
+  // the buy CTA or "1 a day" quota copy (style.display, not hidden: the CTA
+  // wrapper carries display:flex which beats the [hidden] attribute).
+  function applyProExtras() {
+    var up = document.getElementById("sampleUpsell");
+    if (up) up.style.display = "none";
+    var sub = document.getElementById("sampleSub");
+    if (sub) sub.textContent = "Part of Prep Pro \u2014 you already have all 24 questions, company-grounded mocks and post-mock feedback.";
+    var kick = document.getElementById("resumeKick");
+    if (kick) kick.textContent = "AI resume checks \u00B7 unlimited";
+  }
   function gate() {
     if (!seToken()) { showPaywall("signin"); return; }
     fetch("/api/prep/pro/status", { credentials: "same-origin", headers: authHeaders() })
@@ -324,7 +341,7 @@
       })
       .then(function (d) {
         if (!d || !d.success) return;
-        if (d.data && d.data.isPro) { showSessions(); renderChips(); loadBrowse(); return; }
+        if (d.data && d.data.isPro) { showSessions(); renderChips(); loadBrowse(); applyProExtras(); return; }
         showPaywall("upgrade");
       })
       .catch(function () { showSessions(); renderChips(); loadBrowse(); });
@@ -714,7 +731,7 @@
     resErr.textContent = "";
     var text = resText.value.trim();
     if (text.length < 100) {
-      resErr.textContent = "Paste at least 100 characters of your resume text (select-all in your PDF/DOC and paste).";
+      resErr.textContent = "Add at least 100 characters of your resume - upload a file (PDF, DOCX, TXT) or paste the text.";
       return;
     }
     var t = typeof currentTarget === "function" ? currentTarget() : null;
@@ -749,6 +766,66 @@
       });
   });
   updateResumeTarget();
+
+  // Upload path: PDF/DOCX are parsed server-side in request memory (zero npm
+  // deps, nothing stored); plain-text files are read right in the browser and
+  // skip the round trip. Either way the textarea shows what will be analysed,
+  // so the user can review or trim before spending a check.
+  var resFile = document.getElementById("resumeFile");
+  var resFileStatus = document.getElementById("resFileStatus");
+  function fillResumeText(t, status) {
+    resText.value = String(t || "").slice(0, 12000);
+    resCount.textContent = String(resText.value.length);
+    resFileStatus.textContent = status;
+    resText.focus();
+  }
+  if (resFile && resFileStatus) {
+    resFile.addEventListener("change", function () {
+      var f = resFile.files && resFile.files[0];
+      resFile.value = "";
+      if (!f) return;
+      resErr.textContent = "";
+      if (f.size > 5 * 1024 * 1024) {
+        resErr.textContent = "That file is over 5 MB. Export a smaller file or paste the text.";
+        return;
+      }
+      var looksPlain = /\.(txt|md|csv|text)$/i.test(f.name) || /^text\//.test(f.type || "");
+      if (looksPlain) {
+        resFileStatus.textContent = "Reading " + f.name + "...";
+        var fr = new FileReader();
+        fr.onload = function () {
+          var t = String(fr.result || "");
+          if (!t.trim()) { resFileStatus.textContent = ""; resErr.textContent = "That text file looks empty."; return; }
+          fillResumeText(t, (t.length > 12000 ? "First 12,000 of " + t.length : String(t.length)) +
+            " characters from " + f.name + " - review, then Check.");
+        };
+        fr.onerror = function () { resFileStatus.textContent = ""; resErr.textContent = "Couldn't read that file. Try again or paste the text."; };
+        fr.readAsText(f);
+        return;
+      }
+      var fd = new FormData();
+      fd.append("file", f);
+      resFileStatus.textContent = "Extracting text from " + f.name + "...";
+      fetch("/api/prep/resume/upload", { method: "POST", credentials: "same-origin", headers: authHeaders(), body: fd })
+        .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
+        .then(function (res) {
+          if (res.status === 401) { resFileStatus.textContent = "or paste below"; showPaywall("signin"); return; }
+          if (res.status !== 200 || !res.d || !res.d.success) {
+            resFileStatus.textContent = "or paste below";
+            resErr.textContent = (res.d && res.d.message) || "Couldn't read that file. Paste the text instead.";
+            return;
+          }
+          var data = res.d.data;
+          fillResumeText(data.text, (data.truncated
+            ? "First 12,000 of " + data.totalChars : String(data.chars)) +
+            " characters from " + data.name + " - review, then Check.");
+        })
+        .catch(function () {
+          resFileStatus.textContent = "or paste below";
+          resErr.textContent = "Network error. Try uploading again or paste the text.";
+        });
+    });
+  }
 
   // The server answers with a researched brief (cached plan or one live
   // research pass). Sourced briefs show their links; unsourced ones are

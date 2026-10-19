@@ -407,7 +407,7 @@ describe("the Buy button can never look dead; members look like members (round 5
   const nav = read("public/js/prep-nav.js");
   const css = read("public/prep/prep.css");
   it("stale prep HTML is detected by the always-fresh nav script and re-fetched exactly once", () => {
-    expect(nav).toContain("var WANT_V = 10;");
+    expect(nav).toContain("var WANT_V = 11;");
     expect(nav).toContain("window.PREP_V !== WANT_V");
     expect(nav).toContain('!/[?&]_pv=/.test(location.search)');
     expect(nav).toContain("location.replace(location.pathname + location.search +");
@@ -418,7 +418,7 @@ describe("the Buy button can never look dead; members look like members (round 5
       "public/prep/interview.html",
       "public/prep/proof.html",
     ]) {
-      expect(read(p), p).toContain("window.PREP_V = 10;");
+      expect(read(p), p).toContain("window.PREP_V = 11;");
       expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
     }
   });
@@ -1115,12 +1115,71 @@ describe("round 15: resume vs target role — free AI taste, text never stored",
     expect(ivPage).toContain("Free AI check");
     expect(ivPage).toContain("never stored");
     expect(ivPage).toContain("not a guarantee");
-    expect(ivPage).toContain("Paste at least 100 characters");
+    expect(ivPage).toContain("Add at least 100 characters");
   });
   it("the check follows the active target and updates when a plan is built", () => {
     expect(ivPage).toContain("function updateResumeTarget()");
     expect(ivPage).toContain("updateResumeTarget();");
     expect(ivPage).toContain("currentTarget()");
+  });
+});
+
+describe("round 16: Pro members never see the sell — resume file upload, zero new deps", () => {
+  const router = read("src/prep/router.ts");
+  const ivPage = read("public/prep/interview.html");
+  const nav = read("public/js/prep-nav.js");
+  const pkg = read("package.json");
+
+  it("upload endpoint: auth + limiter + memory multer, free tier allowed, nothing stored", () => {
+    expect(router).toMatch(
+      /prepRouter\.post\(\s*"\/resume\/upload",\s*authenticate,\s*resumeUploadLimiter,\s*prepDbGate,\s*resumeDocUpload\.single\("file"\)/,
+    );
+    expect(router).not.toMatch(/"\/resume\/upload",[\s\S]{0,160}?requirePrepPro/);
+    const slice = router.slice(router.indexOf("Resume file upload"), router.indexOf("Proof / evidence pipeline"));
+    expect(slice).not.toBe("");
+    expect(slice).toContain("extractResumeText(req.file.buffer");
+    expect(slice).not.toMatch(/uploadToSupabase|insert\(|saveAiPlan|recordResumeCheck/);
+    expect(slice).toContain("written to disk or stored");
+  });
+
+  it("the extractor reads PDF/DOCX/TXT with node builtins only (deploy runs no npm install)", () => {
+    const ext = read("src/prep/resume-text.ts");
+    expect(ext).toContain("export function extractResumeText");
+    expect(ext).toContain('from "node:zlib"');
+    expect(ext).toContain("word/document.xml");
+    expect(ext).toContain("beginbfchar");
+    expect(ext).toContain("Upload a PDF, DOCX or text file");
+    expect(ext).toContain("Paste the text instead");
+    expect(pkg).not.toContain("pdf-parse");
+    expect(pkg).not.toContain("mammoth");
+  });
+
+  it("Pro members lose the sell: CTA hidden, sample copy and quota kicker rewritten", () => {
+    expect(ivPage).toContain('id="sampleUpsell"');
+    expect(ivPage).toContain('id="sampleSub"');
+    expect(ivPage).toContain('id="resumeKick"');
+    expect(ivPage).toContain("function applyProExtras()");
+    expect(ivPage).toMatch(/isPro.*applyProExtras\(\)/);
+    expect(ivPage).toContain('up.style.display = "none"');
+    expect(ivPage).toContain("Part of Prep Pro \\u2014 you already have all 24 questions");
+    expect(ivPage).toContain('kick.textContent = "AI resume checks \\u00B7 unlimited"');
+  });
+
+  it("upload fills the same textarea the check reads — review before spending a check", () => {
+    expect(ivPage).toContain('id="resumeFile"');
+    expect(ivPage).toContain('accept=".pdf,.docx,.txt');
+    expect(ivPage).toContain('"/api/prep/resume/upload"');
+    expect(ivPage).toContain("new FileReader()");
+    expect(ivPage).toContain("function fillResumeText(");
+    expect(ivPage).toContain('fd.append("file", f)');
+    expect(ivPage).toContain('headers: authHeaders(), body: fd');
+    expect(ivPage).toContain("5 * 1024 * 1024");
+  });
+
+  it("versions bumped in lockstep so stale cached pages self-heal", () => {
+    expect(nav).toContain("var WANT_V = 11;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 11;");
+    for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
 
