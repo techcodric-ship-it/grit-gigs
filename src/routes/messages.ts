@@ -24,7 +24,6 @@ import {
 import { eq, or, and, desc, ne, inArray, sql } from "drizzle-orm";
 import { authenticate } from "../middlewares/authenticate";
 import { attachPlanBadge, attachPlanBadges } from "../lib/planBadge";
-import { hasAcceptedDeal } from "../lib/connections";
 
 const uploadsDir = path.join(PROJECT_ROOT, "uploads", "messages");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
@@ -324,11 +323,8 @@ router.post("/messages/conversations/with/:userId", authenticate, async (req, re
     }
   }
 
-  if (!(await hasAcceptedDeal(req.user!.id, otherId))) {
-    res.status(403).json({ success: false, code: "NOT_CONNECTED", message: "You can start chatting after a project, proposal or barter is accepted." });
-    return;
-  }
-
+  // Anyone can start a conversation with anyone (Instagram-style). Context
+  // validations above still apply when a bid/order/match context is provided.
   // Determine context for the new conversation
   const matchId = reqMatchId ?? null;
   const orderId = reqOrderId ?? null;

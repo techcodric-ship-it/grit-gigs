@@ -749,3 +749,21 @@ describe("corporate redesign: promos, heroes, banners, live stats (round 10)", (
     expect(css).toContain(".prep-live");
   });
 });
+
+describe("messaging is open: anyone can start a chat with anyone", () => {
+  const route = read("src/routes/messages.ts");
+  it("the conversations-with-user route has no deal/connection gate", () => {
+    expect(route).not.toContain("NOT_CONNECTED");
+    expect(route).not.toContain("after a project, proposal or barter is accepted");
+    expect(route).not.toContain("hasAcceptedDeal");
+  });
+  it("still blocks only the self-message case", () => {
+    expect(route).toContain('message: "Cannot message yourself"');
+  });
+  it("profile shows the Message button to every signed-in viewer", () => {
+    const profile = read("public/profile.html");
+    expect(profile).not.toContain("/community/connected/");
+    expect(profile).toContain("messages.html?to=");
+    expect(profile).toContain("paintPresence");
+  });
+});
