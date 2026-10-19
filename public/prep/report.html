@@ -26,19 +26,39 @@
 </header>
 
 <main class="prep-wrap">
+  <nav class="prep-tabs" aria-label="Prep sections">
+    <a class="prep-tab on" href="/prep">Reports</a>
+    <a class="prep-tab" href="/prep/aptitude">Aptitude</a>
+    <a class="prep-tab" href="/prep/interview">Interview</a>
+    <a class="prep-tab" href="/prep/proof">Contribute proof</a>
+  </nav>
   <section class="prep-card">
     <h1 class="prep-h1" id="rpName">Company report</h1>
     <p class="prep-sub" id="rpMeta">Loading report…</p>
     <div class="prep-err" id="rpErr" role="alert"></div>
   </section>
 
-  <section class="prep-card">
+  <section class="prep-card" id="rpLegend">
     <h2 class="prep-h2">How to read this report</h2>
     <p class="prep-legend"><b>OFFICIAL</b> the company's own site · <b>NEWS</b> public press coverage ·
       <b>MEMBER_REPORTED</b> contributor data · <b>AI_ESTIMATE</b> model-written and marked as an estimate.</p>
     <p class="prep-sub" style="margin:0;">Every source links out so you can verify it yourself.
       Pay and placement figures appear only as aggregates from at least 5 approved reports —
       individual submissions are never shown, and nothing here is legal or financial advice.</p>
+  </section>
+
+  <section class="prep-card" id="rpEmptyCard" hidden>
+    <h2 class="prep-h2">No public sources found yet</h2>
+    <p class="prep-body">We could not find an official website or recent press coverage for
+      <b id="rpEmptyName">this company</b> through our allowed sources — the company's own site and
+      public news. This report refuses to invent facts: sources appear here as soon as the company
+      is listed with a verified website.</p>
+    <p class="prep-sub" style="margin-top:8px;">While you wait, you can still prepare — timed
+      aptitude drills and full interview mocks are ready right now.</p>
+    <div class="prep-hero-ctas" style="justify-content:flex-start;">
+      <a class="prep-btn" href="/prep/interview">Interview prep</a>
+      <a class="prep-btn prep-btn-ghost" href="/prep/aptitude">Aptitude practice</a>
+    </div>
   </section>
 
   <section class="prep-card" id="rpSummaryCard" hidden>
@@ -128,7 +148,10 @@
     .then(function (res) {
       clearTimeout(giveUp);
       if (res.status === 401) { location.replace("/login?next=" + encodeURIComponent(location.pathname + location.search)); return; }
-      if (res.status !== 200 || !res.d.success) {
+      // 200 = cached report, 201 = freshly generated one (both are successes —
+      // rejecting 201 made every FIRST load die with "Could not load" while
+      // the very next refresh showed the report).
+      if ((res.status !== 200 && res.status !== 201) || !res.d.success) {
         errEl.textContent = (res.d && res.d.message) || "Could not load this report.";
         return;
       }
@@ -158,6 +181,14 @@
       if (news.length) {
         document.getElementById("rpNews").innerHTML = news.map(itemHtml).join("");
         document.getElementById("rpNewsCard").hidden = false;
+      }
+      // A company with no known website and no press renders an honest empty
+      // report — in that case the source-label legend only confuses, so swap
+      // it for an explanation plus direct links to the other prep modules.
+      if (report.sourceCount === 0 && !careersAll.length && !news.length) {
+        document.getElementById("rpEmptyName").textContent = ov.name || "this company";
+        document.getElementById("rpEmptyCard").hidden = false;
+        document.getElementById("rpLegend").hidden = true;
       }
       var prov = sec.provenance || [];
       if (prov.length) {

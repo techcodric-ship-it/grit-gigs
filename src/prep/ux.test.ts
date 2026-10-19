@@ -514,3 +514,60 @@ describe("reports always render: bounded gathering, honest progress (round 6)", 
     expect(rp).toContain("signal: ctl ? ctl.signal : undefined");
   });
 });
+
+describe("first load works, modules are reachable, history is real (round 7)", () => {
+  const home = read("public/prep/index.html");
+  const rp = read("public/prep/report.html");
+  const css = read("public/prep/prep.css");
+  const router = read("src/prep/router.ts");
+  const reports = read("src/prep/reports.ts");
+  it("a freshly generated report (201) renders instead of erroring", () => {
+    expect(rp).toContain("(res.status !== 200 && res.status !== 201) || !res.d.success");
+    expect(router).toContain('res.status(201).json({ success: true, data: { report: publicReport(report), cached: false } });');
+  });
+  it("every prep page carries the module tabs with the correct active pill", () => {
+    const pages = [
+      ["public/prep/index.html", "reports"],
+      ["public/prep/report.html", "reports"],
+      ["public/prep/aptitude.html", "aptitude"],
+      ["public/prep/interview.html", "interview"],
+      ["public/prep/proof.html", "proof"],
+    ];
+    for (const p of pages) {
+      const html = read(p[0]);
+      expect(html, p[0]).toContain('class="prep-tabs"');
+      expect(html, p[0]).toContain('href="/prep/interview"');
+      expect(html, p[0]).toContain('href="/prep/aptitude"');
+      const onHref = p[1] === "reports" ? "/prep" : "/prep/" + p[1];
+      expect(html, p[0]).toContain('class="prep-tab on" href="' + onHref + '"');
+    }
+    expect(css).toContain(".prep-tabs");
+    expect(css).toContain(".prep-tab.on");
+  });
+  it("feature tiles link to the module they describe", () => {
+    expect(home).toContain('<a class="prep-feature" href="#prepSearchForm">');
+    expect(home).toContain('<a class="prep-feature" href="/prep/aptitude">');
+    expect(home).toContain('<a class="prep-feature" href="/prep/interview">');
+    expect(home).toContain('<a class="prep-feature" href="/prep/proof">');
+    expect(home).not.toContain('<div class="prep-feature">');
+    expect(css).toContain("a.prep-feature:hover");
+  });
+  it("an empty report swaps the confusing legend for an honest explanation", () => {
+    expect(rp).toContain('id="rpLegend"');
+    expect(rp).toContain('id="rpEmptyCard"');
+    expect(rp).toContain("No public sources found yet");
+    expect(rp).toContain('id="rpEmptyName"');
+    expect(rp).toContain('document.getElementById("rpLegend").hidden = true');
+    expect(rp).toContain('document.getElementById("rpEmptyCard").hidden = false');
+    expect(rp).toContain('href="/prep/aptitude">Aptitude practice</a>');
+  });
+  it("Recent reports lists the user's own history from the server", () => {
+    expect(router).toContain('prepRouter.get("/my/reports"');
+    expect(router).toContain("listRecentReportsForUser(req.user!.id, 10)");
+    expect(reports).toContain("export async function listRecentReportsForUser");
+    expect(reports).toContain("innerJoin(prepCompaniesTable");
+    expect(reports).toContain("eq(prepReportsTable.createdBy, userId)");
+    expect(home).toContain("/api/prep/my/reports");
+    expect(home).toContain('id="prepRecent"');
+  });
+});

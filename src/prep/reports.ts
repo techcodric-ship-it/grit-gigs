@@ -89,3 +89,30 @@ export function publicReport(report: PrepReport) {
     createdAt: report.createdAt,
   };
 }
+
+export interface RecentReportRow {
+  id: string;
+  slug: string;
+  name: string;
+  role: string | null;
+  sourceCount: number;
+  createdAt: Date;
+}
+
+/** The signed-in user's own report history, newest first (home page rail). */
+export async function listRecentReportsForUser(userId: string, limit = 10): Promise<RecentReportRow[]> {
+  return db
+    .select({
+      id: prepReportsTable.id,
+      slug: prepCompaniesTable.slug,
+      name: prepCompaniesTable.name,
+      role: prepReportsTable.role,
+      sourceCount: prepReportsTable.sourceCount,
+      createdAt: prepReportsTable.createdAt,
+    })
+    .from(prepReportsTable)
+    .innerJoin(prepCompaniesTable, eq(prepReportsTable.companyId, prepCompaniesTable.id))
+    .where(eq(prepReportsTable.createdBy, userId))
+    .orderBy(desc(prepReportsTable.createdAt))
+    .limit(Math.max(1, Math.min(limit, 25)));
+}

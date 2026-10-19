@@ -68,6 +68,7 @@ import {
   findCompanyBySlug,
   getReportById,
   latestReportForCompany,
+  listRecentReportsForUser,
   publicReport,
   updateReportAi,
 } from "./reports";
@@ -287,6 +288,17 @@ prepRouter.get("/reports/:id", authenticate, prepDbGate, async (req: Request, re
   } catch (err) {
     console.error("[prep] report fetch failed:", err);
     res.status(500).json({ success: false, message: "Report fetch failed" });
+  }
+});
+
+// Signed-in user's own report history for the home page "Recent reports" rail.
+prepRouter.get("/my/reports", authenticate, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const reports = await listRecentReportsForUser(req.user!.id, 10);
+    res.json({ success: true, data: { reports } });
+  } catch (err) {
+    console.error("[prep] recent reports failed:", err);
+    res.status(500).json({ success: false, message: "Could not load recent reports" });
   }
 });
 

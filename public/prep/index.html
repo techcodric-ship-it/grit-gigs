@@ -26,6 +26,12 @@
 </header>
 
 <main class="prep-wrap">
+  <nav class="prep-tabs" aria-label="Prep sections">
+    <a class="prep-tab on" href="/prep">Reports</a>
+    <a class="prep-tab" href="/prep/aptitude">Aptitude</a>
+    <a class="prep-tab" href="/prep/interview">Interview</a>
+    <a class="prep-tab" href="/prep/proof">Contribute proof</a>
+  </nav>
   <section class="prep-hero">
     <span class="prep-eyebrow">Prep · by Grit&amp;Gigs</span>
     <h1 class="prep-h1">Company research you can trust — before you apply</h1>
@@ -79,30 +85,30 @@
   <section class="prep-features" id="prepFeatures">
     <h2 class="prep-h2">Everything Prep includes</h2>
     <div class="prep-feature-grid">
-      <div class="prep-feature">
+      <a class="prep-feature" href="#prepSearchForm">
         <div class="prep-feature-k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"/><path d="M15 21V9h2a2 2 0 0 1 2 2v10"/><path d="M8 7h2M8 11h2M8 15h2"/></svg></div>
         <b>Company reports</b>
         <p>Official careers pages and recent news, fetched directly from the source. Each line
           carries a source chip and a link you can open yourself.</p>
-      </div>
-      <div class="prep-feature">
+</a>
+      <a class="prep-feature" href="/prep/aptitude">
         <div class="prep-feature-k"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></div>
         <b>Aptitude practice</b>
         <p>31 original questions across quant, logical and verbal. Timed quizzes, scored on the
           server — explanations unlock after you submit.</p>
-      </div>
-      <div class="prep-feature">
+</a>
+      <a class="prep-feature" href="/prep/interview">
         <div class="prep-feature-k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg></div>
         <b>Interview prep</b>
         <p>24 questions across behavioural, technical and HR rounds, plus mock sessions that
           score your answers by category and flag the weakest one.</p>
-      </div>
-      <div class="prep-feature">
+</a>
+      <a class="prep-feature" href="/prep/proof">
         <div class="prep-feature-k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-3.5 8-10V5l-8-3-8 3v7c0 6.5 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div>
         <b>Trust checks</b>
         <p>Employer pay records and college placement outcomes, released only as aggregates once
           a company has at least 5 approved reports — never individual rows.</p>
-      </div>
+</a>
     </div>
   </section>
 
@@ -303,6 +309,32 @@
         proContent.hidden = false;
         proBody.textContent = "Could not load Prep Pro status.";
       });
+  }
+
+  // Recent reports: everything the signed-in user actually opened, newest
+  // first — the placeholder stays until real history arrives.
+  if (proToken) {
+    fetch("/api/prep/my/reports", { credentials: "same-origin", headers: proAuth })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var recent = d && d.success && d.data && d.data.reports;
+        if (!recent || !recent.length) return;
+        var ul = document.createElement("ul");
+        ul.className = "prep-matches";
+        recent.forEach(function (r) {
+          var li = document.createElement("li");
+          li.innerHTML =
+            '<a href="/prep/report/' + encodeURIComponent(r.slug) + "?role=" + encodeURIComponent(r.role || "") + '">' +
+            "<span>" + esc(r.name) + "</span>" +
+            (r.role ? '<span class="prep-chip pending">' + esc(r.role) + "</span>" : "") +
+            "</a>";
+          ul.appendChild(li);
+        });
+        var box = document.getElementById("prepRecent");
+        box.innerHTML = "<b>Recent reports</b>";
+        box.appendChild(ul);
+      })
+      .catch(function () { /* keep the placeholder */ });
   }
 
   // Razorpay checkout: order -> modal -> server verify. The entitlement is

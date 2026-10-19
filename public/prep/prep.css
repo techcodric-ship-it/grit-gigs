@@ -309,6 +309,33 @@
 }
 .prep-err.info { color: var(--prep-violet-deep); font-weight: 600; }
 
+/* Section tabs — Reports / Aptitude / Interview / Contribute proof. Every prep
+ * page carries them so the other modules are one tap away. */
+.prep-tabs {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin: 0 0 18px;
+}
+.prep-tab {
+  font-size: 0.8rem; font-weight: 700;
+  padding: 8px 14px; border-radius: 999px;
+  border: 1px solid var(--prep-line); background: #fff;
+  color: var(--prep-muted); text-decoration: none;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.prep-tab:hover { border-color: var(--prep-violet); color: var(--prep-violet); }
+.prep-tab.on { background: var(--prep-violet); border-color: transparent; color: #fff; }
+
+/* Feature tiles are links now — they route to the module they describe. */
+a.prep-feature {
+  text-decoration: none; color: inherit; display: block;
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+a.prep-feature:hover {
+  border-color: rgba(108, 63, 232, 0.45);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(108, 63, 232, 0.12);
+}
+
 /* Prep Pro active member state — the card itself celebrates the purchase:
  * gradient border, tinted panel, tick badge, unlocked-benefits list. The Buy
  * button is gone; this is the professional "you're in" surface. */
