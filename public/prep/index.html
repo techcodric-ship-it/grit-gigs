@@ -8,7 +8,7 @@
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
 <script>window.PREP_V = 5;</script>
-<link rel="stylesheet" href="/prep/prep.css?v=5"/>
+<link rel="stylesheet" href="/prep/prep.css?v=6"/>
 </head>
 <body>
 <header class="topnav">
@@ -32,6 +32,16 @@
     <a class="prep-tab" href="/prep/interview">Interview</a>
     <a class="prep-tab" href="/prep/proof">Contribute proof</a>
   </nav>
+  <section class="prep-promo" role="note">
+    <div>
+      <span class="prep-promo-k">New · Prep by Grit&amp;Gigs</span>
+      <b>The company check that runs in seconds &mdash; before you say yes</b>
+      <p>Official careers pages, fresh press and anonymised pay signals in one report,
+        every line linked to its source. Your first reports are free, every day.</p>
+    </div>
+    <a class="prep-promo-cta" href="#prepSearchForm">Check a company now &rarr;</a>
+  </section>
+
   <section class="prep-hero">
     <span class="prep-eyebrow">Prep · by Grit&amp;Gigs</span>
     <h1 class="prep-h1">Company research you can trust — before you apply</h1>
@@ -49,10 +59,11 @@
       <a class="prep-btn prep-btn-ghost" href="#prepFeatures">Explore what is included</a>
     </div>
     <ul class="prep-stats prep-hero-stats">
-      <li><b>55</b><span>practice questions</span></li>
+      <li><b id="statQuestions">55</b><span>practice questions</span></li>
       <li><b>4</b><span>prep modules</span></li>
       <li><b>5+</b><span>reports per aggregate</span></li>
     </ul>
+    <p class="prep-live" id="prepLiveStats">Live on Prep right now: <b id="statCompanies">&hellip;</b> companies &middot; <b id="statReports">&hellip;</b> reports generated</p>
   </section>
 
   <section class="prep-card">
@@ -122,7 +133,15 @@
     </ol>
   </section>
 
-  <section class="prep-card prep-card-pro" id="prepProCard">
+    <section class="prep-banner">
+    <div>
+      <b>Prep Pro &middot; &#8377;199 for 30 days</b>
+      <span>Unlimited reports, AI company plans, pay-aside free — pay once, no auto-renewal.</span>
+    </div>
+    <a class="prep-btn" href="#prepProCard">See Prep Pro</a>
+  </section>
+
+<section class="prep-card prep-card-pro" id="prepProCard">
     <h2 class="prep-h2">Prep Pro <span class="prep-pro-badge">Premium</span></h2>
     <div class="prep-pro-price-row">
       <span class="prep-pro-price">₹199</span>
@@ -166,6 +185,14 @@
     sites and public news feeds only. Pay and placement figures are member-reported and shown
     only as aggregates from a minimum of 5 approved records — individuals are never exposed.
   </footer>
+  <section class="prep-banner prep-banner-final">
+    <div>
+      <b>One search. Every source. Zero job-board fiction.</b>
+      <span>Run your first company report — it takes seconds.</span>
+    </div>
+    <a class="prep-btn" href="#prepSearchForm">Start free</a>
+  </section>
+
 </main>
 
 <script src="/js/prep-nav.js?v=5" defer></script>
@@ -328,6 +355,24 @@
         proBody.textContent = "Could not load Prep Pro status.";
       });
   }
+
+  // Live platform counters: hydrate over the static fallbacks, keep them on failure.
+  fetch("/api/prep/stats", { credentials: "same-origin" })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (!d || !d.success) return;
+      var st = d.data || {};
+      var pairs = [
+        ["statQuestions", (Number(st.aptitudeQuestions) || 0) + (Number(st.interviewQuestions) || 0)],
+        ["statCompanies", st.companies],
+        ["statReports", st.reports],
+      ];
+      pairs.forEach(function (pair) {
+        var el = document.getElementById(pair[0]);
+        if (el && Number(pair[1]) > 0) el.textContent = Number(pair[1]).toLocaleString("en-IN");
+      });
+    })
+    .catch(function () { /* keep the static fallbacks */ });
 
   // Recent reports: everything the signed-in user actually opened, newest
   // first — the placeholder stays until real history arrives.

@@ -6,7 +6,7 @@ import { Router, type Request, type Response, type NextFunction } from "express"
 import rateLimit from "express-rate-limit";
 import multer from "multer";
 import { z } from "zod";
-import { eq, inArray, sql } from "drizzle-orm";
+import { count, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db";
 import { authenticate } from "../middlewares/authenticate";
 import { adminAuth } from "../middlewares/adminAuth";
@@ -17,7 +17,7 @@ import { resolveCompany, createPendingCompany, slugifyCompanyName } from "./comp
 import { gatherSourcesWithBudget } from "./sources/gather";
 import { fallbackPlan, generatePrepPlan, summarizeReport } from "./ai";
 import { countAiPlanRequestsToday, getCachedAiPlan, recordAiPlanRequest, saveAiPlan } from "./ai-plans";
-import { APTITUDE_TOPICS, prepAptitudeQuestionsTable, prepInterviewQuestionsTable } from "./schema";
+import { APTITUDE_TOPICS, prepAptitudeQuestionsTable, prepCompaniesTable, prepInterviewQuestionsTable, prepReportsTable } from "./schema";
 import { clampCount, pickQuiz, scoreQuiz, signQuizToken, toPublicQuestion, verifyQuizToken } from "./aptitude";
 import {
   PROOF_FILE_MAX_BYTES,
@@ -109,6 +109,37 @@ const companiesLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: "Too many requests, try again shortly." },
+});
+
+const statsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many requests, try again shortly." },
+});
+
+// Public aggregates for the live counters on the prep pages — counts only,
+// never anything row-level. The pages keep honest static fallbacks.
+prepRouter.get("/stats", statsLimiter, prepDbGate, async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const [companies] = await db.select({ n: count() }).from(prepCompaniesTable);
+    const [reports] = await db.select({ n: count() }).from(prepReportsTable);
+    const [aptitude] = await db.select({ n: count() }).from(prepAptitudeQuestionsTable);
+    const [interview] = await db.select({ n: count() }).from(prepInterviewQuestionsTable);
+    res.json({
+      success: true,
+      data: {
+        companies: Number(companies.n ?? 0),
+        reports: Number(reports.n ?? 0),
+        aptitudeQuestions: Number(aptitude.n ?? 0),
+        interviewQuestions: Number(interview.n ?? 0),
+      },
+    });
+  } catch (err) {
+    console.error("[prep] stats failed:", err);
+    res.status(500).json({ success: false, message: "Stats unavailable" });
+  }
 });
 
 const searchQuery = z.object({ q: z.string().min(1).max(200) });

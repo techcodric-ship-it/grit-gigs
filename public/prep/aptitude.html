@@ -8,7 +8,7 @@
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
 <script>window.PREP_V = 5;</script>
-<link rel="stylesheet" href="/prep/prep.css?v=5"/>
+<link rel="stylesheet" href="/prep/prep.css?v=6"/>
 <style>
   .apt-option { display:flex; gap:10px; align-items:flex-start; border:1px solid var(--prep-line); border-radius:10px; padding:10px 12px; margin-top:8px; cursor:pointer; }
   .apt-option:hover { border-color: var(--prep-violet); background: var(--prep-violet-light); }
@@ -47,6 +47,21 @@
     <a class="prep-tab" href="/prep/interview">Interview</a>
     <a class="prep-tab" href="/prep/proof">Contribute proof</a>
   </nav>
+  <section class="prep-hero-sm">
+    <span class="prep-eyebrow">Aptitude &middot; timed drills</span>
+    <h2 class="prep-hero-sm-h">Beat the cut-off with the drills that actually repeat</h2>
+    <p class="prep-sub">31 original questions across quant, logical and verbal &mdash; the evergreen topics every campus and lateral round leans on, served as timed sets.</p>
+    <ul class="prep-trust-chips">
+      <li>Timed sets of 5 / 10 / 15</li>
+      <li>Server-scored, no cheating yourself</li>
+      <li>Explanations unlock on submit</li>
+    </ul>
+    <div class="prep-hero-ctas">
+      <a class="prep-btn" href="#aptTopics">Start a timed set</a>
+      <a class="prep-btn prep-btn-ghost" href="#aptPlanCard">Build an AI company plan</a>
+    </div>
+  </section>
+
   <section class="prep-card">
     <h1 class="prep-h1">Aptitude practice</h1>
     <p class="prep-sub">Original practice questions in quant, logical and verbal. Answers are scored on the server — explanations unlock after you submit.</p>
@@ -68,7 +83,7 @@
     <div class="prep-err" id="aptErr" role="alert"></div>
   </section>
 
-  <section class="prep-card prep-card-plan">
+  <section class="prep-card prep-card-plan" id="aptPlanCard">
     <span class="plan-kicker">AI prep coach</span>
     <h2 class="prep-h2">Company + role plan, researched for you</h2>
     <p class="prep-sub">Pick your target &mdash; the coach searches the company's official pages and recent
@@ -108,6 +123,14 @@
     <div id="aptResults"></div>
     <button class="prep-btn" id="aptAgain" type="button" style="margin-top:16px;">Try another quiz</button>
   </section>
+  <section class="prep-banner">
+    <div>
+      <b>Pair it with the company plan</b>
+      <span>Pick your target company + role and the AI returns the weightage, rounds and questions that matter.</span>
+    </div>
+    <a class="prep-btn" href="#aptPlanCard">Build my plan</a>
+  </section>
+
 </main>
 
 <script src="/js/prep-nav.js?v=5" defer></script>

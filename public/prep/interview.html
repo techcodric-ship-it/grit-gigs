@@ -8,7 +8,7 @@
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
 <script>window.PREP_V = 5;</script>
-<link rel="stylesheet" href="/prep/prep.css?v=5"/>
+<link rel="stylesheet" href="/prep/prep.css?v=6"/>
 <style>
   .iv-tabs { display:flex; gap:8px; margin-bottom:16px; }
   .iv-tab { border:1px solid var(--prep-line); background:#fff; border-radius:999px; padding:8px 18px; font:inherit; font-size:0.9rem; font-weight:700; cursor:pointer; color:var(--prep-ink-2); }
@@ -51,6 +51,21 @@
     <a class="prep-tab on" href="/prep/interview">Interview</a>
     <a class="prep-tab" href="/prep/proof">Contribute proof</a>
   </nav>
+  <section class="prep-hero-sm">
+    <span class="prep-eyebrow">Interview &middot; mocks &amp; question banks</span>
+    <h2 class="prep-hero-sm-h">24 questions, 4 tracks, the three round types that repeat everywhere</h2>
+    <p class="prep-sub">Behavioural, technical and HR &mdash; study the bank, run a mock out loud, rate yourself honestly and see your weakest category before the real panel does.</p>
+    <ul class="prep-trust-chips">
+      <li>Behavioural &middot; Technical &middot; HR</li>
+      <li>Mock + self-rating feedback</li>
+      <li>Guidance on what interviewers look for</li>
+    </ul>
+    <div class="prep-hero-ctas">
+      <a class="prep-btn" href="#ivPlanCard">Build an AI company plan</a>
+      <a class="prep-btn prep-btn-ghost" href="#browseCard">Browse the question bank</a>
+    </div>
+  </section>
+
   <section class="prep-card">
     <h1 class="prep-h1">Interview prep</h1>
     <p class="prep-sub">Original question sets with guidance on what interviewers actually look for. Browse to study, or run a mock session and rate your own answers.</p>
@@ -68,7 +83,7 @@
     <div class="prep-err" id="ivErr" role="alert"></div>
   </section>
 
-  <section class="prep-card prep-card-plan">
+  <section class="prep-card prep-card-plan" id="ivPlanCard">
     <span class="plan-kicker">AI prep coach</span>
     <h2 class="prep-h2">Company + role plan, researched for you</h2>
     <p class="prep-sub">Pick your target &mdash; the coach searches the company's official pages and recent
@@ -116,6 +131,14 @@
     <div id="fbList"></div>
     <button class="prep-btn" type="button" id="fbAgain" style="margin-top:14px;">Try another mock</button>
   </section>
+  <section class="prep-banner">
+    <div>
+      <b>Company-specific beats generic every time</b>
+      <span>Choose a company + role and the AI scans its official pages and news into a plan you can rehearse.</span>
+    </div>
+    <a class="prep-btn" href="#ivPlanCard">Build my plan</a>
+  </section>
+
 </main>
 
 <script src="/js/prep-nav.js?v=5" defer></script>

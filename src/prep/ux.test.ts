@@ -253,7 +253,7 @@ describe("design: product-grade presentation", () => {
     expect(home).toContain('href="#prepSearchForm"');
     expect(home).toContain('id="prepFeatures"');
     expect(home).toContain('class="prep-stats prep-hero-stats"');
-    expect(home).toContain("<b>55</b>");
+    expect(home).toContain('<b id="statQuestions">55</b>');
     expect(css).toContain("background-size: 34px 34px");
     expect(css).toContain("background-clip: text");
   });
@@ -577,7 +577,7 @@ describe("messaging is open to everyone and presence is live (round 8)", () => {
   const msgs = read("public/assets/messages.js");
   const msgsHtml = read("public/messages.html");
   const socketSrc = read("src/lib/socket.ts");
-  it("every profile shows the Message button — no connection gate", () => {
+  it("every profile shows the Message button - no connection gate", () => {
     expect(profile).not.toContain("/community/connected/");
     expect(profile).toContain("location.href = '/messages.html?to='");
     expect(profile).toContain('id="pOnline"');
@@ -690,5 +690,62 @@ describe("AI company + role plans on aptitude & interview (round 9)", () => {
     expect(css).toContain(".plan-rounds");
     expect(css).toContain(".plan-q-n");
     expect(css).toContain(".plan-kicker");
+  });
+});
+
+describe("corporate redesign: promos, heroes, banners, live stats (round 10)", () => {
+  const router = read("src/prep/router.ts");
+  const css = read("public/prep/prep.css");
+  const home = read("public/prep/index.html");
+  const apt = read("public/prep/aptitude.html");
+  const iv = read("public/prep/interview.html");
+  const pf = read("public/prep/proof.html");
+  it("the live stats endpoint serves counts only, rate-limited", () => {
+    expect(router).toContain('prepRouter.get("/stats", statsLimiter, prepDbGate');
+    expect(router).toMatch(/const statsLimiter = rateLimit\(\{/);
+    expect(router).toContain("aptitudeQuestions: Number(aptitude.n ?? 0)");
+    expect(router).toContain("interviewQuestions: Number(interview.n ?? 0)");
+  });
+  it("the reports hub leads with a promo strip and hydrates real counters", () => {
+    expect(home).toContain('class="prep-promo"');
+    expect(home).toContain("Check a company now");
+    expect(home).toContain('id="prepLiveStats"');
+    expect(home).toContain('id="statCompanies"');
+    expect(home).toContain('id="statReports"');
+    expect(home).toContain('id="statQuestions"');
+    expect(home).toContain("/api/prep/stats");
+    expect(home).toContain('class="prep-banner"');
+    expect(home).toContain('class="prep-banner prep-banner-final"');
+    expect(home).toContain("See Prep Pro");
+  });
+  it("aptitude and interview open with compact corporate heroes", () => {
+    expect(apt).toContain('class="prep-hero-sm"');
+    expect(apt).toContain('class="prep-hero-sm-h"');
+    expect(apt).toContain("Beat the cut-off with the drills that actually repeat");
+    expect(apt).toContain('id="aptPlanCard"');
+    expect(apt).toContain('class="prep-banner"');
+    expect(apt).toContain("prep/prep.css?v=6");
+    expect(iv).toContain('class="prep-hero-sm"');
+    expect(iv).toContain("24 questions, 4 tracks");
+    expect(iv).toContain('id="ivPlanCard"');
+    expect(iv).toContain('class="prep-banner"');
+    expect(iv).toContain("prep/prep.css?v=6");
+  });
+  it("proof sells the contribution with the anonymity promise up top", () => {
+    expect(pf).toContain('class="prep-hero-sm"');
+    expect(pf).toContain("One anonymised slip from you unlocks pay data for thousands");
+    expect(pf).toContain('href="#pfForm"');
+    expect(pf).toContain('class="prep-banner"');
+    expect(pf).toContain("prep/prep.css?v=6");
+    expect(pf).toContain("<b>3 \u00B7 Unlocks</b>"); // original 3-step flow intact
+  });
+  it("the promo system is fully styled", () => {
+    expect(css).toContain(".prep-promo {");
+    expect(css).toContain(".prep-promo-cta");
+    expect(css).toContain(".prep-hero-sm {");
+    expect(css).toContain(".prep-hero-sm-h");
+    expect(css).toContain(".prep-banner {");
+    expect(css).toContain(".prep-banner-final");
+    expect(css).toContain(".prep-live");
   });
 });
