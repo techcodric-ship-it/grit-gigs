@@ -43,6 +43,11 @@ describe("question bank integrity", () => {
       expect(APTITUDE_BANK.filter((q) => q.topic === t).length).toBeGreaterThanOrEqual(10);
     }
   });
+  it("the advertised question count stays true (pages say 31)", () => {
+    expect(APTITUDE_BANK.length).toBe(31);
+    expect(read("public/prep/aptitude.html")).toContain("<b>31</b>");
+    expect(read("public/prep/index.html")).toContain('<b id="statQuestions">55</b>');
+  });
 });
 
 describe("selection", () => {

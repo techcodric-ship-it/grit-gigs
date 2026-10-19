@@ -26,6 +26,15 @@ export const APTITUDE_BANK: BankQuestion[] = [
     explanation: "3 parts = 15, so 1 part = 5. Girls = 2 parts = 10.",
   },
   {
+    code: "quant-partnership-01",
+    topic: "quant",
+    difficulty: "medium",
+    question: "A invests Rs 20,000 and B invests Rs 30,000 in a business. After a year the profit is Rs 10,000, split in proportion to investment. What is A's share?",
+    options: ["Rs 3,000", "Rs 4,000", "Rs 5,000", "Rs 6,000"],
+    correctIdx: 1,
+    explanation: "Investment ratio 20,000 : 30,000 = 2 : 3, so A takes 2/5 of 10,000 = Rs 4,000.",
+  },
+  {
     code: "quant-percent-01",
     topic: "quant",
     difficulty: "medium",
