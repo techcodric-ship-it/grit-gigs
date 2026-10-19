@@ -267,8 +267,9 @@
   // Razorpay checkout: order -> modal -> server verify. The entitlement is
   // granted ONLY after /pro/verify confirms the capture with Razorpay
   // server-side. Clicking the button without paying never activates anything.
-  // Every path reports back visibly: instant info on click, proFail elsewhere
-  // (a hanging order call or blocked checkout script must never look dead).
+  // Every path reports back visibly: instant info on click, a 12s client
+  // watchdog on the order call, and a modal-visibility check so a blocked
+  // Razorpay window surfaces an ad-block hint instead of looking dead.
   function proInfo(t) { proErr.className = "prep-err info"; proErr.textContent = t; }
   function proFail(t) { proErr.className = "prep-err"; proErr.textContent = t; }
   function loadRazorpay(onReady, onFail) {
@@ -312,13 +313,17 @@
   proBuy.addEventListener("click", function () {
     proInfo("Opening secure checkout...");
     proBuy.disabled = true;
+    var ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var watchdog = setTimeout(function () { if (ctl) ctl.abort(); }, 12000);
     fetch("/api/prep/pro/order", {
       method: "POST",
       credentials: "same-origin",
       headers: proAuth,
+      signal: ctl ? ctl.signal : undefined,
     })
       .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
       .then(function (res) {
+        clearTimeout(watchdog);
         if (res.status === 401) { proBuy.disabled = false; showLoggedOutPro(); return; }
         if (res.status === 409) { proBuy.disabled = false; window.location.reload(); return; }
         if (res.status !== 200 || !res.d.success) {
@@ -327,6 +332,9 @@
           return;
         }
         var order = res.d.data.order;
+        proInfo("Payment window opening...");
+        var modalReady = false;
+        var modalClosed = false;
         loadRazorpay(function () {
           var rz = new Razorpay({
             key: res.d.data.key,
@@ -339,22 +347,40 @@
             handler: function (resp) { verifyPayment(resp); },
             modal: {
               ondismiss: function () {
+                modalClosed = true;
                 proBuy.disabled = false;
                 proFail("Payment cancelled. You were not charged.");
               },
             },
           });
+          rz.on("ready", function () {
+            modalReady = true;
+            proInfo("Complete the payment securely in the Razorpay window.");
+          });
           rz.on("payment.failed", function () {
+            modalClosed = true;
             proBuy.disabled = false;
             proFail("Payment failed. You were not charged.");
           });
           rz.open();
+          setTimeout(function () {
+            if (!modalReady && !modalClosed) {
+              proBuy.disabled = false;
+              proFail("The payment window did not open. Disable ad blockers for this site, then try again.");
+            }
+          }, 7000);
         }, function () {
           proBuy.disabled = false;
           proFail("Could not load the payment gateway. Refresh and try again.");
         });
       })
-      .catch(function () { proBuy.disabled = false; proFail("Network error. Try again."); });
+      .catch(function (e) {
+        clearTimeout(watchdog);
+        proBuy.disabled = false;
+        proFail((e && e.name === "AbortError")
+          ? "The payment service is taking too long. Please try again."
+          : "Network error. Try again.");
+      });
   });
 
 })();

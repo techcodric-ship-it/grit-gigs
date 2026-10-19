@@ -352,3 +352,52 @@ describe("feed rail leads with the Prep feature card", () => {
     expect(nav.indexOf("removePromo()", offIdx)).toBeLessThan(nav.indexOf('document.cookie = "prep_nav=; Max-Age=0; Path=/";', offIdx));
   });
 });
+
+describe("stale links and stalls can never dead-end (round 4)", () => {
+  const router = read("src/prep/router.ts");
+  it("report route self-heals old links: derives the company name from the slug", () => {
+    const routeIdx = router.indexOf('prepRouter.get("/companies/:slug/report"');
+    expect(routeIdx).toBeGreaterThan(-1);
+    expect(router.indexOf('req.params.slug).replace(/[-_]+/g, " ")', routeIdx)).toBeGreaterThan(routeIdx);
+    expect(router.indexOf("queryName.length >= 2", routeIdx)).toBeGreaterThan(routeIdx);
+    // fallback only enriches the missing name, it never precedes the query param
+    expect(router.indexOf("queryName.length >= 2")).toBeLessThan(
+      router.indexOf('req.params.slug).replace(/[-_]+/g, " ")'),
+    );
+  });
+  it("razorpay calls carry a 15s hard timeout (no hostage button)", () => {
+    expect(router.split("AbortSignal.timeout(15000)").length - 1).toBeGreaterThanOrEqual(2);
+    expect(router).toContain('timedOut ? "Payment gateway timed out. Please try again."');
+  });
+  it("prep HTML is revalidated on every load (stale page cannot replay old flows)", () => {
+    const pages = read("src/prep/pages.ts");
+    expect(pages.split('res.set("Cache-Control", "no-cache")').length - 1).toBe(2);
+  });
+  it("client watchdog + modal visibility cover every silent-stall path", () => {
+    const home = read("public/prep/index.html");
+    expect(home).toContain("new AbortController()");
+    expect(home).toContain("}, 12000);");
+    expect(home).toContain('e.name === "AbortError"');
+    expect(home).toContain("The payment service is taking too long. Please try again.");
+    expect(home).toContain('rz.on("ready"');
+    expect(home).toContain("}, 7000);");
+    expect(home).toContain("Disable ad blockers for this site");
+    expect(home).toContain('proInfo("Payment window opening...")');
+    expect(home).toContain("modalReady");
+    expect(home).toContain("modalClosed");
+  });
+  it("deploy logs payment-gateway reachability without leaking secrets", () => {
+    const yml = read(".github/workflows/deploy.yml");
+    expect(yml).toContain("rz-egress:");
+    expect(yml).toContain("https://api.razorpay.com/v1/orders");
+    expect(yml).not.toMatch(/RAZORPAY_KEY_SECRET/); // creds live server-side only
+  });
+});
+
+describe("report page forwards its query string (round 4)", () => {
+  it("report.html passes location.search so name= provisions the company", () => {
+    const rp = read("public/prep/report.html");
+    expect(rp).toContain('var qs = location.search || (role ? "?role=" + encodeURIComponent(role) : "");');
+    expect(rp).toContain('"/report" + qs');
+  });
+});

@@ -107,7 +107,10 @@
       '</span><span class="prep-chip ' + chip + '">' + esc(it.label) + "</span></a>";
   }
 
-  fetch("/api/prep/companies/" + encodeURIComponent(slug) + "/report" + (role ? "?role=" + encodeURIComponent(role) : ""), {
+  // Forward the full query string (role + name + anything a stale link carries)
+  // so the server can provision a not-yet-listed company without a 404.
+  var qs = location.search || (role ? "?role=" + encodeURIComponent(role) : "");
+  fetch("/api/prep/companies/" + encodeURIComponent(slug) + "/report" + qs, {
     credentials: "same-origin",
     headers: auth,
   })

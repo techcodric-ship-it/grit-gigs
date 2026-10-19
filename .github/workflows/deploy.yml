@@ -58,6 +58,11 @@ jobs:
             fi
             echo "FEATURE_PREP: $(grep '^FEATURE_PREP=' "$ENVF")"
 
+            # Diagnostic: can the server reach the payment gateway at all?
+            # 401 (no credentials sent) proves egress works; a timeout here
+            # would explain dead checkouts. No secrets are ever echoed.
+            echo "rz-egress: $(curl -s -m 10 -o /dev/null -w '%{http_code} in %{time_total}s' https://api.razorpay.com/v1/orders || echo unreachable)"
+
             # Gemini key for Prep AI summaries (src/prep/ai.ts reads GEMINI_API_KEY
             # at boot via dotenv). Value comes from the repo secret and is never
             # echoed — only whether it was set. Rewritten atomially each deploy so

@@ -27,6 +27,9 @@ export function makePrepPages(publicRoot: string) {
       const shell = path.normalize(path.join(prepRoot, "report.html"));
       if (fs.existsSync(shell) && fs.statSync(shell).isFile()) {
         res.set("X-Robots-Tag", "noindex");
+        // Prep HTML mutates often (copy/checkout rounds); force revalidation
+        // so a stale cached page can never replay an old search or buy flow.
+        res.set("Cache-Control", "no-cache");
         res.sendFile(shell);
         return;
       }
@@ -40,6 +43,7 @@ export function makePrepPages(publicRoot: string) {
       if (fs.existsSync(abs) && fs.statSync(abs).isFile()) {
         // Prep pages are noindex in v1 (legal sensitivity).
         res.set("X-Robots-Tag", "noindex");
+        res.set("Cache-Control", "no-cache");
         res.sendFile(abs);
         return;
       }

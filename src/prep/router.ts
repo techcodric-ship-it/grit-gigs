@@ -291,11 +291,17 @@ prepRouter.get("/companies/:slug/report", authenticate, reportLimiter, prepDbGat
   try {
     let company = await findCompanyBySlug(String(req.params.slug));
     if (!company) {
-      // Search-led arrival for a company that has no row yet: the home page
-      // passes the typed name, so open it straight into a PENDING company and
-      // generate the report as usual. An exact-name row another request
-      // created meanwhile is reused instead of duplicated.
-      const nameParam = typeof req.query.name === "string" ? req.query.name.trim().slice(0, 200) : "";
+      // Search-led arrival for a company that has no row yet: open it
+      // straight into a PENDING company and generate the report as usual.
+      // Stale links (old cached search pages, shared URLs) arrive WITHOUT
+      // ?name= — deriving the name from the slug itself makes every such URL
+      // self-heal: "infosys-bpm" -> "infosys bpm". An exact-name row another
+      // request created meanwhile is reused instead of duplicated.
+      const queryName = typeof req.query.name === "string" ? req.query.name.trim().slice(0, 200) : "";
+      const nameParam =
+        queryName.length >= 2
+          ? queryName
+          : String(req.params.slug).replace(/[-_]+/g, " ").trim().slice(0, 200);
       if (nameParam.length >= 2) {
         const exact = (await resolveCompany(db, nameParam)).find((c) => c.score === 3);
         if (exact) {
@@ -760,6 +766,8 @@ prepRouter.post("/pro/order", authenticate, purchaseLimiter, prepDbGate, async (
         receipt: `prep_pro_${Date.now()}`,
         notes: { purpose: "prep_pro" },
       }),
+      // Never let a slow gateway hold the checkout button hostage: 15s hard cap.
+      signal: AbortSignal.timeout(15000),
     });
     if (!rzResp.ok) {
       res.status(502).json({ success: false, message: "Could not start checkout" });
@@ -772,7 +780,10 @@ prepRouter.post("/pro/order", authenticate, purchaseLimiter, prepDbGate, async (
     res.json({ success: true, data: { order, key: RAZORPAY_KEY_ID, priceInr: PREP_PRO_PRICE_INR } });
   } catch (err) {
     console.error("[prep] pro order failed:", err);
-    res.status(500).json({ success: false, message: "Could not start checkout" });
+    const timedOut = (err as { name?: string }).name === "TimeoutError";
+    res
+      .status(502)
+      .json({ success: false, message: timedOut ? "Payment gateway timed out. Please try again." : "Could not start checkout" });
   }
 });
 
@@ -803,6 +814,7 @@ prepRouter.post("/pro/verify", authenticate, purchaseLimiter, prepDbGate, async 
     const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
     const pmtResp = await fetch(`https://api.razorpay.com/v1/payments/${razorpayPaymentId}`, {
       headers: { Authorization: `Basic ${auth}` },
+      signal: AbortSignal.timeout(15000),
     });
     if (!pmtResp.ok) {
       res.status(502).json({ success: false, message: "Unable to verify payment with Razorpay" });
@@ -842,6 +854,9 @@ prepRouter.post("/pro/verify", authenticate, purchaseLimiter, prepDbGate, async 
     res.json({ success: true, message: "Already processed" });
   } catch (err) {
     console.error("[prep] pro verify failed:", err);
-    res.status(500).json({ success: false, message: "Verification failed" });
+    const timedOut = (err as { name?: string }).name === "TimeoutError";
+    res
+      .status(502)
+      .json({ success: false, message: timedOut ? "Payment gateway timed out. Please try again." : "Verification failed" });
   }
 });
