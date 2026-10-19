@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 12;</script>
+<script>window.PREP_V = 13;</script>
 <link rel="stylesheet" href="/prep/prep.css?v=10"/>
 </head>
 <body>
@@ -195,7 +195,8 @@
 
 </main>
 
-<script src="/js/prep-nav.js?v=11" defer></script>
+<script src="/js/se-auth.js?v=1"></script>
+<script src="/js/prep-nav.js?v=12" defer></script>
 <script>
 (function () {
   "use strict";
@@ -253,6 +254,16 @@
   var BUY_LABEL = proBuy.textContent;
   var proToken = localStorage.getItem("se_token");
   var proAuth = { Authorization: "Bearer " + proToken };
+
+  // SeAuth (../js/se-auth.js) exchanges se_refresh for a fresh se_token when
+  // the 7-day access token has aged out and retries one 401 — a signed-in
+  // member must never be rendered as logged-out over token age.
+  function proFetch(url, opts) {
+    var headers = Object.assign({}, proAuth, (opts && opts.headers) || {});
+    var o = Object.assign({ credentials: "same-origin" }, opts || {}, { headers: headers });
+    if (window.SeAuth) return SeAuth.fetch(url, o);
+    return fetch(url, o);
+  }
 
   function proReset() { proBuy.disabled = false; proBuy.textContent = BUY_LABEL; }
 
@@ -324,7 +335,7 @@
   // Never a full page reload — the user must SEE the Pro panel appear.
   function showActiveNow(expiresAt) {
     showPro({ isPro: true, expiresAt: expiresAt || null });
-    fetch("/api/prep/pro/status", { credentials: "same-origin", headers: proAuth })
+    proFetch("/api/prep/pro/status")
       .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
       .then(function (res) { if (res.status === 200 && res.d.success) showPro(res.d.data); })
       .catch(function () { /* keep the optimistic panel; next load reconciles */ });
@@ -335,7 +346,7 @@
     location.replace("/login?next=" + encodeURIComponent(location.pathname));
   }
 
-  if (!proToken) {
+  if (!(window.SeAuth ? SeAuth.haveSession() : proToken)) {
     showLoggedOutPro();
   } else {
     var proLast = null;
@@ -349,7 +360,7 @@
     if (proLast && proLast.d && proLast.d.isPro && (Date.now() - (proLast.ts || 0)) < 30 * 60 * 1000) {
       showPro(proLast.d); // paint the member panel instantly; reconcile below
     }
-    fetch("/api/prep/pro/status", { credentials: "same-origin", headers: proAuth })
+    proFetch("/api/prep/pro/status")
       .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
       .then(function (res) {
         if (res.status === 401) { showLoggedOutPro(); return; }
@@ -390,8 +401,8 @@
 
   // Recent reports: everything the signed-in user actually opened, newest
   // first — the placeholder stays until real history arrives.
-  if (proToken) {
-    fetch("/api/prep/my/reports", { credentials: "same-origin", headers: proAuth })
+  if (window.SeAuth ? SeAuth.haveSession() : proToken) {
+    proFetch("/api/prep/my/reports")
       .then(function (r) { return r.json(); })
       .then(function (d) {
         var recent = d && d.success && d.data && d.data.reports;
@@ -442,18 +453,18 @@
         ts: Date.now(),
       }));
     } catch (e) { /* private mode */ }
-    fetch("/api/prep/pro/verify", {
+    proFetch("/api/prep/pro/verify", {
       method: "POST",
-      credentials: "same-origin",
-      headers: proAuth,
       body: JSON.stringify({
         razorpayOrderId: resp.razorpay_order_id,
         razorpayPaymentId: resp.razorpay_payment_id,
       }),
     })
       .then(function (r) {
-        // 5xx: keep the stash for the automatic retry below on next load.
-        if (r.status >= 500) return { status: r.status, d: null, transient: true };
+        // 5xx and 401 (session dead even after SeAuth's refresh retry): keep
+        // the stash for the automatic retry below — a captured payment must
+        // never be dropped over an auth failure.
+        if (r.status >= 500 || r.status === 401) return { status: r.status, d: null, transient: true };
         return r.json().then(function (d) { return { status: r.status, d: d }; });
       })
       .then(function (v) {
@@ -461,6 +472,7 @@
           try { localStorage.removeItem("se_pro_pend"); } catch (e) { /* private mode */ }
         }
         proReset();
+        if (v.status === 401) { sessionExpiredPro(); return; }
         if (!v.d) {
           proFail("Verification is taking longer than usual — it will be retried automatically. If you were charged, contact support.");
           return;
@@ -472,7 +484,6 @@
           showActiveNow(ent ? ent.expiresAt : null);
           return;
         }
-        if (v.status === 401) { sessionExpiredPro(); return; }
         if (v.status === 409) { showActiveNow(null); return; }
         proFail((v.d && v.d.message) || "Payment could not be verified. If you were charged, contact support.");
       })
@@ -489,10 +500,8 @@
     proBuy.textContent = "Opening secure checkout...";
     var ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
     var watchdog = setTimeout(function () { if (ctl) ctl.abort(); }, 12000);
-    fetch("/api/prep/pro/order", {
+    proFetch("/api/prep/pro/order", {
       method: "POST",
-      credentials: "same-origin",
-      headers: proAuth,
       signal: ctl ? ctl.signal : undefined,
     })
       .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })

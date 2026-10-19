@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 12;</script>
+<script>window.PREP_V = 13;</script>
 <link rel="stylesheet" href="/prep/prep.css?v=10"/>
 <style>
   .apt-option { display:flex; gap:10px; align-items:flex-start; border:1px solid var(--prep-line); border-radius:10px; padding:10px 12px; margin-top:8px; cursor:pointer; }
@@ -151,7 +151,8 @@
 
 </main>
 
-<script src="/js/prep-nav.js?v=11" defer></script>
+<script src="/js/se-auth.js?v=1"></script>
+<script src="/js/prep-nav.js?v=12" defer></script>
 <script>
 (function () {
   "use strict";
@@ -198,9 +199,19 @@
     paywall.hidden = true;
     setLocked(false);
   }
+  // SeAuth (../js/se-auth.js) exchanges se_refresh for a fresh se_token when
+  // the 7-day access token has aged out and retries one 401 — a signed-in
+  // member must never see "Sign in to continue" over token age.
+  function proFetch(url) {
+    if (window.SeAuth) return SeAuth.fetch(url, { credentials: "same-origin" });
+    return fetch(url, { credentials: "same-origin", headers: authHeaders() });
+  }
+  function haveSession() {
+    return window.SeAuth ? SeAuth.haveSession() : !!seToken();
+  }
   function gate() {
-    if (!seToken()) { showPaywall("signin"); return; }
-    fetch("/api/prep/pro/status", { credentials: "same-origin", headers: authHeaders() })
+    if (!haveSession()) { showPaywall("signin"); return; }
+    proFetch("/api/prep/pro/status")
       .then(function (r) {
         if (r.status === 401) { showPaywall("signin"); return null; }
         // Rate limit / hiccup: show the session area anyway — every call the

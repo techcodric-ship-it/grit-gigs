@@ -209,7 +209,7 @@ describe("nav stability: flash, wallet, avatar on prep pages", () => {
     expect(nav).toContain('document.getElementById("navAv")');
     expect(nav).toContain('localStorage.getItem("se_user")');
     expect(nav).toContain("profilePhoto");
-    expect(nav).toContain('fetch("/api/auth/me"');
+    expect(nav).toContain('seFetch("/api/auth/me"');
     expect(nav).toContain("d.data.user");
   });
 });
@@ -407,7 +407,7 @@ describe("the Buy button can never look dead; members look like members (round 5
   const nav = read("public/js/prep-nav.js");
   const css = read("public/prep/prep.css");
   it("stale prep HTML is detected by the always-fresh nav script and re-fetched exactly once", () => {
-    expect(nav).toContain("var WANT_V = 12;");
+    expect(nav).toContain("var WANT_V = 13;");
     expect(nav).toContain("window.PREP_V !== WANT_V");
     expect(nav).toContain('!/[?&]_pv=/.test(location.search)');
     expect(nav).toContain("location.replace(location.pathname + location.search +");
@@ -418,7 +418,7 @@ describe("the Buy button can never look dead; members look like members (round 5
       "public/prep/interview.html",
       "public/prep/proof.html",
     ]) {
-      expect(read(p), p).toContain("window.PREP_V = 12;");
+      expect(read(p), p).toContain("window.PREP_V = 13;");
       expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
     }
   });
@@ -1177,8 +1177,8 @@ describe("round 16: Pro members never see the sell — resume file upload, zero 
   });
 
   it("versions bumped in lockstep so stale cached pages self-heal", () => {
-    expect(nav).toContain("var WANT_V = 12;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 12;");
+    expect(nav).toContain("var WANT_V = 13;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 13;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1238,8 +1238,114 @@ describe("round 17: public daily drill — different questions every day", () =>
   });
 
   it("versions bumped in lockstep (page changed, nav script changed)", () => {
-    expect(nav).toContain("var WANT_V = 12;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 12;");
+    expect(nav).toContain("var WANT_V = 13;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 13;");
+  });
+});
+
+describe("round 18: an expired se_token self-heals via the shared SeAuth helper", () => {
+  const authJs = read("public/js/se-auth.js");
+  const nav = read("public/js/prep-nav.js");
+  const ivPage = read("public/prep/interview.html");
+  const aptPage = read("public/prep/aptitude.html");
+  const home = read("public/prep/index.html");
+  const reportPage = read("public/prep/report.html");
+  const proofPage = read("public/prep/proof.html");
+
+  it("se-auth.js exchanges the rotating refresh token, serialized, storage kept on failure", () => {
+    expect(authJs).toContain("window.__seAuthRefreshP");
+    expect(authJs).toContain('fetch("/api/auth/refresh"');
+    expect(authJs).toContain("refreshToken");
+    expect(authJs).toContain("function haveSession()");
+    expect(authJs).toContain('lsSet("se_token", access)');
+    expect(authJs).toContain('lsSet("se_refresh", refresh)');
+    // Refresh failure must NEVER clear storage: a sibling tab may have just
+    // rotated the token and written the fresh pair.
+    expect(authJs).not.toContain("localStorage.removeItem");
+    // Content-Type appears exactly once — on the JSON refresh call; FormData
+    // bodies keep their multipart boundary (SeAuth only ever sets Authorization).
+    expect((authJs.match(/Content-Type/g) || []).length).toBe(1);
+    expect(authJs).toContain('"Content-Type": "application/json"');
+    expect(authJs).toContain('headers["Authorization"] = "Bearer " + t');
+    // One retry on401, then the original response goes back to the caller.
+    expect(authJs).toContain("if (r.status !== 401) return r;");
+    expect(authJs).toContain("return refresh().then(function (ok) {");
+  });
+
+  it("every prep page loads se-auth (non-deferred) before the nav and inline gates", () => {
+    for (const p of PREP_PAGES) {
+      const src = read(p);
+      const seAt = src.indexOf("/js/se-auth.js");
+      const navAt = src.indexOf("/js/prep-nav.js");
+      expect(seAt, p).toBeGreaterThan(-1);
+      expect(navAt, p).toBeGreaterThan(seAt);
+      expect(src, p).toContain('<script src="/js/se-auth.js?v=1"></script>');
+      expect(src, p).not.toContain('/js/se-auth.js" defer');
+    }
+  });
+
+  it("interview + aptitude gates treat a refresh-only session as signed in", () => {
+    for (const pair of [[ivPage, "interview"], [aptPage, "aptitude"]]) {
+      const src = pair[0];
+      const name = pair[1];
+      expect(src, name).toContain("function haveSession()");
+      expect(src, name).toContain("SeAuth.haveSession()");
+      expect(src, name).toContain('proFetch("/api/prep/pro/status")');
+      expect(src, name).toContain("SeAuth.fetch(url, { credentials: \"same-origin\" })");
+      expect(src, name).toContain('if (!haveSession()) { showPaywall("signin"); return; }');
+      // No raw status fetch may remain — it would 401 on an aged token.
+      expect(src, name).not.toMatch(/(^|[^A-Za-z])fetch\("\/api\/prep\/pro\/status"/);
+    }
+  });
+
+  it("index pro panel, checkout, verify and history fetch through the refreshing helper", () => {
+    expect(home).toContain("function proFetch(url, opts)");
+    expect(home).toContain('proFetch("/api/prep/pro/status")');
+    expect(home).toContain('proFetch("/api/prep/pro/verify"');
+    expect(home).toContain('proFetch("/api/prep/pro/order"');
+    expect(home).toContain('proFetch("/api/prep/my/reports")');
+    expect(home).toContain("SeAuth.haveSession()");
+    expect(home).not.toMatch(/(^|[^A-Za-z])fetch\("\/api\/prep\/pro\/(status|order|verify)"/);
+    // A captured payment survives a dead session: 401 keeps the stash (the
+    // nav self-heal retries it) while still sending the member to /login.
+    expect(home).toContain("r.status >= 500 || r.status === 401");
+    expect(home).toContain("if (v.status === 401) { sessionExpiredPro(); return; }");
+  });
+
+  it("report + proof gate on the session and fetch through seFetch", () => {
+    const guard =
+      'if (!(window.SeAuth ? SeAuth.haveSession() : localStorage.getItem("se_token")))';
+    for (const src of [reportPage, proofPage]) {
+      expect(src).toContain(guard);
+      expect(src).toContain("function seFetch(url, opts)");
+      expect(src).toContain("SeAuth.fetch(url, o)");
+      expect(src).not.toContain("headers: auth");
+    }
+    expect(reportPage).toContain('seFetch("/api/prep/companies/"');
+    expect(proofPage).toContain('seFetch("/api/prep/proof", { method: "POST", body: fd })');
+    expect(proofPage).toContain('seFetch("/api/prep/proof/my")');
+    expect(proofPage).toContain("function esc(s)");
+    expect(proofPage).toContain('var errEl = document.getElementById("pfErr");');
+  });
+
+  it("nav chip, avatar and payment self-heal recover through SeAuth", () => {
+    expect(nav).toContain("window.SeAuth && window.SeAuth.fetch");
+    expect(nav).toContain('seFetch("/api/prep/pro/status"');
+    expect(nav).toContain("if (!(window.SeAuth ? SeAuth.haveSession() : proTok))");
+    expect(nav).toContain('seFetch("/api/auth/me"');
+    expect(nav).toContain("if (window.SeAuth ? SeAuth.haveSession() : pendTok)");
+    expect(nav).toContain('seFetch("/api/prep/pro/verify"');
+    // The 401 that keeps the paid stash: never drop money over auth failure.
+    expect(nav).toContain("r.status >= 500 || r.status === 401");
+    // The 401 that drops the chip only after refresh was exhausted.
+    expect(nav).toContain("// Refresh (SeAuth) exhausted — the session is truly gone.");
+    expect(nav).toContain("data-prep-pro-chip");
+  });
+
+  it("versions bumped in lockstep (nav + all five pages changed)", () => {
+    expect(nav).toContain("var WANT_V = 13;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 13;");
+    for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
 

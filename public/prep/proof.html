@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 12;</script>
+<script>window.PREP_V = 13;</script>
 <link rel="stylesheet" href="/prep/prep.css?v=10"/>
 <style>
   .pf-kind { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
@@ -104,20 +104,34 @@
 
 </main>
 
-<script src="/js/prep-nav.js?v=11" defer></script>
+<script src="/js/se-auth.js?v=1"></script>
+<script src="/js/prep-nav.js?v=12" defer></script>
 <script>
 (function () {
   "use strict";
-  if (!localStorage.getItem("se_token")) {
+  if (!(window.SeAuth ? SeAuth.haveSession() : localStorage.getItem("se_token"))) {
     location.replace("/login?next=" + encodeURIComponent(location.pathname + location.search));
     return;
+  }
+  // SeAuth refreshes an expired se_token via se_refresh (30d, rotating) and
+  // retries one 401 — a signed-in member is never bounced to /login over the
+  // 7-day access token aging out (including the FormData upload: SeAuth never
+  // sets content-type, so the multipart boundary survives).
+  function seFetch(url, opts) {
+    var o = Object.assign({ credentials: "same-origin" }, opts || {});
+    if (window.SeAuth) return SeAuth.fetch(url, o);
+    o.headers = Object.assign(
+      { Authorization: "Bearer " + (localStorage.getItem("se_token") || "") },
+      (opts && opts.headers) || {}
+    );
+    return fetch(url, o);
   }
   function esc(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
-  var auth = { Authorization: "Bearer " + localStorage.getItem("se_token") };
+  var errEl = document.getElementById("pfErr");
   var KINDS = {
     PAY_RECORD: "Pay record",
     PLACEMENT_RECORD: "Placement record",
@@ -125,7 +139,6 @@
   };
   var kind = "PAY_RECORD";
   var companyId = null;
-  var errEl = document.getElementById("pfErr");
 
   var FIELD_DEFS = {
     PAY_RECORD: [
@@ -174,7 +187,7 @@
     var q = document.getElementById("pfCompany").value.trim();
     var list = document.getElementById("pfMatches");
     if (!q) { list.hidden = true; companyId = null; return; }
-    fetch("/api/prep/companies?q=" + encodeURIComponent(q), { credentials: "same-origin", headers: auth })
+    seFetch("/api/prep/companies?q=" + encodeURIComponent(q))
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d.success) return;
@@ -232,7 +245,7 @@
     if (file) fd.append("file", file);
     var btn = document.getElementById("pfSubmit");
     btn.disabled = true;
-    fetch("/api/prep/proof", { method: "POST", credentials: "same-origin", headers: auth, body: fd })
+    seFetch("/api/prep/proof", { method: "POST", body: fd })
       .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
       .then(function (res) {
         btn.disabled = false;
@@ -250,7 +263,7 @@
   });
 
   function loadMine() {
-    fetch("/api/prep/proof/my", { credentials: "same-origin", headers: auth })
+    seFetch("/api/prep/proof/my")
       .then(function (r) { return r.json(); })
       .then(function (d) {
         var el = document.getElementById("pfMine");

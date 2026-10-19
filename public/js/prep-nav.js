@@ -27,7 +27,7 @@
   //    Reload once through a cache-busting query: never a loop, because the
   //    re-fetched document carries the stamp, and _pv already present stops
   //    us from trying again.
-  var WANT_V = 12;
+  var WANT_V = 13;
   if (window.PREP_V !== WANT_V &&
       /\/prep(?:\/|$)/.test(location.pathname) &&
       !/[?&]_pv=/.test(location.search)) {
@@ -118,6 +118,13 @@
     row.insertBefore(w, anchor);
   }
 
+  // se-auth.js (loaded on the 5 prep pages) refreshes an expired se_token via
+  // the 30-day rotating se_refresh and retries one 401; site pages don't load
+  // it — fall back to raw fetch there.
+  var seFetch = (window.SeAuth && window.SeAuth.fetch)
+    ? window.SeAuth.fetch
+    : function (url, opts) { return fetch(url, opts); };
+
   // ── nav avatar ──
   var av = document.getElementById("navAv");
   if (av) {
@@ -134,8 +141,8 @@
       if (cached && (cached.id || cached.email)) applyAvatar(cached);
     } catch (e) { /* corrupted cache: fall through to the server read */ }
     var token = localStorage.getItem("se_token");
-      if (token) {
-        fetch("/api/auth/me", { headers: { Authorization: "Bearer " + token } })
+      if (window.SeAuth ? SeAuth.haveSession() : token) {
+        seFetch("/api/auth/me", { headers: token ? { Authorization: "Bearer " + token } : undefined })
           .then(function (r) { return r.ok ? r.json() : null; })
           .then(function (d) {
             var fresh = d && d.success && d.data && d.data.user;
@@ -158,15 +165,18 @@
     var pendTok = localStorage.getItem("se_token");
     var pend = JSON.parse(localStorage.getItem("se_pro_pend") || "null");
     if (pend && pend.o && pend.p && pend.ts && Date.now() - pend.ts < 24 * 60 * 60 * 1000) {
-      if (pendTok) {
-        fetch("/api/prep/pro/verify", {
+      if (window.SeAuth ? SeAuth.haveSession() : pendTok) {
+        seFetch("/api/prep/pro/verify", {
           method: "POST",
           credentials: "same-origin",
           headers: { Authorization: "Bearer " + pendTok, "content-type": "application/json" },
           body: JSON.stringify({ razorpayOrderId: pend.o, razorpayPaymentId: pend.p }),
         })
           .then(function (r) {
-            if (r.status >= 500) return null; // transient: keep the stash, retry next load
+            // 5xx: transient. 401: the session is dead even after SeAuth's
+            // refresh retry — still keep the stash (a captured payment must
+            // survive until the member signs in again) and retry next load.
+            if (r.status >= 500 || r.status === 401) return null;
             return r.json().then(function (d) { return { status: r.status, d: d }; });
           })
           .then(function (v) {
@@ -212,7 +222,8 @@
       if (chipAnchor) row.insertBefore(chip, chipAnchor.nextSibling);
       else row.appendChild(chip);
     }
-    if (!proTok) {
+    if (!(window.SeAuth ? SeAuth.haveSession() : proTok)) {
+      // No session at all — not even a refresh token SeAuth could exchange.
       localStorage.removeItem("se_pro");
       paintPro(false);
       } else {
@@ -221,10 +232,11 @@
         if (fresh) {
           paintPro(verdict.pro === true);
         } else {
-          fetch("/api/prep/pro/status", { credentials: "same-origin", headers: { Authorization: "Bearer " + proTok } })
+          seFetch("/api/prep/pro/status", { credentials: "same-origin", headers: { Authorization: "Bearer " + proTok } })
             .then(function (r) {
               if (r.status === 401) {
-                // Session is truly gone — drop the cache and the chip.
+                // Refresh (SeAuth) exhausted — the session is truly gone.
+                // Drop the cache and the chip.
                 try { localStorage.removeItem("se_pro"); } catch (e) { /* private mode */ }
                 paintPro(false);
                 return null;

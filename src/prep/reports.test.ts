@@ -115,7 +115,7 @@ describe("report page (source-level)", () => {
   const page = read("public/prep/report.html");
   it("is noindex and requires login", () => {
     expect(page).toContain('<meta name="robots" content="noindex"/>');
-    expect(page).toContain('if (!localStorage.getItem("se_token"))');
+    expect(page).toContain('if (!(window.SeAuth ? SeAuth.haveSession() : localStorage.getItem("se_token")))');
   });
   it("escapes all dynamic content", () => {
     expect(page).toContain('function esc(s)');

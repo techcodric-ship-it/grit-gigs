@@ -167,7 +167,7 @@ describe("proof wiring (source-level)", () => {
   const page = read("public/prep/proof.html");
   it("proof page is login-gated, noindex and escaped", () => {
     expect(page).toContain('<meta name="robots" content="noindex"/>');
-    expect(page).toContain('if (!localStorage.getItem("se_token"))');
+    expect(page).toContain('if (!(window.SeAuth ? SeAuth.haveSession() : localStorage.getItem("se_token")))');
     expect(page).toContain("function esc(s)");
     expect(page).toContain("esc(KINDS[s.kind] || s.kind)");
   });

@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 12;</script>
+<script>window.PREP_V = 13;</script>
 <link rel="stylesheet" href="/prep/prep.css?v=10"/>
 </head>
 <body>
@@ -103,13 +103,26 @@
   </section>
 </main>
 
-<script src="/js/prep-nav.js?v=11" defer></script>
+<script src="/js/se-auth.js?v=1"></script>
+<script src="/js/prep-nav.js?v=12" defer></script>
 <script>
 (function () {
   "use strict";
-  if (!localStorage.getItem("se_token")) {
+  if (!(window.SeAuth ? SeAuth.haveSession() : localStorage.getItem("se_token"))) {
     location.replace("/login?next=" + encodeURIComponent(location.pathname + location.search));
     return;
+  }
+  // SeAuth refreshes an expired se_token via se_refresh (30d, rotating) and
+  // retries one 401 — a signed-in member is never bounced to /login over the
+  // 7-day access token aging out.
+  function seFetch(url, opts) {
+    var o = Object.assign({ credentials: "same-origin" }, opts || {});
+    if (window.SeAuth) return SeAuth.fetch(url, o);
+    o.headers = Object.assign(
+      { Authorization: "Bearer " + (localStorage.getItem("se_token") || "") },
+      (opts && opts.headers) || {}
+    );
+    return fetch(url, o);
   }
   function esc(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
@@ -125,7 +138,6 @@
   var slug = parts[parts.length - 1] || "";
   var role = new URLSearchParams(location.search).get("role") || "";
   var errEl = document.getElementById("rpErr");
-  var auth = { Authorization: "Bearer " + localStorage.getItem("se_token") };
 
   function itemHtml(it) {
     var chip = it.label === "OFFICIAL" ? "official" : "pending";
@@ -145,9 +157,7 @@
   }, 2500);
   var ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
   var giveUp = setTimeout(function () { if (ctl) ctl.abort(); }, 40000);
-  fetch("/api/prep/companies/" + encodeURIComponent(slug) + "/report" + qs, {
-    credentials: "same-origin",
-    headers: auth,
+  seFetch("/api/prep/companies/" + encodeURIComponent(slug) + "/report" + qs, {
     signal: ctl ? ctl.signal : undefined,
   })
     .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
