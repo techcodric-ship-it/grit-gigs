@@ -407,7 +407,7 @@ describe("the Buy button can never look dead; members look like members (round 5
   const nav = read("public/js/prep-nav.js");
   const css = read("public/prep/prep.css");
   it("stale prep HTML is detected by the always-fresh nav script and re-fetched exactly once", () => {
-    expect(nav).toContain("var WANT_V = 11;");
+    expect(nav).toContain("var WANT_V = 12;");
     expect(nav).toContain("window.PREP_V !== WANT_V");
     expect(nav).toContain('!/[?&]_pv=/.test(location.search)');
     expect(nav).toContain("location.replace(location.pathname + location.search +");
@@ -418,7 +418,7 @@ describe("the Buy button can never look dead; members look like members (round 5
       "public/prep/interview.html",
       "public/prep/proof.html",
     ]) {
-      expect(read(p), p).toContain("window.PREP_V = 11;");
+      expect(read(p), p).toContain("window.PREP_V = 12;");
       expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
     }
   });
@@ -1177,9 +1177,69 @@ describe("round 16: Pro members never see the sell — resume file upload, zero 
   });
 
   it("versions bumped in lockstep so stale cached pages self-heal", () => {
-    expect(nav).toContain("var WANT_V = 11;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 11;");
+    expect(nav).toContain("var WANT_V = 12;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 12;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
+  });
+});
+
+describe("round 17: public daily drill — different questions every day", () => {
+  const router = read("src/prep/router.ts");
+  const helpers = read("src/prep/interview.ts");
+  const ivPage = read("public/prep/interview.html");
+  const nav = read("public/js/prep-nav.js");
+
+  it("today endpoint is public: limiter + db gate, never behind auth or Pro", () => {
+    expect(router).toContain('prepRouter.get("/interview/today", interviewLimiter, prepDbGate');
+    expect(router).not.toMatch(/"\/interview\/today",\s*authenticate/);
+    expect(router).not.toMatch(/"\/interview\/today"[\s\S]{0,80}?requirePrepPro/);
+    expect(router).toContain("dailyDrillQuestions(");
+    expect(router).toContain("dailyDrillCodes(");
+    expect(router).toContain("id: `today-${i}`");
+    expect(router).toContain('res.json({ success: true, data: { day, questions: out } })');
+  });
+
+  it("the set is seeded by the UTC calendar date — same day everywhere, fresh tomorrow", () => {
+    expect(helpers).toContain("export const TODAY_DRILL_SIZE = 6;");
+    expect(helpers).toContain("export function utcDayIndex");
+    expect(helpers).toContain("export function utcDayLabel");
+    expect(helpers).toContain("function mulberry32");
+    expect(helpers).toContain("dayIndex + 0x9e3779b9");
+    expect(helpers).toContain("localeCompare(b)");
+    // The drill block itself must be random-free (pickMock stays random on
+    // purpose — mocks are meant to differ per session).
+    const drill = helpers.slice(
+      helpers.indexOf("export const TODAY_DRILL_SIZE"),
+      helpers.indexOf("export interface InterviewQuestionPublic"),
+    );
+    expect(drill).not.toBe("");
+    expect(drill).not.toContain("Math.random");
+  });
+
+  it("the card sits above the sample, reuses one renderer, never dead-ends", () => {
+    const todayAt = ivPage.indexOf('id="todayCard"');
+    const sampleAt = ivPage.indexOf('id="sampleCard"');
+    expect(todayAt).toBeGreaterThan(-1);
+    expect(sampleAt).toBeGreaterThan(todayAt);
+    expect(ivPage).toContain('id="todayList"');
+    expect(ivPage).toContain('"/api/prep/interview/today"');
+    expect(ivPage).toContain("changes at midnight UTC");
+    expect(ivPage).toContain('wireFreeList("todayList", todayHtml, "/api/prep/interview/today"');
+    expect(ivPage).toContain('wireFreeList("sampleList", sampleHtml, "/api/prep/interview/sample"');
+    expect(ivPage).toContain('freeQuestionHtml(q, "sg-")');
+    expect(ivPage).toContain('freeQuestionHtml(q, "tg-")');
+    expect(ivPage).toContain("refresh to retry");
+    expect(ivPage).toContain("No account needed");
+  });
+
+  it("the sample copy now sells mocks and feedback, not just question count", () => {
+    expect(ivPage).toContain("Prep Pro opens the full bank any time, plus company-grounded mocks and feedback");
+    expect(ivPage).not.toContain("Prep Pro unlocks all 24 questions");
+  });
+
+  it("versions bumped in lockstep (page changed, nav script changed)", () => {
+    expect(nav).toContain("var WANT_V = 12;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 12;");
   });
 });
 

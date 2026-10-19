@@ -9,10 +9,14 @@ import {
   INTERVIEW_CATEGORIES,
   MOCK_DEFAULT_COUNT,
   SAMPLE_QUESTION_CODES,
+  TODAY_DRILL_SIZE,
+  dailyDrillQuestions,
   filterInterviewBank,
   pickMock,
   sampleInterviewQuestions,
   signInterviewMock,
+  utcDayIndex,
+  utcDayLabel,
   verifyInterviewMock,
   aggregateFeedback,
   toPublicInterviewQuestion,
@@ -159,5 +163,41 @@ describe("free sample (the quality proof that sells Pro)", () => {
     expect([...SAMPLE_QUESTION_CODES]).toEqual(["iv-gen-b1", "iv-gen-t1", "iv-gen-h1"]);
     const codes = new Set(INTERVIEW_BANK.map((q) => q.code));
     for (const c of SAMPLE_QUESTION_CODES) expect(codes.has(c)).toBe(true);
+  });
+});
+
+describe("daily drill: one set per UTC day, a fresh mix the next", () => {
+  it("picks six distinct questions drawn only from the bank", () => {
+    const set = dailyDrillQuestions(INTERVIEW_BANK, TODAY_DRILL_SIZE, 20771);
+    expect(set).toHaveLength(6);
+    expect(new Set(set.map((q) => q.code)).size).toBe(6);
+    const bankCodes = new Set(INTERVIEW_BANK.map((q) => q.code));
+    for (const q of set) expect(bankCodes.has(q.code)).toBe(true);
+    for (const q of set) expect(q.guidance.length).toBeGreaterThan(40);
+  });
+
+  it("the same day always yields the same set, whatever order the bank arrives in", () => {
+    const a = dailyDrillQuestions(INTERVIEW_BANK, TODAY_DRILL_SIZE, 20771).map((q) => q.code);
+    const b = dailyDrillQuestions(INTERVIEW_BANK, TODAY_DRILL_SIZE, 20771).map((q) => q.code);
+    expect(a).toEqual(b);
+    const reversed = [...INTERVIEW_BANK].reverse();
+    const c = dailyDrillQuestions(reversed, TODAY_DRILL_SIZE, 20771).map((q) => q.code);
+    expect(c).toEqual(a);
+  });
+
+  it("the set rotates across days (deterministic, never all-same)", () => {
+    const seen = new Set<string>();
+    for (let d = 20700; d < 20730; d++) {
+      seen.add(dailyDrillQuestions(INTERVIEW_BANK, TODAY_DRILL_SIZE, d).map((q) => q.code).join(","));
+    }
+    expect(seen.size).toBeGreaterThan(10);
+  });
+
+  it("utcDayIndex/utcDayLabel read the UTC calendar, not local time", () => {
+    expect(utcDayIndex(new Date(Date.UTC(2026, 9, 20, 23, 59, 0)))).toBe(Math.floor(Date.UTC(2026, 9, 20) / 86400000));
+    expect(utcDayLabel(new Date(Date.UTC(2026, 9, 20, 0, 0, 1)))).toBe("2026-10-20");
+    expect(utcDayLabel(new Date(Date.UTC(2026, 9, 21, 0, 0, 0)))).toBe("2026-10-21");
+    // midnight UTC moves the index by exactly one day
+    expect(utcDayIndex(new Date(Date.UTC(2026, 9, 21, 0, 0, 0))) - utcDayIndex(new Date(Date.UTC(2026, 9, 20, 23, 59, 0)))).toBe(1);
   });
 });

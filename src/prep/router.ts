@@ -59,13 +59,18 @@ import {
   INTERVIEW_TRACKS,
   MOCK_DEFAULT_COUNT,
   SAMPLE_QUESTION_CODES,
+  TODAY_DRILL_SIZE,
   aggregateFeedback,
+  dailyDrillCodes,
+  dailyDrillQuestions,
   isValidCategory,
   isValidTrack,
   pickMock,
   sampleInterviewQuestions,
   signInterviewMock,
   toPublicInterviewQuestion,
+  utcDayIndex,
+  utcDayLabel,
   verifyInterviewMock,
 } from "./interview";
 import {
@@ -705,6 +710,47 @@ prepRouter.get("/interview/sample", interviewLimiter, prepDbGate, async (_req: R
   } catch (err) {
     console.error("[prep] interview sample failed:", err);
     res.json({ success: true, data: { questions: fallback } });
+  }
+});
+
+// Daily drill: public like the sample — everyone sees the SAME six questions
+// for a whole UTC day, then a fresh mix (seed = calendar date, so every node
+// and every refresh agrees). Never dead-ends: the in-repo bank fallback
+// answers when the DB is down or seeded short.
+prepRouter.get("/interview/today", interviewLimiter, prepDbGate, async (_req: Request, res: Response): Promise<void> => {
+  const now = new Date();
+  const dayIndex = utcDayIndex(now);
+  const day = utcDayLabel(now);
+  const fallback = dailyDrillQuestions(undefined, TODAY_DRILL_SIZE, dayIndex).map((q, i) => ({
+    id: `today-${i}`,
+    code: q.code,
+    track: q.track,
+    category: q.category,
+    difficulty: q.difficulty,
+    question: q.question,
+    guidance: q.guidance,
+  }));
+  try {
+    const rows = await db.select().from(prepInterviewQuestionsTable);
+    const sorted = [...rows].sort((a, b) => a.code.localeCompare(b.code));
+    const codes = dailyDrillCodes(sorted.map((r) => r.code), TODAY_DRILL_SIZE, dayIndex);
+    const byCode = new Map(sorted.map((r) => [r.code, r]));
+    const picked = codes.map((c) => byCode.get(c)).filter((r): r is NonNullable<typeof r> => !!r);
+    const out = picked.length
+      ? picked.map((r) => ({
+          id: r.id,
+          code: r.code,
+          track: r.track,
+          category: r.category,
+          difficulty: r.difficulty,
+          question: r.question,
+          guidance: r.guidance,
+        }))
+      : fallback;
+    res.json({ success: true, data: { day, questions: out } });
+  } catch (err) {
+    console.error("[prep] daily drill failed:", err);
+    res.json({ success: true, data: { day, questions: fallback } });
   }
 });
 

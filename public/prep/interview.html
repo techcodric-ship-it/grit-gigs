@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 11;</script>
+<script>window.PREP_V = 12;</script>
 <link rel="stylesheet" href="/prep/prep.css?v=10"/>
 <style>
   .iv-tabs { display:flex; gap:8px; margin-bottom:16px; }
@@ -102,11 +102,21 @@
     </div>
   </section>
 
+  <section class="prep-card" id="todayCard">
+    <span class="plan-kicker">Today&rsquo;s drill &middot; free</span>
+    <h2 class="prep-h2">Six questions for today</h2>
+    <p class="prep-sub">A fresh set every day &mdash; the same six for everyone until midnight UTC, then a new
+      mix. Answer one out loud before you open what interviewers look for; that is the practice.
+      No account needed.</p>
+    <div id="todayList"><div class="prep-empty">Loading&hellip;</div></div>
+    <p class="prep-sub" id="todayNote" style="margin-top:10px;font-size:0.82rem;color:var(--prep-ink-2);"></p>
+  </section>
+
   <section class="prep-card" id="sampleCard">
     <span class="plan-kicker">Free sample</span>
     <h2 class="prep-h2">Three questions interviewers actually open with</h2>
     <p class="prep-sub" id="sampleSub">A real taste of the bank &mdash; including what interviewers look for in each answer.
-      Prep Pro unlocks all 24 questions, company-grounded mocks and post-mock feedback.</p>
+      Prep Pro opens the full bank any time, plus company-grounded mocks and feedback on how you actually answered.</p>
     <div id="sampleList"><div class="prep-empty">Loading&hellip;</div></div>
     <div class="prep-hero-ctas" id="sampleUpsell" style="margin-top:14px;">
       <a class="prep-btn" href="/prep#prepProCard">Unlock all 24 + company mocks &#8377;199</a>
@@ -225,7 +235,7 @@
 
 </main>
 
-<script src="/js/prep-nav.js?v=10" defer></script>
+<script src="/js/prep-nav.js?v=11" defer></script>
 <script>
 (function () {
   "use strict";
@@ -631,40 +641,57 @@
     onTimerClick(e);
   });
 
-  // ---- Free public sample: the quality proof that sells Pro (no auth) ----
-  function sampleHtml(q) {
+  // ---- Free public lists: today's drill + sample (the quality proof that
+  // sells Pro, no auth). One renderer with a prefix so the same question can
+  // appear in both lists without duplicate guidance ids. ----
+  function freeQuestionHtml(q, pfx) {
+    var gid = pfx + esc(q.code);
     return '<div class="iv-item"><div class="iv-tags">' +
       tagHtml("track", q.track) + tagHtml("cat", q.category) + tagHtml("diff", q.difficulty) +
       starBtn(q.code) +
       '</div><p class="iv-q">' + esc(q.question) + "</p>" +
-      '<div class="iv-guide" id="sg-' + esc(q.code) + '" hidden>' + esc(q.guidance) + "</div>" +
-      '<button type="button" class="iv-timer-btn" data-guide="sg-' + esc(q.code) + '" style="margin-top:8px;">What interviewers look for</button>' +
+      '<div class="iv-guide" id="' + gid + '" hidden>' + esc(q.guidance) + "</div>" +
+      '<button type="button" class="iv-timer-btn" data-guide="' + gid + '" style="margin-top:8px;">What interviewers look for</button>' +
       "</div>";
   }
-  document.getElementById("sampleList").addEventListener("click", function (e) {
-    var g = e.target.closest("[data-guide]");
-    if (g) {
-      var el = document.getElementById(g.getAttribute("data-guide"));
-      if (el) {
-        el.hidden = !el.hidden;
-        g.textContent = el.hidden ? "What interviewers look for" : "Hide";
-      }
-      return;
-    }
-    onStarClick(e);
-  });
-  fetch("/api/prep/interview/sample", { credentials: "same-origin" })
-    .then(function (r) { return r.json(); })
-    .then(function (d) {
-      if (!d || !d.success || !d.data.questions || !d.data.questions.length) {
-        document.getElementById("sampleList").innerHTML = '<div class="prep-empty">Sample unavailable &mdash; refresh to retry.</div>';
+  function sampleHtml(q) { return freeQuestionHtml(q, "sg-"); }
+  function todayHtml(q) { return freeQuestionHtml(q, "tg-"); }
+  function wireFreeList(listId, render, path, emptyMsg, onData) {
+    document.getElementById(listId).addEventListener("click", function (e) {
+      var g = e.target.closest("[data-guide]");
+      if (g) {
+        var el = document.getElementById(g.getAttribute("data-guide"));
+        if (el) {
+          el.hidden = !el.hidden;
+          g.textContent = el.hidden ? "What interviewers look for" : "Hide";
+        }
         return;
       }
-      document.getElementById("sampleList").innerHTML = d.data.questions.map(sampleHtml).join("");
-    })
-    .catch(function () {
-      document.getElementById("sampleList").innerHTML = '<div class="prep-empty">Sample unavailable &mdash; refresh to retry.</div>';
+      onStarClick(e);
     });
+    fetch(path, { credentials: "same-origin" })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.success || !d.data.questions || !d.data.questions.length) {
+          document.getElementById(listId).innerHTML = '<div class="prep-empty">' + emptyMsg + "</div>";
+          return;
+        }
+        document.getElementById(listId).innerHTML = d.data.questions.map(render).join("");
+        if (onData) onData(d.data);
+      })
+      .catch(function () {
+        document.getElementById(listId).innerHTML = '<div class="prep-empty">' + emptyMsg + "</div>";
+      });
+  }
+  wireFreeList("todayList", todayHtml, "/api/prep/interview/today",
+    "Today&#39;s set unavailable &mdash; refresh to retry.", function (data) {
+      if (data.day) {
+        document.getElementById("todayNote").textContent =
+          "Set for " + data.day + " \u00B7 changes at midnight UTC";
+      }
+    });
+  wireFreeList("sampleList", sampleHtml, "/api/prep/interview/sample",
+    "Sample unavailable &mdash; refresh to retry.");
 
   // ---- Free resume gap check: 1 AI check/day (Pro unlimited), text never stored ----
   var resText = document.getElementById("resumeText");
