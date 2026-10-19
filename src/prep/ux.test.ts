@@ -407,7 +407,7 @@ describe("the Buy button can never look dead; members look like members (round 5
   const nav = read("public/js/prep-nav.js");
   const css = read("public/prep/prep.css");
   it("stale prep HTML is detected by the always-fresh nav script and re-fetched exactly once", () => {
-    expect(nav).toContain("var WANT_V = 6;");
+    expect(nav).toContain("var WANT_V = 7;");
     expect(nav).toContain("window.PREP_V !== WANT_V");
     expect(nav).toContain('!/[?&]_pv=/.test(location.search)');
     expect(nav).toContain("location.replace(location.pathname + location.search +");
@@ -418,7 +418,7 @@ describe("the Buy button can never look dead; members look like members (round 5
       "public/prep/interview.html",
       "public/prep/proof.html",
     ]) {
-      expect(read(p), p).toContain("window.PREP_V = 6;");
+      expect(read(p), p).toContain("window.PREP_V = 7;");
       expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
     }
   });
@@ -644,7 +644,11 @@ describe("AI company + role plans on aptitude & interview (round 9)", () => {
     expect(router).toContain("gatherSourcesWithBudget(");
     expect(router).toContain("generatePrepPlan(");
     expect(router).toContain("fallbackPlan(company.name, role)");
-    expect(router).toMatch(/res\.status\(402\)\.json\(\{\s*success: false,\s*message: `Free AI plans reset daily/);
+    // The free allowance never dead-ends a search: capped/failing research
+    // still answers with the role-tuned starter plan (limited: true).
+    expect(router).not.toMatch(/status\(402\)[\s\S]{0,200}Free AI plans reset daily/);
+    expect(router).not.toContain('"AI plan generation failed"');
+    expect(router).toContain("limited: true");
     expect(router).not.toContain("gatherSources(");
   });
   it("the plan is grounded like a report and degrades honestly", () => {
@@ -724,19 +728,19 @@ describe("corporate redesign: promos, heroes, banners, live stats (round 10)", (
     expect(apt).toContain("Beat the cut-off with the drills that actually repeat");
     expect(apt).toContain('id="aptPlanCard"');
     expect(apt).toContain('class="prep-banner"');
-    expect(apt).toContain("prep/prep.css?v=7");
+    expect(apt).toContain("prep/prep.css?v=8");
     expect(iv).toContain('class="prep-hero-sm"');
     expect(iv).toContain("24 questions, 4 tracks");
     expect(iv).toContain('id="ivPlanCard"');
     expect(iv).toContain('class="prep-banner"');
-    expect(iv).toContain("prep/prep.css?v=7");
+    expect(iv).toContain("prep/prep.css?v=8");
   });
   it("proof sells the contribution with the anonymity promise up top", () => {
     expect(pf).toContain('class="prep-hero-sm"');
     expect(pf).toContain("One anonymised slip from you unlocks pay data for thousands");
     expect(pf).toContain('href="#pfForm"');
     expect(pf).toContain('class="prep-banner"');
-    expect(pf).toContain("prep/prep.css?v=7");
+    expect(pf).toContain("prep/prep.css?v=8");
     expect(pf).toContain("<b>3 \u00B7 Unlocks</b>"); // original 3-step flow intact
   });
   it("the promo system is fully styled", () => {
@@ -823,6 +827,80 @@ describe("round 11: aptitude/interview sessions are Prep Pro; upgrade CTAs hide 
   it("the paywall ships styled and every prep page cache-busts the stylesheet", () => {
     expect(css).toContain(".prep-paywall {");
     expect(css).toContain(".prep-paywall-ctas");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("prep/prep.css?v=7");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("prep/prep.css?v=8");
+  });
+});
+
+describe("round 12: searches always land, skills + package in reports, professional interview list", () => {
+  const router = read("src/prep/router.ts");
+  const ai = read("src/prep/ai.ts");
+  const skeleton = read("src/prep/report-skeleton.ts");
+  const report = read("public/prep/report.html");
+  const iv = read("public/prep/interview.html");
+  const apt = read("public/prep/aptitude.html");
+  const css = read("public/prep/prep.css");
+
+  it("the plan route never dead-ends: cap and failures return a plan, not an error", () => {
+    expect(router).toContain("limited: true");
+    expect(router).toContain('data: { plan, cached: false, aiUsed: false, limited: true, used, limit: FREE_AI_PLANS_PER_DAY }');
+    expect(router).toContain("Never dead-end");
+    expect(router).not.toContain("AI plan generation failed");
+  });
+
+  it("plans carry role-specific skills: prompt, parse, payload and fallback", () => {
+    expect(ai).toContain("skillsRequired");
+    expect(ai).toContain("skillsRequired: string[]");
+    expect(ai).toContain("arr(o.skillsRequired)");
+    expect(ai).toContain('import { roleProfile } from "./role-skills"');
+    expect(ai).toContain("skillsRequired: profile.skills");
+    expect(skeleton).toContain('import { roleSkills } from "./role-skills"');
+    expect(skeleton).toContain("roleBrief");
+  });
+
+  it("the role profile is real code: different roles, different prep guidance", async () => {
+    const { roleProfile, roleSkills } = await import("./role-skills");
+    const swe = roleProfile("Software Engineer");
+    const analyst = roleProfile("Data Analyst");
+    expect(swe.skills).not.toEqual(analyst.skills);
+    expect(swe.aptitudeTopics.map((t) => t.topic)).not.toEqual(analyst.aptitudeTopics.map((t) => t.topic));
+    expect(swe.rounds[0]!.focus).toMatch(/DSA|coding/i);
+    expect(roleSkills("")).toEqual([]);
+    expect(roleSkills("Human Resources").join(" ")).toMatch(/STAR/i);
+    expect(roleProfile("Something Unmatched").skills.join(" ")).toMatch(/job description/i);
+  });
+
+  it("the report opens with skills for the role and the searched role's package", () => {
+    expect(report).toContain('id="rpSkillsCard"');
+    expect(report).toContain("sec.roleBrief");
+    expect(report).toContain('id="rpSkills"');
+    expect(report).toContain("brief.skills.map");
+    expect(report).toContain("function payRoleMatch(a, targetRole)");
+    expect(report).toContain('"rp-pay-match"');
+    expect(report).toContain("Package for ");
+    expect(report).toContain("No verified pay data for ");
+    expect(css).toContain(".rp-pay-match");
+    expect(css).toContain(".plan-skills");
+  });
+
+  it("interview browse is a professional card list with color chips and collapsed guidance", () => {
+    expect(iv).toContain('class="prep-wrap prep-theme-panel"');
+    expect(iv).toContain("iv-guide-btn");
+    expect(iv).toContain('aria-expanded="false"');
+    expect(iv).toContain("function bindGuideToggles(root)");
+    expect(iv).toContain("bindGuideToggles(listEl)");
+    expect(iv).toContain("iv-tags");
+    expect(iv).toContain("iv-tag iv-tag-");
+    expect(iv).toContain('box.hidden = open');
+    expect(css).toContain(".prep-theme-panel {");
+    expect(css).toContain("--prep-violet: #1D4ED8");
+  });
+
+  it("both plan pages render the skills chips and the daily-limit notice", () => {
+    for (const page of [apt, iv]) {
+      expect(page).toContain("p.skillsRequired && p.skillsRequired.length");
+      expect(page).toContain("Skills you will be judged on");
+      expect(page).toContain("Live web research is used up for today");
+      expect(page).toContain("renderPlan(res.d.data.plan, !!res.d.data.limited)");
+    }
   });
 });

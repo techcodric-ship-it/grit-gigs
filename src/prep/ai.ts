@@ -14,6 +14,7 @@
 import { SOURCE_UA } from "./sources/fetcher";
 import type { SourceDocument } from "./sources/types";
 import type { GatheredSources } from "./sources/gather";
+import { roleProfile } from "./role-skills";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
@@ -215,8 +216,8 @@ export const PLAN_SYSTEM_PROMPT = [
   "3. Interview questions and aptitude topics are coaching suggestions, not company facts - never dress invented claims up as sourced ones.",
   "4. Never speculate about fraud, scams, legality, or payment behavior.",
   "5. Plain text only, no markdown.",
-  "6. Output STRICT JSON only: {\"overview\": string, \"highlights\": [string], \"rounds\": [{\"name\": string, \"focus\": string}], \"questions\": [{\"question\": string, \"topic\": string, \"difficulty\": \"Easy\" | \"Medium\" | \"Hard\", \"why\": string}], \"aptitudeTopics\": [{\"topic\": string, \"weight\": number, \"tip\": string}]}.",
-  "overview: 2-4 sentences. highlights: 4-6 short lines. rounds: 3-6. questions: 6-10. aptitudeTopics: 5-8 items with weight 1-100.",
+  "6. Output STRICT JSON only: {\"overview\": string, \"highlights\": [string], \"skillsRequired\": [string], \"rounds\": [{\"name\": string, \"focus\": string}], \"questions\": [{\"question\": string, \"topic\": string, \"difficulty\": \"Easy\" | \"Medium\" | \"Hard\", \"why\": string}], \"aptitudeTopics\": [{\"topic\": string, \"weight\": number, \"tip\": string}]}.",
+  "overview: 2-4 sentences. highlights: 4-6 short lines. skillsRequired: 5-8 short skill names a candidate for this role is judged on (concrete, technology or competency names). rounds: 3-6. questions: 6-10. aptitudeTopics: 5-8 items with weight 1-100.",
 ].join("\n");
 
 export interface PrepAiQuestion {
@@ -229,6 +230,7 @@ export interface PrepAiQuestion {
 export interface PrepAiPlanPayload {
   overview: string;
   highlights: string[];
+  skillsRequired: string[];
   rounds: { name: string; focus: string }[];
   questions: PrepAiQuestion[];
   aptitudeTopics: { topic: string; weight: number; tip: string }[];
@@ -256,6 +258,7 @@ export function parsePlanResponse(raw: string, docCount: number): PrepAiPlanPayl
     s.replace(/\[(\d{1,2})\]/g, (m, n) => (Number(n) >= 1 && Number(n) <= Math.max(docCount, 1) ? m : ""));
   const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
   const highlights = arr(o.highlights).map((h) => strip(planStr(h, 260))).filter(Boolean).slice(0, 6);
+  const skillsRequired = arr(o.skillsRequired).map((s) => planStr(s, 60)).filter(Boolean).slice(0, 8);
   const rounds = arr(o.rounds)
     .map((r) => {
       if (typeof r !== "object" || r === null) return null;
@@ -288,40 +291,28 @@ export function parsePlanResponse(raw: string, docCount: number): PrepAiPlanPayl
     .filter((t): t is { topic: string; weight: number; tip: string } => t !== null)
     .slice(0, 8);
   if (!highlights.length && !rounds.length && !questions.length) return null;
-  return { overview: strip(overview), highlights, rounds, questions, aptitudeTopics, sources: [], grounded: true };
+  return { overview: strip(overview), highlights, skillsRequired, rounds, questions, aptitudeTopics, sources: [], grounded: true };
 }
 
-/** Honest last resort: no API key, no sources, or a provider failure - a
- * general role-based plan that explicitly says it is NOT company-sourced. */
+/** Honest last resort: no API key, no sources, provider failure, or the free
+ * daily research allowance is used. Role-tuned via roleProfile() so every
+ * role gets its own skills, rounds, questions and topic weightage - and it
+ * explicitly says it is NOT company-sourced. */
 export function fallbackPlan(companyName: string, role: string): PrepAiPlanPayload {
+  const profile = roleProfile(role);
+  const roleName = role.slice(0, 80) || "target";
   return {
-    overview: `Public sources for ${companyName.slice(0, 120)} could not be fetched this time, so here is a solid general ${role.slice(0, 80)} prep path - run the company report first for a fully sourced, company-specific plan.`,
+    overview: `Live sources for ${companyName.slice(0, 120)} could not be fetched this time, so here is a ${roleName} prep path tuned to the role's usual interviews - run the company report first for a fully sourced, company-specific plan.`,
     highlights: [
       "Map every line of the job description to something you have actually shipped",
       "Prepare a 60-second intro: who you are, strongest skill, one measurable win",
       "Keep two STAR stories ready: a conflict handled and a deadline missed",
       "Check the company's official careers page before you apply",
     ],
-    rounds: [
-      { name: "HR / introductory round", focus: "Intro, motivation, location and notice period" },
-      { name: "Technical / functional round", focus: "Core skills for the role, proven with examples" },
-      { name: "Hiring manager round", focus: "Depth, ownership and how you handle trade-offs" },
-    ],
-    questions: [
-      { question: "Tell me about yourself in 60 seconds.", topic: "Intro", difficulty: "Easy", why: "Sets the frame for everything after it" },
-      { question: "Why this company and this role?", topic: "Motivation", difficulty: "Easy", why: "Shows you did basic research" },
-      { question: "Walk me through a project you are proud of.", topic: "Project deep-dive", difficulty: "Medium", why: "Reveals depth and your real contribution" },
-      { question: "Describe a problem you debugged end to end.", topic: "Problem solving", difficulty: "Medium", why: "Tests method over memorised answers" },
-      { question: "How do you prioritise when two deadlines collide?", topic: "Judgement", difficulty: "Medium", why: "Surfaces trade-off thinking" },
-      { question: "What is a trade-off you regret from a past project?", topic: "Reflection", difficulty: "Hard", why: "Separates thoughtful candidates from scripted ones" },
-    ],
-    aptitudeTopics: [
-      { topic: "Quantitative aptitude", weight: 35, tip: "Percentages, ratios, time-speed-distance - the evergreen trio" },
-      { topic: "Logical reasoning", weight: 25, tip: "Sequencing, seating arrangements, syllogisms" },
-      { topic: "Verbal ability", weight: 20, tip: "Reading comprehension speed plus error spotting" },
-      { topic: "Data interpretation", weight: 12, tip: "Tables, bar charts and approximation maths" },
-      { topic: "Programming basics", weight: 8, tip: "Arrays, strings, SQL fundamentals and time complexity" },
-    ],
+    rounds: profile.rounds,
+    questions: profile.questions,
+    aptitudeTopics: profile.aptitudeTopics,
+    skillsRequired: profile.skills,
     sources: [],
     grounded: false,
   };

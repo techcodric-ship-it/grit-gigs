@@ -7,8 +7,8 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 6;</script>
-<link rel="stylesheet" href="/prep/prep.css?v=7"/>
+<script>window.PREP_V = 7;</script>
+<link rel="stylesheet" href="/prep/prep.css?v=8"/>
 <style>
   .apt-option { display:flex; gap:10px; align-items:flex-start; border:1px solid var(--prep-line); border-radius:10px; padding:10px 12px; margin-top:8px; cursor:pointer; }
   .apt-option:hover { border-color: var(--prep-violet); background: var(--prep-violet-light); }
@@ -144,7 +144,7 @@
 
 </main>
 
-<script src="/js/prep-nav.js?v=5" defer></script>
+<script src="/js/prep-nav.js?v=6" defer></script>
 <script>
 (function () {
   "use strict";
@@ -324,15 +324,22 @@
   var planBtn = document.getElementById("aptPlanBtn");
   var planErr = document.getElementById("aptPlanErr");
   var planOut = document.getElementById("aptPlanOut");
-  function renderPlan(p) {
+  function renderPlan(p, limited) {
     var h = "";
     h += '<div class="plan-head"><b>' + (p.grounded
       ? "Sourced plan for your target"
       : "Starter plan \u2014 no public sources found yet") + "</b>" +
       (p.sources && p.sources.length ? '<span class="prep-chip">' + p.sources.length + " sources</span>" : "") + "</div>";
     h += '<p class="prep-body">' + esc(p.overview) + "</p>";
+    if (limited) {
+      h += '<p class="prep-err info" style="margin-top:6px;">Live web research is used up for today \u2014 this is the role-tuned starter plan. Prep Pro unlocks unlimited researched plans.</p>';
+    }
     if (p.highlights && p.highlights.length) {
       h += '<ul class="plan-bullets">' + p.highlights.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>";
+    }
+    if (p.skillsRequired && p.skillsRequired.length) {
+      h += '<h3 class="plan-h3">Skills you will be judged on</h3><ul class="plan-skills">' +
+        p.skillsRequired.map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + "</ul>";
     }
     if (p.aptitudeTopics && p.aptitudeTopics.length) {
       h += '<h3 class="plan-h3">Aptitude weightage for this role</h3><div class="plan-topics">' + p.aptitudeTopics.map(function (t) {
@@ -395,7 +402,7 @@
           planErr.textContent = (res.d && res.d.message) || "Could not build the plan. Try again.";
           return;
         }
-        renderPlan(res.d.data.plan);
+        renderPlan(res.d.data.plan, !!res.d.data.limited);
       })
       .catch(function () {
         planBtn.disabled = false;

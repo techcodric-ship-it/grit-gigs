@@ -4,6 +4,7 @@
 import type { PrepCompany } from "./schema";
 import type { SourceDocument } from "./sources/types";
 import type { GatheredSources } from "./sources/gather";
+import { roleSkills } from "./role-skills";
 
 export interface ReportItem {
   title: string;
@@ -24,6 +25,13 @@ export interface ReportSkeleton {
   };
   role: string | null;
   userType: string | null;
+  // Guidance, not sourced claims: the skills a candidate for this searched
+  // role is usually judged on (pure role profile, see role-skills.ts).
+  roleBrief: {
+    role: string | null;
+    skills: string[];
+    note: string;
+  };
   officialSites: ReportItem[];
   careers: ReportItem[];
   recentNews: ReportItem[];
@@ -77,6 +85,11 @@ export function buildReportSkeleton(
     },
     role: meta.role?.slice(0, 120) ?? null,
     userType: meta.userType?.slice(0, 40) ?? null,
+    roleBrief: {
+      role: meta.role?.slice(0, 120) ?? null,
+      skills: roleSkills(meta.role ?? ""),
+      note: "Curated from common hiring patterns for this role - always cross-check the actual job description before you prepare.",
+    },
     officialSites: officialSites.map(toItem),
     careers: careers.map(toItem),
     recentNews: recentNews.map(toItem),

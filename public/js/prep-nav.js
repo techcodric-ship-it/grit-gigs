@@ -27,7 +27,7 @@
   //    Reload once through a cache-busting query: never a loop, because the
   //    re-fetched document carries the stamp, and _pv already present stops
   //    us from trying again.
-  var WANT_V = 6;
+  var WANT_V = 7;
   if (window.PREP_V !== WANT_V &&
       /\/prep(?:\/|$)/.test(location.pathname) &&
       !/[?&]_pv=/.test(location.search)) {

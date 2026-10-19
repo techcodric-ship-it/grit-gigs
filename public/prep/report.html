@@ -7,8 +7,8 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 6;</script>
-<link rel="stylesheet" href="/prep/prep.css?v=7"/>
+<script>window.PREP_V = 7;</script>
+<link rel="stylesheet" href="/prep/prep.css?v=8"/>
 </head>
 <body>
 <header class="topnav">
@@ -66,6 +66,12 @@
     <p class="prep-body" id="rpSummary"></p>
   </section>
 
+  <section class="prep-card" id="rpSkillsCard" hidden>
+    <h2 class="prep-h2" id="rpSkillsTitle">Skills for this role <span class="prep-chip">Role guide</span></h2>
+    <ul class="plan-skills" id="rpSkills"></ul>
+    <p class="prep-sub" id="rpSkillsNote" style="margin:10px 0 0;"></p>
+  </section>
+
   <section class="prep-card" id="rpPayCard" hidden>
     <h2 class="prep-h2">Pay data <span class="prep-chip">Member-reported</span></h2>
     <div id="rpPayBody"></div>
@@ -97,7 +103,7 @@
   </section>
 </main>
 
-<script src="/js/prep-nav.js?v=5" defer></script>
+<script src="/js/prep-nav.js?v=6" defer></script>
 <script>
 (function () {
   "use strict";
@@ -170,6 +176,18 @@
         document.getElementById("rpSummaryCard").hidden = false;
       }
 
+      // Skills for the searched role (pure role profile from the skeleton).
+      var brief = sec.roleBrief || {};
+      if (report.role && brief.skills && brief.skills.length) {
+        document.getElementById("rpSkillsTitle").innerHTML = "Skills for " + esc(report.role) +
+          ' <span class="prep-chip">Role guide</span>';
+        document.getElementById("rpSkills").innerHTML = brief.skills.map(function (s) {
+          return "<li>" + esc(s) + "</li>";
+        }).join("");
+        document.getElementById("rpSkillsNote").textContent = brief.note || "";
+        document.getElementById("rpSkillsCard").hidden = false;
+      }
+
       var careers = sec.careers || [];
       var official = sec.officialSites || [];
       var careersAll = careers.concat(official);
@@ -235,14 +253,37 @@
         .catch(function () {});
     }
     var base = "/api/prep/companies/" + encodeURIComponent(slug);
+    // Find the searched role inside the by-role pay slices (report.role is
+    // the ?role= the user arrived with) so the package they came for is the
+    // first thing they see, not a generic company median.
+    function payRoleMatch(a, targetRole) {
+      if (!targetRole) return null;
+      var want = String(targetRole).toLowerCase();
+      var list = a.byRole || [];
+      for (var i = 0; i < list.length; i++) {
+        var r = String(list[i].role || "").toLowerCase();
+        if (r && (want.indexOf(r) >= 0 || r.indexOf(want) >= 0)) return list[i];
+      }
+      return null;
+    }
     render(base + "/pay-aggregates", "rpPayCard", "rpPayBody", function (a) {
       if (a.available) {
+        var m = payRoleMatch(a, role);
+        var match = m
+          ? '<div class="rp-pay-match"><span>Package for ' + esc(role) + "</span><b>" + inr(m.medianCtcInr) +
+            " median CTC</b><i>" + m.sampleSize + " verified reports for this role</i></div>"
+          : "";
         var roles = (a.byRole || []).map(function (r) {
           return '<li><span>' + esc(r.role) + " · " + r.sampleSize + " reports</span><span>" + inr(r.medianCtcInr) + " median</span></li>";
         }).join("");
-        return "<p class=\"prep-body\">" + inr(a.medianCtcInr) + " median CTC · range " + inr(a.p25CtcInr) + " – " + inr(a.p75CtcInr) +
+        var miss = !m && role
+          ? '<p class="prep-sub" style="margin:8px 0 0;">No verified pay data for ' + esc(role) +
+            " yet - contribute a pay record and it appears here once approved.</p>"
+          : "";
+        return match +
+          "<p class=\"prep-body\">" + inr(a.medianCtcInr) + " median CTC · range " + inr(a.p25CtcInr) + " – " + inr(a.p75CtcInr) +
           " · based on " + a.sampleSize + " approved reports (" + a.verifiedDocumentCount + " with documents)</p>" +
-          (roles ? '<ul class="prep-matches">' + roles + "</ul>" : "");
+          (roles ? '<ul class="prep-matches">' + roles + "</ul>" : "") + miss;
       }
       if (a.reason === "below-min-sample") {
         return '<p class="prep-sub" style="margin:0;">' + a.sampleSize + " of " + a.minSample +

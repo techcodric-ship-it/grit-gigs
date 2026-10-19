@@ -407,9 +407,11 @@ prepRouter.get("/companies/:slug/report", authenticate, reportLimiter, prepDbGat
 
 // ---- AI prep plan (company + role, used by aptitude & interview pages) ----
 // Grounded like a report: gather bounded sources, let Gemini shape them into
-// a plan (rounds, questions, topic weightage), cache per company+role for
-// 30 minutes. Free tier: 5 fresh AI generations per day, Prep Pro unlimited;
-// cache hits and non-AI fallbacks never consume the allowance.
+// a plan (skills, rounds, questions, topic weightage), cache per company+role
+// for 30 minutes. Free tier: 5 fresh AI research runs per day, Prep Pro
+// unlimited; cache hits and non-AI fallbacks never consume the allowance —
+// when research is used up the route still returns the role-tuned starter
+// plan (limited: true), so a search never dead-ends on an error.
 
 const aiPlanLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -427,18 +429,17 @@ const aiPlanBody = z.object({
 });
 
 prepRouter.post("/ai/plan", authenticate, aiPlanLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  const parsed = aiPlanBody.safeParse({
+    company: String(req.body?.company ?? "").trim().slice(0, 200),
+    role: String(req.body?.role ?? "").trim().slice(0, 120),
+  });
+  if (!parsed.success) {
+    res.status(400).json({ success: false, message: "Choose a company and a role (at least 2 characters each)." });
+    return;
+  }
+  const { company: companyName, role } = parsed.data;
+  const roleKey = role.toLowerCase();
   try {
-    const parsed = aiPlanBody.safeParse({
-      company: String(req.body?.company ?? "").trim().slice(0, 200),
-      role: String(req.body?.role ?? "").trim().slice(0, 120),
-    });
-    if (!parsed.success) {
-      res.status(400).json({ success: false, message: "Choose a company and a role (at least 2 characters each)." });
-      return;
-    }
-    const { company: companyName, role } = parsed.data;
-    const roleKey = role.toLowerCase();
-
     // Same company resolution as reports: exact row reuse, else a PENDING row.
     const exact = (await resolveCompany(db, companyName)).find((c) => c.score === 3);
     let company = exact ? await findCompanyBySlug(exact.slug) : null;
@@ -457,11 +458,14 @@ prepRouter.post("/ai/plan", authenticate, aiPlanLimiter, prepDbGate, async (req:
     if (!isProUser) {
       const used = await countAiPlanRequestsToday(req.user!.id);
       if (used >= FREE_AI_PLANS_PER_DAY) {
-        res.status(402).json({
-          success: false,
-          message: `Free AI plans reset daily (${FREE_AI_PLANS_PER_DAY}/day). Prep Pro unlocks unlimited company + role plans.`,
-          used,
-          limit: FREE_AI_PLANS_PER_DAY,
+        // The free allowance only gates live AI research. A searched company +
+        // role must ALWAYS land on a plan — when research is used up for the
+        // day, answer with the role-tuned starter plan (limited: true)
+        // instead of an error the user cannot act on.
+        const plan = fallbackPlan(company.name, role);
+        res.json({
+          success: true,
+          data: { plan, cached: false, aiUsed: false, limited: true, used, limit: FREE_AI_PLANS_PER_DAY },
         });
         return;
       }
@@ -487,8 +491,11 @@ prepRouter.post("/ai/plan", authenticate, aiPlanLimiter, prepDbGate, async (req:
     // so the very next attempt can pick up a recovered provider.
     res.status(201).json({ success: true, data: { plan, cached: false, aiUsed: false } });
   } catch (err) {
+    // Never dead-end: company resolution or research failing still answers
+    // with the role-tuned starter plan — searching must always show results.
     console.error("[prep] ai plan failed:", err);
-    res.status(500).json({ success: false, message: "AI plan generation failed" });
+    const plan = fallbackPlan(companyName, role);
+    res.status(201).json({ success: true, data: { plan, cached: false, aiUsed: false } });
   }
 });
 

@@ -513,3 +513,52 @@ a.prep-feature:hover {
   margin: 14px 0 0; font-size: 0.85rem; font-weight: 600; color: var(--prep-muted);
 }
 .prep-live b { color: var(--prep-violet-deep); font-weight: 800; }
+
+/* ---- Plan: skills chips (role-specific skills on every AI plan) ---- */
+.plan-skills {
+  list-style: none; margin: 10px 0 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.plan-skills li {
+  border: 1px solid var(--prep-line); background: #fff; border-radius: 999px;
+  padding: 6px 13px; font-size: 0.84rem; font-weight: 700; color: var(--prep-ink-2);
+}
+
+/* ---- Report: the searched role's package, highlighted from pay aggregates ---- */
+.rp-pay-match {
+  display: flex; flex-direction: column; gap: 3px;
+  border: 1px solid var(--prep-violet); background: var(--prep-violet-light);
+  border-radius: 12px; padding: 12px 14px; margin-bottom: 12px;
+}
+.rp-pay-match span {
+  font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--prep-violet-deep);
+}
+.rp-pay-match b { font-size: 1.12rem; color: var(--prep-ink); }
+.rp-pay-match i { font-style: normal; font-size: 0.82rem; color: var(--prep-muted); }
+
+/* ---- Interview page theme: panel blue, so it never reads as a twin of the
+       violet aptitude drills page. Re-declares the accent vars on <main>. ---- */
+.prep-theme-panel {
+  --prep-violet: #1D4ED8;
+  --prep-violet-deep: #1E40AF;
+  --prep-violet-light: #DBEAFE;
+  --prep-line: #D9E3F4;
+}
+.prep-theme-panel .prep-btn { box-shadow: 0 6px 16px rgba(29, 78, 216, 0.25); }
+.prep-theme-panel .prep-btn:hover { box-shadow: 0 10px 22px rgba(29, 78, 216, 0.3); }
+.prep-theme-panel .prep-btn:focus-visible { outline-color: rgba(29, 78, 216, 0.35); }
+.prep-theme-panel .plan-bar i { background: linear-gradient(90deg, #1D4ED8, #3B82F6); }
+.prep-theme-panel .prep-hero-sm {
+  background: linear-gradient(180deg, #F7FAFF 0%, #FFFFFF 100%);
+  border-color: rgba(29, 78, 216, 0.16);
+  box-shadow: 0 10px 30px rgba(29, 78, 216, 0.07);
+}
+.prep-theme-panel .prep-banner {
+  background: #F1F6FF; border-color: rgba(29, 78, 216, 0.4);
+}
+.prep-theme-panel .prep-paywall {
+  border-color: rgba(29, 78, 216, 0.35);
+  background: linear-gradient(160deg, #F4F8FF 0%, #FFFFFF 55%, #EFF6FF 100%);
+  box-shadow: 0 10px 28px rgba(29, 78, 216, 0.12);
+}
