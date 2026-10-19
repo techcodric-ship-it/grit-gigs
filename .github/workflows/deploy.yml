@@ -44,6 +44,20 @@ jobs:
             git reset --hard origin/main
             echo "DEPLOYED: $(git log --oneline -1)"
 
+            # Prep (Company Report) feature flag: keep FEATURE_PREP=true in the
+            # server .env across deploys (git reset never touches ignored files,
+            # but this makes the enablement explicit and idempotent). The app
+            # reads .env via dotenv on every boot, so the restart below picks it
+            # up. To turn Prep off again, change this line to false (or remove
+            # it and delete the .env entry) and push.
+            ENVF=/opt/gritgigs/.env
+            if grep -q '^FEATURE_PREP=' "$ENVF"; then
+              sed -i 's/^FEATURE_PREP=.*/FEATURE_PREP=true/' "$ENVF"
+            else
+              printf '\nFEATURE_PREP=true\n' >> "$ENVF"
+            fi
+            echo "FEATURE_PREP: $(grep '^FEATURE_PREP=' "$ENVF")"
+
             # A git reset leaves the old process running the old code. TypeScript
             # changes are inert until PM2 picks them up, so restart here rather
             # than relying on someone doing it by hand afterwards.
@@ -107,4 +121,19 @@ jobs:
           code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/community/spotlight/packs")
           [ "$code" = "410" ] || { echo "::error::spotlight API returned $code (expected 410)"; exit 1; }
           echo "retired spotlight endpoints OK"
+
+          # Prep (Company Report) is enabled: the flag probe must say so, the
+          # API must answer (flag-off would 404 the gate), and the pages must
+          # serve instead of redirecting to /feed. Also confirm the nav script
+          # tag ships on /feed (the prep icon is injected client-side only when
+          # the flag answers enabled:true).
+          flag=$(curl -fsS --retry 5 --retry-delay 5 --retry-connrefused $BASE/api/prep/flag)
+          echo "prep flag: $flag"
+          echo "$flag" | grep -q '"enabled":true' || { echo "::error::FEATURE_PREP not enabled in production"; exit 1; }
+          code=$(curl -s -o /dev/null -w '%{http_code}' --retry 5 --retry-delay 5 "$BASE/api/prep/companies?q=infosys")
+          [ "$code" = "200" ] || { echo "::error::prep API returned $code (expected 200)"; exit 1; }
+          code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/prep")
+          [ "$code" = "200" ] || { echo "::error::/prep returned $code (expected 200 once enabled)"; exit 1; }
+          curl -fsS "$BASE/feed" | grep -q '/js/prep-nav.js' || { echo "::error::prep-nav.js tag missing from /feed"; exit 1; }
+          echo "prep enabled OK"
           echo "SITE OK"

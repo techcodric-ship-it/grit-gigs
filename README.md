@@ -60,6 +60,13 @@ Open browser DevTools (F12) → Console tab and check for red errors.
 | POST /api/barter/requests | Post a barter request |
 | POST /api/orders | Place an order |
 | GET  /api/messages/conversations | Inbox |
+| GET  /api/prep/flag | Prep feature flag (nav probe) |
+| GET  /api/prep/companies?q= | Company search |
+| GET  /api/prep/companies/:slug/report | Company report (sourced, cited) |
+| GET  /api/prep/aptitude/topics | Aptitude quiz topics |
+| GET  /api/prep/interview/questions | Interview question bank |
+| GET  /api/prep/companies/:slug/pay-aggregates | Trust: pay aggregates (min-sample) |
+| GET  /api/prep/companies/:slug/placement-aggregates | Trust: placement aggregates |
 
 ## Real-time (Socket.io)
 Connect with `io({ auth: { token: '<accessToken>' } })`
