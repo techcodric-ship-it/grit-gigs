@@ -117,12 +117,26 @@
 
   <section class="prep-card prep-card-pro" id="prepProCard">
     <h2 class="prep-h2">Prep Pro <span class="prep-pro-badge">Premium</span></h2>
+    <div class="prep-pro-price-row">
+      <span class="prep-pro-price">₹199</span>
+      <span class="prep-pro-price-per">/ 30 days<small>One-time payment. No auto-renewal.</small></span>
+    </div>
+    <ul class="prep-pro-perks">
+      <li>Unlimited report generations - the free plan allows 3 a day</li>
+      <li>Every line source-linked: official pages, recent news, provenance</li>
+      <li>AI summary always marked as an estimate, never passed off as fact</li>
+      <li>Pay once for 30 days. No subscription, nothing auto-renews.</li>
+    </ul>
     <div class="prep-empty" id="prepProLoading"><b>Prep Pro</b> Checking your plan…</div>
     <div id="prepProContent" hidden>
       <div class="prep-empty" id="prepProBody" style="text-align:left;"></div>
       <button class="prep-btn" type="button" id="prepProBuy" hidden>Buy Prep Pro — ₹199 / 30 days</button>
     </div>
     <div class="prep-err" id="prepProErr" role="alert"></div>
+    <div class="prep-pay-trust">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15" r="1.4"/></svg>
+      <span>Secured by Razorpay - UPI, cards and netbanking. We never store your card details.</span>
+    </div>
   </section>
 
   <section class="prep-card">
@@ -184,9 +198,11 @@
         matches.forEach(function (m) {
           var li = document.createElement("li");
           var role = document.getElementById("prepRole").value.trim();
-          var qs = "/prep/report/" + encodeURIComponent(m.slug) + "?role=" + encodeURIComponent(role);
+          var qs = "/prep/report/" + encodeURIComponent(m.slug) + "?role=" + encodeURIComponent(role) +
+            "&name=" + encodeURIComponent(m.name);
           li.innerHTML = '<a href="' + qs + '"><span>' + esc(m.name) + '</span>' +
-            (m.status === "PENDING" ? '<span class="prep-chip pending">Pending review</span>' : "") + "</a>";
+            (m.status === "PENDING" ? '<span class="prep-chip pending">Pending review</span>'
+              : m.status === "NEW" ? '<span class="prep-chip">Start report</span>' : "") + "</a>";
           list.appendChild(li);
         });
         list.hidden = false;
@@ -251,15 +267,19 @@
   // Razorpay checkout: order -> modal -> server verify. The entitlement is
   // granted ONLY after /pro/verify confirms the capture with Razorpay
   // server-side. Clicking the button without paying never activates anything.
+  // Every path reports back visibly: instant info on click, proFail elsewhere
+  // (a hanging order call or blocked checkout script must never look dead).
+  function proInfo(t) { proErr.className = "prep-err info"; proErr.textContent = t; }
+  function proFail(t) { proErr.className = "prep-err"; proErr.textContent = t; }
   function loadRazorpay(onReady, onFail) {
-    if (window.Razorpay) { onReady(); return; }
+    function go() { try { onReady(); } catch (e) { onFail(e); } }
+    if (window.Razorpay) { go(); return; }
     var s = document.createElement("script");
     s.src = "https://checkout.razorpay.com/v1/checkout.js";
-    s.onload = function () { onReady(); };
-    s.onerror = function () { onFail(); };
+    s.onload = go;
+    s.onerror = function () { onFail(new Error("checkout script blocked")); };
     document.head.appendChild(s);
   }
-
   function verifyPayment(resp) {
     fetch("/api/prep/pro/verify", {
       method: "POST",
@@ -275,21 +295,22 @@
         proBuy.disabled = false;
         if ((v.status === 201 || v.status === 200) && v.d.success) {
           var ent = v.d.data && v.d.data.entitlement;
+          proErr.className = "prep-err";
+          proErr.textContent = "";
           if (ent) showPro({ isPro: true, expiresAt: ent.expiresAt });
           else window.location.reload();
           return;
         }
         if (v.status === 409) { window.location.reload(); return; }
-        proErr.textContent = (v.d && v.d.message) || "Payment could not be verified. If you were charged, contact support.";
+        proFail((v.d && v.d.message) || "Payment could not be verified. If you were charged, contact support.");
       })
       .catch(function () {
         proBuy.disabled = false;
-        proErr.textContent = "Verification failed. If you were charged, contact support.";
+        proFail("Verification failed. If you were charged, contact support.");
       });
   }
-
   proBuy.addEventListener("click", function () {
-    proErr.textContent = "";
+    proInfo("Opening secure checkout...");
     proBuy.disabled = true;
     fetch("/api/prep/pro/order", {
       method: "POST",
@@ -302,7 +323,7 @@
         if (res.status === 409) { proBuy.disabled = false; window.location.reload(); return; }
         if (res.status !== 200 || !res.d.success) {
           proBuy.disabled = false;
-          proErr.textContent = (res.d && res.d.message) || "Could not start checkout.";
+          proFail((res.d && res.d.message) || "Could not start checkout.");
           return;
         }
         var order = res.d.data.order;
@@ -319,21 +340,21 @@
             modal: {
               ondismiss: function () {
                 proBuy.disabled = false;
-                proErr.textContent = "Payment cancelled. You were not charged.";
+                proFail("Payment cancelled. You were not charged.");
               },
             },
           });
           rz.on("payment.failed", function () {
             proBuy.disabled = false;
-            proErr.textContent = "Payment failed. You were not charged.";
+            proFail("Payment failed. You were not charged.");
           });
           rz.open();
         }, function () {
           proBuy.disabled = false;
-          proErr.textContent = "Could not load the payment gateway. Refresh and try again.";
+          proFail("Could not load the payment gateway. Refresh and try again.");
         });
       })
-      .catch(function () { proBuy.disabled = false; proErr.textContent = "Network error. Try again."; });
+      .catch(function () { proBuy.disabled = false; proFail("Network error. Try again."); });
   });
 
 })();

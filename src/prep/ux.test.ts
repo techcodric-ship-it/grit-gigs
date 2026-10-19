@@ -272,3 +272,83 @@ describe("design: product-grade presentation", () => {
     expect(css).toContain(".prep-card-pro");
   });
 });
+
+describe("search never dead-ends (fresh database proof)", () => {
+  const router = read("src/prep/router.ts");
+  it("empty DB search synthesizes the typed company as a NEW candidate", () => {
+    expect(router).toContain("if (!matches.length)");
+    expect(router).toContain("slugifyCompanyName(typed)");
+    expect(router).toContain('status: "NEW"');
+    expect(router).not.toContain("needsCreation: matches.length === 0");
+  });
+  it("opening a not-yet-known company provisions a PENDING row and its report", () => {
+    expect(router).toContain('req.query.name');
+    expect(router).toContain("nameParam.length >= 2");
+    expect(router).toContain("resolveCompany(db, nameParam)");
+    expect(router).toContain("createPendingCompany(db, { name: nameParam");
+    // provision sits BEFORE the quota/gather steps so the report actually runs
+    const routeIdx = router.indexOf('prepRouter.get("/companies/:slug/report"');
+    expect(router.indexOf("createPendingCompany(db, { name: nameParam", routeIdx)).toBeGreaterThan(routeIdx);
+    expect(router.indexOf("createPendingCompany(db, { name: nameParam")).toBeLessThan(router.indexOf("gatherSources({", routeIdx));
+  });
+  it("home search passes the typed name and labels virtual candidates", () => {
+    const home = read("public/prep/index.html");
+    expect(home).toContain('&name=" + encodeURIComponent(m.name)');
+    expect(home).toContain('m.status === "NEW"');
+    expect(home).toContain("Start report");
+  });
+  it("flag probe reports payment-gateway readiness as a boolean only", () => {
+    expect(router).toContain("paymentsConfigured: razorpayConfigured()");
+    expect(router).toContain("paymentsConfigured: razorpayConfigured() } });");
+  });
+});
+
+describe("Prep Pro card earns trust before payment", () => {
+  const home = read("public/prep/index.html");
+  const css = read("public/prep/prep.css");
+  it("leads with price, one-time framing and truthful perks", () => {
+    expect(home).toContain('class="prep-pro-price-row"');
+    expect(home).toContain("\u20b9199");
+    expect(home).toContain("No auto-renewal");
+    expect(home).toContain('class="prep-pro-perks"');
+    expect(home).toContain("free plan allows 3 a day");
+    expect(home).toContain("No subscription, nothing auto-renews");
+    expect(css).toContain(".prep-pro-perks li::before");
+    expect(css).toContain(".prep-pro-price");
+  });
+  it("shows the Razorpay security note", () => {
+    expect(home).toContain('class="prep-pay-trust"');
+    expect(home).toContain("Secured by Razorpay");
+    expect(home).toContain("never store your card details");
+    expect(css).toContain(".prep-pay-trust");
+  });
+  it("every click path gives visible feedback (never looks dead)", () => {
+    expect(home).toContain("Opening secure checkout");
+    expect(home).toContain('function proInfo(');
+    expect(home).toContain('function proFail(');
+    expect(home).toContain('proErr.className = "prep-err info"');
+    expect(css).toContain(".prep-err.info");
+    expect(home).toContain("Could not load the payment gateway");
+    expect(home).toContain("Payment cancelled. You were not charged.");
+    // a blocked/faulty checkout script must surface, not throw silently
+    expect(home).toContain("function go() { try { onReady(); } catch (e) { onFail(e); } }");
+  });
+});
+
+describe("feed rail leads with the Prep feature card", () => {
+  const nav = read("public/js/prep-nav.js");
+  it("promo is injected FIRST in the sidebar, flag-gated, idempotent", () => {
+    expect(nav).toContain('document.querySelector(".sidebar")');
+    expect(nav).toContain('setAttribute("data-prep-promo"');
+    expect(nav).toContain("side.insertBefore(p, side.firstElementChild)");
+    expect(nav).toContain('side.querySelector("[data-prep-promo]")');
+    expect(nav).toContain("function removePromo()");
+    expect(nav).toContain('a.href = "/prep"');
+    expect(nav).toContain("New - Prep");
+  });
+  it("promo and icon are removed together when the flag turns off", () => {
+    const offIdx = nav.indexOf("if (!enabled) {");
+    expect(offIdx).toBeGreaterThan(-1);
+    expect(nav.indexOf("removePromo()", offIdx)).toBeLessThan(nav.indexOf('document.cookie = "prep_nav=; Max-Age=0; Path=/";', offIdx));
+  });
+});

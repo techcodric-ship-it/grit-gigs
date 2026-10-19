@@ -3,14 +3,17 @@
 // byte-for-byte what it was before (src/lib/nav-badge.test.ts keeps guarding
 // the static markup).
 //
-// Three jobs, all idempotent:
+// Four jobs, all idempotent:
 // 1. Prep icon FIRST in the row, ahead of Home/Feed. The server ships a
 //    prep_nav cookie WITH the HTML response, so on flag-on the icon paints
 //    synchronously at script time — no 2s gap while /flag round-trips when
 //    switching tabs. The fetch below still revalidates either way.
-// 2. Wallet icon: feed-app.js adds it on feed-family pages, but prep pages
+// 2. Feed right-rail promo: when a page has the .sidebar rail, a Prep feature
+//    card is inserted FIRST so the rail leads with the new feature; "On the
+//    grind" and the account card follow below it.
+// 3. Wallet icon: feed-app.js adds it on feed-family pages, but prep pages
 //    don't load feed-app.js — mirror that exact insertion here.
-// 3. Avatar: prep pages don't load feed-app.js either, so #navAv would stay
+// 4. Avatar: prep pages don't load feed-app.js either, so #navAv would stay
 //    on the dicebear default. Paint from the cached session instantly, then
 //    refresh from /api/auth/me (the authoritative account read).
 (function () {
@@ -19,22 +22,58 @@
   var row = document.querySelector(ICONS);
   if (!row) return;
 
+  function removePrepIcon() {
+    var stale = row.querySelector('a[href="/prep"]');
+    if (stale) stale.parentNode.removeChild(stale);
+  }
+
+  function promoMarkup() {
+    return '<span class="prep-rail-kicker" style="display:inline-block;font-size:0.64rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#5430C9;background:#F0ECFD;border:1px solid rgba(108,63,232,.2);border-radius:999px;padding:4px 10px;">New - Prep</span>' +
+      '<b style="display:block;font-size:0.95rem;margin:5px 0 5px;color:#0A0A0F;">Company research you can trust</b>' +
+      '<p style="font-size:0.8rem;color:#555;line-height:1.5;margin:0 0 10px;">Sourced company reports, aptitude drills, ' +
+      "interview mocks and anonymised pay signals - every claim labelled with its source.</p>" +
+      '<a href="/prep" style="display:inline-flex;align-items:center;gap:5px;font-size:0.82rem;font-weight:700;color:#6C3FE8;">Open Prep &rarr;</a>';
+  }
+
+  function injectPromo() {
+    var side = document.querySelector(".sidebar");
+    if (!side) return;
+    if (side.querySelector("[data-prep-promo]")) return;
+    var p = document.createElement("div");
+    p.className = "side-card";
+    p.setAttribute("data-prep-promo", "1");
+    p.innerHTML = promoMarkup();
+    side.insertBefore(p, side.firstElementChild);
+  }
+
+  function removePromo() {
+    var p = document.querySelector("[data-prep-promo]");
+    if (p && p.parentNode) p.parentNode.removeChild(p);
+  }
+
   function inject(enabled) {
-    if (!enabled) return;
-    if (row.querySelector('a[href="/prep"]')) return;
-    var a = document.createElement("a");
-    a.href = "/prep";
-    a.title = "Prep";
-    a.setAttribute("data-prep-nav", "1");
-    a.innerHTML =
-      '<svg viewBox="0 0 24 24" aria-hidden="true">' +
-      '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>' +
-      '<path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/>' +
-      '<path d="M9 7.5h6"/>' +
-      "</svg>";
-    var first = row.firstElementChild;
-    if (first) row.insertBefore(a, first);
-    else row.appendChild(a);
+    if (!enabled) {
+      removePrepIcon();
+      removePromo();
+      document.cookie = "prep_nav=; Max-Age=0; Path=/";
+      return;
+    }
+    if (!row.querySelector('a[href="/prep"]')) {
+      var a = document.createElement("a");
+      a.href = "/prep";
+      a.title = "Prep";
+      a.setAttribute("data-prep-nav", "1");
+      a.innerHTML =
+        '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>' +
+        '<path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/>' +
+        '<path d="M9 7.5h6"/>' +
+        "</svg>";
+      var first = row.firstElementChild;
+      if (first) row.insertBefore(a, first);
+      else row.appendChild(a);
+    }
+    injectPromo();
   }
 
   function cookieEnabled() {
@@ -48,15 +87,9 @@
   fetch("/api/prep/flag", { credentials: "same-origin" })
     .then(function (r) { return r.json(); })
     .then(function (d) {
-      var on = !!(d && d.success && d.data && d.data.enabled);
-      if (on) inject(true);
-      else {
-        var stale = row.querySelector('a[href="/prep"]');
-        if (stale) stale.parentNode.removeChild(stale);
-        document.cookie = "prep_nav=; Max-Age=0; Path=/";
-      }
+      inject(!!(d && d.success && d.data && d.data.enabled));
     })
-    .catch(function () { /* offline: keep the cached icon as-is */ });
+    .catch(function () { /* offline: keep the cached state as-is */ });
 
   // ── wallet icon (mirrors feed-app.js buildTopnavDropdown) ──
   if (!row.querySelector('a[href="/wallet.html"]')) {

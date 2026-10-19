@@ -13,7 +13,7 @@ import { adminAuth } from "../middlewares/adminAuth";
 import { uploadToSupabase } from "../lib/storage";
 import { isPrepEnabled } from "./feature";
 import { ensurePrepDb } from "./db";
-import { resolveCompany, createPendingCompany } from "./companies";
+import { resolveCompany, createPendingCompany, slugifyCompanyName } from "./companies";
 import { gatherSources } from "./sources/gather";
 import { summarizeReport } from "./ai";
 import { APTITUDE_TOPICS, prepAptitudeQuestionsTable, prepInterviewQuestionsTable } from "./schema";
@@ -75,8 +75,10 @@ import {
 export const prepRouter = Router();
 
 // Cheap public probe for the nav; must answer even while Prep is disabled.
+// paymentsConfigured tells the UI (and ops) whether checkout can run at all —
+// a boolean only, never any credential.
 prepRouter.get("/flag", (_req: Request, res: Response): void => {
-  res.json({ success: true, data: { enabled: isPrepEnabled() } });
+  res.json({ success: true, data: { enabled: isPrepEnabled(), paymentsConfigured: razorpayConfigured() } });
 });
 
 // Everything below is invisible while the flag is off: 404, not 403, so the
@@ -117,7 +119,23 @@ prepRouter.get("/companies", companiesLimiter, prepDbGate, async (req: Request, 
   }
   try {
     const matches = await resolveCompany(db, parsed.data.q);
-    res.json({ success: true, data: { matches, needsCreation: matches.length === 0 } });
+    // Fresh databases have no rows, and a dead-end search is a broken product:
+    // every valid query always gets at least one candidate — the typed name
+    // itself. The report flow provisions the real PENDING row lazily, only
+    // when the candidate is actually opened, so stray searches don't litter
+    // prep_companies.
+    if (!matches.length) {
+      const typed = parsed.data.q.trim().slice(0, 200);
+      matches.push({
+        id: "",
+        slug: slugifyCompanyName(typed) || "company",
+        name: typed,
+        domain: null,
+        status: "NEW",
+        score: 0,
+      });
+    }
+    res.json({ success: true, data: { matches, needsCreation: false } });
   } catch (err) {
     console.error("[prep] company search failed:", err);
     res.status(500).json({ success: false, message: "Company search failed" });
@@ -271,10 +289,25 @@ prepRouter.get("/reports/:id", authenticate, prepDbGate, async (req: Request, re
 
 prepRouter.get("/companies/:slug/report", authenticate, reportLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
   try {
-    const company = await findCompanyBySlug(String(req.params.slug));
+    let company = await findCompanyBySlug(String(req.params.slug));
     if (!company) {
-      res.status(404).json({ success: false, message: "Company not found" });
-      return;
+      // Search-led arrival for a company that has no row yet: the home page
+      // passes the typed name, so open it straight into a PENDING company and
+      // generate the report as usual. An exact-name row another request
+      // created meanwhile is reused instead of duplicated.
+      const nameParam = typeof req.query.name === "string" ? req.query.name.trim().slice(0, 200) : "";
+      if (nameParam.length >= 2) {
+        const exact = (await resolveCompany(db, nameParam)).find((c) => c.score === 3);
+        if (exact) {
+          company = await findCompanyBySlug(exact.slug);
+        }
+        if (!company) {
+          company = await createPendingCompany(db, { name: nameParam, createdBy: req.user!.id });
+        }
+      } else {
+        res.status(404).json({ success: false, message: "Company not found" });
+        return;
+      }
     }
     const role = typeof req.query.role === "string" && req.query.role.trim() ? req.query.role.trim() : null;
     const existing = await latestReportForCompany(company.id, role);
