@@ -172,21 +172,33 @@
     if (!proTok) {
       localStorage.removeItem("se_pro");
       paintPro(false);
-    } else {
-      var stamp = verdict && verdict.ts ? verdict.ts : 0;
-      var fresh = stamp && (Date.now() - stamp) < 5 * 60 * 1000;
-      if (fresh) {
-        paintPro(verdict.pro === true);
       } else {
-        fetch("/api/prep/pro/status", { credentials: "same-origin", headers: { Authorization: "Bearer " + proTok } })
-          .then(function (r) { return r.ok ? r.json() : null; })
-          .then(function (d) {
-            var on = !!(d && d.success && d.data && d.data.isPro);
-            try { localStorage.setItem("se_pro", JSON.stringify({ v: 1, ts: Date.now(), pro: on })); } catch (e) { /* private mode */ }
-            paintPro(on);
-          })
-          .catch(function () { /* offline: keep whatever is painted */ });
+        var stamp = verdict && verdict.ts ? verdict.ts : 0;
+        var fresh = stamp && (Date.now() - stamp) < 5 * 60 * 1000;
+        if (fresh) {
+          paintPro(verdict.pro === true);
+        } else {
+          fetch("/api/prep/pro/status", { credentials: "same-origin", headers: { Authorization: "Bearer " + proTok } })
+            .then(function (r) {
+              if (r.status === 401) {
+                // Session is truly gone — drop the cache and the chip.
+                try { localStorage.removeItem("se_pro"); } catch (e) { /* private mode */ }
+                paintPro(false);
+                return null;
+              }
+              // Rate limit or a server hiccup: keep whatever is painted and
+              // never cache it as "not pro" — a refresh must not hide badges.
+              if (!r.ok) return null;
+              return r.json();
+            })
+            .then(function (d) {
+              if (!d || !d.success) return;
+              var on = !!(d.data && d.data.isPro);
+              try { localStorage.setItem("se_pro", JSON.stringify({ v: 1, ts: Date.now(), pro: on })); } catch (e) { /* private mode */ }
+              paintPro(on);
+            })
+            .catch(function () { /* offline: keep whatever is painted */ });
+        }
       }
-    }
   } catch (e) { /* private mode: no chip, no cache */ }
 })();

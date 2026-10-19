@@ -230,6 +230,7 @@
   function proReset() { proBuy.disabled = false; proBuy.textContent = BUY_LABEL; }
 
   function showLoggedOutPro() {
+    try { localStorage.removeItem("se_pro_last"); localStorage.removeItem("se_pro"); } catch (e) { /* private mode */ }
     proLoading.hidden = true;
     proContent.hidden = false;
     proBuy.hidden = true;
@@ -240,6 +241,10 @@
   }
 
   function showPro(d) {
+    // The full last-known plan lives in se_pro_last so a refresh that hits a
+    // rate limit or a network blip can replay it instead of downgrading the
+    // member to an error state.
+    try { localStorage.setItem("se_pro_last", JSON.stringify({ v: 1, ts: Date.now(), d: d })); } catch (e) { /* private mode */ }
     proLoading.hidden = true;
     proContent.hidden = false;
     var card = document.getElementById("prepProCard");
@@ -292,11 +297,23 @@
   if (!proToken) {
     showLoggedOutPro();
   } else {
+    var proLast = null;
+    try { proLast = JSON.parse(localStorage.getItem("se_pro_last") || "null"); } catch (e) { /* private mode */ }
+    function replayCachedPro() {
+      // A member must never look like a free user because a status call
+      // failed: replay the last known plan instead of an error message.
+      if (proLast && proLast.d) { showPro(proLast.d); return true; }
+      return false;
+    }
+    if (proLast && proLast.d && proLast.d.isPro && (Date.now() - (proLast.ts || 0)) < 30 * 60 * 1000) {
+      showPro(proLast.d); // paint the member panel instantly; reconcile below
+    }
     fetch("/api/prep/pro/status", { credentials: "same-origin", headers: proAuth })
       .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
       .then(function (res) {
         if (res.status === 401) { showLoggedOutPro(); return; }
         if (res.status !== 200 || !res.d.success) {
+          if (replayCachedPro()) return;
           proLoading.hidden = true;
           proContent.hidden = false;
           proBody.textContent = "Could not load Prep Pro status.";
@@ -305,6 +322,7 @@
         showPro(res.d.data);
       })
       .catch(function () {
+        if (replayCachedPro()) return;
         proLoading.hidden = true;
         proContent.hidden = false;
         proBody.textContent = "Could not load Prep Pro status.";

@@ -16,6 +16,7 @@
 .pheadmain{flex:1;min-width:220px;padding-bottom:4px}
 .pnamerow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .pname{font-size:24px;font-weight:800;color:#17171a}
+.ponline{display:none;width:10px;height:10px;border-radius:50%;background:#31d158;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.1);align-self:center}
 .vbadge{display:inline-flex;align-items:center;gap:5px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:99px}
 .vbadge svg{width:12px;height:12px}
 .rbadge{font-size:11.5px;font-weight:700;padding:3.5px 10px;border-radius:99px;background:#111;color:#eab308}
@@ -135,6 +136,7 @@
           <div class="pheadmain">
             <div class="pnamerow">
               <div class="pname" id="pName">Hustler</div>
+<span class="ponline" id="pOnline" title="Online now"></span>
               <span class="vbadge" id="pVerified" style="display:none;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg>Verified</span>
               <span class="rbadge" id="pSeek" style="display:none;"></span>
               <button class="ggid" id="pGgid" type="button" style="display:none;" title="Copy G&amp;G ID"><span id="pGgidTxt"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
@@ -732,14 +734,25 @@
             $('pFollowers').textContent = Number($('pFollowers').textContent) + (rr.d.data.following ? 1 : -1);
           });
         };
-        c.api('/community/connected/' + encodeURIComponent(profId)).then(function (cc) {
-          if (!(cc.ok && cc.d.data && cc.d.data.connected)) return;
-          msgBtn.style.display = '';
-          msgBtn.onclick = function () {
-            if (!c.token()) { c.openLogin(); return; }
-            location.href = '/messages.html?to=' + encodeURIComponent(profId);
-          };
-        });
+        // Anyone can message anyone — the only rules are "logged in" and
+        // "not yourself" (the server enforces the same pair).
+        msgBtn.style.display = '';
+        msgBtn.onclick = function () {
+          if (!c.token()) { c.openLogin(); return; }
+          location.href = '/messages.html?to=' + encodeURIComponent(profId);
+        };
+        // Live presence dot next to their name, polled because this page
+        // carries no socket of its own.
+        function paintPresence() {
+          c.api('/messages/online-users').then(function (rr) {
+            var ids = (rr.ok && rr.d.data && rr.d.data.onlineUserIds) || [];
+            var dot = $('pOnline');
+            if (dot) dot.style.display = ids.indexOf(profId) !== -1 ? '' : 'none';
+          }).catch(function () { /* offline: dot stays hidden */ });
+        }
+        paintPresence();
+        if (window.__pOnlinePoll) clearInterval(window.__pOnlinePoll);
+        window.__pOnlinePoll = setInterval(paintPresence, 20000);
       } else if (curMe && curMe.id === profId) {
         btn.style.display = 'none';
       }

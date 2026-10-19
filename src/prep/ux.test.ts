@@ -571,3 +571,57 @@ describe("first load works, modules are reachable, history is real (round 7)", (
     expect(home).toContain('id="prepRecent"');
   });
 });
+
+describe("messaging is open to everyone and presence is live (round 8)", () => {
+  const profile = read("public/profile.html");
+  const msgs = read("public/assets/messages.js");
+  const msgsHtml = read("public/messages.html");
+  const socketSrc = read("src/lib/socket.ts");
+  it("every profile shows the Message button — no connection gate", () => {
+    expect(profile).not.toContain("/community/connected/");
+    expect(profile).toContain("location.href = '/messages.html?to='");
+    expect(profile).toContain('id="pOnline"');
+    expect(profile).toContain(".ponline{display:none");
+    expect(profile).toContain("/messages/online-users");
+    expect(profile).toContain("window.__pOnlinePoll");
+    expect(profile).toContain("setInterval(paintPresence, 20000)");
+  });
+  it("the chat client shows typing and online/offline, refreshed continuously", () => {
+    expect(msgs).toContain("socket.emit('typing'");
+    expect(msgs).toContain("socket.on('typing'");
+    expect(msgs).toContain("socket.on('user:online'");
+    expect(msgs).toContain("socket.on('user:offline'");
+    expect(msgs).toContain("' is typing'");
+    expect(msgs).toContain("window.__ggnOnlinePoll");
+    expect(msgsHtml).toContain("messages.js?v=");
+  });
+  it("the server side of presence/typing exists and stays read-only here", () => {
+    expect(socketSrc).toContain('socket.on("typing"');
+    expect(socketSrc).toContain('"user:online"');
+    expect(socketSrc).toContain('"user:offline"');
+  });
+});
+
+describe("a member never loses badges to a flaky status call (round 8)", () => {
+  const nav = read("public/js/prep-nav.js");
+  const home = read("public/prep/index.html");
+  const router = read("src/prep/router.ts");
+  it("the nav chip survives rate limits and only clears on a real 401", () => {
+    expect(nav).toContain("if (!r.ok) return null;");
+    expect(nav).toContain('if (r.status === 401) {');
+    expect(nav).toContain('localStorage.removeItem("se_pro")');
+    expect(nav).toContain("keep whatever is painted");
+  });
+  it("the home panel paints instantly from the cached plan and replays it on failure", () => {
+    expect(home).toContain("localStorage.setItem(\"se_pro_last\"");
+    expect(home).toContain("function replayCachedPro()");
+    expect(home).toContain("proLast.d.isPro");
+    expect(home).toContain("30 * 60 * 1000");
+    expect(home).toContain('localStorage.removeItem("se_pro_last")');
+    expect(home).toContain("Could not load Prep Pro status.");
+    expect(home).not.toContain("window.location.reload()");
+  });
+  it("status reads get headroom so refreshes rarely even hit the limiter", () => {
+    expect(router).toMatch(/const proLimiter = rateLimit\(\{\s*windowMs: 60 \* 1000,\s*max: 30,/);
+  });
+});

@@ -110,6 +110,13 @@
       refreshPresenceUi();
     }).catch(function () {});
   }
+  // Keep presence fresh while the page is open: covers a missed
+  // user:offline event or a socket that dropped without notice.
+  if (!window.__ggnOnlinePoll) {
+    window.__ggnOnlinePoll = setInterval(function () {
+      if (socket && c.token()) loadOnline();
+    }, 20000);
+  }
   function isOnlineConv(cv) {
     return !!(cv && !cv.isGroup && cv.otherUser && onlineIds[cv.otherUser.id]);
   }
