@@ -289,7 +289,7 @@ describe("search never dead-ends (fresh database proof)", () => {
     // provision sits BEFORE the quota/gather steps so the report actually runs
     const routeIdx = router.indexOf('prepRouter.get("/companies/:slug/report"');
     expect(router.indexOf("createPendingCompany(db, { name: nameParam", routeIdx)).toBeGreaterThan(routeIdx);
-    expect(router.indexOf("createPendingCompany(db, { name: nameParam")).toBeLessThan(router.indexOf("gatherSources({", routeIdx));
+    expect(router.indexOf("createPendingCompany(db, { name: nameParam")).toBeLessThan(router.indexOf("gatherSourcesWithBudget(", routeIdx));
   });
   it("home search passes the typed name and labels virtual candidates", () => {
     const home = read("public/prep/index.html");
@@ -467,5 +467,50 @@ describe("the Buy button can never look dead; members look like members (round 5
     expect(nav).toContain("verdict.pro === true");
     expect(home).toContain("JSON.stringify({ v: 1, ts: Date.now(), pro: true })");
     expect(home).toContain("JSON.stringify({ v: 1, ts: Date.now(), pro: false })");
+  });
+});
+
+describe("reports always render: bounded gathering, honest progress (round 6)", () => {
+  const router = read("src/prep/router.ts");
+  const official = read("src/prep/sources/official.ts");
+  const news = read("src/prep/sources/news.ts");
+  const urls = read("src/prep/sources/urls.ts");
+  const gather = read("src/prep/sources/gather.ts");
+  const ai = read("src/prep/ai.ts");
+  const rp = read("public/prep/report.html");
+  it("every report path races gathering against a 12s hard budget", () => {
+    expect(router).toContain("gatherSourcesWithBudget(");
+    expect(router).not.toMatch(/await gatherSources\(/);
+    expect(router.split("12_000").length - 1).toBeGreaterThanOrEqual(2); // POST + GET
+    expect(gather).toContain("gatherSourcesWithBudget");
+    expect(gather).toContain("gather:budget-exceeded");
+  });
+  it("the official adapter fetches robots once per origin and keeps a wall-clock budget", () => {
+    expect(official).toContain("OFFICIAL_BUDGET_MS = 8000");
+    expect(official).toContain("official:time-budget");
+    expect(official.split("fetchRobots(").length - 1).toBe(1); // hoisted out of the path loop
+    // no per-path DNS re-check of an already validated origin
+    expect(official.indexOf("for (const path of CAREERS_PATHS)")).toBeGreaterThan(
+      official.indexOf("const robots = await fetchRobots"),
+    );
+  });
+  it("the news adapter checks items in parallel under its own budget", () => {
+    expect(news).toContain("NEWS_BUDGET_MS = 8000");
+    expect(news).toContain("Promise.all(");
+  });
+  it("DNS lookups cannot hang a report (3s cap)", () => {
+    expect(urls).toContain("DNS_TIMEOUT_MS = 3000");
+    expect(urls).toContain("dns-timeout");
+  });
+  it("the AI summary is capped so it can never stall the page", () => {
+    expect(ai).toContain("AI_TIMEOUT_MS = 12_000");
+  });
+  it("the report page explains the wait and gives up gracefully", () => {
+    expect(rp).toContain("Gathering official pages and recent news");
+    expect(rp).toContain("}, 2500);");
+    expect(rp).toContain("}, 40000);");
+    expect(rp).toContain('e.name === "AbortError"');
+    expect(rp).toContain("Refresh the page to retry.");
+    expect(rp).toContain("signal: ctl ? ctl.signal : undefined");
   });
 });

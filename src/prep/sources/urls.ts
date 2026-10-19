@@ -97,9 +97,22 @@ export async function checkSourceUrl(raw: string, opts: UrlCheckOptions = {}): P
   return { ok: true, url };
 }
 
+export const DNS_TIMEOUT_MS = 3000;
+
 export async function defaultResolve(hostname: string): Promise<string[]> {
-  const records = await lookup(hostname, { all: true });
-  return records.map((r) => r.address);
+  // The OS resolver has no deadline of its own; a wedged DNS server used to
+  // stall source checks for tens of seconds per hostname.
+  const lookupP = lookup(hostname, { all: true }).then((records) => records.map((r) => r.address));
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeoutP = new Promise<string[]>((_, reject) => {
+    timer = setTimeout(() => reject(new Error("dns-timeout")), DNS_TIMEOUT_MS);
+    (timer as unknown as { unref?: () => void }).unref?.();
+  });
+  try {
+    return await Promise.race([lookupP, timeoutP]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** Minimal robots.txt handling: fetch and honor Disallow for user-agent "*". */

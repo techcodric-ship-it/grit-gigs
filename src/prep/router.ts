@@ -14,7 +14,7 @@ import { uploadToSupabase } from "../lib/storage";
 import { isPrepEnabled } from "./feature";
 import { ensurePrepDb } from "./db";
 import { resolveCompany, createPendingCompany, slugifyCompanyName } from "./companies";
-import { gatherSources } from "./sources/gather";
+import { gatherSourcesWithBudget } from "./sources/gather";
 import { summarizeReport } from "./ai";
 import { APTITUDE_TOPICS, prepAptitudeQuestionsTable, prepInterviewQuestionsTable } from "./schema";
 import { clampCount, pickQuiz, scoreQuiz, signQuizToken, toPublicQuestion, verifyQuizToken } from "./aptitude";
@@ -237,11 +237,14 @@ prepRouter.post("/reports", authenticate, reportLimiter, prepDbGate, async (req:
       res.status(404).json({ success: false, message: "Company not found" });
       return;
     }
-    const gathered = await gatherSources({
-      name: company.name,
-      domain: company.domain,
-      website: company.website,
-    });
+    const gathered = await gatherSourcesWithBudget(
+      {
+        name: company.name,
+        domain: company.domain,
+        website: company.website,
+      },
+      12_000,
+    );
     const skeleton = buildReportSkeleton(company, gathered, {
       role: parsed.data.role ?? null,
       userType: parsed.data.userType ?? null,
@@ -326,11 +329,15 @@ prepRouter.get("/companies/:slug/report", authenticate, reportLimiter, prepDbGat
       quotaResponse(res, quota.used, quota.limit);
       return;
     }
-    const gathered = await gatherSources({
-      name: company.name,
-      domain: company.domain,
-      website: company.website,
-    });
+    // 12s hard budget: a report must render even when sources are slow.
+    const gathered = await gatherSourcesWithBudget(
+      {
+        name: company.name,
+        domain: company.domain,
+        website: company.website,
+      },
+      12_000,
+    );
     const skeleton = buildReportSkeleton(company, gathered, { role, userType: null });
     const report = await createReport({
       companyId: company.id,

@@ -104,3 +104,22 @@ export async function gatherSources(
   cache.set(key, gathered);
   return gathered;
 }
+
+/** Hard wall-clock budget around gatherSources: on expiry the report is built
+ * from whatever is already known (usually an empty source set) instead of
+ * making the browser sit on "Loading report…" for minutes. */
+export async function gatherSourcesWithBudget(company: CompanyRef, budgetMs: number): Promise<GatheredSources> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const budget = new Promise<GatheredSources>((resolve) => {
+    timer = setTimeout(
+      () => resolve({ documents: [], errors: ["gather:budget-exceeded"], adaptersRun: [] }),
+      budgetMs,
+    );
+    (timer as unknown as { unref?: () => void }).unref?.();
+  });
+  try {
+    return await Promise.race([gatherSources(company), budget]);
+  } finally {
+    clearTimeout(timer);
+  }
+}

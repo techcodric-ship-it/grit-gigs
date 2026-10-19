@@ -6,6 +6,8 @@ import { defaultFetch, fetchPage, type FetchLike } from "./fetcher";
 import type { SourceAdapter, SourceAdapterResult, SourceDocument } from "./types";
 
 export const CAREERS_PATHS = ["/careers", "/careers/", "/jobs", "/join-us", "/life-at-us"];
+/** Whole-adapter wall-clock budget: a cold report must never minutes-stall. */
+export const OFFICIAL_BUDGET_MS = 8000;
 
 export interface OfficialAdapterOptions {
   fetchImpl?: FetchLike;
@@ -31,6 +33,7 @@ export function makeOfficialAdapter(opts: OfficialAdapterOptions = {}): SourceAd
   return {
     name: "official",
     async collect(company): Promise<SourceAdapterResult> {
+      const startedAt = Date.now();
       const documents: SourceDocument[] = [];
       const errors: string[] = [];
       const bases = candidateUrls(company.website, company.domain);
@@ -64,26 +67,32 @@ export function makeOfficialAdapter(opts: OfficialAdapterOptions = {}): SourceAd
         }
         if (documents.length >= maxDocs) break;
       }
-      // Careers pages, only on already-validated origins.
+      // Careers pages, only on already-validated origins. Robots is fetched
+      // ONCE per origin and the origin host was already DNS-checked above —
+      // re-resolving and re-fetching robots per candidate path used to turn a
+      // cold report into a multi-minute wait on slow resolvers.
       for (const origin of origins) {
         if (documents.length >= maxDocs) break;
+        if (Date.now() - startedAt > OFFICIAL_BUDGET_MS) {
+          errors.push("official:time-budget");
+          break;
+        }
+        const robots = await fetchRobots(origin, fetchImpl);
         for (const path of CAREERS_PATHS) {
           if (documents.length >= maxDocs) break;
-          const careersUrl = new URL(path, origin).href;
-          const checked = await checkSourceUrl(careersUrl, opts.urlOptions ?? { resolve: defaultResolve });
-          if (!checked.ok) {
-            errors.push(`${careersUrl}:${checked.reason}`);
-            continue;
+          if (Date.now() - startedAt > OFFICIAL_BUDGET_MS) {
+            errors.push("official:time-budget");
+            break;
           }
-          const robots = await fetchRobots(origin, fetchImpl);
-          if (robots && isPathDisallowed(checked.url.pathname, robots.disallows)) {
+          const careersUrl = new URL(path, origin).href;
+          if (robots && isPathDisallowed(new URL(careersUrl).pathname, robots.disallows)) {
             errors.push(`${careersUrl}:robots-disallowed`);
             continue;
           }
-          const page = await fetchBounded(checked.url.href, fetchImpl, errors);
+          const page = await fetchBounded(careersUrl, fetchImpl, errors);
           if (page && page.text.length > 80) {
             documents.push({
-              url: checked.url.href,
+              url: careersUrl,
               title: page.title || `${company.name} careers`,
               publisher: company.name,
               label: "OFFICIAL",

@@ -7,6 +7,8 @@ import { defaultFetch, fetchPage, type FetchLike } from "./fetcher";
 import type { SourceAdapter, SourceAdapterResult, SourceDocument } from "./types";
 
 export const MAX_NEWS_ITEMS = 5;
+/** Whole-adapter wall-clock budget: a cold report must never minutes-stall. */
+export const NEWS_BUDGET_MS = 8000;
 
 export interface NewsItem {
   title: string;
@@ -80,6 +82,7 @@ export function makeNewsAdapter(opts: NewsAdapterOptions = {}): SourceAdapter {
   return {
     name: "news",
     async collect(company): Promise<SourceAdapterResult> {
+      const startedAt = Date.now();
       const documents: SourceDocument[] = [];
       const errors: string[] = [];
       const searchUrl = newsSearchUrl(company.name);
@@ -104,8 +107,21 @@ export function makeNewsAdapter(opts: NewsAdapterOptions = {}): SourceAdapter {
       }
       const items = parseNewsRss(xml, limit);
       const now = new Date().toISOString();
-      for (const item of items) {
-        const itemChecked = await checkSourceUrl(item.url, opts.urlOptions ?? { resolve: defaultResolve });
+      // Item checks are DNS-only; run them together and stop early on budget.
+      const itemChecks = await Promise.all(
+        items.map(async (item) => {
+          if (Date.now() - startedAt > NEWS_BUDGET_MS) return null;
+          try {
+            const itemChecked = await checkSourceUrl(item.url, opts.urlOptions ?? { resolve: defaultResolve });
+            return { item, checked: itemChecked };
+          } catch {
+            return { item, checked: { ok: false as const, reason: "check-crashed" } };
+          }
+        }),
+      );
+      for (const entry of itemChecks) {
+        if (!entry) continue;
+        const { item, checked: itemChecked } = entry;
         if (!itemChecked.ok) {
           errors.push(`news-item:${item.url}:${itemChecked.reason}`);
           continue;

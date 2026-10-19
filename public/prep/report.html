@@ -111,12 +111,22 @@
   // Forward the full query string (role + name + anything a stale link carries)
   // so the server can provision a not-yet-listed company without a 404.
   var qs = location.search || (role ? "?role=" + encodeURIComponent(role) : "");
+  var meta = document.getElementById("rpMeta");
+  // Never look stuck: after 2.5s explain the wait, and give up at 40s with a
+  // clear retry path (the server self-budgets to ~25s worst case).
+  setTimeout(function () {
+    meta.textContent = "Gathering official pages and recent news… first report for a company can take up to about half a minute.";
+  }, 2500);
+  var ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
+  var giveUp = setTimeout(function () { if (ctl) ctl.abort(); }, 40000);
   fetch("/api/prep/companies/" + encodeURIComponent(slug) + "/report" + qs, {
     credentials: "same-origin",
     headers: auth,
+    signal: ctl ? ctl.signal : undefined,
   })
     .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
     .then(function (res) {
+      clearTimeout(giveUp);
       if (res.status === 401) { location.replace("/login?next=" + encodeURIComponent(location.pathname + location.search)); return; }
       if (res.status !== 200 || !res.d.success) {
         errEl.textContent = (res.d && res.d.message) || "Could not load this report.";
@@ -164,7 +174,12 @@
 
       loadAggregates(slug);
     })
-    .catch(function () { errEl.textContent = "Network error. Try again."; });
+    .catch(function (e) {
+      clearTimeout(giveUp);
+      errEl.textContent = (e && e.name === "AbortError")
+        ? "This is taking unusually long. Refresh the page to retry."
+        : "Network error. Try again.";
+    });
 
   function inr(n) {
     if (typeof n !== "number") return "—";
