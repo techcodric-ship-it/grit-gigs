@@ -7,8 +7,8 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 7;</script>
-<link rel="stylesheet" href="/prep/prep.css?v=8"/>
+<script>window.PREP_V = 8;</script>
+<link rel="stylesheet" href="/prep/prep.css?v=9"/>
 <style>
   .apt-option { display:flex; gap:10px; align-items:flex-start; border:1px solid var(--prep-line); border-radius:10px; padding:10px 12px; margin-top:8px; cursor:pointer; }
   .apt-option:hover { border-color: var(--prep-violet); background: var(--prep-violet-light); }
@@ -50,15 +50,20 @@
   <section class="prep-hero-sm">
     <span class="prep-eyebrow">Aptitude &middot; timed drills</span>
     <h2 class="prep-hero-sm-h">Beat the cut-off with the drills that actually repeat</h2>
-    <p class="prep-sub">31 original questions across quant, logical and verbal &mdash; the evergreen topics every campus and lateral round leans on, served as timed sets.</p>
+    <p class="prep-sub">31 original questions across quant, logical and verbal &mdash; set your company + role once and every timed set is weighted to what that role actually asks.</p>
     <ul class="prep-trust-chips">
       <li>Timed sets of 5 / 10 / 15</li>
       <li>Server-scored, no cheating yourself</li>
       <li>Explanations unlock on submit</li>
     </ul>
+    <ol class="prep-steps">
+      <li><b>Set your target</b><span>company + role, once</span></li>
+      <li><b>We weight the set</b><span>drill what your role asks</span></li>
+      <li><b>Beat the cut-off</b><span>timed, scored, explained</span></li>
+    </ol>
     <div class="prep-hero-ctas">
-      <a class="prep-btn" href="#aptTopics">Start a timed set</a>
-      <a class="prep-btn prep-btn-ghost" href="#aptPlanCard">Build an AI company plan</a>
+      <a class="prep-btn" href="#aptTargetCard">Set my target</a>
+      <a class="prep-btn prep-btn-ghost" href="#aptTopics">Start a timed set</a>
     </div>
   </section>
 
@@ -73,7 +78,38 @@
     </div>
   </section>
 
+  <section class="prep-card" id="aptTargetCard" data-pro-content>
+    <span class="plan-kicker">Step 1 &middot; your target</span>
+    <h2 class="prep-h2">Who are you preparing for?</h2>
+    <p class="prep-sub">Set your company + role once. Every timed set is then weighted to what that role
+      actually asks, and your target follows you to the interview coach.</p>
+    <div class="plan-form">
+      <div class="prep-field">
+        <label for="aptTargetCompany">Company</label>
+        <input id="aptTargetCompany" list="aptTargetCompanies" placeholder="e.g. Infosys" maxlength="200" autocomplete="off"/>
+        <datalist id="aptTargetCompanies">
+          <option>Infosys</option><option>TCS</option><option>Wipro</option><option>HCLTech</option><option>Tech Mahindra</option>
+          <option>Accenture</option><option>Cognizant</option><option>Deloitte</option><option>Amazon</option><option>Microsoft</option>
+          <option>Google</option><option>Flipkart</option><option>Zomato</option><option>Swiggy</option><option>Paytm</option>
+        </datalist>
+      </div>
+      <div class="prep-field">
+        <label for="aptTargetRole">Role</label>
+        <input id="aptTargetRole" list="aptTargetRoles" placeholder="e.g. Software Engineer" maxlength="120" autocomplete="off"/>
+        <datalist id="aptTargetRoles">
+          <option>Software Engineer</option><option>Graduate Engineer Trainee</option><option>Business Analyst</option>
+          <option>Data Analyst</option><option>Product Manager</option><option>Quality Analyst</option>
+          <option>DevOps Engineer</option><option>Sales Associate</option><option>Human Resources</option>
+        </datalist>
+      </div>
+      <button class="prep-btn" id="aptTargetSave" type="button">Set target &amp; drill</button>
+    </div>
+    <div class="prep-err" id="aptTargetErr" role="alert"></div>
+    <p class="prep-sub" id="aptTargetDone" hidden></p>
+  </section>
+
   <section class="prep-card" data-pro-content>
+    <span class="plan-kicker">Step 2 &middot; drill</span>
     <h1 class="prep-h1">Aptitude practice</h1>
     <p class="prep-sub">Original practice questions in quant, logical and verbal. Answers are scored on the server — explanations unlock after you submit.</p>
     <ul class="prep-stats">
@@ -94,37 +130,8 @@
     <div class="prep-err" id="aptErr" role="alert"></div>
   </section>
 
-  <section class="prep-card prep-card-plan" id="aptPlanCard">
-    <span class="plan-kicker">AI prep coach</span>
-    <h2 class="prep-h2">Company + role plan, researched for you</h2>
-    <p class="prep-sub">Pick your target &mdash; the coach searches the company's official pages and recent
-      news across the web, then returns the exact topics, likely rounds and questions to prepare.</p>
-    <div class="plan-form">
-      <div class="prep-field">
-        <label for="aptPlanCompany">Company</label>
-        <input id="aptPlanCompany" list="aptPlanCompanies" placeholder="e.g. Infosys" maxlength="200" autocomplete="off"/>
-        <datalist id="aptPlanCompanies">
-          <option>Infosys</option><option>TCS</option><option>Wipro</option><option>HCLTech</option><option>Tech Mahindra</option>
-          <option>Accenture</option><option>Cognizant</option><option>Deloitte</option><option>Amazon</option><option>Microsoft</option>
-          <option>Google</option><option>Flipkart</option><option>Zomato</option><option>Swiggy</option><option>Paytm</option>
-        </datalist>
-      </div>
-      <div class="prep-field">
-        <label for="aptPlanRole">Role</label>
-        <input id="aptPlanRole" list="aptPlanRoles" placeholder="e.g. Software Engineer" maxlength="120" autocomplete="off"/>
-        <datalist id="aptPlanRoles">
-          <option>Software Engineer</option><option>Graduate Engineer Trainee</option><option>Business Analyst</option>
-          <option>Data Analyst</option><option>Product Manager</option><option>Quality Analyst</option>
-          <option>DevOps Engineer</option><option>Sales Associate</option><option>Human Resources</option>
-        </datalist>
-      </div>
-      <button class="prep-btn" id="aptPlanBtn" type="button">Build my AI plan</button>
-    </div>
-    <div class="prep-err" id="aptPlanErr" role="alert"></div>
-    <div class="plan-out" id="aptPlanOut" hidden></div>
-  </section>
-
   <section class="prep-card" id="aptQuizCard" data-pro-content hidden>
+    <div class="apt-focus" id="aptFocus" hidden></div>
     <div id="aptQuizForm"></div>
     <button class="prep-btn" id="aptSubmit" type="button" style="margin-top:16px;">Submit answers</button>
   </section>
@@ -136,15 +143,15 @@
   </section>
   <section class="prep-banner">
     <div>
-      <b>Pair it with the company plan</b>
-      <span>Pick your target company + role and the AI returns the weightage, rounds and questions that matter.</span>
+      <b>Pair it with company research</b>
+      <span>The Interview tab researches your target company + role &mdash; sourced rounds, expected questions and a mock that matches.</span>
     </div>
-    <a class="prep-btn" href="#aptPlanCard">Build my plan</a>
+    <a class="prep-btn" href="/prep/interview">Open the coach</a>
   </section>
 
 </main>
 
-<script src="/js/prep-nav.js?v=6" defer></script>
+<script src="/js/prep-nav.js?v=7" defer></script>
 <script>
 (function () {
   "use strict";
@@ -237,6 +244,61 @@
       .catch(function () { errEl.textContent = "Could not load topics. Try again."; });
   }
 
+  // ---- Shared target (company + role): drives role-weighted sets ----
+  // Kept in sessionStorage so the interview coach inherits the same target.
+  var TARGET_KEY = "se_prep_target";
+  function readTarget() {
+    try {
+      var t = JSON.parse(sessionStorage.getItem(TARGET_KEY) || "null");
+      if (t && t.company && t.role) return t;
+    } catch (e) { /* corrupted cache */ }
+    return null;
+  }
+  function writeTarget(t) {
+    try { sessionStorage.setItem(TARGET_KEY, JSON.stringify(t)); } catch (e) { /* private mode */ }
+  }
+  var targetCompany = document.getElementById("aptTargetCompany");
+  var targetRole = document.getElementById("aptTargetRole");
+  var targetErr = document.getElementById("aptTargetErr");
+  var targetDone = document.getElementById("aptTargetDone");
+  function showTargetDone(t, scroll) {
+    targetDone.hidden = false;
+    targetDone.innerHTML = "Target set: <b>" + esc(t.company) + " \u00B7 " + esc(t.role) +
+      "</b> \u2014 your sets are weighted to this role.";
+    if (scroll) document.getElementById("aptTopics").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  (function prefillTarget() {
+    var t = readTarget();
+    if (t) { targetCompany.value = t.company; targetRole.value = t.role; showTargetDone(t, false); }
+  })();
+  document.getElementById("aptTargetSave").addEventListener("click", function () {
+    targetErr.textContent = "";
+    var company = targetCompany.value.trim();
+    var role = targetRole.value.trim();
+    if (company.length < 2 || role.length < 2) {
+      targetErr.textContent = "Enter both a company and a role (2+ characters).";
+      return;
+    }
+    writeTarget({ company: company, role: role });
+    showTargetDone({ company: company, role: role }, true);
+  });
+
+  // The server answers with the weighting it used (plan-derived or role
+  // default) — show it so the "weighted drill" claim is verifiable.
+  function renderFocus(t) {
+    var el = document.getElementById("aptFocus");
+    if (!t || !t.focus || !t.focus.length) { el.hidden = true; el.innerHTML = ""; return; }
+    var head = "Weighted for <b>" + esc(t.role) + "</b>" +
+      (t.company ? " \u00B7 " + esc(t.company) : "") +
+      (t.focusSource === "plan" ? " \u2014 from your researched plan" : " \u2014 curated for the role");
+    el.innerHTML = '<p class="apt-focus-head">' + head + ":</p>" +
+      '<div class="apt-topics" style="margin-bottom:0;">' +
+      t.focus.map(function (f) {
+        return '<span class="prep-chip">' + esc(f.topic) + " " + (Number(f.weight) || 0) + "%</span>";
+      }).join("") + "</div>";
+    el.hidden = false;
+  }
+
   function renderQuiz(list, tok) {
     questions = list;
     token = tok;
@@ -254,7 +316,12 @@
   document.getElementById("aptStart").addEventListener("click", function () {
     errEl.textContent = "";
     var count = document.getElementById("aptCount").value;
-    fetch("/api/prep/aptitude/quiz?topic=" + encodeURIComponent(selectedTopic) + "&count=" + encodeURIComponent(count), { credentials: "same-origin", headers: authHeaders() })
+    var url = "/api/prep/aptitude/quiz?topic=" + encodeURIComponent(selectedTopic) + "&count=" + encodeURIComponent(count);
+    var target = readTarget();
+    if (target) {
+      url += "&company=" + encodeURIComponent(target.company) + "&role=" + encodeURIComponent(target.role);
+    }
+    fetch(url, { credentials: "same-origin", headers: authHeaders() })
       .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
       .then(function (res) {
         if (res.status === 401) { showPaywall("signin"); return; }
@@ -264,6 +331,7 @@
           return;
         }
         renderQuiz(res.d.data.questions, res.d.data.token);
+        renderFocus(res.d.data.target);
       })
       .catch(function () { errEl.textContent = "Network error. Try again."; });
   });
@@ -320,96 +388,6 @@
   });
 
 
-  // ---- AI company + role plan (grounded research, cached server-side) ----
-  var planBtn = document.getElementById("aptPlanBtn");
-  var planErr = document.getElementById("aptPlanErr");
-  var planOut = document.getElementById("aptPlanOut");
-  function renderPlan(p, limited) {
-    var h = "";
-    h += '<div class="plan-head"><b>' + (p.grounded
-      ? "Sourced plan for your target"
-      : "Starter plan \u2014 no public sources found yet") + "</b>" +
-      (p.sources && p.sources.length ? '<span class="prep-chip">' + p.sources.length + " sources</span>" : "") + "</div>";
-    h += '<p class="prep-body">' + esc(p.overview) + "</p>";
-    if (limited) {
-      h += '<p class="prep-err info" style="margin-top:6px;">Live web research is used up for today \u2014 this is the role-tuned starter plan. Prep Pro unlocks unlimited researched plans.</p>';
-    }
-    if (p.highlights && p.highlights.length) {
-      h += '<ul class="plan-bullets">' + p.highlights.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>";
-    }
-    if (p.skillsRequired && p.skillsRequired.length) {
-      h += '<h3 class="plan-h3">Skills you will be judged on</h3><ul class="plan-skills">' +
-        p.skillsRequired.map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + "</ul>";
-    }
-    if (p.aptitudeTopics && p.aptitudeTopics.length) {
-      h += '<h3 class="plan-h3">Aptitude weightage for this role</h3><div class="plan-topics">' + p.aptitudeTopics.map(function (t) {
-        var w = Math.max(1, Math.min(100, Number(t.weight) || 1));
-        return '<div class="plan-topic"><span class="plan-topic-name">' + esc(t.topic) +
-          '</span><span class="plan-bar"><i style="width:' + w + '%"></i></span><span class="plan-weight">' + w +
-          '%</span><p class="plan-tip">' + esc(t.tip) + "</p></div>";
-      }).join("") + "</div>";
-    }
-    if (p.rounds && p.rounds.length) {
-      h += '<h3 class="plan-h3">Likely interview rounds</h3><ol class="plan-rounds">' + p.rounds.map(function (r) {
-        return "<li><b>" + esc(r.name) + "</b><span>" + esc(r.focus) + "</span></li>";
-      }).join("") + "</ol>";
-    }
-    if (p.questions && p.questions.length) {
-      h += '<h3 class="plan-h3">Questions to prepare</h3><div class="plan-qs">' + p.questions.map(function (q, i) {
-        return '<div class="plan-q"><span class="plan-q-n">' + (i + 1) + '</span><div><p class="plan-q-t">' +
-          esc(q.question) + '</p><p class="plan-q-w"><span class="prep-chip">' + esc(q.difficulty) + "</span> " +
-          esc(q.topic) + (q.why ? " \u2014 " + esc(q.why) : "") + "</p></div></div>";
-      }).join("") + "</div>";
-    }
-    if (p.sources && p.sources.length) {
-      h += '<div class="plan-sources">Grounded in: ' + p.sources.map(function (s) {
-        var u = /^https?:\/\//.test(s.url || "") ? s.url : "#";
-        return '<a class="prep-chip" href="' + esc(u) + '" target="_blank" rel="noopener nofollow">' + esc(s.label) + "</a>";
-      }).join(" ") + "</div>";
-    }
-    planOut.innerHTML = h;
-    planOut.hidden = false;
-    planOut.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-  planBtn.addEventListener("click", function () {
-    planErr.textContent = "";
-    var company = document.getElementById("aptPlanCompany").value.trim();
-    var role = document.getElementById("aptPlanRole").value.trim();
-    if (company.length < 2 || role.length < 2) {
-      planErr.textContent = "Enter both a company and a role (2+ characters).";
-      return;
-    }
-    var tok = "";
-    try { tok = localStorage.getItem("se_token") || ""; } catch (e) { /* private mode */ }
-    planBtn.disabled = true;
-    planBtn.textContent = "Researching the web...";
-    fetch("/api/prep/ai/plan", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "content-type": "application/json", Authorization: "Bearer " + tok },
-      body: JSON.stringify({ company: company, role: role }),
-    })
-      .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
-      .then(function (res) {
-        planBtn.disabled = false;
-        planBtn.textContent = "Build my AI plan";
-        if (res.status === 401) {
-          planErr.innerHTML = 'Sign in to build AI plans. <a href="/login?next=' +
-            encodeURIComponent(location.pathname) + '">Sign in</a>.';
-          return;
-        }
-        if ((res.status !== 200 && res.status !== 201) || !res.d.success) {
-          planErr.textContent = (res.d && res.d.message) || "Could not build the plan. Try again.";
-          return;
-        }
-        renderPlan(res.d.data.plan, !!res.d.data.limited);
-      })
-      .catch(function () {
-        planBtn.disabled = false;
-        planBtn.textContent = "Build my AI plan";
-        planErr.textContent = "Network error. Try again.";
-      });
-  });
   gate();
 })();
 </script>

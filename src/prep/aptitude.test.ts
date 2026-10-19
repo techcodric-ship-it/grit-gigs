@@ -8,6 +8,7 @@ import { APTITUDE_BANK } from "./aptitude-bank";
 import {
   shuffle,
   pickQuiz,
+  pickQuizWeighted,
   clampCount,
   signQuizToken,
   verifyQuizToken,
@@ -62,10 +63,27 @@ describe("selection", () => {
     expect([...a].sort((x, y) => x - y)).toEqual(items);
   });
   it("pickQuiz bounds by count and by available rows", () => {
-    const rows = APTITUDE_BANK.filter((q) => q.topic === "quant");
+    const rows = APTITUDE_BANK.map((q) => ({ id: q.code }));
     expect(pickQuiz(rows, 10)).toHaveLength(10);
     expect(pickQuiz(rows, 999)).toHaveLength(rows.length);
     expect(pickQuiz(rows, 3)).toHaveLength(3);
+  });
+
+  it("pickQuizWeighted samples towards the topics the role weights highest", () => {
+    const rows = [
+      { id: "a", topic: "quant" },
+      { id: "b", topic: "quant" },
+      { id: "c", topic: "quant" },
+      { id: "d", topic: "logical" },
+      { id: "e", topic: "verbal" },
+    ];
+    const weights = { quant: 1, logical: 100, verbal: 1 };
+    // A high fixed draw clears the quant block and lands on logical first,
+    // then verbal — order an unweighted shuffle of the pool would not give.
+    const picked = pickQuizWeighted(rows, 3, weights, () => 0.95);
+    expect(picked.map((r) => r.topic)).toEqual(["logical", "verbal", "quant"]);
+    // Never returns more than the pool, even at absurd counts.
+    expect(pickQuizWeighted(rows, 999, weights, () => 0.5)).toHaveLength(rows.length);
   });
   it("clampCount sanitizes input", () => {
     expect(clampCount("10", 20)).toBe(10);

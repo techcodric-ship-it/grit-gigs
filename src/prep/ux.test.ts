@@ -407,7 +407,7 @@ describe("the Buy button can never look dead; members look like members (round 5
   const nav = read("public/js/prep-nav.js");
   const css = read("public/prep/prep.css");
   it("stale prep HTML is detected by the always-fresh nav script and re-fetched exactly once", () => {
-    expect(nav).toContain("var WANT_V = 7;");
+    expect(nav).toContain("var WANT_V = 8;");
     expect(nav).toContain("window.PREP_V !== WANT_V");
     expect(nav).toContain('!/[?&]_pv=/.test(location.search)');
     expect(nav).toContain("location.replace(location.pathname + location.search +");
@@ -418,7 +418,7 @@ describe("the Buy button can never look dead; members look like members (round 5
       "public/prep/interview.html",
       "public/prep/proof.html",
     ]) {
-      expect(read(p), p).toContain("window.PREP_V = 7;");
+      expect(read(p), p).toContain("window.PREP_V = 8;");
       expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
     }
   });
@@ -671,29 +671,36 @@ describe("AI company + role plans on aptitude & interview (round 9)", () => {
     expect(db).toContain("CREATE TABLE IF NOT EXISTS prep_ai_plan_requests");
     expect(db).toContain("prep_ai_plans_key_uniq");
   });
-  it("both pages carry the company + role picker and the plan renderer", () => {
-    for (const [page, p] of [
-      ["public/prep/aptitude.html", "apt"],
-      ["public/prep/interview.html", "iv"],
-    ]) {
-      const html = read(page);
-      expect(html, page).toContain('id="' + p + 'PlanCompany"');
-      expect(html, page).toContain('id="' + p + 'PlanRole"');
-      expect(html, page).toContain('id="' + p + 'PlanBtn"');
-      expect(html, page).toContain('id="' + p + 'PlanOut"');
-      expect(html, page).toContain("/api/prep/ai/plan");
-      expect(html, page).toContain("Build my AI plan");
-      expect(html, page).toContain("Researching the web");
-      expect(html, page).toContain("function renderPlan(");
-      expect(html, page).toContain('id="' + p + 'PlanCompanies"');
-      expect(html, page).toContain('id="' + p + 'PlanRoles"');
-      expect(html, page).toContain("(res.status !== 200 && res.status !== 201) || !res.d.success");
-    }
+  it("the interview page carries the company + role picker and the plan renderer", () => {
+    expect(iv).toContain('id="ivPlanCompany"');
+    expect(iv).toContain('id="ivPlanRole"');
+    expect(iv).toContain('id="ivPlanBtn"');
+    expect(iv).toContain('id="ivPlanOut"');
+    expect(iv).toContain("/api/prep/ai/plan");
+    expect(iv).toContain("Build my AI plan");
+    expect(iv).toContain("Researching the web");
+    expect(iv).toContain("function renderPlan(");
+    expect(iv).toContain('id="ivPlanCompanies"');
+    expect(iv).toContain('id="ivPlanRoles"');
+    expect(iv).toContain("(res.status !== 200 && res.status !== 201) || !res.d.success");
     expect(css).toContain(".plan-form");
     expect(css).toContain(".plan-topics");
     expect(css).toContain(".plan-rounds");
     expect(css).toContain(".plan-q-n");
     expect(css).toContain(".plan-kicker");
+  });
+  it("aptitude drops the duplicate coach: a target intake feeds the quiz instead", () => {
+    expect(apt).not.toContain('id="aptPlanCard"');
+    expect(apt).not.toContain("Build my AI plan");
+    expect(apt).not.toContain("/api/prep/ai/plan");
+    expect(apt).toContain('id="aptTargetCard"');
+    expect(apt).toContain('id="aptTargetCompany"');
+    expect(apt).toContain('id="aptTargetRole"');
+    expect(apt).toContain('id="aptTargetSave"');
+    expect(apt).toContain("se_prep_target");
+    expect(apt).toContain("&role=");
+    expect(apt).toContain("function renderFocus(t)");
+    expect(apt).toContain("renderFocus(res.d.data.target)");
   });
 });
 
@@ -726,21 +733,21 @@ describe("corporate redesign: promos, heroes, banners, live stats (round 10)", (
     expect(apt).toContain('class="prep-hero-sm"');
     expect(apt).toContain('class="prep-hero-sm-h"');
     expect(apt).toContain("Beat the cut-off with the drills that actually repeat");
-    expect(apt).toContain('id="aptPlanCard"');
+    expect(apt).toContain('id="aptTargetCard"');
     expect(apt).toContain('class="prep-banner"');
-    expect(apt).toContain("prep/prep.css?v=8");
+    expect(apt).toContain("prep/prep.css?v=9");
     expect(iv).toContain('class="prep-hero-sm"');
     expect(iv).toContain("24 questions, 4 tracks");
     expect(iv).toContain('id="ivPlanCard"');
     expect(iv).toContain('class="prep-banner"');
-    expect(iv).toContain("prep/prep.css?v=8");
+    expect(iv).toContain("prep/prep.css?v=9");
   });
   it("proof sells the contribution with the anonymity promise up top", () => {
     expect(pf).toContain('class="prep-hero-sm"');
     expect(pf).toContain("One anonymised slip from you unlocks pay data for thousands");
     expect(pf).toContain('href="#pfForm"');
     expect(pf).toContain('class="prep-banner"');
-    expect(pf).toContain("prep/prep.css?v=8");
+    expect(pf).toContain("prep/prep.css?v=9");
     expect(pf).toContain("<b>3 \u00B7 Unlocks</b>"); // original 3-step flow intact
   });
   it("the promo system is fully styled", () => {
@@ -827,7 +834,7 @@ describe("round 11: aptitude/interview sessions are Prep Pro; upgrade CTAs hide 
   it("the paywall ships styled and every prep page cache-busts the stylesheet", () => {
     expect(css).toContain(".prep-paywall {");
     expect(css).toContain(".prep-paywall-ctas");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("prep/prep.css?v=8");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("prep/prep.css?v=9");
   });
 });
 
@@ -882,25 +889,88 @@ describe("round 12: searches always land, skills + package in reports, professio
     expect(css).toContain(".plan-skills");
   });
 
-  it("interview browse is a professional card list with color chips and collapsed guidance", () => {
+  it("interview browse is a professional chip-card list; guidance moved to feedback", () => {
     expect(iv).toContain('class="prep-wrap prep-theme-panel"');
-    expect(iv).toContain("iv-guide-btn");
-    expect(iv).toContain('aria-expanded="false"');
-    expect(iv).toContain("function bindGuideToggles(root)");
-    expect(iv).toContain("bindGuideToggles(listEl)");
+    expect(iv).not.toContain("iv-guide-btn");
+    expect(iv).not.toContain("bindGuideToggles");
     expect(iv).toContain("iv-tags");
     expect(iv).toContain("iv-tag iv-tag-");
-    expect(iv).toContain('box.hidden = open');
+    expect(iv).toContain("esc(it.guidance)"); // coaching line survives in feedback
     expect(css).toContain(".prep-theme-panel {");
     expect(css).toContain("--prep-violet: #1D4ED8");
   });
 
-  it("both plan pages render the skills chips and the daily-limit notice", () => {
-    for (const page of [apt, iv]) {
-      expect(page).toContain("p.skillsRequired && p.skillsRequired.length");
-      expect(page).toContain("Skills you will be judged on");
-      expect(page).toContain("Live web research is used up for today");
-      expect(page).toContain("renderPlan(res.d.data.plan, !!res.d.data.limited)");
-    }
+  it("the plan page renders the skills chips and the daily-limit notice", () => {
+    expect(iv).toContain("p.skillsRequired && p.skillsRequired.length");
+    expect(iv).toContain("Skills you will be judged on");
+    expect(iv).toContain("Live web research is used up for today");
+    expect(iv).toContain("renderPlan(res.d.data.plan, !!res.d.data.limited)");
   });
 });
+
+describe("round 13: role-weighted aptitude, researched mock brief, member CTA fixes", () => {
+  const home = read("public/prep/index.html");
+  const nav = read("public/js/prep-nav.js");
+  const apt = read("public/prep/aptitude.html");
+  const iv = read("public/prep/interview.html");
+  const router = read("src/prep/router.ts");
+
+  it("a member never sees a buy-price CTA, and an interrupted verify heals itself", () => {
+    expect(home).toMatch(/id="prepProBuy"[^>]*data-pro-upgrade/);
+    expect(home).toContain('class="prep-pro-price-row" data-pro-upgrade');
+    expect(home).toContain('class="prep-banner" data-pro-upgrade');
+    expect(home).toContain('proBuy.style.display = "none"');
+    expect(home).toContain('localStorage.setItem("se_pro_pend"');
+    expect(nav).toContain('localStorage.getItem("se_pro_pend"');
+    expect(nav).toContain("location.reload();");
+    expect(nav).not.toMatch(/window\.location\.reload/);
+  });
+
+  it("the aptitude quiz samples by the role and its cached plan weightage", () => {
+    expect(router).toContain("pickQuizWeighted(rows,");
+    expect(router).toContain("aptitudeWeights(role)");
+    expect(router).toContain("weightsFromPlanTopics(plan.aptitudeTopics)");
+    expect(router).toContain('focusSource: "plan"');
+    expect(router).toContain("cachedPlanFor(company, role)");
+    expect(router).toContain("target: role ? { company, role, focus, focusSource } : null");
+  });
+
+  it("the mock researches the company + role and answers with an honest brief", () => {
+    expect(router).toContain("async function interviewBriefFor(");
+    expect(router).toContain("const brief = role.length >= 2 ? await interviewBriefFor(company, role) : null;");
+    expect(router).toContain("trackForRole(role)");
+    expect(router).toContain("total: picked.length, brief }");
+    expect(iv).toContain('id="mockBrief"');
+    expect(iv).toContain("function renderBrief(b)");
+    expect(iv).toContain("Not company-verified");
+    expect(iv).toContain("Researching ");
+    expect(iv).toContain("writeTarget(company, role)");
+    expect(apt).toContain("writeTarget({ company: company, role: role });"); // target flows both ways
+  });
+
+  it("role helpers map roles to interview tracks and aptitude weights", async () => {
+    const { aptitudeWeights, trackForRole, weightsFromPlanTopics } = await import("./role-skills");
+    expect(trackForRole("Software Engineer")).toBe("engineering");
+    expect(trackForRole("Data Analyst")).toBe("data");
+    expect(trackForRole("Human Resources")).toBe("business");
+    expect(trackForRole("")).toBe(null);
+    const w = aptitudeWeights("Software Engineer");
+    expect(w.quant + w.logical + w.verbal).toBe(100);
+    const pw = weightsFromPlanTopics([
+      { topic: "Quantitative aptitude", weight: 60 },
+      { topic: "Verbal ability", weight: 40 },
+    ]);
+    expect(pw.quant).toBe(60);
+    expect(pw.verbal).toBe(40);
+  });
+
+  it("both heroes show the three-step flow and the target chips are honest", () => {
+    expect(apt).toContain('class="prep-steps"');
+    expect(apt).toContain("Set your target");
+    expect(iv).toContain('class="prep-steps"');
+    expect(iv).toContain("Read the sourced brief");
+    expect(iv).not.toContain("last 10 years"); // no fabricated history claims
+    expect(apt).toContain('class="apt-focus"'); // weighted-drill evidence renders in the quiz card
+  });
+});
+

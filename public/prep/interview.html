@@ -7,8 +7,8 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 7;</script>
-<link rel="stylesheet" href="/prep/prep.css?v=8"/>
+<script>window.PREP_V = 8;</script>
+<link rel="stylesheet" href="/prep/prep.css?v=9"/>
 <style>
   .iv-tabs { display:flex; gap:8px; margin-bottom:16px; }
   .iv-tab { border:1px solid var(--prep-line); background:#fff; border-radius:999px; padding:8px 18px; font:inherit; font-size:0.9rem; font-weight:700; cursor:pointer; color:var(--prep-ink-2); }
@@ -30,15 +30,11 @@
   .iv-tag-medium { background:#FDF3E0; color:#8A5A2B; border-color:#F3E0BC; }
   .iv-tag-hard { background:#FDECEA; color:#B03027; border-color:#F5CFCB; }
   .iv-q { font-weight:700; color:var(--prep-ink); font-size:0.98rem; line-height:1.5; margin:0 0 6px; }
-  .iv-guide-btn {
-    border:none; background:none; padding:0; margin-top:2px; cursor:pointer; font:inherit;
-    font-size:0.82rem; font-weight:800; color:var(--prep-violet-deep); text-align:left;
-  }
-  .iv-guide-btn:hover { text-decoration:underline; }
-  .iv-guide-btn::after { content:" \25BE"; font-size:0.7rem; }
-  .iv-guide-btn[aria-expanded="true"]::after { content:" \25B4"; }
+  .mock-brief { border:1px solid var(--prep-line); background:linear-gradient(180deg,#FFF 0%, var(--prep-bg) 100%); border-radius:12px; padding:16px; margin-bottom:16px; }
+  .mock-brief[hidden] { display:none; }
+  .mock-brief-head { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:6px 0 8px; }
+  .mock-brief-head b { font-size:1.02rem; color:var(--prep-ink); }
   .iv-guide { font-size:0.9rem; line-height:1.55; color:var(--prep-ink-2); background:#F7F7F9; border-radius:8px; padding:9px 11px; margin-top:8px; }
-  .iv-guide[hidden] { display:none; }
   .iv-rate { display:flex; gap:6px; margin-top:10px; align-items:center; flex-wrap:wrap; }
   .iv-rate span { font-size:0.82rem; font-weight:700; color:var(--prep-ink-2); }
   .iv-rate button { width:34px; height:34px; border-radius:8px; border:1px solid var(--prep-line); background:#fff; font:inherit; font-weight:800; font-size:0.85rem; cursor:pointer; }
@@ -76,8 +72,13 @@
     <ul class="prep-trust-chips">
       <li>Behavioural &middot; Technical &middot; HR</li>
       <li>Mock + self-rating feedback</li>
-      <li>Guidance on what interviewers look for</li>
+      <li>Post-mock feedback: what interviewers look for</li>
     </ul>
+    <ol class="prep-steps">
+      <li><b>Fill company + role</b><span>the coach researches it live</span></li>
+      <li><b>Read the sourced brief</b><span>rounds, skills, expected questions</span></li>
+      <li><b>Mock &amp; get feedback</b><span>rate yourself, spot the weakest category</span></li>
+    </ol>
     <div class="prep-hero-ctas">
       <a class="prep-btn" href="#ivPlanCard">Build an AI company plan</a>
       <a class="prep-btn prep-btn-ghost" href="#browseCard">Browse the question bank</a>
@@ -147,8 +148,10 @@
   </section>
 
   <section class="prep-card" id="mockCard" data-pro-content hidden>
+    <div class="mock-brief" id="mockBrief" hidden></div>
     <div id="mockIntro">
-      <p class="prep-sub">Answer each question out loud in ~2 minutes, then rate your answer 1–5. You'll get the guidance and a confidence summary.</p>
+      <p class="prep-sub">Set your company + role in the AI coach above — the mock researches it first and
+        shows the sourced brief, then you answer each question out loud in ~2 minutes and rate it 1&ndash;5.</p>
       <button class="prep-btn" type="button" id="mockStart">Start mock (5 questions)</button>
     </div>
     <div id="mockForm" hidden></div>
@@ -170,7 +173,7 @@
 
 </main>
 
-<script src="/js/prep-nav.js?v=6" defer></script>
+<script src="/js/prep-nav.js?v=7" defer></script>
 <script>
 (function () {
   "use strict";
@@ -252,28 +255,14 @@
     return '<span class="iv-tag iv-tag-' + kind + " iv-tag-" + slug + '">' + esc(v) + "</span>";
   }
 
-  function questionHtml(q, withGuide) {
+  function questionHtml(q) {
+    // Clean chip card: track/category/difficulty tags only. What-interviewers-
+    // look-for guidance moved to POST-mock feedback (fbList), where it lands
+    // right after the answer it comments on.
     return '<div class="iv-item"><div class="iv-tags">' +
       tagHtml("track", q.track) + tagHtml("cat", q.category) + tagHtml("diff", q.difficulty) +
       '</div><p class="iv-q">' + esc(q.question) + "</p>" +
-      (withGuide
-        ? '<button type="button" class="iv-guide-btn" aria-expanded="false">What interviewers look for</button>' +
-          '<div class="iv-guide" hidden>' + esc(q.guidance) + "</div>"
-        : "") +
       "</div>";
-  }
-
-  function bindGuideToggles(root) {
-    var btns = root.querySelectorAll(".iv-guide-btn");
-    Array.prototype.forEach.call(btns, function (b) {
-      b.addEventListener("click", function () {
-        var open = b.getAttribute("aria-expanded") === "true";
-        b.setAttribute("aria-expanded", open ? "false" : "true");
-        var box = b.nextElementSibling;
-        if (box && box.className === "iv-guide") box.hidden = open;
-        b.textContent = open ? "What interviewers look for" : "Hide what interviewers look for";
-      });
-    });
   }
 
   function loadBrowse() {
@@ -292,9 +281,8 @@
         var list = d.data.questions || [];
         var listEl = document.getElementById("browseList");
         listEl.innerHTML = list.length
-          ? list.map(function (q) { return questionHtml(q, true); }).join("")
+          ? list.map(questionHtml).join("")
           : '<div class="prep-empty"><b>No questions match</b>Try another track or category.</div>';
-        bindGuideToggles(listEl);
       })
       .catch(function () { errEl.textContent = "Network error. Try again."; });
   }
@@ -311,6 +299,37 @@
       renderChips();
       if (mode === "browse") loadBrowse();
     });
+  }
+
+  // ---- Shared target (company + role): inherited from the aptitude page ----
+  var TARGET_KEY = "se_prep_target";
+  function readTarget() {
+    try {
+      var t = JSON.parse(sessionStorage.getItem(TARGET_KEY) || "null");
+      if (t && t.company && t.role) return t;
+    } catch (e) { /* corrupted cache */ }
+    return null;
+  }
+  function writeTarget(company, role) {
+    try { sessionStorage.setItem(TARGET_KEY, JSON.stringify({ company: company, role: role })); } catch (e) { /* private mode */ }
+  }
+  (function prefillTarget() {
+    var t = readTarget();
+    if (!t) return;
+    var c = document.getElementById("ivPlanCompany");
+    var r = document.getElementById("ivPlanRole");
+    if (!c.value.trim()) c.value = t.company;
+    if (!r.value.trim()) r.value = t.role;
+  })();
+  function currentTarget() {
+    var company = document.getElementById("ivPlanCompany").value.trim();
+    var role = document.getElementById("ivPlanRole").value.trim();
+    if (company && role) return { company: company, role: role };
+    var t = readTarget();
+    if (t && (company || role)) {
+      return { company: company || t.company, role: role || t.role };
+    }
+    return t;
   }
 
   // ---- AI company + role plan (grounded research, cached server-side) ----
@@ -395,6 +414,8 @@
           planErr.textContent = (res.d && res.d.message) || "Could not build the plan. Try again.";
           return;
         }
+        // A built plan is the user's active target: the mock inherits it.
+        writeTarget(company, role);
         renderPlan(res.d.data.plan, !!res.d.data.limited);
       })
       .catch(function () {
@@ -419,17 +440,71 @@
   document.getElementById("tabBrowse").addEventListener("click", function () { setMode("browse"); });
   document.getElementById("tabMock").addEventListener("click", function () { setMode("mock"); });
 
+  // The server answers with a researched brief (cached plan or one live
+  // research pass). Sourced briefs show their links; unsourced ones are
+  // explicitly labelled so a standard mock never wears company facts.
+  function renderBrief(b) {
+    var el = document.getElementById("mockBrief");
+    if (!b) { el.hidden = true; el.innerHTML = ""; return; }
+    var h = '<span class="plan-kicker">Mock brief</span>';
+    h += '<div class="mock-brief-head"><b>' + esc(b.company) + (b.role ? " \u00B7 " + esc(b.role) : "") + "</b>" +
+      (b.grounded
+        ? '<span class="prep-chip">' + (b.sources && b.sources.length ? "Grounded in " + b.sources.length + " public sources" : "Sourced") + "</span>"
+        : '<span class="prep-chip">Not company-verified</span>') + "</div>";
+    h += '<p class="prep-body">' + esc(b.overview) + "</p>";
+    if (b.grounded && b.rounds && b.rounds.length) {
+      h += '<h3 class="plan-h3">Likely interview rounds</h3><ol class="plan-rounds">' + b.rounds.map(function (r) {
+        return "<li><b>" + esc(r.name) + "</b><span>" + esc(r.focus) + "</span></li>";
+      }).join("") + "</ol>";
+    }
+    if (b.skillsRequired && b.skillsRequired.length) {
+      h += '<h3 class="plan-h3">Skills you will be judged on</h3><ul class="plan-skills">' +
+        b.skillsRequired.map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + "</ul>";
+    }
+    if (b.expect && b.expect.length) {
+      h += '<h3 class="plan-h3">' + (b.grounded
+        ? "Questions researched for this target"
+        : "Common questions for this role \u2014 not company-verified") + "</h3>";
+      h += '<div class="plan-qs">' + b.expect.map(function (q, i) {
+        return '<div class="plan-q"><span class="plan-q-n">' + (i + 1) + '</span><div><p class="plan-q-t">' +
+          esc(q.question) + '</p><p class="plan-q-w"><span class="prep-chip">' + esc(q.topic) + "</span></p></div></div>";
+      }).join("") + "</div>";
+    }
+    if (b.grounded && b.sources && b.sources.length) {
+      h += '<div class="plan-sources">Grounded in: ' + b.sources.map(function (s) {
+        var u = /^https?:\/\//.test(s.url || "") ? s.url : "#";
+        return '<a class="prep-chip" href="' + esc(u) + '" target="_blank" rel="noopener nofollow">' + esc(s.label) + "</a>";
+      }).join(" ") + "</div>";
+    }
+    el.innerHTML = h;
+    el.hidden = false;
+  }
+
   document.getElementById("mockStart").addEventListener("click", function () {
     errEl.textContent = "";
-    var url = "/api/prep/interview/mock" + (track ? "?track=" + encodeURIComponent(track) : "");
+    var qs = [];
+    if (track) qs.push("track=" + encodeURIComponent(track));
+    var target = currentTarget();
+    if (target) {
+      qs.push("company=" + encodeURIComponent(target.company));
+      qs.push("role=" + encodeURIComponent(target.role));
+    }
+    var url = "/api/prep/interview/mock" + (qs.length ? "?" + qs.join("&") : "");
+    var startBtn = document.getElementById("mockStart");
+    var startLabel = startBtn.textContent;
+    var researching = target ? "Researching " + target.company + "..." : "";
+    if (researching) { startBtn.disabled = true; startBtn.textContent = researching; }
     fetch(url, { credentials: "same-origin", headers: authHeaders() })
       .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
       .then(function (res) {
+        startBtn.disabled = false;
+        startBtn.textContent = startLabel;
         if (res.status === 401) { showPaywall("signin"); return; }
         if (res.status === 402) { showPaywall("upgrade"); errEl.textContent = res.d.message; return; }
         if (res.status !== 200 || !res.d.success) { errEl.textContent = (res.d && res.d.message) || "Could not start."; return; }
         mockQuestions = res.d.data.questions;
         mockToken = res.d.data.token;
+        renderBrief(res.d.data.brief || null);
         ratings = {};
         document.getElementById("mockIntro").hidden = true;
         var form = document.getElementById("mockForm");
@@ -454,7 +529,11 @@
         });
         document.getElementById("mockCard").scrollIntoView({ behavior: "smooth", block: "start" });
       })
-      .catch(function () { errEl.textContent = "Network error. Try again."; });
+      .catch(function () {
+        startBtn.disabled = false;
+        startBtn.textContent = startLabel;
+        errEl.textContent = "Network error. Try again.";
+      });
   });
 
   document.getElementById("mockSubmit").addEventListener("click", function () {

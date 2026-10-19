@@ -7,8 +7,8 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 7;</script>
-<link rel="stylesheet" href="/prep/prep.css?v=8"/>
+<script>window.PREP_V = 8;</script>
+<link rel="stylesheet" href="/prep/prep.css?v=9"/>
 </head>
 <body>
 <header class="topnav">
@@ -133,7 +133,7 @@
     </ol>
   </section>
 
-    <section class="prep-banner">
+    <section class="prep-banner" data-pro-upgrade>
     <div>
       <b>Prep Pro &middot; &#8377;199 for 30 days</b>
       <span>Unlimited reports, AI company plans, pay-aside free — pay once, no auto-renewal.</span>
@@ -143,7 +143,7 @@
 
 <section class="prep-card prep-card-pro" id="prepProCard">
     <h2 class="prep-h2">Prep Pro <span class="prep-pro-badge">Premium</span></h2>
-    <div class="prep-pro-price-row">
+    <div class="prep-pro-price-row" data-pro-upgrade>
       <span class="prep-pro-price">₹199</span>
       <span class="prep-pro-price-per">/ 30 days<small>One-time payment. No auto-renewal.</small></span>
     </div>
@@ -156,7 +156,7 @@
     <div class="prep-empty" id="prepProLoading"><b>Prep Pro</b> Checking your plan…</div>
     <div id="prepProContent" hidden>
       <div class="prep-empty" id="prepProBody" style="text-align:left;"></div>
-      <button class="prep-btn" type="button" id="prepProBuy" hidden>Buy Prep Pro — ₹199 / 30 days</button>
+      <button class="prep-btn" type="button" id="prepProBuy" data-pro-upgrade hidden>Buy Prep Pro — ₹199 / 30 days</button>
     </div>
     <div class="prep-err" id="prepProErr" role="alert"></div>
     <div class="prep-pay-trust">
@@ -195,7 +195,7 @@
 
 </main>
 
-<script src="/js/prep-nav.js?v=6" defer></script>
+<script src="/js/prep-nav.js?v=7" defer></script>
 <script>
 (function () {
   "use strict";
@@ -284,7 +284,10 @@
     proContent.hidden = false;
     var card = document.getElementById("prepProCard");
     if (d.isPro) {
+      // Belt and braces: attribute + display, so no theme or cached inline
+      // style can ever leave the Buy button (or its price row) visible.
       proBuy.hidden = true;
+      proBuy.style.display = "none";
       setUpgradeCtas(true);
       proReset();
       card.classList.add("is-active");
@@ -310,6 +313,7 @@
     proBody.className = "prep-empty";
     proReset();
     proBuy.hidden = false;
+    proBuy.style.display = "";
     proBody.innerHTML = "<b>Free plan</b><br/>You have " + d.reportsRemaining + " of " +
       d.freeDailyReports + " report generations left today. Prep Pro unlocks unlimited reports for ₹" +
       d.priceInr + " / " + d.days + " days.";
@@ -428,6 +432,16 @@
     document.head.appendChild(s);
   }
   function verifyPayment(resp) {
+    // Stash the captured ids BEFORE verifying: if this tab dies (or the
+    // network blips) mid-flight, prep-nav.js retries the verify on the next
+    // load instead of leaving a paid order PENDING with no entitlement.
+    try {
+      localStorage.setItem("se_pro_pend", JSON.stringify({
+        o: resp.razorpay_order_id,
+        p: resp.razorpay_payment_id,
+        ts: Date.now(),
+      }));
+    } catch (e) { /* private mode */ }
     fetch("/api/prep/pro/verify", {
       method: "POST",
       credentials: "same-origin",
@@ -437,9 +451,20 @@
         razorpayPaymentId: resp.razorpay_payment_id,
       }),
     })
-      .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
+      .then(function (r) {
+        // 5xx: keep the stash for the automatic retry below on next load.
+        if (r.status >= 500) return { status: r.status, d: null, transient: true };
+        return r.json().then(function (d) { return { status: r.status, d: d }; });
+      })
       .then(function (v) {
+        if (!v.transient) {
+          try { localStorage.removeItem("se_pro_pend"); } catch (e) { /* private mode */ }
+        }
         proReset();
+        if (!v.d) {
+          proFail("Verification is taking longer than usual — it will be retried automatically. If you were charged, contact support.");
+          return;
+        }
         if ((v.status === 201 || v.status === 200) && v.d.success) {
           var ent = v.d.data && v.d.data.entitlement;
           proErr.className = "prep-err info";

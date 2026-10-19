@@ -15,10 +15,11 @@ import { isPrepEnabled } from "./feature";
 import { ensurePrepDb } from "./db";
 import { resolveCompany, createPendingCompany, slugifyCompanyName } from "./companies";
 import { gatherSourcesWithBudget } from "./sources/gather";
-import { fallbackPlan, generatePrepPlan, summarizeReport } from "./ai";
+import { fallbackPlan, generatePrepPlan, summarizeReport, type PrepAiPlanPayload } from "./ai";
 import { countAiPlanRequestsToday, getCachedAiPlan, recordAiPlanRequest, saveAiPlan } from "./ai-plans";
+import { aptitudeWeights, trackForRole, weightsFromPlanTopics, type AptitudeWeights } from "./role-skills";
 import { APTITUDE_TOPICS, prepAptitudeQuestionsTable, prepCompaniesTable, prepInterviewQuestionsTable, prepReportsTable } from "./schema";
-import { clampCount, pickQuiz, scoreQuiz, signQuizToken, toPublicQuestion, verifyQuizToken } from "./aptitude";
+import { clampCount, pickQuiz, pickQuizWeighted, scoreQuiz, signQuizToken, toPublicQuestion, verifyQuizToken } from "./aptitude";
 import {
   PROOF_FILE_MAX_BYTES,
   isAllowedProofMime,
@@ -537,6 +538,25 @@ async function requirePrepPro(req: Request, res: Response, next: NextFunction): 
   }
 }
 
+/**
+ * Cached plan for a company+role lookup — EXACT existing rows only, never
+ * creates PENDING companies (aptitude/mock must not litter the catalogue).
+ * Null on any miss or failure; callers fall back to role defaults.
+ */
+async function cachedPlanFor(companyName: string, role: string): Promise<PrepAiPlanPayload | null> {
+  if (!companyName || role.trim().length < 2) return null;
+  try {
+    const exact = (await resolveCompany(db, companyName)).find((c) => c.score === 3);
+    if (!exact) return null;
+    const company = await findCompanyBySlug(exact.slug);
+    if (!company) return null;
+    const cached = await getCachedAiPlan(company.id, role.trim().toLowerCase());
+    return cached?.plan ?? null;
+  } catch {
+    return null;
+  }
+}
+
 prepRouter.get("/aptitude/topics", authenticate, requirePrepPro, prepDbGate, async (_req: Request, res: Response): Promise<void> => {
   try {
     const rows = await db
@@ -561,6 +581,8 @@ prepRouter.get("/aptitude/quiz", authenticate, aptitudeLimiter, requirePrepPro, 
   try {
     const rawTopic = typeof req.query.topic === "string" ? req.query.topic : "";
     const topic = (APTITUDE_TOPICS as readonly string[]).includes(rawTopic) ? rawTopic : null;
+    const company = String(req.query.company ?? "").trim().slice(0, 200);
+    const role = String(req.query.role ?? "").trim().slice(0, 120);
     const requested = clampCount(req.query.count, 20);
     const rows = await db
       .select()
@@ -570,12 +592,37 @@ prepRouter.get("/aptitude/quiz", authenticate, aptitudeLimiter, requirePrepPro, 
       res.status(404).json({ success: false, message: "No questions available" });
       return;
     }
-    const picked = pickQuiz(rows, Math.min(requested, rows.length));
+    // Target weighting: with a role set, the drill samples by what that role
+    // actually asks — preferring the researched plan's own aptitudeTopics
+    // when a cached plan exists, else the curated role profile.
+    let weights: AptitudeWeights | null = null;
+    let focus: { topic: string; weight: number }[] | null = null;
+    let focusSource: "plan" | "role" | null = null;
+    if (role) {
+      const plan = await cachedPlanFor(company, role);
+      if (plan && plan.aptitudeTopics.length) {
+        weights = weightsFromPlanTopics(plan.aptitudeTopics);
+        focus = plan.aptitudeTopics.slice(0, 6).map((t) => ({ topic: t.topic, weight: Number(t.weight) || 0 }));
+        focusSource = "plan";
+      } else {
+        weights = aptitudeWeights(role);
+        focus = (Object.keys(weights) as (keyof AptitudeWeights)[]).map((k) => ({ topic: k, weight: weights![k] }));
+        focusSource = "role";
+      }
+    }
+    const picked = weights
+      ? pickQuizWeighted(rows, Math.min(requested, rows.length), weights)
+      : pickQuiz(rows, Math.min(requested, rows.length));
     const ids = picked.map((r) => r.id);
     const token = signQuizToken({ ids, topic }, quizSecret());
     res.json({
       success: true,
-      data: { questions: picked.map(toPublicQuestion), token, total: picked.length },
+      data: {
+        questions: picked.map(toPublicQuestion),
+        token,
+        total: picked.length,
+        target: role ? { company, role, focus, focusSource } : null,
+      },
     });
   } catch (err) {
     console.error("[prep] aptitude quiz failed:", err);
@@ -646,23 +693,84 @@ prepRouter.get("/interview/questions", authenticate, interviewLimiter, requirePr
   }
 });
 
+/**
+ * Company+role research brief for the mock: cached plan first, else one live
+ * gather+AI pass (saved to cache). Research failure NEVER kills the session —
+ * the brief downgrades to an honest standard role mock, never an invented
+ * "company facts" story.
+ */
+async function interviewBriefFor(companyName: string, role: string): Promise<{
+  company: string;
+  role: string;
+  grounded: boolean;
+  overview: string;
+  rounds: { name: string; focus: string }[];
+  skillsRequired: string[];
+  expect: { question: string; topic: string }[];
+  sources: { label: string; url: string; publisher: string }[];
+}> {
+  const rolePlan = fallbackPlan(companyName || "the role", role);
+  let plan: PrepAiPlanPayload | null = await cachedPlanFor(companyName, role);
+  if (!plan && companyName) {
+    try {
+      const exact = (await resolveCompany(db, companyName)).find((c) => c.score === 3);
+      const company = exact ? await findCompanyBySlug(exact.slug) : null;
+      if (company) {
+        const gathered = await gatherSourcesWithBudget(
+          { name: company.name, domain: company.domain, website: company.website },
+          12_000,
+        );
+        const generated = await generatePrepPlan({ company: { name: company.name }, role, gathered });
+        const fresh = generated ? generated.plan : fallbackPlan(company.name, role);
+        fresh.sources = gathered.documents.slice(0, 6).map((d) => ({ label: d.label, url: d.url, publisher: d.publisher }));
+        fresh.grounded = fresh.sources.length > 0 && generated !== null;
+        if (generated) await saveAiPlan(company.id, role.trim().toLowerCase(), fresh, generated.model);
+        plan = fresh;
+      }
+    } catch (err) {
+      console.error("[prep] interview brief research failed:", err);
+    }
+  }
+  const sourcePlan = plan ?? rolePlan;
+  const overview = plan
+    ? plan.overview
+    : `No verified public sources were found for ${companyName.slice(0, 120)} yet, so this mock runs the standard ${role} pattern - run the company report first to research ${companyName.slice(0, 80)} properly.`;
+  return {
+    company: companyName,
+    role,
+    grounded: plan ? plan.grounded : false,
+    overview,
+    rounds: sourcePlan.rounds.length ? sourcePlan.rounds : rolePlan.rounds,
+    skillsRequired: sourcePlan.skillsRequired.length ? sourcePlan.skillsRequired : rolePlan.skillsRequired,
+    expect: (sourcePlan.questions.length ? sourcePlan.questions : rolePlan.questions)
+      .slice(0, 4)
+      .map((q) => ({ question: q.question, topic: q.topic })),
+    sources: plan ? plan.sources : [],
+  };
+}
+
 prepRouter.get("/interview/mock", authenticate, interviewLimiter, requirePrepPro, prepDbGate, async (req: Request, res: Response): Promise<void> => {
   try {
     const track = isValidTrack(req.query.track) ? req.query.track : null;
+    const company = String(req.query.company ?? "").trim().slice(0, 200);
+    const role = String(req.query.role ?? "").trim().slice(0, 120);
+    // Role-targeted mocks pick the track the role actually interviews on.
+    const effTrack = track ?? trackForRole(role) ?? null;
     const rows = await db
       .select()
       .from(prepInterviewQuestionsTable)
-      .where(track ? eq(prepInterviewQuestionsTable.track, track) : sql`1=1`);
+      .where(effTrack ? eq(prepInterviewQuestionsTable.track, effTrack) : sql`1=1`);
     if (!rows.length) {
       res.status(404).json({ success: false, message: "No interview questions available" });
       return;
     }
+    const brief = role.length >= 2 ? await interviewBriefFor(company, role) : null;
     const picked = pickMock(rows, req.query.count ?? MOCK_DEFAULT_COUNT);
     const ids = picked.map((r) => r.id);
-    const token = signInterviewMock(ids, track, quizSecret());
+    const token = signInterviewMock(ids, effTrack, quizSecret());
     res.json({
       success: true,
-      data: { questions: picked.map(toPublicInterviewQuestion), token, total: picked.length },
+      data: { questions: picked.map(toPublicInterviewQuestion), token, total: picked.length, brief },
     });
   } catch (err) {
     console.error("[prep] interview mock failed:", err);

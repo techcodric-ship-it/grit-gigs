@@ -251,3 +251,62 @@ export function roleProfile(role: string): RoleProfile {
 export function roleSkills(role: string): string[] {
   return role.trim() ? roleProfile(role).skills : [];
 }
+
+// ---- Aptitude weighting -------------------------------------------------
+// The aptitude bank has three topics (quant, logical, verbal). Role profiles
+// speak in richer names; this maps them so a role's quiz is sampled the way
+// that role actually gets tested.
+
+export type BankTopic = "quant" | "logical" | "verbal";
+
+export function bankTopicFor(name: string): BankTopic {
+  const n = name.toLowerCase();
+  if (/quant|data interpretation|percent|math|average|profit/.test(n)) return "quant";
+  if (/verbal|english|comprehension|grammar|reading/.test(n)) return "verbal";
+  if (/logical|program|sql|reason|puzz|syllog/.test(n)) return "logical";
+  return "logical";
+}
+
+// A type alias (not an interface) so it carries an implicit index signature
+// and is assignable where weights are read generically.
+export type AptitudeWeights = {
+  quant: number;
+  logical: number;
+  verbal: number;
+};
+
+/** Normalized (sums to 100) per-topic share for a role's practice set. */
+export function aptitudeWeights(role: string): AptitudeWeights {
+  const raw: AptitudeWeights = { quant: 0, logical: 0, verbal: 0 };
+  for (const t of roleProfile(role).aptitudeTopics) raw[bankTopicFor(t.topic)] += Math.max(1, t.weight);
+  return normalizeWeights(raw);
+}
+
+/** Same normalization for a researched plan's own aptitudeTopics weightage. */
+export function weightsFromPlanTopics(topics: { topic: string; weight: number }[]): AptitudeWeights {
+  const raw: AptitudeWeights = { quant: 0, logical: 0, verbal: 0 };
+  for (const t of topics) raw[bankTopicFor(t.topic)] += Math.max(1, Number(t.weight) || 1);
+  if (!raw.quant && !raw.logical && !raw.verbal) return normalizeWeights(raw);
+  return normalizeWeights(raw);
+}
+
+export function normalizeWeights(raw: AptitudeWeights): AptitudeWeights {
+  const total = raw.quant + raw.logical + raw.verbal;
+  if (total <= 0) return { quant: 34, logical: 33, verbal: 33 };
+  const quant = Math.round((raw.quant / total) * 100);
+  const logical = Math.round((raw.logical / total) * 100);
+  return { quant, logical, verbal: Math.max(0, 100 - quant - logical) };
+}
+
+// ---- Interview track fit ------------------------------------------------
+
+/** The mock track a role's interviews run on; null = keep general. */
+export function trackForRole(role: string): "engineering" | "data" | "business" | null {
+  const r = role.trim();
+  if (!r) return null;
+  const p = roleProfile(r);
+  if (p === SOFTWARE || p === QA) return "engineering";
+  if (p === DATA) return "data";
+  if (p === BUSINESS || p === PRODUCT || p === HR) return "business";
+  return null;
+}

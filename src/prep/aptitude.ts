@@ -59,6 +59,33 @@ export function pickQuiz<T>(rows: T[], count: number, rng: () => number = Math.r
   return shuffle(rows, rng).slice(0, Math.max(1, count));
 }
 
+/**
+ * Role-weighted pick: each draw is proportional to the topic's weight for the
+ * target role (weights sum to 100), without replacement. Sampled with an
+ * injectable RNG so tests can assert the bias deterministically.
+ */
+export function pickQuizWeighted<T extends { topic: string }>(
+  rows: T[],
+  count: number,
+  weights: Record<string, number>,
+  rng: () => number = Math.random,
+): T[] {
+  const pool = [...rows];
+  const out: T[] = [];
+  while (pool.length && out.length < Math.max(1, count)) {
+    const w = (q: T): number => Math.max(1, Number(weights[q.topic]) || 1);
+    const total = pool.reduce((s, q) => s + w(q), 0);
+    let r = rng() * total;
+    let idx = pool.length - 1;
+    for (let i = 0; i < pool.length; i++) {
+      r -= w(pool[i]!);
+      if (r <= 0) { idx = i; break; }
+    }
+    out.push(pool.splice(idx, 1)[0]!);
+  }
+  return out;
+}
+
 export function toPublicQuestion(row: {
   id: string;
   code: string;

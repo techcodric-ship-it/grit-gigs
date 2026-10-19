@@ -27,7 +27,7 @@
   //    Reload once through a cache-busting query: never a loop, because the
   //    re-fetched document carries the stamp, and _pv already present stops
   //    us from trying again.
-  var WANT_V = 7;
+  var WANT_V = 8;
   if (window.PREP_V !== WANT_V &&
       /\/prep(?:\/|$)/.test(location.pathname) &&
       !/[?&]_pv=/.test(location.search)) {
@@ -146,6 +146,45 @@
           .catch(function () { /* keep the cached avatar */ });
       }
     }
+
+  // ── 4b. Pending Prep Pro payment self-heal ──
+  // If the browser died (or the network blipped) AFTER Razorpay captured the
+  // money but BEFORE /pro/verify answered, the order sits PENDING with no
+  // entitlement — the classic "I paid but still see Buy Prep Pro". The
+  // checkout stashes {order, payment} as se_pro_pend; retry the verify once
+  // per page load. 5xx/network failures keep the stash for the next load;
+  // any definitive response (success or "not capturable") clears it.
+  try {
+    var pendTok = localStorage.getItem("se_token");
+    var pend = JSON.parse(localStorage.getItem("se_pro_pend") || "null");
+    if (pend && pend.o && pend.p && pend.ts && Date.now() - pend.ts < 24 * 60 * 60 * 1000) {
+      if (pendTok) {
+        fetch("/api/prep/pro/verify", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { Authorization: "Bearer " + pendTok, "content-type": "application/json" },
+          body: JSON.stringify({ razorpayOrderId: pend.o, razorpayPaymentId: pend.p }),
+        })
+          .then(function (r) {
+            if (r.status >= 500) return null; // transient: keep the stash, retry next load
+            return r.json().then(function (d) { return { status: r.status, d: d }; });
+          })
+          .then(function (v) {
+            if (v === null) return;
+            try { localStorage.removeItem("se_pro_pend"); } catch (e) { /* private mode */ }
+            // 409 = the entitlement already exists (verify ran twice).
+            var ok = (v.status >= 200 && v.status < 300 && v.d && v.d.success) || v.status === 409;
+            if (ok) {
+              try { localStorage.setItem("se_pro", JSON.stringify({ v: 1, ts: Date.now(), pro: true })); } catch (e) { /* private mode */ }
+              location.reload();
+            }
+          })
+          .catch(function () { /* network: keep the stash for the next load */ });
+      }
+    } else if (pend && pend.ts && Date.now() - pend.ts >= 24 * 60 * 60 * 1000) {
+      try { localStorage.removeItem("se_pro_pend"); } catch (e) { /* private mode */ }
+    }
+  } catch (e) { /* private mode: no recovery available */ }
 
   // ── 5. Prep Pro chip ──
   // A small PRO pill next to the prep icon while the account holds an active
