@@ -1647,7 +1647,10 @@ describe("round 22: the interview session is visibly Pro-only, the landing reads
       "Open Messaging",
       "Reviews &amp; Reputation",
       "Interview Prep",
-      "Refer &amp; Earn",
+      "Company Reports &amp; Aptitude",
+      "Know the company. Then crush it.",
+      "One plan. Everything unlocked.",
+      "THE ONLY PAID PLAN",
       "Four ways to grow on Grit&amp;Gigs",
       'href="#features"',
       "Free to start, no card needed",
@@ -1669,6 +1672,10 @@ describe("round 22: the interview session is visibly Pro-only, the landing reads
     // round 24: freelance orders / get-paid / wallet are not features of this platform
     expect(landing).not.toContain("Freelance Orders");
     expect(landing).not.toContain("Wallet &amp; Withdrawals");
+    // round 25: the Refer & Earn feature card was replaced by Reports & Aptitude
+    // (the footer's lowercase "Refer & earn" link to the real page stays)
+    expect(landing).not.toContain("Refer &amp; Earn");
+    expect(landing).not.toContain("₹500");
     expect(landing).not.toMatch(/get paid/i);
     expect(landing).not.toMatch(/wallet/i);
     expect(landing).not.toMatch(/withdraw/i);
