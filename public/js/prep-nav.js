@@ -27,7 +27,7 @@
   //    Reload once through a cache-busting query: never a loop, because the
   //    re-fetched document carries the stamp, and _pv already present stops
   //    us from trying again.
-  var WANT_V = 15;
+  var WANT_V = 16;
   if (window.PREP_V !== WANT_V &&
       /\/prep(?:\/|$)/.test(location.pathname) &&
       !/[?&]_pv=/.test(location.search)) {
@@ -45,11 +45,18 @@
   }
 
   function promoMarkup() {
-    return '<span class="prep-rail-kicker" style="display:inline-block;font-size:0.64rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#5430C9;background:#F0ECFD;border:1px solid rgba(108,63,232,.2);border-radius:999px;padding:4px 10px;">New - Prep</span>' +
-      '<b style="display:block;font-size:0.95rem;margin:5px 0 5px;color:#0A0A0F;">Company research you can trust</b>' +
-      '<p style="font-size:0.8rem;color:#555;line-height:1.5;margin:0 0 10px;">Sourced company reports, aptitude drills, ' +
-      "interview mocks and anonymised pay signals - every claim labelled with its source.</p>" +
-      '<a href="/prep" style="display:inline-flex;align-items:center;gap:5px;font-size:0.82rem;font-weight:700;color:#6C3FE8;">Open Prep &rarr;</a>';
+    return '<style>@keyframes prepNewPulse{0%,100%{transform:scale(1);box-shadow:0 2px 8px rgba(255,77,141,.4)}50%{transform:scale(1.05);box-shadow:0 4px 14px rgba(255,77,141,.65)}}' +
+      "@keyframes prepCtaNudge{0%,100%{transform:translateX(0)}50%{transform:translateX(3px)}}</style>" +
+      '<div style="background:linear-gradient(135deg,#140B33 0%,#2E1C6E 55%,#4A22B8 100%);' +
+      "border:1px solid rgba(167,139,250,.5);border-radius:12px;padding:13px 13px 14px;" +
+      'box-shadow:0 10px 24px rgba(108,63,232,.32);">' +
+      '<span class="prep-rail-kicker" style="display:inline-block;font-size:0.62rem;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#fff;background:linear-gradient(90deg,#FF4D8D,#FF8A3D);border-radius:999px;padding:4px 11px;animation:prepNewPulse 2s ease-in-out infinite;">New - Prep</span>' +
+      '<b style="display:block;font-size:1.04rem;line-height:1.3;margin:9px 0 5px;color:#fff;">Would you clear the interview?</b>' +
+      '<p style="font-size:0.8rem;color:#D9CFFF;line-height:1.55;margin:0 0 11px;">Candidates are sharing the exact questions they were asked at TCS, Infosys &amp; more. ' +
+      'Type your answer &mdash; the AI scores it in seconds. <b style="color:#FFD166;">Free to try, no card needed.</b></p>' +
+      '<a href="/prep" style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.9rem;font-weight:800;color:#241247;background:linear-gradient(90deg,#A78BFA,#FFD166);border-radius:999px;padding:10px 12px;text-decoration:none;box-shadow:0 4px 14px rgba(255,209,102,.4);">' +
+      '<span>Try a question free</span><span style="display:inline-block;animation:prepCtaNudge 1.6s ease-in-out infinite;">&rarr;</span></a>' +
+      "</div>";
   }
 
   function injectPromo() {

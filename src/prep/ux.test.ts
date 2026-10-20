@@ -408,7 +408,7 @@ describe("the Buy button can never look dead; members look like members (round 5
   const nav = read("public/js/prep-nav.js");
   const css = read("public/prep/prep.css");
   it("stale prep HTML is detected by the always-fresh nav script and re-fetched exactly once", () => {
-    expect(nav).toContain("var WANT_V = 15;");
+    expect(nav).toContain("var WANT_V = 16;");
     expect(nav).toContain("window.PREP_V !== WANT_V");
     expect(nav).toContain('!/[?&]_pv=/.test(location.search)');
     expect(nav).toContain("location.replace(location.pathname + location.search +");
@@ -419,7 +419,7 @@ describe("the Buy button can never look dead; members look like members (round 5
       "public/prep/interview.html",
       "public/prep/proof.html",
     ]) {
-      expect(read(p), p).toContain("window.PREP_V = 15;");
+      expect(read(p), p).toContain("window.PREP_V = 16;");
       expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
     }
   });
@@ -970,8 +970,8 @@ describe("round 13: role-weighted aptitude, researched mock brief, member CTA fi
     expect(apt).toContain('class="prep-steps"');
     expect(apt).toContain("Set your target");
     expect(iv).toContain('class="prep-steps"');
-    expect(iv).toContain("Type your real answer");
-    expect(iv).toContain("Search a company pack");
+    expect(iv).toContain("Warm up free");
+    expect(iv).toContain("See your company's questions");
     expect(iv).not.toContain("last 10 years"); // no fabricated history claims
     expect(apt).toContain('class="apt-focus"'); // weighted-drill evidence renders in the quiz card
   });
@@ -1117,7 +1117,7 @@ describe("round 15: resume vs target role — free AI taste, text never stored",
     expect(slice).not.toBe("");
     expect(slice).not.toContain("data-pro-content");
     expect(ivPage).toContain("/api/prep/resume/check");
-    expect(ivPage).toContain("Free AI check");
+    expect(ivPage).toContain("4 &middot; Resume check &mdash; free, 1 a day");
     expect(ivPage).toContain("never stored");
     expect(ivPage).toContain("not a guarantee");
     expect(ivPage).toContain("Add at least 100 characters");
@@ -1182,8 +1182,8 @@ describe("round 16: Pro members never see the sell — resume file upload, zero 
   });
 
   it("versions bumped in lockstep so stale cached pages self-heal", () => {
-    expect(nav).toContain("var WANT_V = 15;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 15;");
+    expect(nav).toContain("var WANT_V = 16;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 16;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1243,8 +1243,8 @@ describe("round 17: public daily drill — different questions every day", () =>
   });
 
   it("versions bumped in lockstep (page changed, nav script changed)", () => {
-    expect(nav).toContain("var WANT_V = 15;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 15;");
+    expect(nav).toContain("var WANT_V = 16;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 16;");
   });
 });
 
@@ -1348,8 +1348,8 @@ describe("round 18: an expired se_token self-heals via the shared SeAuth helper"
   });
 
   it("versions bumped in lockstep (nav + all five pages changed)", () => {
-    expect(nav).toContain("var WANT_V = 15;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 15;");
+    expect(nav).toContain("var WANT_V = 16;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 16;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1433,8 +1433,8 @@ describe("round 19: the plan card can roll fresh questions (never a repeat, neve
   });
 
   it("versions bumped in lockstep (interview page + nav script changed)", () => {
-    expect(nav).toContain("var WANT_V = 15;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 15;");
+    expect(nav).toContain("var WANT_V = 16;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 16;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1530,8 +1530,69 @@ describe("round 20: company packs + AI-scored answers, generic bank retired", ()
   });
 
   it("versions bumped in lockstep (interview page + nav script changed)", () => {
-    expect(nav).toContain("var WANT_V = 15;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 15;");
+    expect(nav).toContain("var WANT_V = 16;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 16;");
+    for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
+  });
+});
+
+describe("round 21: the interview page reads as a guided tour, the feed promo is a craving box", () => {
+  const ivPage = read("public/prep/interview.html");
+  const nav = read("public/js/prep-nav.js");
+
+  it("a new user gets one obvious first action instead of a wall of options", () => {
+    // the hero carries the page's single h1; the stray mid-card h1 is retired
+    expect(ivPage).toMatch(/<h1 class="prep-hero-sm-h">/);
+    expect(ivPage).not.toContain('<h1 class="prep-h1">');
+    // the zero-friction free action leads; the plan form no longer competes up top
+    expect(ivPage).toContain("href=\"#todayCard\">Try today's free questions</a>");
+    expect(ivPage).toContain('href="#browseCard">Search a company</a>');
+    expect(ivPage).not.toContain('href="#ivPlanCard">Build an AI company plan');
+    // steps read as plain actions, not product jargon
+    expect(ivPage).toContain("Warm up free");
+    expect(ivPage).toContain("Run the full mock");
+    expect(ivPage).not.toContain("drill question &mdash; scored 0");
+  });
+
+  it("free vs Pro is answered before the first card, not discovered by hitting walls", () => {
+    expect(ivPage).toContain('class="iv-legend"');
+    expect(ivPage).toContain('iv-badge iv-badge-free');
+    expect(ivPage).toContain('iv-badge iv-badge-pro');
+    expect(ivPage).toContain("Today's six questions &middot; 1 AI score a day");
+    expect(ivPage).toContain("Full company packs &middot; unlimited scores");
+    expect(ivPage).toContain("Prep Pro &#8377;199");
+    expect(ivPage).toContain(".iv-legend {"); // styled on the page, not a bare list
+  });
+
+  it("sections are numbered as a path, each kicker names its tier", () => {
+    for (const kicker of [
+      "1 &middot; Today&rsquo;s drill &mdash; free",
+      "2 &middot; Free sample",
+      "3 &middot; Company questions",
+      "4 &middot; Resume check",
+      "5 &middot; Company plan &mdash; free",
+      "6 &middot; Full mock &mdash; Prep Pro",
+    ]) expect(ivPage, kicker).toContain(kicker);
+  });
+
+  it("the feed promo opens a curiosity gap and hands over one glowing button", () => {
+    expect(nav).toContain("Would you clear the interview?");
+    expect(nav).toContain("TCS, Infosys");
+    expect(nav).toContain("Free to try, no card needed.");
+    expect(nav).toContain("Try a question free");
+    expect(nav).toContain("prepNewPulse"); // the NEW badge pulses so the card gets the click
+    expect(nav).toContain("prepCtaNudge"); // the arrow nudges toward the click
+    // pinned structure survives the redesign
+    expect(nav).toContain("New - Prep");
+    expect(nav).toContain('a.href = "/prep"');
+    expect(nav).toContain('setAttribute("data-prep-promo"');
+    // honest hooks only: no invented crowds or urgency
+    expect(nav).not.toMatch(/\d{4,}\s+(students|users|members)/);
+  });
+
+  it("versions bumped in lockstep (interview page + nav script changed)", () => {
+    expect(nav).toContain("var WANT_V = 16;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 16;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });

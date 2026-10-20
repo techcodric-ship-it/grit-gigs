@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 15;</script>
+<script>window.PREP_V = 16;</script>
 <link rel="stylesheet" href="/prep/prep.css?v=10"/>
 <style>
   .iv-tabs { display:flex; gap:8px; margin-bottom:16px; }
@@ -71,6 +71,11 @@
   .resume-band-strong { background:#E7F7EE; color:#137A4B; }
   .resume-band-work { background:#FDF3E0; color:#8A5A2B; }
   .resume-band-thin { background:#FDECEA; color:#B03027; }
+  .iv-legend { list-style:none; margin:14px 0 4px; padding:0; display:grid; gap:8px; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); }
+  .iv-legend li { display:flex; gap:9px; align-items:flex-start; background:#fff; border:1px solid var(--prep-line); border-radius:12px; padding:11px 13px; font-size:0.85rem; line-height:1.5; color:var(--prep-ink-2); }
+  .iv-badge { flex:0 0 auto; display:inline-block; border-radius:999px; padding:3px 11px; font-size:0.75rem; font-weight:800; letter-spacing:0.03em; white-space:nowrap; }
+  .iv-badge-free { background:#E7F7EE; color:#137A4B; border:1px solid #BFE7D2; }
+  .iv-badge-pro { background:linear-gradient(90deg, #6C3FE8, #9F5BFF); color:#fff; border:1px solid #6C3FE8; }
 </style>
 </head>
 <body>
@@ -97,9 +102,10 @@
   </nav>
   <section class="prep-hero-sm">
     <span class="prep-eyebrow">Interview &middot; company packs &amp; AI-scored mocks</span>
-    <h2 class="prep-hero-sm-h">The questions candidates were actually asked &mdash; and an AI that scores your answers</h2>
-    <p class="prep-sub">Search company packs of member-reported questions, get one free AI score on your typed
-      answer every day, and run a mock where the AI interviewer scores every answer 0&ndash;10 with a stronger version to rehearse.</p>
+    <h1 class="prep-hero-sm-h">Practice the questions real interviews ask &mdash; get an AI score on every answer</h1>
+    <p class="prep-sub">Start with today's six questions &mdash; free, no account needed. Then search any company to
+      see the questions candidates were asked there, or run a full mock where the AI scores every answer
+      0&ndash;10 and shows you a stronger version.</p>
     <ul class="prep-trust-chips">
       <li>Company packs &middot; member-reported</li>
       <li>1 free AI answer score a day</li>
@@ -107,18 +113,25 @@
       <li>2-min timed answers &middot; STAR tips</li>
     </ul>
     <ol class="prep-steps">
-      <li><b>Type your real answer</b><span>to any drill question &mdash; scored 0&ndash;10 free daily</span></li>
-      <li><b>Search a company pack</b><span>real asked questions, shared by candidates</span></li>
-      <li><b>Run an AI-scored mock</b><span>company-researched, stronger version included</span></li>
+      <li><b>Warm up free</b><span>answer one of today's six questions &mdash; type it, the AI scores it 0&ndash;10</span></li>
+      <li><b>See your company's questions</b><span>search any company for questions candidates were asked there</span></li>
+      <li><b>Run the full mock</b><span>5 timed questions, scored answer by answer with fixes to rehearse</span></li>
     </ol>
     <div class="prep-hero-ctas">
-      <a class="prep-btn" href="#ivPlanCard">Build an AI company plan</a>
-      <a class="prep-btn prep-btn-ghost" href="#browseCard">Search a company pack</a>
+      <a class="prep-btn" href="#todayCard">Try today's free questions</a>
+      <a class="prep-btn prep-btn-ghost" href="#browseCard">Search a company</a>
     </div>
   </section>
 
+  <ul class="iv-legend">
+    <li><span class="iv-badge iv-badge-free">Free</span>
+      <span>Today's six questions &middot; 1 AI score a day &middot; the 3-question sample &middot; a company plan &middot; a daily resume check</span></li>
+    <li><span class="iv-badge iv-badge-pro">Prep Pro &#8377;199</span>
+      <span>Full company packs &middot; unlimited scores &middot; every mock with feedback &middot; unlimited resume checks</span></li>
+  </ul>
+
   <section class="prep-card" id="todayCard">
-    <span class="plan-kicker">Today&rsquo;s drill &middot; free</span>
+    <span class="plan-kicker">1 &middot; Today&rsquo;s drill &mdash; free</span>
     <h2 class="prep-h2">Six questions for today</h2>
     <p class="prep-sub">A fresh set every day &mdash; the same six for everyone until midnight UTC, then a new
       mix. Answer one out loud before you open what interviewers look for; that is the practice.
@@ -128,7 +141,7 @@
   </section>
 
   <section class="prep-card" id="sampleCard">
-    <span class="plan-kicker">Free sample</span>
+    <span class="plan-kicker">2 &middot; Free sample &mdash; the coaching taste</span>
     <h2 class="prep-h2">Three questions interviewers actually open with</h2>
     <p class="prep-sub" id="sampleSub">A real taste of the coaching &mdash; including what interviewers look for in each answer.
       Type your own answer and get one free AI score a day. Prep Pro opens full company packs and scores every mock answer.</p>
@@ -139,8 +152,7 @@
   </section>
 
   <section class="prep-card" id="browseCard">
-    <h1 class="prep-h1">Interview prep</h1>
-    <span class="plan-kicker">Company packs &middot; member-reported</span>
+    <span class="plan-kicker">3 &middot; Company questions &mdash; member-reported</span>
     <h2 class="prep-h2">Questions candidates were actually asked</h2>
     <p class="prep-sub">Search a company to see its pack &mdash; shared by members who sat the interview, so treat
       every question as one real experience, not a guarantee. One question is a free preview; Prep Pro opens the full pack.
@@ -190,7 +202,7 @@
   </section>
 
   <section class="prep-card" id="resumeCard">
-    <span class="plan-kicker" id="resumeKick">Free AI check &middot; 1 a day</span>
+    <span class="plan-kicker" id="resumeKick">4 &middot; Resume check &mdash; free, 1 a day</span>
     <h2 class="prep-h2">Will your resume pass the screen<span id="resTargetCo"></span>?</h2>
     <p class="prep-sub">Upload your resume file (PDF, DOCX, TXT) or paste its text &mdash; the coach compares it
       against your target role&rsquo;s required skills and returns honest gaps, bullet rewrites and next steps.
@@ -221,7 +233,7 @@
   </section>
 
   <section class="prep-card prep-card-plan" id="ivPlanCard">
-    <span class="plan-kicker">AI prep coach</span>
+    <span class="plan-kicker">5 &middot; Company plan &mdash; free</span>
     <h2 class="prep-h2">Company + role plan, researched for you</h2>
     <p class="prep-sub">Pick your target &mdash; the coach searches the company's official pages and recent
       news across the web, then returns the exact topics, likely rounds and questions to prepare.</p>
@@ -254,7 +266,7 @@
     <div class="mock-brief" id="mockBrief" hidden></div>
     <div class="mock-co" id="mockCo" hidden></div>
     <div id="mockIntro">
-      <span class="plan-kicker">AI-scored mock</span>
+      <span class="plan-kicker">6 &middot; Full mock &mdash; Prep Pro</span>
       <h2 class="prep-h2">Mock session &mdash; the AI interviewer reads every answer</h2>
       <p class="prep-sub">Set your company + role in the AI coach above &mdash; the mock researches it first and
         shows the sourced brief. Answer each question out loud in ~2 minutes, type it in, and the AI scores it 0&ndash;10
@@ -283,7 +295,7 @@
 </main>
 
 <script src="/js/se-auth.js?v=1"></script>
-<script src="/js/prep-nav.js?v=14" defer></script>
+<script src="/js/prep-nav.js?v=15" defer></script>
 <script>
 (function () {
   "use strict";
