@@ -134,6 +134,8 @@ describe("quota + abuse surface", () => {
     expect(router).toMatch(/post\("\/companies", authenticate, createCompanyLimiter/);
     expect(router).toMatch(/post\("\/aptitude\/submit", authenticate, aptitudeLimiter/);
     expect(router).toMatch(/post\("\/interview\/mock\/submit", authenticate, interviewLimiter/);
+    expect(router).toMatch(/post\("\/interview\/answer\/score", authenticate, answerScoreLimiter/);
+    expect(router).toMatch(/post\("\/interview\/packs\/submit", authenticate, packSubmitLimiter/);
     expect(router).toMatch(/post\("\/proof", authenticate, proofSubmitLimiter/);
     expect(router).toMatch(/post\("\/ai\/plan", authenticate, aiPlanLimiter/);
     expect(router).toMatch(/post\("\/pro\/order", authenticate, purchaseLimiter/);

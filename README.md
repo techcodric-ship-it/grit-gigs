@@ -64,7 +64,9 @@ Open browser DevTools (F12) → Console tab and check for red errors.
 | GET  /api/prep/companies?q= | Company search |
 | GET  /api/prep/companies/:slug/report | Company report (sourced, cited) |
 | GET  /api/prep/aptitude/topics | Aptitude quiz topics |
-| GET  /api/prep/interview/questions | Interview question bank |
+| GET  /api/prep/interview/packs?company= | Company question packs (member-reported) |
+| POST /api/prep/interview/packs/submit | Submit a pack question (10/user/day) |
+| POST /api/prep/interview/answer/score | AI-score one typed answer (1/day, free) |
 | GET  /api/prep/companies/:slug/pay-aggregates | Trust: pay aggregates (min-sample) |
 | GET  /api/prep/companies/:slug/placement-aggregates | Trust: placement aggregates |
 

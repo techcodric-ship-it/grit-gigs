@@ -85,7 +85,7 @@ describe("content: home page reads like a product", () => {
       expect(home, t).toContain(`<b>${t}</b>`);
     }
     expect(home).toContain("31 original questions");
-    expect(home).toContain("24 questions across behavioural, technical and HR rounds");
+    expect(home).toContain("Company packs of questions candidates were actually asked");
     expect(home).toContain("at least 5 approved reports");
   });
   it("explains the flow and closes with an honest disclaimer", () => {
@@ -124,11 +124,12 @@ describe("content: inner pages carry stats and legends", () => {
     expect(a).toContain("<b>31</b>");
     expect(a).toContain("quant, logical, verbal");
   });
-  it("interview shows tracks and feedback promise", () => {
+  it("interview shows company packs and the AI scoring promise", () => {
     const i = read("public/prep/interview.html");
-    expect(i).toContain("<b>24</b>");
-    expect(i).toContain("Behavioural · Technical · HR");
-    expect(i).toContain("weakest category");
+    expect(i).toContain('class="prep-trust-chips"');
+    expect(i).toContain("Company packs &middot; member-reported");
+    expect(i).toContain("Mock: AI scores every answer");
+    expect(i).toContain("Weakest area");
   });
   it("proof shows the 3-step flow and anonymity promise", () => {
     const p = read("public/prep/proof.html");
@@ -407,7 +408,7 @@ describe("the Buy button can never look dead; members look like members (round 5
   const nav = read("public/js/prep-nav.js");
   const css = read("public/prep/prep.css");
   it("stale prep HTML is detected by the always-fresh nav script and re-fetched exactly once", () => {
-    expect(nav).toContain("var WANT_V = 14;");
+    expect(nav).toContain("var WANT_V = 15;");
     expect(nav).toContain("window.PREP_V !== WANT_V");
     expect(nav).toContain('!/[?&]_pv=/.test(location.search)');
     expect(nav).toContain("location.replace(location.pathname + location.search +");
@@ -418,7 +419,7 @@ describe("the Buy button can never look dead; members look like members (round 5
       "public/prep/interview.html",
       "public/prep/proof.html",
     ]) {
-      expect(read(p), p).toContain("window.PREP_V = 14;");
+      expect(read(p), p).toContain("window.PREP_V = 15;");
       expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
     }
   });
@@ -737,7 +738,7 @@ describe("corporate redesign: promos, heroes, banners, live stats (round 10)", (
     expect(apt).toContain('class="prep-banner"');
     expect(apt).toContain("prep/prep.css?v=10");
     expect(iv).toContain('class="prep-hero-sm"');
-    expect(iv).toContain("24 questions, 4 tracks");
+    expect(iv).toContain("AI-scored mocks");
     expect(iv).toContain('id="ivPlanCard"');
     expect(iv).toContain('class="prep-banner"');
     expect(iv).toContain("prep/prep.css?v=10");
@@ -794,7 +795,6 @@ describe("round 11: aptitude/interview sessions are Prep Pro; upgrade CTAs hide 
       'prepRouter.get("/aptitude/topics", authenticate, requirePrepPro',
       'prepRouter.get("/aptitude/quiz", authenticate, aptitudeLimiter, requirePrepPro',
       'prepRouter.post("/aptitude/submit", authenticate, aptitudeLimiter, requirePrepPro',
-      'prepRouter.get("/interview/questions", authenticate, interviewLimiter, requirePrepPro',
       'prepRouter.get("/interview/mock", authenticate, interviewLimiter, requirePrepPro',
       'prepRouter.post("/interview/mock/submit", authenticate, interviewLimiter, requirePrepPro',
     ]) expect(router).toContain(route);
@@ -825,10 +825,12 @@ describe("round 11: aptitude/interview sessions are Prep Pro; upgrade CTAs hide 
     expect(iv).toContain("headers: authHeaders()");
     // Regression guard: the AI-plan block once landed INSIDE the track-chip
     // callback, which left the plan button dead until a chip was clicked.
-    const rc = iv.slice(iv.indexOf("function renderChips()"), iv.indexOf("// ---- AI company + role plan"));
-    expect(rc).not.toBe("");
-    expect((rc.match(/chips\(/g) || []).length).toBe(3); // track + category + difficulty
-    expect(rc).not.toContain("planBtn");
+    // Round 20 removed the chips entirely — the button stays top-level.
+    expect(iv).not.toContain("function renderChips()");
+    expect(iv).toContain('planBtn.addEventListener("click"');
+    const pb = iv.slice(iv.indexOf('planBtn.addEventListener("click"'));
+    expect(pb).not.toBe("");
+    expect((pb.match(/planBtn\.addEventListener\("click"/g) || []).length).toBe(1);
   });
 
   it("the paywall ships styled and every prep page cache-busts the stylesheet", () => {
@@ -968,7 +970,8 @@ describe("round 13: role-weighted aptitude, researched mock brief, member CTA fi
     expect(apt).toContain('class="prep-steps"');
     expect(apt).toContain("Set your target");
     expect(iv).toContain('class="prep-steps"');
-    expect(iv).toContain("Read the sourced brief");
+    expect(iv).toContain("Type your real answer");
+    expect(iv).toContain("Search a company pack");
     expect(iv).not.toContain("last 10 years"); // no fabricated history claims
     expect(apt).toContain('class="apt-focus"'); // weighted-drill evidence renders in the quiz card
   });
@@ -1030,13 +1033,15 @@ describe("round 14: interview practice upgrades (timer, saved drills, STAR)", ()
     expect(ivPage).toContain("se_iv_bookmarks");
     expect(ivPage).toContain("data-star=");
     expect(ivPage).toContain("function starBtn(id)");
-    expect(ivPage).toContain("Saved (");
   });
-  it("difficulty chips and the saved filter narrow the browse list client-side", () => {
-    expect(ivPage).toContain('id="diffChips"');
-    expect(ivPage).toContain('id="savedToggle"');
-    expect(ivPage).toContain('if (savedOnly) list = list.filter');
-    expect(ivPage).toContain("String(q.difficulty || \"\").toLowerCase() === diff");
+  it("the static bank chips and saved filter are gone — packs replaced the list", () => {
+    expect(ivPage).not.toContain('id="diffChips"');
+    expect(ivPage).not.toContain('id="savedToggle"');
+    expect(ivPage).not.toContain('id="trackChips"');
+    expect(ivPage).not.toContain("if (savedOnly) list = list.filter");
+    expect(ivPage).not.toContain('id="browseList"');
+    expect(ivPage).toContain('id="packCompany"');
+    expect(ivPage).toContain("/api/prep/interview/packs");
   });
   it("mock questions carry a 2:00 answer timer and behavioural STAR tips", () => {
     expect(ivPage).toContain("Start 2:00 answer timer");
@@ -1161,7 +1166,7 @@ describe("round 16: Pro members never see the sell — resume file upload, zero 
     expect(ivPage).toContain("function applyProExtras()");
     expect(ivPage).toMatch(/isPro.*applyProExtras\(\)/);
     expect(ivPage).toContain('up.style.display = "none"');
-    expect(ivPage).toContain("Part of Prep Pro \\u2014 you already have all 24 questions");
+    expect(ivPage).toContain("Part of Prep Pro \\u2014 unlimited AI answer scores, full company packs and AI-scored mocks.");
     expect(ivPage).toContain('kick.textContent = "AI resume checks \\u00B7 unlimited"');
   });
 
@@ -1177,8 +1182,8 @@ describe("round 16: Pro members never see the sell — resume file upload, zero 
   });
 
   it("versions bumped in lockstep so stale cached pages self-heal", () => {
-    expect(nav).toContain("var WANT_V = 14;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 14;");
+    expect(nav).toContain("var WANT_V = 15;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 15;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1233,13 +1238,13 @@ describe("round 17: public daily drill — different questions every day", () =>
   });
 
   it("the sample copy now sells mocks and feedback, not just question count", () => {
-    expect(ivPage).toContain("Prep Pro opens the full bank any time, plus company-grounded mocks and feedback");
+    expect(ivPage).toContain("Prep Pro opens full company packs and scores every mock answer.");
     expect(ivPage).not.toContain("Prep Pro unlocks all 24 questions");
   });
 
   it("versions bumped in lockstep (page changed, nav script changed)", () => {
-    expect(nav).toContain("var WANT_V = 14;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 14;");
+    expect(nav).toContain("var WANT_V = 15;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 15;");
   });
 });
 
@@ -1343,8 +1348,8 @@ describe("round 18: an expired se_token self-heals via the shared SeAuth helper"
   });
 
   it("versions bumped in lockstep (nav + all five pages changed)", () => {
-    expect(nav).toContain("var WANT_V = 14;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 14;");
+    expect(nav).toContain("var WANT_V = 15;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 15;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1428,8 +1433,105 @@ describe("round 19: the plan card can roll fresh questions (never a repeat, neve
   });
 
   it("versions bumped in lockstep (interview page + nav script changed)", () => {
-    expect(nav).toContain("var WANT_V = 14;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 14;");
+    expect(nav).toContain("var WANT_V = 15;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 15;");
+    for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
+  });
+});
+
+describe("round 20: company packs + AI-scored answers, generic bank retired", () => {
+  const router = read("src/prep/router.ts");
+  const schema = read("src/prep/schema.ts");
+  const db = read("src/prep/db.ts");
+  const ai = read("src/prep/ai.ts");
+  const helpers = read("src/prep/interview.ts");
+  const packsDb = read("src/prep/packs-db.ts");
+  const ivPage = read("public/prep/interview.html");
+  const home = read("public/prep/index.html");
+  const nav = read("public/js/prep-nav.js");
+
+  it("the free taste endpoint is a rate-limited POST, never behind Pro", () => {
+    expect(router).toContain('prepRouter.post("/interview/answer/score", authenticate, answerScoreLimiter, prepDbGate');
+    expect(router).not.toMatch(/"\/interview\/answer\/score"[\s\S]{0,140}?requirePrepPro/);
+    expect(router).toContain("const FREE_ANSWER_SCORES_PER_DAY = 1;");
+    expect(router).toContain("used >= limit");
+    // honest failure: AI down still answers with guidance, never a dead-end 500
+    expect(router).toContain('scored: false');
+    expect(router).toContain("AI scoring is unavailable right now");
+    // only a genuine score spends the daily quota; the answer itself is never stored
+    expect(router).toContain("await recordAnswerScore(req.user!.id); // only genuine scores count");
+  });
+
+  it("the score quota lives in a count-only table (answer text never persisted)", () => {
+    expect(schema).toContain("prepAnswerScoresTable");
+    expect(schema).toContain('"prep_answer_scores"');
+    expect(db).toContain("CREATE TABLE IF NOT EXISTS prep_answer_scores");
+    const at = schema.indexOf("prepAnswerScoresTable");
+    const open = schema.indexOf("{", at);
+    const scoreTable = schema.slice(open, schema.indexOf("});", at));
+    expect(scoreTable).toContain("userId");
+    expect(scoreTable).toContain("createdAt");
+    expect(scoreTable).not.toContain("answer"); // usage count only, never the text
+  });
+
+  it("packs are MEMBER_REPORTED: labeled, deduped, quota-capped, PENDING-safe", () => {
+    expect(router).toContain('prepRouter.get("/interview/packs", authenticate, interviewLimiter, prepDbGate');
+    expect(router).toContain('prepRouter.post("/interview/packs/submit", authenticate, packSubmitLimiter, prepDbGate');
+    expect(packsDb).toContain("export const PACKS_PER_USER_PER_DAY = 10;");
+    expect(packsDb).toContain("MEMBER_REPORTED by design");
+    expect(router).toContain("findDuplicatePackQuestion(co.id, normalizePackQuestion");
+    expect(router).toContain("createPendingCompany(db, { name: company, createdBy: req.user!.id })");
+    expect(router).toContain("reported: true");
+    expect(router).toContain("listPackQuestions");
+    expect(schema).toContain("prepCompanyQuestionsTable");
+    expect(schema).toContain('"prep_company_questions"');
+    expect(db).toContain("CREATE TABLE IF NOT EXISTS prep_company_questions");
+    // never dead-end: an unknown company still answers honestly
+    expect(router).toContain("data: { found: false, company, total: 0");
+  });
+
+  it("the mock scores every typed answer in one AI pass and rolls up readiness", () => {
+    expect(router).toContain("generateAnswerScores({");
+    expect(router).toContain("summarizeAiScores(");
+    expect(router).toContain("aiUsed: readiness !== null");
+    expect(router).toContain("answers: z.record(z.string(), z.string().max(1500))");
+    expect(ai).toContain("export const ANSWER_SCORING_SYSTEM_PROMPT");
+    expect(ai).toContain("export function parseAnswerScoresResponse");
+    expect(ai).toContain("input.items.slice(0, 8)"); // one provider round trip per batch
+    expect(helpers).toContain("export function summarizeAiScores(");
+    expect(helpers).toContain("export function normalizePackQuestion(");
+    expect(helpers).toContain("export function cleanPackText(");
+  });
+
+  it("the page sells packs + scoring and the generic bank list is gone", () => {
+    expect(ivPage).toContain('id="packCompany"');
+    expect(ivPage).toContain('id="packForm"');
+    expect(ivPage).toContain('id="packUpsell"');
+    expect(ivPage).toContain("Member-reported &middot; unverified");
+    expect(ivPage).toContain("/api/prep/interview/packs");
+    expect(ivPage).toContain('data-score-send=');
+    expect(ivPage).toContain("/api/prep/interview/answer/score");
+    expect(ivPage).toContain('class="iv-answer-ta"');
+    expect(ivPage).toContain("data-answer=");
+    expect(ivPage).toContain("function scoreResultHtml(");
+    // retired surface: tabs, chips, saved filter, the static bank list
+    for (const gone of [
+      'id="browseList"', 'id="trackChips"', 'id="catChips"', 'id="diffChips"',
+      'id="savedToggle"', 'id="savedRow"', "renderChips", "loadBrowse", "setMode",
+      "savedOnly", "iv-rate",
+    ]) expect(ivPage, gone).not.toContain(gone);
+    expect(router).not.toContain('prepRouter.get("/interview/questions"');
+  });
+
+  it("the home page copy matches the new offer", () => {
+    expect(home).toContain("Company packs of questions candidates were actually asked");
+    expect(home).toContain("AI-scored interview answers and full company question packs");
+    expect(home).toContain('class="prep-feature" href="/prep/interview"');
+  });
+
+  it("versions bumped in lockstep (interview page + nav script changed)", () => {
+    expect(nav).toContain("var WANT_V = 15;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 15;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });

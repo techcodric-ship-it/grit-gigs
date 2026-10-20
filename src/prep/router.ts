@@ -18,14 +18,18 @@ import { gatherSourcesWithBudget } from "./sources/gather";
 import {
   fallbackPlan,
   fallbackPlanQuestions,
+  generateAnswerScores,
   generatePrepPlan,
   generatePrepQuestions,
   generateResumeCheck,
   summarizeReport,
+  type AnswerScore,
   type PrepAiPlanPayload,
 } from "./ai";
 import { countAiPlanRequestsToday, getCachedAiPlan, recordAiPlanRequest, saveAiPlan } from "./ai-plans";
 import { countResumeChecksToday, recordResumeCheck } from "./resume-checks";
+import { countAnswerScoresToday, recordAnswerScore } from "./answer-scores";
+import { PACKS_PER_USER_PER_DAY, countPackSubmissionsToday, findDuplicatePackQuestion, insertPackQuestion, listPackQuestions } from "./packs-db";
 import { extractResumeText } from "./resume-text";
 import { aptitudeWeights, trackForRole, weightsFromPlanTopics, type AptitudeWeights } from "./role-skills";
 import { APTITUDE_TOPICS, prepAptitudeQuestionsTable, prepCompaniesTable, prepInterviewQuestionsTable, prepReportsTable } from "./schema";
@@ -64,18 +68,21 @@ import {
 import { buildPayAggregate, buildPlacementAggregate, resolveMinSample } from "./aggregates";
 import {
   INTERVIEW_CATEGORIES,
-  INTERVIEW_TRACKS,
   MOCK_DEFAULT_COUNT,
   SAMPLE_QUESTION_CODES,
   TODAY_DRILL_SIZE,
   aggregateFeedback,
+  cleanPackText,
   dailyDrillCodes,
   dailyDrillQuestions,
+  INTERVIEW_BANK,
   isValidCategory,
   isValidTrack,
+  normalizePackQuestion,
   pickMock,
   sampleInterviewQuestions,
   signInterviewMock,
+  summarizeAiScores,
   toPublicInterviewQuestion,
   utcDayIndex,
   utcDayLabel,
@@ -823,30 +830,6 @@ prepRouter.get("/interview/today", interviewLimiter, prepDbGate, async (_req: Re
   }
 });
 
-prepRouter.get("/interview/questions", authenticate, interviewLimiter, requirePrepPro, prepDbGate, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const track = isValidTrack(req.query.track) ? req.query.track : null;
-    const category = isValidCategory(req.query.category) ? req.query.category : null;
-    const rows = await db.select().from(prepInterviewQuestionsTable);
-    // Small bank: filter in JS so validation and ordering stay in one place.
-    const filtered = rows.filter(
-      (r) => (!track || r.track === track) && (!category || r.category === category),
-    );
-    filtered.sort((a, b) => a.code.localeCompare(b.code));
-    res.json({
-      success: true,
-      data: {
-        tracks: INTERVIEW_TRACKS,
-        categories: INTERVIEW_CATEGORIES,
-        questions: filtered,
-      },
-    });
-  } catch (err) {
-    console.error("[prep] interview questions failed:", err);
-    res.status(500).json({ success: false, message: "Could not load questions" });
-  }
-});
-
 /**
  * Company+role research brief for the mock: cached plan first, else one live
  * gather+AI pass (saved to cache). Research failure NEVER kills the session —
@@ -932,15 +915,20 @@ prepRouter.get("/interview/mock", authenticate, interviewLimiter, requirePrepPro
   }
 });
 
+// Mock submit: the client sends the answers the candidate actually TYPED —
+// the coach reads them, scores each 0-10 and returns a stronger version.
+// Self-rating was removed: the panel cares what you SAID, not how you felt.
+// One AI call scores the whole batch; AI down still answers with per-question
+// guidance, so feedback never dead-ends.
 const mockSubmitBody = z.object({
   token: z.string().min(1).max(4000),
-  ratings: z.record(z.string(), z.number().int().min(1).max(5)).default({}),
+  answers: z.record(z.string(), z.string().max(1500)).default({}),
 });
 
 prepRouter.post("/interview/mock/submit", authenticate, interviewLimiter, requirePrepPro, prepDbGate, async (req: Request, res: Response): Promise<void> => {
   const parsed = mockSubmitBody.safeParse(req.body ?? {});
   if (!parsed.success) {
-    res.status(400).json({ success: false, message: "token and ratings (1-5) are required" });
+    res.status(400).json({ success: false, message: "token and typed answers are required" });
     return;
   }
   try {
@@ -957,11 +945,260 @@ prepRouter.post("/interview/mock/submit", authenticate, interviewLimiter, requir
       ...toPublicInterviewQuestion(r),
       guidance: r.guidance,
     }));
-    const feedback = aggregateFeedback(publicRows, parsed.data.ratings, payload.ids);
-    res.json({ success: true, data: feedback });
+    const feedback = aggregateFeedback(publicRows, {}, payload.ids);
+    const items = feedback.items.map((it) => ({
+      id: it.id,
+      code: it.code,
+      question: it.question,
+      category: it.category,
+      difficulty: it.difficulty,
+      guidance: it.guidance,
+      answer: cleanPackText(parsed.data.answers[it.id], 1500),
+    }));
+    const answered = items.filter((it) => it.answer.length >= 2);
+    const scores = answered.length
+      ? await generateAnswerScores({
+          items: answered.map((it) => ({ question: it.question, category: it.category, answer: it.answer })),
+        })
+      : null;
+    const scoreById = new Map<string, AnswerScore>();
+    if (scores) {
+      answered.forEach((it, i) => {
+        const s = scores[i];
+        if (s) scoreById.set(it.id, s);
+      });
+    }
+    const scoredItems = items.map((it) => {
+      const s = scoreById.get(it.id);
+      return s
+        ? { ...it, score: s.score, verdict: s.verdict, strengths: s.strengths, improvements: s.improvements, better: s.better }
+        : { ...it, score: null as number | null, verdict: "", strengths: [] as string[], improvements: [] as string[], better: "" };
+    });
+    const { readiness, weakestCategory } = summarizeAiScores(
+      scoredItems.filter((it) => it.score !== null).map((it) => ({ category: it.category, score: it.score as number })),
+    );
+    res.json({
+      success: true,
+      data: {
+        readiness,
+        weakestCategory,
+        answered: answered.length,
+        total: scoredItems.length,
+        aiUsed: readiness !== null,
+        note:
+          readiness !== null
+            ? null
+            : answered.length
+              ? "AI scoring is unavailable right now - the guidance for each answer is below."
+              : "Type your answers - the AI interviewer scores what you write.",
+        items: scoredItems,
+      },
+    });
   } catch (err) {
     console.error("[prep] interview submit failed:", err);
     res.status(500).json({ success: false, message: "Feedback generation failed" });
+  }
+});
+
+// ---- Free daily AI answer score (1/day; Pro unlimited) ----
+// The same coach as the mock, pointed at ONE question from today's drill or
+// the sample — the free taste that sells Prep Pro. The typed answer is
+// analysed in memory and NEVER stored; only the usage count persists. Quota
+// exhausted or AI unavailable still answers with the question's guidance.
+
+const answerScoreLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many scores requested, try again shortly." },
+});
+
+const FREE_ANSWER_SCORES_PER_DAY = 1;
+
+const answerScoreBody = z.object({
+  code: z.string().min(1).max(64),
+  answer: z.string().min(20).max(1500),
+});
+
+prepRouter.post("/interview/answer/score", authenticate, answerScoreLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  const parsed = answerScoreBody.safeParse({
+    code: String(req.body?.code ?? "").trim().slice(0, 64),
+    answer: String(req.body?.answer ?? "").trim().slice(0, 1500),
+  });
+  if (!parsed.success) {
+    res.status(400).json({ success: false, message: "Type at least 20 characters of your answer." });
+    return;
+  }
+  const { code, answer } = parsed.data;
+  const limit = FREE_ANSWER_SCORES_PER_DAY;
+  try {
+    const rows = await db.select().from(prepInterviewQuestionsTable).where(eq(prepInterviewQuestionsTable.code, code));
+    const bankRow = rows[0] ?? INTERVIEW_BANK.find((q) => q.code === code) ?? null;
+    if (!bankRow) {
+      res.status(400).json({ success: false, message: "Unknown question - refresh the page and try again." });
+      return;
+    }
+    const isProUser = isEntitlementActive(await getActiveEntitlement(req.user!.id));
+    let used = 0;
+    if (!isProUser) used = await countAnswerScoresToday(req.user!.id);
+    if (!isProUser && used >= limit) {
+      res.json({ success: true, data: { scored: false, limited: true, used, limit, guidance: bankRow.guidance } });
+      return;
+    }
+    const scores = await generateAnswerScores({
+      items: [{ question: bankRow.question, category: bankRow.category, answer }],
+    });
+    if (scores && scores[0]) {
+      if (!isProUser) await recordAnswerScore(req.user!.id); // only genuine scores count
+      res.status(201).json({
+        success: true,
+        data: { scored: true, limited: false, used: used + 1, limit, result: scores[0], guidance: bankRow.guidance },
+      });
+      return;
+    }
+    res.json({
+      success: true,
+      data: {
+        scored: false,
+        limited: false,
+        used,
+        limit,
+        guidance: bankRow.guidance,
+        note: "AI scoring is unavailable right now - try again in a few minutes.",
+      },
+    });
+  } catch (err) {
+    console.error("[prep] answer score failed:", err);
+    res.json({
+      success: true,
+      data: {
+        scored: false,
+        limited: false,
+        used: 0,
+        limit,
+        guidance: "",
+        note: "AI scoring is unavailable right now - try again in a few minutes.",
+      },
+    });
+  }
+});
+
+// ---- Company question packs (member-reported; never presented as verified) ----
+// The questions candidates say they were actually asked. Free members see the
+// count plus one sample; Prep Pro opens the full pack. Submissions are
+// MEMBER_REPORTED and unverified by design — every read path must keep that
+// label honest. Packs must not litter the ACTIVE company catalogue, so unknown
+// names become PENDING companies (same rule as aptitude/mock).
+
+const packSubmitLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many pack submissions, try again shortly." },
+});
+
+prepRouter.get("/interview/packs", authenticate, interviewLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  const company = String(req.query.company ?? "").trim().slice(0, 200);
+  if (company.length < 2) {
+    res.status(400).json({ success: false, message: "Enter a company name (2+ characters)." });
+    return;
+  }
+  try {
+    const isProUser = isEntitlementActive(await getActiveEntitlement(req.user!.id));
+    const exact = (await resolveCompany(db, company)).find((c) => c.score === 3);
+    const co = exact ? await findCompanyBySlug(exact.slug) : null;
+    if (!co) {
+      res.json({
+        success: true,
+        data: { found: false, company, total: 0, isPro: isProUser, questions: [], reported: true },
+      });
+      return;
+    }
+    const rows = await listPackQuestions(co.id);
+    const publicRows = rows.map((r) => ({
+      id: r.id,
+      question: r.question,
+      category: r.category,
+      role: r.role,
+      context: r.context,
+      askedAt: r.createdAt.toISOString().slice(0, 10),
+    }));
+    res.json({
+      success: true,
+      data: {
+        found: true,
+        companyId: co.id,
+        company: co.name,
+        total: publicRows.length,
+        isPro: isProUser,
+        reported: true,
+        questions: isProUser ? publicRows.slice(0, 50) : publicRows.slice(0, 1),
+      },
+    });
+  } catch (err) {
+    console.error("[prep] interview packs failed:", err);
+    res.json({ success: true, data: { found: false, company, total: 0, isPro: false, questions: [], reported: true } });
+  }
+});
+
+const packSubmitBody = z.object({
+  company: z.string().min(2).max(200),
+  role: z.string().max(120).optional(),
+  category: z.string().max(30).optional(),
+  question: z.string().min(10).max(500),
+  context: z.string().max(280).optional(),
+});
+
+prepRouter.post("/interview/packs/submit", authenticate, packSubmitLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  const parsed = packSubmitBody.safeParse({
+    company: cleanPackText(req.body?.company, 200),
+    role: cleanPackText(req.body?.role, 120) || undefined,
+    category: cleanPackText(req.body?.category, 30) || undefined,
+    question: cleanPackText(req.body?.question, 500),
+    context: cleanPackText(req.body?.context, 280) || undefined,
+  });
+  if (!parsed.success) {
+    res.status(400).json({ success: false, message: "Company (2+ chars) and a question (10-500 chars) are required." });
+    return;
+  }
+  const { company, role = "", context = "" } = parsed.data;
+  const category =
+    parsed.data.category && (INTERVIEW_CATEGORIES as readonly string[]).includes(parsed.data.category)
+      ? parsed.data.category
+      : "technical";
+  try {
+    const used = await countPackSubmissionsToday(req.user!.id);
+    if (used >= PACKS_PER_USER_PER_DAY) {
+      res.status(429).json({
+        success: false,
+        message: `You shared ${PACKS_PER_USER_PER_DAY} questions today - thanks! Come back tomorrow.`,
+      });
+      return;
+    }
+    const exact = (await resolveCompany(db, company)).find((c) => c.score === 3);
+    let co = exact ? await findCompanyBySlug(exact.slug) : null;
+    if (!co) co = await createPendingCompany(db, { name: company, createdBy: req.user!.id });
+    if (await findDuplicatePackQuestion(co.id, normalizePackQuestion(parsed.data.question))) {
+      res.json({ success: true, data: { duplicate: true, message: "That question is already in the pack - thanks anyway." } });
+      return;
+    }
+    await insertPackQuestion({
+      companyId: co.id,
+      role,
+      category,
+      question: parsed.data.question,
+      context,
+      submittedBy: req.user!.id,
+    });
+    res.status(201).json({
+      success: true,
+      data: { duplicate: false, company: co.name, message: "Shared - your question is live in the pack." },
+    });
+  } catch (err) {
+    console.error("[prep] interview pack submit failed:", err);
+    res.status(500).json({ success: false, message: "Could not share the question. Try again." });
   }
 });
 

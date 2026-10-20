@@ -190,4 +190,40 @@ export function aggregateFeedback(
   };
 }
 
+/** Pack submission hygiene: one question shape for dedupe and storage. */
+export function cleanPackText(v: unknown, max: number): string {
+  return typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, max) : "";
+}
+
+/** Lowercased, punctuation-stripped key so "Why TCS?!" matches "why tcs". */
+export function normalizePackQuestion(q: string): string {
+  return cleanPackText(q, 500)
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N} ]/gu, "");
+}
+
+/** Readiness roll-up of AI answer scores: average /10 + weakest category. */
+export function summarizeAiScores(
+  items: { category: string; score: number }[],
+): { readiness: number | null; weakestCategory: string | null } {
+  if (!items.length) return { readiness: null, weakestCategory: null };
+  const readiness = Math.round((items.reduce((a, b) => a + b.score, 0) / items.length) * 10) / 10;
+  const byCat = new Map<string, number[]>();
+  for (const it of items) {
+    const list = byCat.get(it.category) ?? [];
+    list.push(it.score);
+    byCat.set(it.category, list);
+  }
+  let weakest: string | null = null;
+  let weakestAvg = Number.POSITIVE_INFINITY;
+  for (const [category, scores] of [...byCat.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+    if (avg < weakestAvg || (avg === weakestAvg && weakest !== null && category < weakest)) {
+      weakestAvg = avg;
+      weakest = category;
+    }
+  }
+  return { readiness, weakestCategory: weakest };
+}
+
 export { INTERVIEW_BANK };

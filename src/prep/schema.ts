@@ -160,3 +160,32 @@ export const prepResumeChecksTable = pgTable("prep_resume_checks", {
 });
 
 export type PrepResumeCheck = typeof prepResumeChecksTable.$inferSelect;
+
+// Per-user daily free-tier AI answer scores (Prep Pro skips the count).
+// Usage count ONLY — typed answers are analysed in memory and never stored.
+export const prepAnswerScoresTable = pgTable("prep_answer_scores", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type PrepAnswerScore = typeof prepAnswerScoresTable.$inferSelect;
+
+// Member-submitted company question packs: the questions candidates say they
+// were actually asked. MEMBER_REPORTED and unverified by design — every read
+// path must label them as such; status exists for later moderation.
+export const prepCompanyQuestionsTable = pgTable("prep_company_questions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id")
+    .notNull()
+    .references(() => prepCompaniesTable.id),
+  role: varchar("role", { length: 120 }).notNull().default(""),
+  category: varchar("category", { length: 30 }).notNull().default("technical"),
+  question: text("question").notNull(),
+  context: varchar("context", { length: 280 }).notNull().default(""),
+  status: varchar("status", { length: 20 }).notNull().default("VISIBLE"),
+  submittedBy: uuid("submitted_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type PrepCompanyQuestion = typeof prepCompanyQuestionsTable.$inferSelect;

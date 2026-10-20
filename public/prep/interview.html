@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 14;</script>
+<script>window.PREP_V = 15;</script>
 <link rel="stylesheet" href="/prep/prep.css?v=10"/>
 <style>
   .iv-tabs { display:flex; gap:8px; margin-bottom:16px; }
@@ -38,10 +38,6 @@
   .mock-brief-head { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:6px 0 8px; }
   .mock-brief-head b { font-size:1.02rem; color:var(--prep-ink); }
   .iv-guide { font-size:0.9rem; line-height:1.55; color:var(--prep-ink-2); background:#F7F7F9; border-radius:8px; padding:9px 11px; margin-top:8px; }
-  .iv-rate { display:flex; gap:6px; margin-top:10px; align-items:center; flex-wrap:wrap; }
-  .iv-rate span { font-size:0.82rem; font-weight:700; color:var(--prep-ink-2); }
-  .iv-rate button { width:34px; height:34px; border-radius:8px; border:1px solid var(--prep-line); background:#fff; font:inherit; font-weight:800; font-size:0.85rem; cursor:pointer; }
-  .iv-rate button[aria-pressed="true"] { background:var(--prep-violet); border-color:var(--prep-violet); color:#fff; }
   .iv-stat { font-size:0.95rem; font-weight:700; color:var(--prep-ink); margin-bottom:10px; }
   .iv-stat b { color:var(--prep-violet); font-size:1.3rem; }
   .iv-star-btn { border:1px solid var(--prep-line); background:#fff; border-radius:8px; width:30px; height:30px; cursor:pointer; color:#B45309; font-size:0.95rem; padding:0; line-height:1; }
@@ -51,6 +47,24 @@
   .iv-timer-btn { border:1px solid var(--prep-line); background:#fff; border-radius:8px; padding:6px 12px; font:inherit; font-size:0.82rem; font-weight:800; cursor:pointer; color:var(--prep-ink-2); }
   .iv-timer-clock { font-weight:800; font-variant-numeric:tabular-nums; color:var(--prep-violet); font-size:0.95rem; }
   .iv-timer-clock.done { color:#B03027; }
+  .iv-answer-ta { width:100%; box-sizing:border-box; border:1px solid var(--prep-line); border-radius:10px; padding:10px 12px; font:inherit; font-size:0.92rem; resize:vertical; margin-top:10px; }
+  .iv-answer-count { font-size:0.78rem; color:var(--prep-ink-2); margin:4px 0 8px; }
+  .iv-scorebox { margin-top:10px; }
+  .iv-scorebox[hidden] { display:none; }
+  .iv-score-num { display:inline-block; border-radius:999px; padding:2px 12px; font-size:0.85rem; font-weight:800; background:var(--prep-violet-light); color:var(--prep-violet-deep); }
+  .iv-score-num.strong { background:#E7F7EE; color:#137A4B; }
+  .iv-score-num.work { background:#FDF3E0; color:#8A5A2B; }
+  .iv-score-num.thin { background:#FDECEA; color:#B03027; }
+  .iv-better { font-size:0.9rem; line-height:1.55; color:var(--prep-ink); background:#F3F0FF; border:1px solid #E2DBFB; border-radius:8px; padding:9px 11px; margin-top:8px; }
+  .iv-pack-search { display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin:10px 0 6px; }
+  .iv-pack-search .prep-field { flex:1; min-width:220px; margin:0; }
+  .iv-pack-meta { font-size:0.85rem; font-weight:700; color:var(--prep-ink-2); margin:8px 0; }
+  .iv-pack-label { font-size:0.78rem; font-weight:800; letter-spacing:0.05em; text-transform:uppercase; color:#8A5A2B; background:#FDF3E0; border:1px solid #F3E0BC; border-radius:999px; padding:3px 10px; display:inline-block; margin-bottom:10px; }
+  .iv-pack-form { border-top:1px solid var(--prep-line); margin-top:16px; padding-top:14px; }
+  .iv-pack-form[hidden] { display:none; }
+  .iv-pack-form .prep-field { margin-bottom:10px; }
+  .iv-pack-form select { width:100%; box-sizing:border-box; border:1px solid var(--prep-line); border-radius:10px; padding:10px 12px; font:inherit; font-size:0.92rem; background:#fff; }
+  .iv-pack-form textarea { width:100%; box-sizing:border-box; border:1px solid var(--prep-line); border-radius:10px; padding:10px 12px; font:inherit; font-size:0.92rem; resize:vertical; }
   .resume-ta { width:100%; box-sizing:border-box; border:1px solid var(--prep-line); border-radius:10px; padding:10px 12px; font:inherit; font-size:0.92rem; resize:vertical; margin-top:8px; }
   .resume-count { font-size:0.78rem; color:var(--prep-ink-2); margin:4px 0 10px; }
   .resume-band { display:inline-block; border-radius:999px; padding:2px 10px; font-size:0.8rem; font-weight:800; }
@@ -82,23 +96,24 @@
     <a class="prep-tab" href="/prep/proof">Contribute proof</a>
   </nav>
   <section class="prep-hero-sm">
-    <span class="prep-eyebrow">Interview &middot; mocks &amp; question banks</span>
-    <h2 class="prep-hero-sm-h">24 questions, 4 tracks, the three round types that repeat everywhere</h2>
-    <p class="prep-sub">Behavioural, technical and HR &mdash; study the bank, run a mock out loud, rate yourself honestly and see your weakest category before the real panel does.</p>
+    <span class="prep-eyebrow">Interview &middot; company packs &amp; AI-scored mocks</span>
+    <h2 class="prep-hero-sm-h">The questions candidates were actually asked &mdash; and an AI that scores your answers</h2>
+    <p class="prep-sub">Search company packs of member-reported questions, get one free AI score on your typed
+      answer every day, and run a mock where the AI interviewer scores every answer 0&ndash;10 with a stronger version to rehearse.</p>
     <ul class="prep-trust-chips">
-      <li>Behavioural &middot; Technical &middot; HR</li>
-      <li>Mock + self-rating feedback</li>
-      <li>Post-mock feedback: what interviewers look for</li>
-      <li>2-min timed answers &middot; saved drills &middot; STAR tips</li>
+      <li>Company packs &middot; member-reported</li>
+      <li>1 free AI answer score a day</li>
+      <li>Mock: AI scores every answer</li>
+      <li>2-min timed answers &middot; STAR tips</li>
     </ul>
     <ol class="prep-steps">
-      <li><b>Fill company + role</b><span>the coach researches it live</span></li>
-      <li><b>Read the sourced brief</b><span>rounds, skills, expected questions</span></li>
-      <li><b>Mock &amp; get feedback</b><span>rate yourself, spot the weakest category</span></li>
+      <li><b>Type your real answer</b><span>to any drill question &mdash; scored 0&ndash;10 free daily</span></li>
+      <li><b>Search a company pack</b><span>real asked questions, shared by candidates</span></li>
+      <li><b>Run an AI-scored mock</b><span>company-researched, stronger version included</span></li>
     </ol>
     <div class="prep-hero-ctas">
       <a class="prep-btn" href="#ivPlanCard">Build an AI company plan</a>
-      <a class="prep-btn prep-btn-ghost" href="#browseCard">Browse the question bank</a>
+      <a class="prep-btn prep-btn-ghost" href="#browseCard">Search a company pack</a>
     </div>
   </section>
 
@@ -115,12 +130,63 @@
   <section class="prep-card" id="sampleCard">
     <span class="plan-kicker">Free sample</span>
     <h2 class="prep-h2">Three questions interviewers actually open with</h2>
-    <p class="prep-sub" id="sampleSub">A real taste of the bank &mdash; including what interviewers look for in each answer.
-      Prep Pro opens the full bank any time, plus company-grounded mocks and feedback on how you actually answered.</p>
+    <p class="prep-sub" id="sampleSub">A real taste of the coaching &mdash; including what interviewers look for in each answer.
+      Type your own answer and get one free AI score a day. Prep Pro opens full company packs and scores every mock answer.</p>
     <div id="sampleList"><div class="prep-empty">Loading&hellip;</div></div>
     <div class="prep-hero-ctas" id="sampleUpsell" style="margin-top:14px;">
-      <a class="prep-btn" href="/prep#prepProCard">Unlock all 24 + company mocks &#8377;199</a>
+      <a class="prep-btn" href="/prep#prepProCard">Unlock packs + AI-scored mocks &#8377;199</a>
     </div>
+  </section>
+
+  <section class="prep-card" id="browseCard">
+    <h1 class="prep-h1">Interview prep</h1>
+    <span class="plan-kicker">Company packs &middot; member-reported</span>
+    <h2 class="prep-h2">Questions candidates were actually asked</h2>
+    <p class="prep-sub">Search a company to see its pack &mdash; shared by members who sat the interview, so treat
+      every question as one real experience, not a guarantee. One question is a free preview; Prep Pro opens the full pack.
+      Been through an interview? Share what they asked at the bottom.</p>
+    <div class="iv-pack-search">
+      <div class="prep-field">
+        <label for="packCompany">Company</label>
+        <input id="packCompany" list="ivPlanCompanies" placeholder="e.g. TCS" maxlength="200" autocomplete="off"/>
+      </div>
+      <button class="prep-btn" type="button" id="packLoad">Load pack</button>
+    </div>
+    <div class="prep-err" id="packErr" role="alert"></div>
+    <div id="packOut" hidden>
+      <span class="iv-pack-label">Member-reported &middot; unverified</span>
+      <p class="iv-pack-meta" id="packMeta"></p>
+      <div id="packList"></div>
+      <div class="prep-hero-ctas" id="packUpsell" style="margin-top:12px;" hidden>
+        <a class="prep-btn" href="/prep#prepProCard">Open the full pack with Prep Pro &#8377;199</a>
+      </div>
+    </div>
+    <div class="iv-pack-form" id="packForm" hidden>
+      <h3 class="plan-h3">Share a question you were asked</h3>
+      <div class="prep-field">
+        <label for="packFormRole">Role (optional)</label>
+        <input id="packFormRole" placeholder="e.g. Software Engineer" maxlength="120"/>
+      </div>
+      <div class="prep-field">
+        <label for="packFormCat">Round type</label>
+        <select id="packFormCat">
+          <option value="technical">Technical</option>
+          <option value="behavioral">Behavioural</option>
+          <option value="hr">HR</option>
+        </select>
+      </div>
+      <div class="prep-field">
+        <label for="packFormQ">The question</label>
+        <textarea id="packFormQ" rows="3" maxlength="500" placeholder="e.g. Walk me through how you would design a URL shortener."></textarea>
+      </div>
+      <div class="prep-field">
+        <label for="packFormCtx">Context (optional)</label>
+        <input id="packFormCtx" placeholder="e.g. Round 2, asked after my project discussion" maxlength="280"/>
+      </div>
+      <button class="prep-btn" type="button" id="packFormBtn">Share to the pack</button>
+      <p class="prep-sub" id="packFormNote" style="font-size:0.82rem;"></p>
+    </div>
+    <button class="prep-btn prep-btn-ghost" type="button" id="packFormToggle" style="margin-top:12px;">Share a question you were asked</button>
   </section>
 
   <section class="prep-card" id="resumeCard">
@@ -145,32 +211,13 @@
   <section class="prep-card prep-paywall" id="ivPaywall" hidden>
     <span class="plan-kicker">Prep Pro perk</span>
     <h2 class="prep-h2">Practice<span id="ivPaywallCo"></span> the way the panel will</h2>
-    <p class="prep-sub">You&rsquo;ve seen the free sample above. Prep Pro is the full loop: all 24 questions,
-      mocks that research your target company&rsquo;s likely rounds, timed practice and post-mock feedback on
-      what interviewers actually look for &mdash; &#8377;199 for 30 days, one-time payment, nothing auto-renews.</p>
+    <p class="prep-sub">You&rsquo;ve seen the free sample above. Prep Pro is the full loop: full company packs of
+      real asked questions, mocks that research your target company&rsquo;s likely rounds and AI-score every answer
+      you type with a stronger version to rehearse &mdash; &#8377;199 for 30 days, one-time payment, nothing auto-renews.</p>
     <div class="prep-paywall-ctas">
       <a class="prep-btn" id="ivPaywallPrimary" href="/prep#prepProCard">Get Prep Pro &mdash; &#8377;199</a>
       <a class="prep-btn prep-btn-ghost" id="ivPaywallAlt" href="/login?next=/prep/interview">Sign in</a>
     </div>
-  </section>
-
-  <section class="prep-card" data-pro-content>
-    <h1 class="prep-h1">Interview prep</h1>
-    <p class="prep-sub">Original question sets with guidance on what interviewers actually look for. Browse to study, or run a mock session and rate your own answers.</p>
-    <ul class="prep-stats">
-      <li><b>24</b><span>questions across 4 tracks</span></li>
-      <li><b>Behavioural · Technical · HR</b><span>the three round types that repeat most</span></li>
-      <li><b>Mock + feedback</b><span>rate 1–5, get averages and your weakest category</span></li>
-    </ul>
-    <div class="iv-tabs">
-      <button type="button" class="iv-tab" id="tabBrowse" aria-pressed="true">Browse</button>
-      <button type="button" class="iv-tab" id="tabMock" aria-pressed="false">Mock session</button>
-    </div>
-    <div class="iv-chips" id="trackChips"></div>
-    <div class="iv-chips" id="catChips"></div>
-    <div class="iv-chips" id="diffChips"></div>
-    <div class="iv-chips" id="savedRow"><button type="button" class="iv-chip" id="savedToggle" aria-pressed="false">&#9733; Saved (0)</button></div>
-    <div class="prep-err" id="ivErr" role="alert"></div>
   </section>
 
   <section class="prep-card prep-card-plan" id="ivPlanCard">
@@ -203,19 +250,19 @@
     <div class="plan-out" id="ivPlanOut" hidden></div>
   </section>
 
-  <section class="prep-card" id="browseCard" data-pro-content>
-    <div id="browseList"><div class="prep-empty">Loading questions…</div></div>
-  </section>
-
-  <section class="prep-card" id="mockCard" data-pro-content hidden>
+  <section class="prep-card" id="mockCard" data-pro-content>
     <div class="mock-brief" id="mockBrief" hidden></div>
     <div class="mock-co" id="mockCo" hidden></div>
     <div id="mockIntro">
-      <p class="prep-sub">Set your company + role in the AI coach above — the mock researches it first and
-        shows the sourced brief, then you answer each question out loud in ~2 minutes and rate it 1&ndash;5.</p>
+      <span class="plan-kicker">AI-scored mock</span>
+      <h2 class="prep-h2">Mock session &mdash; the AI interviewer reads every answer</h2>
+      <p class="prep-sub">Set your company + role in the AI coach above &mdash; the mock researches it first and
+        shows the sourced brief. Answer each question out loud in ~2 minutes, type it in, and the AI scores it 0&ndash;10
+        with a stronger version to rehearse.</p>
       <p class="prep-sub" id="ivMockStat"></p>
       <button class="prep-btn" type="button" id="mockStart">Start mock (5 questions)</button>
     </div>
+    <div class="prep-err" id="ivErr" role="alert"></div>
     <div id="mockForm" hidden></div>
     <button class="prep-btn" type="button" id="mockSubmit" hidden style="margin-top:14px;">Finish &amp; get feedback</button>
   </section>
@@ -236,7 +283,7 @@
 </main>
 
 <script src="/js/se-auth.js?v=1"></script>
-<script src="/js/prep-nav.js?v=13" defer></script>
+<script src="/js/prep-nav.js?v=14" defer></script>
 <script>
 (function () {
   "use strict";
@@ -246,11 +293,7 @@
     });
   }
   var errEl = document.getElementById("ivErr");
-  var tracks = ["general", "engineering", "data", "business"];
-  var cats = ["behavioral", "technical", "hr"];
-  var track = null, cat = null, mode = "browse";
-  var diff = null, savedOnly = false;
-  var mockQuestions = [], mockToken = "", ratings = {};
+  var mockQuestions = [], mockToken = "";
 
   // ---- Saved questions (localStorage drill list, Interviewing.io-style) ----
   var SAVED_KEY = "se_iv_bookmarks";
@@ -269,7 +312,6 @@
     if (savedMap[id]) delete savedMap[id]; else savedMap[id] = true;
     persistSaved();
   }
-  function savedCount() { return Object.keys(savedMap).length; }
   function starBtn(id) {
     var on = !!savedMap[String(id)];
     return '<button type="button" class="iv-star-btn" data-star="' + esc(id) +
@@ -336,7 +378,7 @@
     var up = document.getElementById("sampleUpsell");
     if (up) up.style.display = "none";
     var sub = document.getElementById("sampleSub");
-    if (sub) sub.textContent = "Part of Prep Pro \u2014 you already have all 24 questions, company-grounded mocks and post-mock feedback.";
+    if (sub) sub.textContent = "Part of Prep Pro \u2014 unlimited AI answer scores, full company packs and AI-scored mocks.";
     var kick = document.getElementById("resumeKick");
     if (kick) kick.textContent = "AI resume checks \u00B7 unlimited";
   }
@@ -357,28 +399,15 @@
         if (r.status === 401) { showPaywall("signin"); return null; }
         // Rate limit / hiccup: show the session area anyway — every call the
         // server makes still enforces the entitlement and flips the paywall.
-        if (!r.ok) { showSessions(); renderChips(); loadBrowse(); return null; }
+        if (!r.ok) { showSessions(); return null; }
         return r.json();
       })
       .then(function (d) {
         if (!d || !d.success) return;
-        if (d.data && d.data.isPro) { showSessions(); renderChips(); loadBrowse(); applyProExtras(); return; }
+        if (d.data && d.data.isPro) { showSessions(); applyProExtras(); return; }
         showPaywall("upgrade");
       })
-      .catch(function () { showSessions(); renderChips(); loadBrowse(); });
-  }
-
-  function chips(el, values, current, onPick) {
-    el.innerHTML = "";
-    values.forEach(function (v) {
-      var b = document.createElement("button");
-      b.type = "button";
-      b.className = "iv-chip";
-      b.textContent = v;
-      b.setAttribute("aria-pressed", v === current ? "true" : "false");
-      b.addEventListener("click", function () { onPick(v); });
-      el.appendChild(b);
-    });
+      .catch(function () { showSessions(); });
   }
 
   function tagHtml(kind, val) {
@@ -388,71 +417,6 @@
     return '<span class="iv-tag iv-tag-' + kind + " iv-tag-" + slug + '">' + esc(v) + "</span>";
   }
 
-  function questionHtml(q) {
-    // Clean chip card: track/category/difficulty tags plus a save-star.
-    // What-interviewers-look-for guidance moved to POST-mock feedback (fbList),
-    // where it lands right after the answer it comments on.
-    return '<div class="iv-item"><div class="iv-tags">' +
-      tagHtml("track", q.track) + tagHtml("cat", q.category) + tagHtml("diff", q.difficulty) +
-      starBtn(q.id) +
-      '</div><p class="iv-q">' + esc(q.question) + "</p>" +
-      "</div>";
-  }
-
-  function loadBrowse() {
-    var qs = [];
-    // Saved mode loads the whole bank, then filters client-side so saved
-    // questions still show when a track/category chip is also active.
-    if (!savedOnly) {
-      if (track) qs.push("track=" + encodeURIComponent(track));
-      if (cat) qs.push("category=" + encodeURIComponent(cat));
-    }
-    var url = "/api/prep/interview/questions" + (qs.length ? "?" + qs.join("&") : "");
-    fetch(url, { credentials: "same-origin", headers: authHeaders() })
-      .then(function (r) { return r.json().then(function (x) { return { status: r.status, d: x }; }); })
-      .then(function (res) {
-        if (res.status === 401) { showPaywall("signin"); return; }
-        if (res.status === 402) { showPaywall("upgrade"); return; }
-        var d = res.d;
-        if (!d || !d.success) { errEl.textContent = (d && d.message) || "Could not load questions."; return; }
-        errEl.textContent = "";
-        var list = d.data.questions || [];
-        if (diff) list = list.filter(function (q) { return String(q.difficulty || "").toLowerCase() === diff; });
-        if (savedOnly) list = list.filter(function (q) { return !!(savedMap[String(q.id)] || savedMap[String(q.code)]); });
-        var listEl = document.getElementById("browseList");
-        listEl.innerHTML = list.length
-          ? list.map(questionHtml).join("")
-          : '<div class="prep-empty"><b>No questions match</b>Try another track, category or difficulty.</div>';
-      })
-      .catch(function () { errEl.textContent = "Network error. Try again."; });
-  }
-
-  function renderChips() {
-    chips(document.getElementById("trackChips"), tracks, track, function (v) {
-      track = (track === v) ? null : v;
-
-      renderChips();
-      if (mode === "browse") loadBrowse();
-    });
-    chips(document.getElementById("catChips"), cats, cat, function (v) {
-      cat = (cat === v) ? null : v;
-      renderChips();
-      if (mode === "browse") loadBrowse();
-    });
-    chips(document.getElementById("diffChips"), ["easy", "medium", "hard"], diff, function (v) {
-      diff = (diff === v) ? null : v;
-      renderChips();
-      if (mode === "browse") loadBrowse();
-    });
-    var sv = document.getElementById("savedToggle");
-    sv.textContent = "\u2605 Saved (" + savedCount() + ")";
-    sv.setAttribute("aria-pressed", savedOnly ? "true" : "false");
-  }
-  document.getElementById("savedToggle").addEventListener("click", function () {
-    savedOnly = !savedOnly;
-    renderChips();
-    if (mode === "browse") loadBrowse();
-  });
   function onStarClick(e) {
     var b = e.target.closest("[data-star]");
     if (!b) return;
@@ -463,10 +427,121 @@
       x.setAttribute("aria-pressed", on ? "true" : "false");
       x.textContent = on ? "\u2605" : "\u2606";
     });
-    var sv = document.getElementById("savedToggle");
-    sv.textContent = "\u2605 Saved (" + savedCount() + ")";
-    if (savedOnly && mode === "browse") loadBrowse();
   }
+
+  // ---- Company packs: search a pack, free preview sample, member submit ----
+  // MEMBER_REPORTED by design — every render keeps the unverified label on
+  // screen; free members see the count + one sample, Prep Pro the full pack.
+  var packErr = document.getElementById("packErr");
+  var packOut = document.getElementById("packOut");
+  var packUpsell = document.getElementById("packUpsell");
+
+  function packQuestionHtml(q) {
+    return '<div class="iv-item"><div class="iv-tags">' + tagHtml("cat", q.category) +
+      (q.role ? '<span class="iv-tag iv-tag-diff">' + esc(q.role) + "</span>" : "") +
+      (q.context ? '<span class="iv-tag iv-tag-track">' + esc(q.context) + "</span>" : "") +
+      "</div><p class=\"iv-q\">" + esc(q.question) + "</p></div>";
+  }
+
+  function loadPack() {
+    var company = document.getElementById("packCompany").value.trim();
+    packErr.textContent = "";
+    if (company.length < 2) {
+      packErr.textContent = "Enter a company name (2+ characters).";
+      return;
+    }
+    var btn = document.getElementById("packLoad");
+    btn.disabled = true;
+    btn.textContent = "Loading pack...";
+    proFetch("/api/prep/interview/packs?company=" + encodeURIComponent(company))
+      .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
+      .then(function (res) {
+        btn.disabled = false;
+        btn.textContent = "Load pack";
+        if (res.status === 401) { showPaywall("signin"); return; }
+        var d = res.d;
+        if (res.status !== 200 || !d || !d.success) {
+          packErr.textContent = (d && d.message) || "Could not load the pack.";
+          return;
+        }
+        var data = d.data || {};
+        var qs = data.questions || [];
+        document.getElementById("packMeta").textContent = data.found
+          ? data.company + " \u00B7 " + data.total + " question" + (data.total === 1 ? "" : "s") + " shared by candidates" +
+            (data.isPro ? "" : " \u00B7 preview 1, Prep Pro opens all")
+          : "No pack yet for " + data.company + " \u2014 be the first to share.";
+        document.getElementById("packList").innerHTML = qs.length
+          ? qs.map(packQuestionHtml).join("")
+          : '<div class="prep-empty">Nothing shared yet. Use the form below to add the first question.</div>';
+        packUpsell.hidden = !!(data.isPro || data.found === false || data.total === 0);
+        packOut.hidden = false;
+        if (data.found === false) {
+          document.getElementById("packForm").hidden = false;
+        }
+        packOut.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      })
+      .catch(function () {
+        btn.disabled = false;
+        btn.textContent = "Load pack";
+        packErr.textContent = "Network error. Try again.";
+      });
+  }
+  document.getElementById("packLoad").addEventListener("click", loadPack);
+  document.getElementById("packCompany").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") loadPack();
+  });
+
+  document.getElementById("packFormToggle").addEventListener("click", function () {
+    var f = document.getElementById("packForm");
+    f.hidden = !f.hidden;
+    if (!f.hidden) document.getElementById("packFormQ").focus();
+  });
+
+  document.getElementById("packFormBtn").addEventListener("click", function () {
+    var note = document.getElementById("packFormNote");
+    note.textContent = "";
+    if (!haveSession()) {
+      window.location = "/login?next=" + encodeURIComponent(location.pathname);
+      return;
+    }
+    var btn = document.getElementById("packFormBtn");
+    var body = {
+      company: document.getElementById("packCompany").value.trim(),
+      role: document.getElementById("packFormRole").value.trim(),
+      category: document.getElementById("packFormCat").value,
+      question: document.getElementById("packFormQ").value.trim(),
+      context: document.getElementById("packFormCtx").value.trim(),
+    };
+    if (body.company.length < 2 || body.question.length < 10) {
+      note.textContent = "Pick the company above and type the question (10+ characters).";
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = "Sharing...";
+    planPost("/api/prep/interview/packs/submit", body)
+      .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
+      .then(function (res) {
+        btn.disabled = false;
+        btn.textContent = "Share to the pack";
+        if (res.status === 401) { showPaywall("signin"); return; }
+        var d = res.d;
+        if (res.status === 429 || (res.status !== 200 && res.status !== 201) || !d || !d.success) {
+          note.textContent = (d && d.message) || "Could not share the question. Try again.";
+          return;
+        }
+        note.textContent = (d.data && d.data.message) || "Shared - thank you.";
+        if (d.data && d.data.duplicate !== true) {
+          document.getElementById("packFormQ").value = "";
+          document.getElementById("packFormCtx").value = "";
+          if (document.getElementById("packCompany").value.trim().length >= 2) loadPack();
+        }
+      })
+      .catch(function () {
+        btn.disabled = false;
+        btn.textContent = "Share to the pack";
+        note.textContent = "Network error. Try again.";
+      });
+  });
 
   // ---- Shared target (company + role): inherited from the aptitude page ----
   var TARGET_KEY = "se_prep_target";
@@ -662,24 +737,6 @@
       });
   });
 
-  function setMode(m) {
-    mode = m;
-    document.getElementById("tabBrowse").setAttribute("aria-pressed", m === "browse" ? "true" : "false");
-    document.getElementById("tabMock").setAttribute("aria-pressed", m === "mock" ? "true" : "false");
-    document.getElementById("browseCard").hidden = m !== "browse";
-    document.getElementById("mockCard").hidden = m !== "mock";
-    document.getElementById("feedbackCard").hidden = true;
-    document.getElementById("trackChips").style.display = m === "browse" ? "" : "none";
-    document.getElementById("catChips").style.display = m === "browse" ? "" : "none";
-    document.getElementById("diffChips").style.display = m === "browse" ? "" : "none";
-    document.getElementById("savedRow").style.display = m === "browse" ? "" : "none";
-    if (m === "browse") loadBrowse();
-  }
-
-  document.getElementById("tabBrowse").addEventListener("click", function () { setMode("browse"); });
-  document.getElementById("tabMock").addEventListener("click", function () { setMode("mock"); });
-  document.getElementById("browseList").addEventListener("click", onStarClick);
-
   // ---- 2:00 answer timer (Pramp-style timed practice, per question) ----
   var timerIntervals = {};
   function onTimerClick(e) {
@@ -723,19 +780,59 @@
 
   // ---- Free public lists: today's drill + sample (the quality proof that
   // sells Pro, no auth). One renderer with a prefix so the same question can
-  // appear in both lists without duplicate guidance ids. ----
+  // appear in both lists without duplicate guidance ids. Each question also
+  // takes a typed answer for the free daily AI score (1/day; Pro unlimited). ----
   function freeQuestionHtml(q, pfx) {
     var gid = pfx + esc(q.code);
+    var sid = pfx + "s-" + esc(q.code);
     return '<div class="iv-item"><div class="iv-tags">' +
       tagHtml("track", q.track) + tagHtml("cat", q.category) + tagHtml("diff", q.difficulty) +
       starBtn(q.code) +
       '</div><p class="iv-q">' + esc(q.question) + "</p>" +
       '<div class="iv-guide" id="' + gid + '" hidden>' + esc(q.guidance) + "</div>" +
-      '<button type="button" class="iv-timer-btn" data-guide="' + gid + '" style="margin-top:8px;">What interviewers look for</button>' +
+      '<div>' +
+      '<button type="button" class="iv-timer-btn" data-guide="' + gid + '" style="margin-top:8px;">What interviewers look for</button> ' +
+      '<button type="button" class="iv-timer-btn" data-score="' + esc(q.code) + '" style="margin-top:8px;">Score my answer</button>' +
+      "</div>" +
+      '<div class="iv-scorebox" data-scorebox="' + esc(q.code) + '" hidden>' +
+      '<textarea class="iv-answer-ta" rows="4" maxlength="1500" placeholder="Type the answer you would actually give out loud..."></textarea>' +
+      '<div class="iv-answer-count"><span data-score-count>0</span>/1500 &middot; free: 1 AI score a day &middot; Prep Pro: unlimited</div>' +
+      '<button type="button" class="prep-btn" data-score-send="' + esc(q.code) + '">Get AI feedback</button>' +
+      '<div data-score-out></div>' +
+      "</div>" +
       "</div>";
   }
   function sampleHtml(q) { return freeQuestionHtml(q, "sg-"); }
   function todayHtml(q) { return freeQuestionHtml(q, "tg-"); }
+
+  function scoreResultHtml(d) {
+    if (d.scored && d.result) {
+      var r = d.result;
+      var cls = r.score >= 8 ? "strong" : (r.score >= 6 ? "work" : "thin");
+      var h = '<div class="iv-guide" style="margin-top:10px;"><span class="iv-score-num ' + cls + '">' +
+        esc(r.score) + "/10</span> " + esc(r.verdict);
+      if (r.strengths && r.strengths.length) {
+        h += '<ul style="margin:8px 0 0 18px;padding:0;">' +
+          r.strengths.map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + "</ul>";
+      }
+      if (r.improvements && r.improvements.length) {
+        h += '<p style="margin:8px 0 0;font-weight:700;">Fix these:</p><ul style="margin:2px 0 0 18px;padding:0;">' +
+          r.improvements.map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + "</ul>";
+      }
+      if (r.better) {
+        h += '<div class="iv-better"><b>A stronger version to rehearse:</b><br/>' + esc(r.better) + "</div>";
+      }
+      return h + "</div>";
+    }
+    if (d.limited) {
+      return '<div class="iv-guide" style="margin-top:10px;">Your free AI score for today is used &mdash; here is what ' +
+        "interviewers look for instead" + (d.guidance ? ": " + esc(d.guidance) : "") +
+        '. Prep Pro scores unlimited answers. <a href="/prep#prepProCard">Upgrade</a>.</div>';
+    }
+    return '<div class="iv-guide" style="margin-top:10px;">' +
+      esc(d.note || "AI scoring is unavailable right now.") + (d.guidance ? " " + esc(d.guidance) : "") + "</div>";
+  }
+
   function wireFreeList(listId, render, path, emptyMsg, onData) {
     document.getElementById(listId).addEventListener("click", function (e) {
       var g = e.target.closest("[data-guide]");
@@ -745,6 +842,57 @@
           el.hidden = !el.hidden;
           g.textContent = el.hidden ? "What interviewers look for" : "Hide";
         }
+        return;
+      }
+      var sc = e.target.closest("[data-score]");
+      if (sc) {
+        var scItem = sc.closest(".iv-item");
+        var scBox = scItem && scItem.querySelector("[data-scorebox]");
+        if (scBox) {
+          scBox.hidden = !scBox.hidden;
+          sc.textContent = scBox.hidden ? "Score my answer" : "Hide scoring";
+          if (!scBox.hidden) {
+            var ta0 = scBox.querySelector(".iv-answer-ta");
+            if (ta0) ta0.focus();
+          }
+        }
+        return;
+      }
+      var send = e.target.closest("[data-score-send]");
+      if (send) {
+        var sendItem = send.closest(".iv-item");
+        var sendTa = sendItem && sendItem.querySelector(".iv-answer-ta");
+        var out = sendItem && sendItem.querySelector("[data-score-out]");
+        if (!sendTa || !out) return;
+        var answer = sendTa.value.trim();
+        if (answer.length < 20) {
+          out.innerHTML = '<p class="prep-err">Type at least 20 characters &mdash; write the answer you would actually give.</p>';
+          return;
+        }
+        if (!haveSession()) {
+          window.location = "/login?next=" + encodeURIComponent(location.pathname);
+          return;
+        }
+        send.disabled = true;
+        send.textContent = "Scoring...";
+        planPost("/api/prep/interview/answer/score", { code: send.getAttribute("data-score-send"), answer: answer })
+          .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
+          .then(function (res) {
+            send.disabled = false;
+            send.textContent = "Get AI feedback";
+            if (res.status === 401) { showPaywall("signin"); return; }
+            var d = res.d;
+            if (res.status !== 200 && res.status !== 201) {
+              out.innerHTML = '<p class="prep-err">' + esc((d && d.message) || "Could not score the answer. Try again.") + "</p>";
+              return;
+            }
+            out.innerHTML = scoreResultHtml((d && d.data) || {});
+          })
+          .catch(function () {
+            send.disabled = false;
+            send.textContent = "Get AI feedback";
+            out.innerHTML = '<p class="prep-err">Network error. Try again.</p>';
+          });
         return;
       }
       onStarClick(e);
@@ -772,6 +920,14 @@
     });
   wireFreeList("sampleList", sampleHtml, "/api/prep/interview/sample",
     "Sample unavailable &mdash; refresh to retry.");
+  ["todayList", "sampleList"].forEach(function (id) {
+    document.getElementById(id).addEventListener("input", function (e) {
+      var ta = e.target && e.target.closest ? e.target.closest(".iv-answer-ta") : null;
+      if (!ta) return;
+      var c = ta.parentNode.querySelector("[data-score-count]");
+      if (c) c.textContent = String(ta.value.length);
+    });
+  });
 
   // ---- Free resume gap check: 1 AI check/day (Pro unlimited), text never stored ----
   var resText = document.getElementById("resumeText");
@@ -977,7 +1133,6 @@
   document.getElementById("mockStart").addEventListener("click", function () {
     errEl.textContent = "";
     var qs = [];
-    if (track) qs.push("track=" + encodeURIComponent(track));
     var target = currentTarget();
     if (target) {
       qs.push("company=" + encodeURIComponent(target.company));
@@ -1007,7 +1162,7 @@
               return '<div class="iv-item"><div class="iv-tags"><span class="iv-tag">Likely ' + (i + 1) +
                 '</span><span class="iv-tag iv-tag-cat">' + esc(q.topic) + "</span></div>" +
                 '<p class="iv-q">' + esc(q.question) + "</p>" +
-                '<div class="iv-star-tip">Practice this out loud with the timer &mdash; no self-rating needed.</div>' +
+                '<div class="iv-star-tip">Practice this out loud with the timer, then type it into the form below.</div>' +
                 '<div class="iv-timer"><button type="button" class="iv-timer-btn" data-timer="co-' + i +
                 '">Start 2:00 answer timer</button><span class="iv-timer-clock" hidden></span></div></div>';
             }).join("");
@@ -1016,34 +1171,22 @@
           co.hidden = true;
           co.innerHTML = "";
         }
-        ratings = {};
         document.getElementById("mockIntro").hidden = true;
         var form = document.getElementById("mockForm");
         form.innerHTML = mockQuestions.map(function (q, i) {
-          var rate = [1, 2, 3, 4, 5].map(function (n) {
-            return '<button type="button" data-q="' + esc(q.id) + '" data-n="' + n + '" aria-pressed="false">' + n + "</button>";
-          }).join("");
           var starTip = q.category === "behavioral"
             ? '<div class="iv-star-tip">STAR: Situation \u2192 Task \u2192 Action \u2192 Result \u2014 about 30 seconds each.</div>'
             : "";
           return '<div class="iv-item"><div class="iv-tags"><span class="iv-tag">Question ' + (i + 1) +
             "</span>" + tagHtml("cat", q.category) + tagHtml("diff", q.difficulty) + starBtn(q.id) +
             '</div><p class="iv-q">' + esc(q.question) + "</p>" + starTip +
-            '<div class="iv-rate"><span>My answer:</span>' + rate + "</div>" +
+            '<textarea class="iv-answer-ta" rows="4" maxlength="1500" data-answer="' + esc(q.id) +
+            '" placeholder="Type your answer \u2014 the AI interviewer scores what you write..."></textarea>' +
             '<div class="iv-timer"><button type="button" class="iv-timer-btn" data-timer="' + esc(q.id) +
             '">Start 2:00 answer timer</button><span class="iv-timer-clock" hidden></span></div></div>';
         }).join("");
         form.hidden = false;
         document.getElementById("mockSubmit").hidden = false;
-        form.querySelectorAll(".iv-rate button").forEach(function (btn) {
-          btn.addEventListener("click", function () {
-            var qid = btn.getAttribute("data-q");
-            ratings[qid] = Number(btn.getAttribute("data-n"));
-            form.querySelectorAll('button[data-q="' + qid + '"]').forEach(function (b) {
-              b.setAttribute("aria-pressed", b === btn ? "true" : "false");
-            });
-          });
-        });
         document.getElementById("mockCard").scrollIntoView({ behavior: "smooth", block: "start" });
       })
       .catch(function () {
@@ -1055,17 +1198,32 @@
 
   document.getElementById("mockSubmit").addEventListener("click", function () {
     errEl.textContent = "";
-    var answered = Object.keys(ratings).length;
     if (!mockQuestions.length) return;
-    if (answered < mockQuestions.length && !confirm("You rated " + answered + " of " + mockQuestions.length + ". Finish anyway?")) return;
+    var answers = {};
+    var typed = 0;
+    mockQuestions.forEach(function (q) {
+      var ta = document.querySelector('textarea[data-answer="' + q.id + '"]');
+      var v = ta ? ta.value.trim() : "";
+      if (v) { answers[q.id] = v.slice(0, 1500); typed++; }
+    });
+    if (!typed) {
+      errEl.textContent = "Type at least one answer \u2014 the AI interviewer scores what you write.";
+      return;
+    }
+    if (typed < mockQuestions.length && !confirm("You typed " + typed + " of " + mockQuestions.length + " answers. Finish anyway?")) return;
+    var btn = document.getElementById("mockSubmit");
+    btn.disabled = true;
+    btn.textContent = "Scoring your answers...";
     fetch("/api/prep/interview/mock/submit", {
       method: "POST",
       credentials: "same-origin",
       headers: Object.assign({ "content-type": "application/json" }, authHeaders()),
-      body: JSON.stringify({ token: mockToken, ratings: ratings }),
+      body: JSON.stringify({ token: mockToken, answers: answers }),
     })
       .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
       .then(function (res) {
+        btn.disabled = false;
+        btn.textContent = "Finish & get feedback";
         if (res.status === 401) { showPaywall("signin"); return; }
         if (res.status === 402) { showPaywall("upgrade"); return; }
         if (res.status === 400) { errEl.textContent = res.d.message; return; }
@@ -1073,20 +1231,43 @@
         var data = res.d.data;
         bumpMockCount();
         renderMockCount();
-        var stat = "Average confidence: <b>" + (data.avgConfidence === null ? "—" : data.avgConfidence + "/5") + "</b>";
-        if (data.weakestCategory) stat += " · Weakest area: <b>" + esc(data.weakestCategory) + "</b>";
+        var stat = data.readiness !== null && data.readiness !== undefined
+          ? "AI readiness: <b>" + data.readiness + "/10</b>"
+          : "AI readiness: <b>\u2014</b>";
+        if (data.weakestCategory) stat += " \u00B7 Weakest area: <b>" + esc(data.weakestCategory) + "</b>";
+        if (data.note) stat += '<p class="prep-sub" style="margin:6px 0 0;font-weight:400;">' + esc(data.note) + "</p>";
         document.getElementById("fbStat").innerHTML = stat;
         document.getElementById("fbList").innerHTML = data.items.map(function (it, i) {
-          var rateTxt = it.rating === null ? "not rated" : "rated " + it.rating + "/5";
-          return '<div class="iv-item"><div class="iv-tags">' + tagHtml("cat", it.category) +
-            '<span class="iv-tag iv-tag-diff">' + esc(rateTxt) + "</span>" +
-            '</div><p class="iv-q">' + (i + 1) + ". " + esc(it.question) + '</p><div class="iv-guide">' + esc(it.guidance) + "</div></div>";
+          var head = '<div class="iv-tags">' + tagHtml("cat", it.category);
+          if (it.score !== null && it.score !== undefined) {
+            var cls = it.score >= 8 ? "strong" : (it.score >= 6 ? "work" : "thin");
+            head += '<span class="iv-score-num ' + cls + '">' + esc(it.score) + "/10</span>";
+          }
+          head += "</div>";
+          var body = '<p class="iv-q">' + (i + 1) + ". " + esc(it.question) + "</p>";
+          if (it.answer) body += '<div class="iv-guide" style="font-style:italic;">You said: ' + esc(it.answer) + "</div>";
+          if (it.verdict) body += '<div class="iv-guide">' + esc(it.verdict) + "</div>";
+          if (it.strengths && it.strengths.length) {
+            body += '<p style="margin:8px 0 2px;font-weight:700;font-size:0.9rem;">What worked:</p><ul style="margin:0 0 0 18px;padding:0;font-size:0.9rem;">' +
+              it.strengths.map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + "</ul>";
+          }
+          if (it.improvements && it.improvements.length) {
+            body += '<p style="margin:8px 0 2px;font-weight:700;font-size:0.9rem;">Fix these:</p><ul style="margin:0 0 0 18px;padding:0;font-size:0.9rem;">' +
+              it.improvements.map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + "</ul>";
+          }
+          if (it.better) body += '<div class="iv-better"><b>A stronger version to rehearse:</b><br/>' + esc(it.better) + "</div>";
+          if (it.guidance) body += '<div class="iv-guide">' + esc(it.guidance) + "</div>";
+          return '<div class="iv-item">' + head + body + "</div>";
         }).join("");
         document.getElementById("mockCard").hidden = true;
         document.getElementById("feedbackCard").hidden = false;
         document.getElementById("feedbackCard").scrollIntoView({ behavior: "smooth", block: "start" });
       })
-      .catch(function () { errEl.textContent = "Network error. Try again."; });
+      .catch(function () {
+        btn.disabled = false;
+        btn.textContent = "Finish & get feedback";
+        errEl.textContent = "Network error. Try again.";
+      });
   });
 
   document.getElementById("fbAgain").addEventListener("click", function () {

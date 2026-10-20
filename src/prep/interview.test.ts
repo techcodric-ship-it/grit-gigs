@@ -22,6 +22,9 @@ import {
   toPublicInterviewQuestion,
   isValidTrack,
   isValidCategory,
+  cleanPackText,
+  normalizePackQuestion,
+  summarizeAiScores,
 } from "./interview";
 
 const root = path.resolve(__dirname, "..", "..");
@@ -127,22 +130,30 @@ describe("aggregateFeedback", () => {
 
 describe("interview wiring (source-level)", () => {
   const router = read("src/prep/router.ts");
-  it("exposes questions, mock and feedback endpoints after the flag gate", () => {
+  it("exposes mock, score and pack endpoints after the flag gate", () => {
     const gateIdx = router.indexOf("prepRouter.use(");
-    for (const route of ["/interview/questions", "/interview/mock", "/interview/mock/submit"]) {
-      const idx = router.indexOf(`prepRouter.` + (route.endsWith("submit") ? "post" : "get") + `("${route}"`);
-      expect(idx).toBeGreaterThan(gateIdx);
+    for (const [method, route] of [
+      ["get", "/interview/mock"],
+      ["post", "/interview/mock/submit"],
+      ["post", "/interview/answer/score"],
+      ["get", "/interview/packs"],
+      ["post", "/interview/packs/submit"],
+    ] as const) {
+      const idx = router.indexOf(`prepRouter.${method}("${route}"`);
+      expect(idx, route).toBeGreaterThan(gateIdx);
     }
+    expect(router).not.toContain('prepRouter.get("/interview/questions"');
   });
   it("rate-limits interview routes and verifies mock tokens", () => {
     expect(router).toMatch(/interviewLimiter/);
     expect(router).toMatch(/verifyInterviewMock\(parsed\.data\.token/);
   });
   const page = read("public/prep/interview.html");
-  it("page is noindex, escaped, and wired to all three endpoints", () => {
+  it("page is noindex, escaped, and wired to all the session endpoints", () => {
     expect(page).toContain('<meta name="robots" content="noindex"/>');
     expect(page).toContain("function esc(s)");
-    expect(page).toContain("/api/prep/interview/questions");
+    expect(page).toContain("/api/prep/interview/packs");
+    expect(page).toContain("/api/prep/interview/answer/score");
     expect(page).toContain("/api/prep/interview/mock");
     expect(page).toContain("/api/prep/interview/mock/submit");
     expect(page).toContain("esc(it.guidance)");
@@ -199,5 +210,44 @@ describe("daily drill: one set per UTC day, a fresh mix the next", () => {
     expect(utcDayLabel(new Date(Date.UTC(2026, 9, 21, 0, 0, 0)))).toBe("2026-10-21");
     // midnight UTC moves the index by exactly one day
     expect(utcDayIndex(new Date(Date.UTC(2026, 9, 21, 0, 0, 0))) - utcDayIndex(new Date(Date.UTC(2026, 9, 20, 23, 59, 0)))).toBe(1);
+  });
+});
+
+describe("pack hygiene helpers (round 20)", () => {
+  it("cleanPackText collapses whitespace, trims, and clamps to max", () => {
+    expect(cleanPackText("  hello \n\t world  ", 50)).toBe("hello world");
+    expect(cleanPackText("a".repeat(20), 5)).toBe("aaaaa");
+    expect(cleanPackText("  ", 10)).toBe("");
+    expect(cleanPackText(null, 10)).toBe("");
+    expect(cleanPackText(123, 10)).toBe("");
+  });
+
+  it("normalizePackQuestion makes dedupe punctuation- and case-insensitive", () => {
+    expect(normalizePackQuestion("Why TCS?!")).toBe("why tcs");
+    expect(normalizePackQuestion("why  tcs")).toBe("why tcs");
+    expect(normalizePackQuestion("Why TCS")).toBe(normalizePackQuestion("WHY TCS?"));
+    expect(normalizePackQuestion("")).toBe("");
+  });
+});
+
+describe("summarizeAiScores (round 20)", () => {
+  it("returns null readiness and null weakest on empty input", () => {
+    expect(summarizeAiScores([])).toEqual({ readiness: null, weakestCategory: null });
+  });
+  it("computes readiness to one decimal and the lowest-average category", () => {
+    const out = summarizeAiScores([
+      { category: "technical", score: 8 },
+      { category: "technical", score: 6 },
+      { category: "behavioral", score: 4 },
+    ]);
+    expect(out.readiness).toBe(6);
+    expect(out.weakestCategory).toBe("behavioral");
+  });
+  it("ties break alphabetically", () => {
+    const out = summarizeAiScores([
+      { category: "hr", score: 5 },
+      { category: "behavioral", score: 5 },
+    ]);
+    expect(out.weakestCategory).toBe("behavioral");
   });
 });

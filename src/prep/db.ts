@@ -119,6 +119,24 @@ CREATE TABLE IF NOT EXISTS prep_resume_checks (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS prep_resume_checks_user_idx ON prep_resume_checks (user_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS prep_answer_scores (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS prep_answer_scores_user_idx ON prep_answer_scores (user_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS prep_company_questions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES prep_companies(id),
+  role VARCHAR(120) NOT NULL DEFAULT '',
+  category VARCHAR(30) NOT NULL DEFAULT 'technical',
+  question TEXT NOT NULL,
+  context VARCHAR(280) NOT NULL DEFAULT '',
+  status VARCHAR(20) NOT NULL DEFAULT 'VISIBLE',
+  submitted_by UUID,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS prep_company_questions_company_idx ON prep_company_questions (company_id, status, created_at DESC);
 `;
 
 /** Raw evidence is deleted after 30 days (spec): drop the stored file, keep
