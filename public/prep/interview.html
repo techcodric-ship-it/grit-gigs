@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 17;</script>
+<script>window.PREP_V = 18;</script>
 <link rel="stylesheet" href="/prep/prep.css?v=10"/>
 <style>
   .iv-tabs { display:flex; gap:8px; margin-bottom:16px; }
@@ -88,6 +88,13 @@
   .iv-proof-stat b { font-size:1.3rem; font-weight:800; color:var(--prep-violet-deep); min-width:46px; }
   .iv-proof-stat span { font-size:0.83rem; line-height:1.45; color:var(--prep-ink-2); }
   .iv-proof-note { margin-top:11px; font-size:0.82rem; line-height:1.5; color:var(--prep-ink-2); border-top:1px dashed var(--prep-line); padding-top:10px; }
+  .iv-feat-grid { display:grid; gap:14px; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); margin-top:6px; }
+  .iv-feat { background:#fff; border:1px solid var(--prep-line); border-radius:14px; padding:18px 18px 16px; }
+  .iv-feat-img { display:inline-flex; align-items:center; justify-content:center; width:46px; height:46px; border-radius:12px; background:linear-gradient(135deg, #F3EEFF, #E9DEFF); color:var(--prep-violet-deep); margin-bottom:12px; }
+  .iv-feat-img svg { width:26px; height:26px; }
+  .iv-feat h3 { font-size:1.02rem; font-weight:800; letter-spacing:-0.01em; color:var(--prep-ink); margin:0 0 7px; line-height:1.28; }
+  .iv-feat p { font-size:0.86rem; line-height:1.55; color:var(--prep-ink-2); margin:0; }
+  .iv-sub { font-size:0.83rem; line-height:1.5; color:var(--prep-ink-2); margin:6px 0 0; }
 </style>
 </head>
 <body>
@@ -114,35 +121,94 @@
   </nav>
   <section class="prep-hero-sm">
     <span class="prep-eyebrow">Interview &middot; company packs &amp; AI-scored mocks</span>
-    <h1 class="prep-hero-sm-h">Practice the questions real interviews ask &mdash; get an AI score on every answer</h1>
-    <p class="prep-sub">Start with today's six questions &mdash; free, no account needed. Then search any company to
-      see the questions candidates were asked there, or run a full mock where the AI scores every answer
-      0&ndash;10 and shows you a stronger version.</p>
+    <h1 class="prep-hero-sm-h">Walk into the panel already knowing the questions &mdash; and the answers that score</h1>
+    <p class="prep-sub">Six fresh drill questions every day, real company packs shared by candidates who sat the
+      interview, and full mocks where the AI scores every answer 0&ndash;10 and hands you a stronger version to rehearse.
+      Everything is labelled with its source &mdash; nothing scraped from Glassdoor or LinkedIn.</p>
     <ul class="prep-trust-chips">
       <li>Company packs &middot; member-reported</li>
-      <li>1 free AI answer score a day</li>
       <li>Mock: AI scores every answer</li>
       <li>2-min timed answers &middot; STAR tips</li>
+      <li>Resume gap check &middot; honest rewrite</li>
     </ul>
     <ol class="prep-steps">
-      <li><b>Warm up free</b><span>answer one of today's six questions &mdash; type it, the AI scores it 0&ndash;10</span></li>
-      <li><b>See your company's questions</b><span>search any company for questions candidates were asked there</span></li>
+      <li><b>Drill every day</b><span>six fresh questions &mdash; the same set for everyone until midnight UTC</span></li>
+      <li><b>Research your company</b><span>see the questions candidates were actually asked there</span></li>
       <li><b>Run the full mock</b><span>5 timed questions, scored answer by answer with fixes to rehearse</span></li>
     </ol>
     <div class="prep-hero-ctas">
-      <a class="prep-btn" href="#todayCard">Try today's free questions</a>
-      <a class="prep-btn prep-btn-ghost" href="#browseCard">Search a company</a>
+      <a class="prep-btn" href="#ivPaywall">Unlock Prep Pro &mdash; &#8377;199</a>
+      <a class="prep-btn prep-btn-ghost" href="#ivFeatures">See what's inside</a>
     </div>
   </section>
 
-  <ul class="iv-legend">
-    <li><span class="iv-badge iv-badge-free">Free</span>
-      <span>Today's six questions &middot; 1 AI score a day &middot; the 3-question sample &middot; a company plan &middot; a daily resume check</span></li>
-    <li><span class="iv-badge iv-badge-pro">Prep Pro &#8377;199</span>
-      <span>Full company packs &middot; unlimited scores &middot; every mock with feedback &middot; unlimited resume checks</span></li>
-  </ul>
+  <!-- NON-PRO MARKETING: features grid (server-rendered, shown to everyone; hidden for Pro) -->
+  <section class="prep-card" id="ivFeatures">
+    <span class="plan-kicker">Inside Prep Interview</span>
+    <h2 class="prep-h2">Everything you need to clear the panel</h2>
+    <p class="prep-sub">One membership. Six tools that turn nervous guesswork into rehearsed, scored answers.</p>
+    <div class="iv-feat-grid">
+      <div class="iv-feat">
+        <span class="iv-feat-img" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="9" width="34" height="30" rx="4"/><path d="M15 18h18M15 25h12M15 32h8"/><circle cx="37" cy="34" r="6" fill="#fff"/><path d="M35 34l1.6 1.6L39.5 32"/></svg></span>
+        <h3>Daily drill &mdash; six fresh questions</h3>
+        <p>A new set every day, the same for everyone until midnight UTC. Answer out loud first &mdash; that's the practice.</p>
+      </div>
+      <div class="iv-feat">
+        <span class="iv-feat-img" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M24 6l4.5 9.2 10.2 1.5-7.4 7.2 1.8 10.1L24 29.2 14.9 34l1.8-10.1L9.3 16.7 19.5 15z"/><path d="M16 40h16"/></svg></span>
+        <h3>AI scores every answer 0&ndash;10</h3>
+        <p>Type your answer, get a real score with the weaknesses named and a stronger version to rehearse.</p>
+      </div>
+      <div class="iv-feat">
+        <span class="iv-feat-img" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14h28v22a3 3 0 0 1-3 3H13a3 3 0 0 1-3-3z"/><path d="M10 14l14 10 14-10"/><path d="M17 9h14"/></svg></span>
+        <h3>Real company packs</h3>
+        <p>Questions candidates were actually asked at TCS, Infosys, Amazon and more &mdash; member-reported, every one labelled.</p>
+      </div>
+      <div class="iv-feat">
+        <span class="iv-feat-img" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="24" cy="18" r="8"/><path d="M10 40c0-7.7 6.3-12 14-12s14 4.3 14 12"/><path d="M35 12l3 3 5-5"/></svg></span>
+        <h3>Full mock interviews</h3>
+        <p>Five timed questions, answered in sequence like a real panel &mdash; scored answer by answer.</p>
+      </div>
+      <div class="iv-feat">
+        <span class="iv-feat-img" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 8h14l8 8v24a2 2 0 0 1-2 2H14a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z"/><path d="M28 8v8h8"/><path d="M18 26h12M18 32h9"/></svg></span>
+        <h3>Resume gap check</h3>
+        <p>Upload your resume &mdash; the coach names the honest gaps against your target role and rewrites the weak bullets.</p>
+      </div>
+      <div class="iv-feat">
+        <span class="iv-feat-img" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 38V16l16-8 16 8v22"/><path d="M8 38h32"/><path d="M18 38V26h12v12"/><path d="M24 14v4"/></svg></span>
+        <h3>Company + role plan</h3>
+        <p>Pick a target &mdash; the coach researches the company's official pages and news, then returns the topics and rounds to prepare.</p>
+      </div>
+    </div>
+  </section>
 
-  <section class="prep-card" id="todayCard">
+  <!-- NON-PRO PROOF: real numbers + a real taste (server-rendered; hidden for Pro) -->
+  <section class="prep-card" id="ivProofShowcase">
+    <span class="plan-kicker">Why candidates trust it</span>
+    <h2 class="prep-h2">Honest coaching, labelled sources &mdash; not scraped gossip</h2>
+    <div class="iv-unlock-grid">
+      <div class="iv-unlock-col">
+        <div class="iv-proof">
+          <div class="iv-proof-stat"><b>24</b><span>original interview questions written in-repo &mdash; nothing scraped from Glassdoor or LinkedIn</span></div>
+          <div class="iv-proof-stat"><b>31</b><span>original aptitude questions with worked explanations</span></div>
+          <div class="iv-proof-stat"><b>100%</b><span>of report claims labelled with their source &mdash; official, news or member-reported</span></div>
+        </div>
+        <p class="iv-proof-note">Pack questions come from candidates who actually sat that interview, and every one stays labelled
+          &ldquo;member-reported &middot; unverified.&rdquo; Grit&amp;Gigs backs it with a live skill-exchange community of professionals.</p>
+      </div>
+      <div class="iv-unlock-col">
+        <h3 class="iv-unlock-h">A real taste of the coaching</h3>
+        <div class="iv-item">
+          <div class="iv-tags"><span class="iv-tag iv-tag-behavioral">Behavioral</span></div>
+          <p class="iv-q">&ldquo;Tell me about a time you had to deliver under a tight deadline.&rdquo;</p>
+          <p class="iv-sub">Interviewers open with this to see how you handle pressure. A strong answer uses STAR &mdash; Situation, Task, Action, Result &mdash; and ends with a number.</p>
+        </div>
+        <p class="iv-proof-note">This is one of the three universal opener questions inside. Prep Pro opens the rest &mdash; and scores every answer you type.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SESSION UI: hidden for non-Pro via data-pro-content; revealed only for Prep Pro -->
+  <section class="prep-card" id="todayCard" data-pro-content style="display:none;">
     <span class="plan-kicker">1 &middot; Today&rsquo;s drill &mdash; free</span>
     <h2 class="prep-h2">Six questions for today</h2>
     <p class="prep-sub">A fresh set every day &mdash; the same six for everyone until midnight UTC, then a new
@@ -152,7 +218,7 @@
     <p class="prep-sub" id="todayNote" style="margin-top:10px;font-size:0.82rem;color:var(--prep-ink-2);"></p>
   </section>
 
-  <section class="prep-card" id="sampleCard">
+  <section class="prep-card" id="sampleCard" data-pro-content style="display:none;">
     <span class="plan-kicker">2 &middot; Free sample &mdash; the coaching taste</span>
     <h2 class="prep-h2">Three questions interviewers actually open with</h2>
     <p class="prep-sub" id="sampleSub">A real taste of the coaching &mdash; including what interviewers look for in each answer.
@@ -163,7 +229,7 @@
     </div>
   </section>
 
-  <section class="prep-card" id="browseCard">
+  <section class="prep-card" id="browseCard" data-pro-content style="display:none;">
     <span class="plan-kicker">3 &middot; Company questions &mdash; member-reported</span>
     <h2 class="prep-h2">Questions candidates were actually asked</h2>
     <p class="prep-sub">Search a company to see its pack &mdash; shared by members who sat the interview, so treat
@@ -213,7 +279,7 @@
     <button class="prep-btn prep-btn-ghost" type="button" id="packFormToggle" style="margin-top:12px;">Share a question you were asked</button>
   </section>
 
-  <section class="prep-card" id="resumeCard">
+  <section class="prep-card" id="resumeCard" data-pro-content style="display:none;">
     <span class="plan-kicker" id="resumeKick">4 &middot; Resume check &mdash; free, 1 a day</span>
     <h2 class="prep-h2">Will your resume pass the screen<span id="resTargetCo"></span>?</h2>
     <p class="prep-sub">Upload your resume file (PDF, DOCX, TXT) or paste its text &mdash; the coach compares it
@@ -235,9 +301,9 @@
   <section class="prep-card prep-paywall" id="ivPaywall" hidden>
     <span class="plan-kicker">Unlock Prep Pro &mdash; full session access</span>
     <h2 class="prep-h2">Practice<span id="ivPaywallCo"></span> the way the panel will</h2>
-    <p class="prep-sub">You&rsquo;ve seen the free sample above. The full interview session is for Prep Pro members &mdash;
-      and the moment you unlock, <b>every feature below goes unlimited for 30 days</b>. One payment of &#8377;199,
-      nothing auto-renews.</p>
+    <p class="prep-sub">Everything above is the coaching. The moment you unlock, <b>every tool goes live and
+      unlimited for 30 days</b> &mdash; the daily drill, real company packs, AI-scored mocks and the resume check.
+      One payment of &#8377;199, nothing auto-renews.</p>
     <div class="iv-unlock-grid">
       <div class="iv-unlock-col">
         <h3 class="iv-unlock-h">What you unlock &mdash; unlimited after Pro</h3>
@@ -267,7 +333,7 @@
     </div>
   </section>
 
-  <section class="prep-card prep-card-plan" id="ivPlanCard">
+  <section class="prep-card prep-card-plan" id="ivPlanCard" data-pro-content style="display:none;">
     <span class="plan-kicker">5 &middot; Company plan &mdash; free</span>
     <h2 class="prep-h2">Company + role plan, researched for you</h2>
     <p class="prep-sub">Pick your target &mdash; the coach searches the company's official pages and recent
@@ -397,10 +463,15 @@
   function showPaywall(kind) {
     paywall.hidden = false;
     setLocked(true);
+    // Non-Pro: marketing (features + proof) stays visible above the unlock card.
+    ["ivFeatures", "ivProofShowcase"].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.style.display = "";
+    });
     var primary = document.getElementById("ivPaywallPrimary");
     var alt = document.getElementById("ivPaywallAlt");
     if (kind === "signin") {
-      primary.textContent = "Sign in to continue";
+      primary.textContent = "Sign in to unlock";
       primary.href = "/login?next=" + encodeURIComponent(location.pathname);
       alt.textContent = "See what's included";
       alt.href = "/prep#prepProCard";
@@ -417,6 +488,11 @@
   function showSessions() {
     paywall.hidden = true;
     setLocked(false);
+    // Pro owns the tools — hide the marketing that sells them.
+    ["ivFeatures", "ivProofShowcase"].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.style.display = "none";
+    });
   }
   // Pro owns everything the free sample sells — a paid member must never see
   // the buy CTA or "1 a day" quota copy (style.display, not hidden: the CTA
