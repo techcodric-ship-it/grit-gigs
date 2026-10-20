@@ -1640,21 +1640,42 @@ describe("round 22: the interview session is visibly Pro-only, the landing reads
     expect(landing).toContain('id="features"');
     expect(landing).toContain('class="feat-grid"');
     expect(landing).toContain('class="hero-ticks"');
-    expect((landing.match(/class="feat"/g) || []).length).toBe(8);
+    expect((landing.match(/class="feat"/g) || []).length).toBe(6);
     for (const t of [
       "Skill Barter Exchange",
       "Community Feed",
       "Open Messaging",
-      "Freelance Orders",
-      "Wallet &amp; Withdrawals",
       "Reviews &amp; Reputation",
       "Interview Prep",
       "Refer &amp; Earn",
       "Four ways to grow on Grit&amp;Gigs",
       'href="#features"',
       "Free to start, no card needed",
-      "Flat 5% fee on paid orders",
+      "Zero commission on barter trades",
+      "Prep Pro",
+      "₹199",
+      // brand: the wordmark is Syne everywhere on the platform
+      "family=Syne",
+      "font-family:'Syne'",
+      // images come from an external stock source, not the platform's demo covers
+      "images.unsplash.com",
     ]) expect(landing, t).toContain(t);
+    // exactly one paid plan (Prep Pro) — no fake Starter/Pro/Squad tiers
+    expect((landing.match(/<div class="price( hot)?">/g) || []).length).toBe(1);
+    expect(landing).not.toContain("Starter");
+    expect(landing).not.toContain("Squad");
+    expect(landing).not.toContain("₹499");
+    expect(landing).not.toContain("₹1,499");
+    // round 24: freelance orders / get-paid / wallet are not features of this platform
+    expect(landing).not.toContain("Freelance Orders");
+    expect(landing).not.toContain("Wallet &amp; Withdrawals");
+    expect(landing).not.toMatch(/get paid/i);
+    expect(landing).not.toMatch(/wallet/i);
+    expect(landing).not.toMatch(/withdraw/i);
+    expect(landing).not.toMatch(/escrow/i);
+    expect(landing).not.toContain("Flat 5%");
+    expect(landing).not.toContain("Razorpay");
+    expect(landing).not.toContain("/uploads/demo-covers");
     // retired: the fake Income Passport, the vibe-coded mock, invented stats & testimonials
     expect(landing).not.toContain("Income Passport");
     expect(landing).not.toMatch(/28,000|9,400|\u20B94 Crore/);
