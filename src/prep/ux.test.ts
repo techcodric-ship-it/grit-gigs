@@ -419,7 +419,7 @@ describe("the Buy button can never look dead; members look like members (round 5
       "public/prep/interview.html",
       "public/prep/proof.html",
     ]) {
-      expect(read(p), p).toContain("window.PREP_V = 19;");
+      expect(read(p), p).toContain("window.PREP_V = 20;");
       expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
     }
   });
@@ -1188,7 +1188,7 @@ describe("round 16: Pro members never see the sell — resume file upload, zero 
 
   it("versions bumped in lockstep so stale cached pages self-heal", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 19;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 20;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1249,7 +1249,7 @@ describe("round 17: public daily drill — different questions every day", () =>
 
   it("versions bumped in lockstep (page changed, nav script changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 19;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 20;");
   });
 });
 
@@ -1354,7 +1354,7 @@ describe("round 18: an expired se_token self-heals via the shared SeAuth helper"
 
   it("versions bumped in lockstep (nav + all five pages changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 19;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 20;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1439,7 +1439,7 @@ describe("round 19: the plan card can roll fresh questions (never a repeat, neve
 
   it("versions bumped in lockstep (interview page + nav script changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 19;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 20;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1536,7 +1536,7 @@ describe("round 20: company packs + AI-scored answers, generic bank retired", ()
 
   it("versions bumped in lockstep (interview page + nav script changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 19;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 20;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1571,6 +1571,12 @@ describe("round 21: the interview page reads as a guided tour, the feed promo is
     expect(ivPage).toContain('id="mockCard" data-pro-content');
     // the free/Pro legend is retired — there is no free session to compare
     expect(ivPage).not.toContain('class="iv-legend"');
+    // round 27: a Pro member's hero button is the drill, never the buy CTA
+    expect(ivPage).toContain('id="ivHeroUnlock"');
+    expect(ivPage).toContain('id="ivHeroInside"');
+    expect(ivPage).toContain("Start today's drill");
+    expect(ivPage).toContain('heroUnlock.href = "#todayCard"');
+    expect(ivPage).toContain('heroUnlock.textContent = "Unlock Prep Pro \\u2014 \\u20B9199"');
   });
 
   it("sections are numbered as a path, each kicker names its tier", () => {
@@ -1601,7 +1607,7 @@ describe("round 21: the interview page reads as a guided tour, the feed promo is
 
   it("versions bumped in lockstep (interview page + nav script changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 19;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 20;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1708,7 +1714,7 @@ describe("round 22: the interview session is visibly Pro-only, the landing reads
   it("versions bumped in lockstep (interview page changed, nav untouched)", () => {
     const nav = read("public/js/prep-nav.js");
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 19;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 20;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });

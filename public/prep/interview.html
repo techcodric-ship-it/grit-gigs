@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 19;</script>
+<script>window.PREP_V = 20;</script>
 <link rel="stylesheet" href="/prep/prep.css?v=10"/>
 <style>
   .iv-tabs { display:flex; gap:8px; margin-bottom:16px; }
@@ -136,9 +136,9 @@
       <li><b>Research your company</b><span>see the questions candidates were actually asked there</span></li>
       <li><b>Run the full mock</b><span>5 timed questions, scored answer by answer with fixes to rehearse</span></li>
     </ol>
-    <div class="prep-hero-ctas">
-      <a class="prep-btn" href="#ivPaywall">Unlock Prep Pro &mdash; &#8377;199</a>
-      <a class="prep-btn prep-btn-ghost" href="#ivFeatures">See what's inside</a>
+    <div class="prep-hero-ctas" id="ivHeroCtas">
+      <a class="prep-btn" id="ivHeroUnlock" href="#ivPaywall">Unlock Prep Pro &mdash; &#8377;199</a>
+      <a class="prep-btn prep-btn-ghost" id="ivHeroInside" href="#ivFeatures">See what's inside</a>
     </div>
   </section>
 
@@ -468,6 +468,12 @@
       var el = document.getElementById(id);
       if (el) el.style.display = "";
     });
+    // The hero always sells Prep Pro to a non-member — restore it after a
+    // cached Pro paint could have swapped it.
+    var heroUnlock = document.getElementById("ivHeroUnlock");
+    if (heroUnlock) { heroUnlock.textContent = "Unlock Prep Pro \u2014 \u20B9199"; heroUnlock.href = "#ivPaywall"; }
+    var heroInside = document.getElementById("ivHeroInside");
+    if (heroInside) heroInside.style.display = "";
     var primary = document.getElementById("ivPaywallPrimary");
     var alt = document.getElementById("ivPaywallAlt");
     if (kind === "signin") {
@@ -493,6 +499,12 @@
       var el = document.getElementById(id);
       if (el) el.style.display = "none";
     });
+    // A member must never see "Unlock Prep Pro" — the hero button becomes
+    // the action they actually came for: today's drill.
+    var heroUnlock = document.getElementById("ivHeroUnlock");
+    if (heroUnlock) { heroUnlock.textContent = "Start today's drill"; heroUnlock.href = "#todayCard"; }
+    var heroInside = document.getElementById("ivHeroInside");
+    if (heroInside) heroInside.style.display = "none";
   }
   // Pro owns everything the free sample sells — a paid member must never see
   // the buy CTA or "1 a day" quota copy (style.display, not hidden: the CTA
