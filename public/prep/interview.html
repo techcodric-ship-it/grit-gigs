@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 13;</script>
+<script>window.PREP_V = 14;</script>
 <link rel="stylesheet" href="/prep/prep.css?v=10"/>
 <style>
   .iv-tabs { display:flex; gap:8px; margin-bottom:16px; }
@@ -236,7 +236,7 @@
 </main>
 
 <script src="/js/se-auth.js?v=1"></script>
-<script src="/js/prep-nav.js?v=12" defer></script>
+<script src="/js/prep-nav.js?v=13" defer></script>
 <script>
 (function () {
   "use strict";
@@ -503,6 +503,33 @@
   var planBtn = document.getElementById("ivPlanBtn");
   var planErr = document.getElementById("ivPlanErr");
   var planOut = document.getElementById("ivPlanOut");
+  var planTarget = null;   // company+role the current plan was built for
+  var planShownQs = [];    // questions currently on screen (the avoid list)
+
+  function planQsHtml(qs) {
+    return qs.map(function (q, i) {
+      return '<div class="plan-q"><span class="plan-q-n">' + (i + 1) + '</span><div><p class="plan-q-t">' +
+        esc(q.question) + '</p><p class="plan-q-w"><span class="prep-chip">' + esc(q.difficulty) + "</span> " +
+        esc(q.topic) + (q.why ? " \u2014 " + esc(q.why) : "") + "</p></div></div>";
+    }).join("");
+  }
+
+  // SeAuth (../js/se-auth.js) refreshes an expired se_token and retries one
+  // 401; fall back to a raw Bearer when the helper is absent.
+  function planPost(url, body) {
+    var opts = {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    };
+    if (window.SeAuth) return SeAuth.fetch(url, opts);
+    var tok = "";
+    try { tok = localStorage.getItem("se_token") || ""; } catch (e) { /* private mode */ }
+    opts.headers.Authorization = "Bearer " + tok;
+    return fetch(url, opts);
+  }
+
   function renderPlan(p, limited) {
     var h = "";
     h += '<div class="plan-head"><b>' + (p.grounded
@@ -534,11 +561,10 @@
       }).join("") + "</ol>";
     }
     if (p.questions && p.questions.length) {
-      h += '<h3 class="plan-h3">Questions to prepare</h3><div class="plan-qs">' + p.questions.map(function (q, i) {
-        return '<div class="plan-q"><span class="plan-q-n">' + (i + 1) + '</span><div><p class="plan-q-t">' +
-          esc(q.question) + '</p><p class="plan-q-w"><span class="prep-chip">' + esc(q.difficulty) + "</span> " +
-          esc(q.topic) + (q.why ? " \u2014 " + esc(q.why) : "") + "</p></div></div>";
-      }).join("") + "</div>";
+      planShownQs = p.questions;
+      h += '<h3 class="plan-h3">Questions to prepare</h3><div class="plan-qs">' + planQsHtml(p.questions) + "</div>" +
+        '<button type="button" class="prep-btn prep-btn-ghost" style="margin-top:12px;" data-plan-qs-more>Generate new questions</button>' +
+        '<p class="prep-err info" style="margin-top:8px;" data-plan-qs-note hidden></p>';
     }
     if (p.sources && p.sources.length) {
       h += '<div class="plan-sources">Grounded in: ' + p.sources.map(function (s) {
@@ -583,6 +609,7 @@
         }
         // A built plan is the user's active target: the mock inherits it.
         writeTarget(company, role);
+        planTarget = { company: company, role: role };
         updateResumeTarget();
         renderPlan(res.d.data.plan, !!res.d.data.limited);
       })
@@ -590,6 +617,48 @@
         planBtn.disabled = false;
         planBtn.textContent = "Build my AI plan";
         planErr.textContent = "Network error. Try again.";
+      });
+  });
+
+  // Fresh roll of just the questions: same company + role, whatever is on
+  // screen goes as the avoid list so nothing comes back twice. Only the
+  // .plan-qs box is re-rendered — skills, rounds and sources stay put.
+  planOut.addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest("[data-plan-qs-more]") : null;
+    if (!b || !planTarget) return;
+    var note = planOut.querySelector("[data-plan-qs-note]");
+    function say(msg) {
+      if (note) { note.textContent = msg || ""; note.hidden = !msg; }
+    }
+    b.disabled = true;
+    b.textContent = "Generating...";
+    say("");
+    planPost("/api/prep/ai/plan/questions", {
+      company: planTarget.company,
+      role: planTarget.role,
+      avoid: planShownQs.map(function (q) { return q.question; }),
+    })
+      .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
+      .then(function (res) {
+        b.disabled = false;
+        b.textContent = "Generate new questions";
+        if (res.status === 401) { say("Sign in to generate new questions."); return; }
+        var qs = res.d && res.d.success && res.d.data && res.d.data.questions;
+        if ((res.status !== 200 && res.status !== 201) || !qs || !qs.length) {
+          say((res.d && res.d.message) || "Could not fetch new questions. Try again.");
+          return;
+        }
+        var box = planOut.querySelector(".plan-qs");
+        if (box) box.innerHTML = planQsHtml(qs);
+        planShownQs = qs;
+        say(res.d.data.limited
+          ? "Live AI questions are used up for today \u2014 showing fresh role-tuned picks from the local pool."
+          : "");
+      })
+      .catch(function () {
+        b.disabled = false;
+        b.textContent = "Generate new questions";
+        say("Network error. Try again.");
       });
   });
 

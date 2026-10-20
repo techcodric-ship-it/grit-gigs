@@ -407,7 +407,7 @@ describe("the Buy button can never look dead; members look like members (round 5
   const nav = read("public/js/prep-nav.js");
   const css = read("public/prep/prep.css");
   it("stale prep HTML is detected by the always-fresh nav script and re-fetched exactly once", () => {
-    expect(nav).toContain("var WANT_V = 13;");
+    expect(nav).toContain("var WANT_V = 14;");
     expect(nav).toContain("window.PREP_V !== WANT_V");
     expect(nav).toContain('!/[?&]_pv=/.test(location.search)');
     expect(nav).toContain("location.replace(location.pathname + location.search +");
@@ -418,7 +418,7 @@ describe("the Buy button can never look dead; members look like members (round 5
       "public/prep/interview.html",
       "public/prep/proof.html",
     ]) {
-      expect(read(p), p).toContain("window.PREP_V = 13;");
+      expect(read(p), p).toContain("window.PREP_V = 14;");
       expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
     }
   });
@@ -858,7 +858,7 @@ describe("round 12: searches always land, skills + package in reports, professio
     expect(ai).toContain("skillsRequired");
     expect(ai).toContain("skillsRequired: string[]");
     expect(ai).toContain("arr(o.skillsRequired)");
-    expect(ai).toContain('import { roleProfile } from "./role-skills"');
+    expect(ai).toContain('import { roleProfile, trackForRole } from "./role-skills"');
     expect(ai).toContain("skillsRequired: profile.skills");
     expect(skeleton).toContain('import { roleSkills } from "./role-skills"');
     expect(skeleton).toContain("roleBrief");
@@ -1177,8 +1177,8 @@ describe("round 16: Pro members never see the sell — resume file upload, zero 
   });
 
   it("versions bumped in lockstep so stale cached pages self-heal", () => {
-    expect(nav).toContain("var WANT_V = 13;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 13;");
+    expect(nav).toContain("var WANT_V = 14;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 14;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1238,8 +1238,8 @@ describe("round 17: public daily drill — different questions every day", () =>
   });
 
   it("versions bumped in lockstep (page changed, nav script changed)", () => {
-    expect(nav).toContain("var WANT_V = 13;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 13;");
+    expect(nav).toContain("var WANT_V = 14;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 14;");
   });
 });
 
@@ -1343,8 +1343,93 @@ describe("round 18: an expired se_token self-heals via the shared SeAuth helper"
   });
 
   it("versions bumped in lockstep (nav + all five pages changed)", () => {
-    expect(nav).toContain("var WANT_V = 13;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 13;");
+    expect(nav).toContain("var WANT_V = 14;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 14;");
+    for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
+  });
+});
+
+describe("round 19: the plan card can roll fresh questions (never a repeat, never dead)", () => {
+  const router = read("src/prep/router.ts");
+  const ai = read("src/prep/ai.ts");
+  const iv = read("public/prep/interview.html");
+  const apt = read("public/prep/aptitude.html");
+  const nav = read("public/js/prep-nav.js");
+
+  it("POST /ai/plan/questions reuses the plan's gates, allowance and cached-avoid merge", () => {
+    const qIdx = router.indexOf('"/ai/plan/questions"');
+    expect(qIdx).toBeGreaterThan(router.indexOf('prepRouter.post("/ai/plan", authenticate'));
+    expect(router.slice(qIdx, qIdx + 140)).toMatch(/authenticate,\s*aiPlanLimiter,\s*prepDbGate/);
+    expect(router).toContain("generatePrepQuestions({ company: { name: company.name }, role, avoid })");
+    expect(router).toContain("fallbackPlanQuestions(role, avoid)");
+    expect(router).toContain(
+      "const overQuota = !isProUser && (await countAiPlanRequestsToday(req.user!.id)) >= FREE_AI_PLANS_PER_DAY;",
+    );
+    expect(router).toContain("if (cached?.plan?.questions?.length) {");
+    expect(router).toContain("avoid.push(q.question);");
+    expect(router).toContain("aiUsed: true, limited: false");
+    expect(router).toContain("aiUsed: false, limited: overQuota");
+    expect(router).toContain('console.error("[prep] ai plan questions failed:"');
+    // Only genuine AI answers spend the daily allowance (same rule as plans).
+    expect(router.slice(qIdx)).toMatch(/recordAiPlanRequest\(req\.user!\.id\);[\s\S]{0,80}status\(201\)/);
+    // No error status can dead-end the button: every branch answers with questions.
+    const qBody = router.slice(qIdx, router.indexOf("// ---- Aptitude practice", qIdx));
+    expect(qBody).not.toContain("status(402)");
+    expect(qBody).not.toContain("status(503)");
+  });
+
+  it("the questions AI pass is text-only with a hard never-repeat contract", () => {
+    expect(ai).toContain("PLAN_QUESTIONS_SYSTEM_PROMPT");
+    expect(ai).toContain("do not repeat or lightly rephrase");
+    expect(ai).toContain("export function parseQuestionsResponse(raw: string, avoid: string[] = [])");
+    expect(ai).toContain("export async function generatePrepQuestions(");
+    expect(ai).toContain("export function fallbackPlanQuestions(role: string, avoid: string[] = [])");
+    expect(ai).toContain('if (!GEMINI_API_KEY) return null;');
+    const gen = ai.slice(
+      ai.indexOf("export async function generatePrepQuestions"),
+      ai.indexOf("export function fallbackPlanQuestions"),
+    );
+    expect(gen).not.toBe("");
+    expect(gen).toContain("PLAN_QUESTIONS_SYSTEM_PROMPT");
+    expect(gen).toContain("Already seen (never repeat these):");
+    expect(gen).not.toContain("gatherSources"); // no web research: works on starter plans too
+  });
+
+  it("the local pool answers when AI can't: role questions, then the bank, minus seen", () => {
+    expect(ai).toContain("INTERVIEW_BANK.filter(");
+    expect(ai).toContain("b.guidance.slice(0, 200)");
+    expect(ai).toContain("profile.questions.slice(0, 6)");
+    expect(ai).toContain("seen.has(key)");
+  });
+
+  it("the plan card ships the button after the list, the avoid roll and the box swap", () => {
+    const qsBoxAt = iv.indexOf('<div class="plan-qs">');
+    const btnAt = iv.indexOf("data-plan-qs-more");
+    const noteAt = iv.indexOf("data-plan-qs-note");
+    expect(qsBoxAt).toBeGreaterThan(-1);
+    expect(btnAt).toBeGreaterThan(qsBoxAt);
+    expect(noteAt).toBeGreaterThan(btnAt);
+    expect(iv).toContain(">Generate new questions</button>");
+    expect(iv).toContain('class="prep-btn prep-btn-ghost"');
+    expect(iv).toContain("function planQsHtml(qs)");
+    expect(iv).toContain("planQsHtml(p.questions)");
+    expect(iv).toContain('planOut.querySelector(".plan-qs")');
+    expect(iv).toContain("planShownQs = qs");
+    expect(iv).toContain("planOut.addEventListener(\"click\"");
+    expect(iv).toContain('planPost("/api/prep/ai/plan/questions"');
+    expect(iv).toContain("avoid: planShownQs.map(function (q) { return q.question; })");
+    expect(iv).toContain("planTarget = { company: company, role: role };");
+    expect(iv).toContain('b.textContent = "Generating..."');
+    // SeAuth carries the roll so an aged token cannot kill it mid-session.
+    expect(iv).toContain("if (window.SeAuth) return SeAuth.fetch(url, opts);");
+    // The coach stays interview-only.
+    expect(apt).not.toContain("data-plan-qs-more");
+    expect(apt).not.toContain("/api/prep/ai/plan/questions");
+  });
+
+  it("versions bumped in lockstep (interview page + nav script changed)", () => {
+    expect(nav).toContain("var WANT_V = 14;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 14;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });

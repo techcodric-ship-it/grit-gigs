@@ -14,7 +14,8 @@
 import { SOURCE_UA } from "./sources/fetcher";
 import type { SourceDocument } from "./sources/types";
 import type { GatheredSources } from "./sources/gather";
-import { roleProfile } from "./role-skills";
+import { roleProfile, trackForRole } from "./role-skills";
+import { INTERVIEW_BANK } from "./interview-bank";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
@@ -348,6 +349,125 @@ export async function generatePrepPlan(
     console.error("[prep] AI plan failed:", (err as Error).message?.slice(0, 120));
     return null;
   }
+}
+
+// ---- Plan question regeneration (the plan card's "generate new questions") ----
+// Text-only AI pass: no web research, so it keeps working even when source
+// gathering failed and the plan is an ungrounded starter. The avoid list is
+// what the candidate already sees on screen - nothing in it may come back.
+
+export const PLAN_QUESTIONS_SYSTEM_PROMPT = [
+  "You are a job-prep coach for candidates in India, writing interview questions to prepare.",
+  "You are given a company, a role, and a list of questions the candidate has ALREADY seen.",
+  "Rules:",
+  "1. Every question you output must be DIFFERENT from every item in the seen list - do not repeat or lightly rephrase any of them.",
+  "2. Questions are coaching suggestions, not company facts - never invent claims about the company's process, salary, or selection criteria.",
+  "3. Never speculate about fraud, scams, legality, or payment behavior.",
+  "4. Plain text only, no markdown.",
+  '5. Output STRICT JSON only: {"questions": [{"question": string, "topic": string, "difficulty": "Easy" | "Medium" | "Hard", "why": string}]}.',
+  "questions: 6 items mixing behavioural, technical and role-specific prompts. question max 300 chars, topic max 80, why max 200.",
+].join("\n");
+
+/** Parse + clamp a questions-only AI reply; drops anything already in the
+ * avoid list and dedupes within the batch. Null when nothing usable remains. */
+export function parseQuestionsResponse(raw: string, avoid: string[] = []): PrepAiQuestion[] | null {
+  let parsed: unknown;
+  const trimmed = raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    return null;
+  }
+  if (typeof parsed !== "object" || parsed === null) return null;
+  const arr = (parsed as { questions?: unknown }).questions;
+  if (!Array.isArray(arr)) return null;
+  const seen = new Set(avoid.map((s) => s.trim().toLowerCase()));
+  const out: PrepAiQuestion[] = [];
+  for (const item of arr) {
+    if (typeof item !== "object" || item === null) continue;
+    const x = item as { question?: unknown; topic?: unknown; difficulty?: unknown; why?: unknown };
+    const question = planStr(x.question, 300);
+    if (!question) continue;
+    const key = question.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const d = typeof x.difficulty === "string" ? x.difficulty.trim().toLowerCase() : "";
+    const difficulty = d === "hard" ? "Hard" : d === "medium" ? "Medium" : "Easy";
+    out.push({ question, topic: planStr(x.topic, 80), difficulty, why: planStr(x.why, 200) });
+    if (out.length >= 6) break;
+  }
+  return out.length ? out : null;
+}
+
+export interface PlanQuestionsInput {
+  company: { name: string };
+  role: string;
+  avoid?: string[];
+  fetchImpl?: ChatFetch;
+}
+
+/** Null when AI is unconfigured or the provider/parse fails - the router
+ * answers from fallbackPlanQuestions() so the button never dead-ends. */
+export async function generatePrepQuestions(
+  input: PlanQuestionsInput,
+): Promise<{ questions: PrepAiQuestion[]; model: string } | null> {
+  if (!GEMINI_API_KEY) return null;
+  const avoid = (input.avoid || []).slice(0, 40);
+  try {
+    const user =
+      "Company: " + input.company.name.slice(0, 120) +
+      "\nRole: " + input.role.slice(0, 120) +
+      (avoid.length
+        ? "\nAlready seen (never repeat these):\n" + avoid.map((q, i) => `${i + 1}. ${q.slice(0, 300)}`).join("\n")
+        : "");
+    const raw = await chatCompletion(
+      [
+        { role: "system", content: PLAN_QUESTIONS_SYSTEM_PROMPT },
+        { role: "user", content: user },
+      ],
+      input.fetchImpl ?? defaultChatFetch,
+      1600,
+    );
+    const questions = parseQuestionsResponse(raw, avoid);
+    return questions ? { questions, model: GEMINI_MODEL } : null;
+  } catch (err) {
+    console.error("[prep] AI questions failed:", (err as Error).message?.slice(0, 120));
+    return null;
+  }
+}
+
+/** Non-AI pool: the role's starter questions, then the role's share of the
+ * static interview bank (plus general), minus everything already seen -
+ * so a starter-plan user rolling for "new" questions genuinely gets new
+ * ones. If the pools are fully exhausted it re-answers rather than returns
+ * nothing (the client renumbers whatever comes back). */
+export function fallbackPlanQuestions(role: string, avoid: string[] = []): PrepAiQuestion[] {
+  const seen = new Set(avoid.map((s) => s.trim().toLowerCase()));
+  const out: PrepAiQuestion[] = [];
+  const push = (q: PrepAiQuestion): void => {
+    const key = q.question.trim().toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(q);
+  };
+  const profile = roleProfile(role);
+  const track = trackForRole(role);
+  const pools: PrepAiQuestion[][] = [
+    profile.questions.map((q) => ({ question: q.question, topic: q.topic, difficulty: q.difficulty, why: q.why })),
+    INTERVIEW_BANK.filter((b) => !track || b.track === track || b.track === "general").map((b) => ({
+      question: b.question,
+      topic: b.category.charAt(0).toUpperCase() + b.category.slice(1),
+      difficulty: b.difficulty === "hard" ? "Hard" : b.difficulty === "medium" ? "Medium" : "Easy",
+      why: b.guidance.slice(0, 200),
+    })),
+  ];
+  for (const pool of pools) {
+    for (const q of pool) {
+      push(q);
+      if (out.length >= 6) return out;
+    }
+  }
+  return out.length ? out : profile.questions.slice(0, 6);
 }
 
 // ---- Resume vs target role gap check ----

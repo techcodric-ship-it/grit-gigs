@@ -15,7 +15,15 @@ import { isPrepEnabled } from "./feature";
 import { ensurePrepDb } from "./db";
 import { resolveCompany, createPendingCompany, slugifyCompanyName } from "./companies";
 import { gatherSourcesWithBudget } from "./sources/gather";
-import { fallbackPlan, generatePrepPlan, generateResumeCheck, summarizeReport, type PrepAiPlanPayload } from "./ai";
+import {
+  fallbackPlan,
+  fallbackPlanQuestions,
+  generatePrepPlan,
+  generatePrepQuestions,
+  generateResumeCheck,
+  summarizeReport,
+  type PrepAiPlanPayload,
+} from "./ai";
 import { countAiPlanRequestsToday, getCachedAiPlan, recordAiPlanRequest, saveAiPlan } from "./ai-plans";
 import { countResumeChecksToday, recordResumeCheck } from "./resume-checks";
 import { extractResumeText } from "./resume-text";
@@ -508,6 +516,67 @@ prepRouter.post("/ai/plan", authenticate, aiPlanLimiter, prepDbGate, async (req:
     res.status(201).json({ success: true, data: { plan, cached: false, aiUsed: false } });
   }
 });
+
+// ---- Plan question regeneration (the plan card's "generate new questions") ----
+// A text-only AI pass for the company+role already on screen: the client sends
+// the questions it currently shows (plus the cached plan's own join in) as the
+// avoid list, so nothing comes back twice. Same daily allowance as plan
+// research - only genuine AI answers count against it - and, like the plan, it
+// never dead-ends: quota used up, AI unconfigured or the provider failing all
+// answer from the local role + interview-bank pools (aiUsed: false).
+
+prepRouter.post(
+  "/ai/plan/questions",
+  authenticate,
+  aiPlanLimiter,
+  prepDbGate,
+  async (req: Request, res: Response): Promise<void> => {
+    const parsed = aiPlanBody.safeParse({
+      company: String(req.body?.company ?? "").trim().slice(0, 200),
+      role: String(req.body?.role ?? "").trim().slice(0, 120),
+    });
+    if (!parsed.success) {
+      res.status(400).json({ success: false, message: "Choose a company and a role (at least 2 characters each)." });
+      return;
+    }
+    const { company: companyName, role } = parsed.data;
+    const roleKey = role.toLowerCase();
+    const avoid = (Array.isArray(req.body?.avoid) ? req.body.avoid : [])
+      .map((q: unknown) => String(q ?? "").replace(/\s+/g, " ").trim().slice(0, 300))
+      .filter((q: string) => q.length > 0)
+      .slice(0, 40);
+    try {
+      const exact = (await resolveCompany(db, companyName)).find((c) => c.score === 3);
+      let company = exact ? await findCompanyBySlug(exact.slug) : null;
+      if (!company) {
+        company = await createPendingCompany(db, { name: companyName, createdBy: req.user!.id });
+      }
+      // The cached plan's own questions are on screen too - never roll them back.
+      const cached = await getCachedAiPlan(company.id, roleKey);
+      if (cached?.plan?.questions?.length) {
+        for (const q of cached.plan.questions) avoid.push(q.question);
+      }
+
+      const isProUser = isEntitlementActive(await getActiveEntitlement(req.user!.id));
+      const overQuota = !isProUser && (await countAiPlanRequestsToday(req.user!.id)) >= FREE_AI_PLANS_PER_DAY;
+      if (!overQuota) {
+        const out = await generatePrepQuestions({ company: { name: company.name }, role, avoid });
+        if (out) {
+          await recordAiPlanRequest(req.user!.id);
+          res.status(201).json({ success: true, data: { questions: out.questions, aiUsed: true, limited: false } });
+          return;
+        }
+      }
+      res.json({
+        success: true,
+        data: { questions: fallbackPlanQuestions(role, avoid), aiUsed: false, limited: overQuota },
+      });
+    } catch (err) {
+      console.error("[prep] ai plan questions failed:", err);
+      res.json({ success: true, data: { questions: fallbackPlanQuestions(role, avoid), aiUsed: false, limited: false } });
+    }
+  },
+);
 
 // ---- Aptitude practice (Phase 5) ----
 // Quiz endpoints are flag-gated + rate-limited. Correct answers never leave

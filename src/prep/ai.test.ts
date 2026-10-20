@@ -5,10 +5,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   PREP_SYSTEM_PROMPT,
+  PLAN_QUESTIONS_SYSTEM_PROMPT,
   buildUserPrompt,
   splitSentences,
   citationIds,
   parseAiResponse,
+  parseQuestionsResponse,
+  fallbackPlanQuestions,
   type ChatFetch,
 } from "./ai";
 import type { SourceDocument } from "./sources/types";
@@ -220,5 +223,133 @@ describe("summarizeReport environment behavior", () => {
       fetchImpl,
     });
     expect(out).toBeNull();
+  });
+});
+
+describe("plan question regeneration (round 19)", () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  async function loadAi(key: string) {
+    vi.stubEnv("GEMINI_API_KEY", key);
+    vi.stubEnv("GEMINI_MODEL", "test-model");
+    return import("./ai");
+  }
+
+  it("the prompt is a questions-only pass with a hard never-repeat contract", () => {
+    expect(PLAN_QUESTIONS_SYSTEM_PROMPT).toContain("ALREADY seen");
+    expect(PLAN_QUESTIONS_SYSTEM_PROMPT).toContain("do not repeat or lightly rephrase");
+    expect(PLAN_QUESTIONS_SYSTEM_PROMPT).toContain("STRICT JSON");
+    expect(PLAN_QUESTIONS_SYSTEM_PROMPT).not.toContain("[1]"); // no citations: nothing is sourced
+  });
+
+  it("parseQuestionsResponse clamps, normalizes and never repeats the seen list", () => {
+    const raw = JSON.stringify({
+      questions: [
+        { question: "Q1 ", topic: " SQL ", difficulty: "medium", why: "w1" },
+        { question: "q1", topic: "dup", difficulty: "Hard", why: "duplicate phrasing" },
+        { question: "Already on screen", topic: "x", difficulty: "Easy", why: "" },
+        { question: "Q2", topic: "", difficulty: "nonsense", why: "" },
+        { question: "", topic: "no question text", difficulty: "Easy", why: "" },
+      ],
+    });
+    const out = parseQuestionsResponse(raw, ["already on screen"]);
+    expect(out).not.toBeNull();
+    expect(out!.map((q) => q.question)).toEqual(["Q1", "Q2"]);
+    expect(out![0]!.difficulty).toBe("Medium");
+    expect(out![0]!.topic).toBe("SQL");
+    expect(out![1]!.difficulty).toBe("Easy");
+  });
+
+  it("tolerates markdown fences and returns null for junk or a fully-seen batch", () => {
+    const fenced = '```json\n{"questions":[{"question":"Fresh one","topic":"T","difficulty":"Hard","why":""}]}\n```';
+    expect(parseQuestionsResponse(fenced)!.length).toBe(1);
+    expect(parseQuestionsResponse("totally not json")).toBeNull();
+    expect(parseQuestionsResponse('{"nope": []}')).toBeNull();
+    expect(parseQuestionsResponse('{"questions":[]}')).toBeNull();
+    expect(
+      parseQuestionsResponse('{"questions":[{"question":"Seen","topic":"t","difficulty":"Easy","why":""}]}', ["seen"]),
+    ).toBeNull();
+  });
+
+  it("parses at most six questions", () => {
+    const qs = Array.from({ length: 9 }, (_, i) => ({ question: `Q${i}`, topic: "t", difficulty: "Easy", why: "" }));
+    expect(parseQuestionsResponse(JSON.stringify({ questions: qs }))!.length).toBe(6);
+  });
+
+  it("returns null without an API key and never calls the network", async () => {
+    const ai = await loadAi("");
+    const fetchImpl: ChatFetch = async () => {
+      throw new Error("network must not be called");
+    };
+    const out = await ai.generatePrepQuestions({ company: { name: "Acme" }, role: "Analyst", avoid: ["x"], fetchImpl });
+    expect(out).toBeNull();
+  });
+
+  it("sends company, role and the seen list to the provider and parses its questions", async () => {
+    const ai = await loadAi("test-key");
+    let calledUrl = "";
+    let calledBody = "";
+    const fetchImpl: ChatFetch = async (url, init) => {
+      calledUrl = url;
+      calledBody = init.body;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          candidates: [
+            { content: { parts: [{ text: '{"questions":[{"question":"New one","topic":"SQL","difficulty":"Medium","why":"w"}]}' }] } },
+          ],
+        }),
+      };
+    };
+    const out = await ai.generatePrepQuestions({
+      company: { name: "TCS" },
+      role: "Business Analyst",
+      avoid: ["Old question"],
+      fetchImpl,
+    });
+    expect(calledUrl).toContain("generativelanguage.googleapis.com");
+    expect(calledBody).toContain("TCS");
+    expect(calledBody).toContain("Business Analyst");
+    expect(calledBody).toContain("Old question");
+    expect(calledBody).toContain("Already seen (never repeat these):");
+    expect(out).not.toBeNull();
+    expect(out!.model).toBe("test-model");
+    expect(out!.questions[0]!.question).toBe("New one");
+  });
+
+  it("returns null when the provider fails or returns junk", async () => {
+    const ai = await loadAi("test-key");
+    const failing: ChatFetch = async () => ({ ok: false, status: 500, json: async () => ({}) });
+    expect(await ai.generatePrepQuestions({ company: { name: "Acme" }, role: "SDE", fetchImpl: failing })).toBeNull();
+    const junk: ChatFetch = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ candidates: [{ content: { parts: [{ text: "totally not json" }] } }] }),
+    });
+    expect(await ai.generatePrepQuestions({ company: { name: "Acme" }, role: "SDE", fetchImpl: junk })).toBeNull();
+  });
+
+  it("fallbackPlanQuestions answers from role + bank minus seen, and never returns nothing", () => {
+    const fresh = fallbackPlanQuestions("business analyst", []);
+    expect(fresh.length).toBeGreaterThan(0);
+    expect(fresh.length).toBeLessThanOrEqual(6);
+    for (const q of fresh) {
+      expect(q.question.length).toBeGreaterThan(0);
+      expect(["Easy", "Medium", "Hard"]).toContain(q.difficulty);
+    }
+    // Avoided questions never come back while the pools still have unseen entries...
+    const avoid3 = fresh.slice(0, 3).map((q) => q.question);
+    const partial = fallbackPlanQuestions("business analyst", avoid3);
+    expect(partial.some((q) => avoid3.includes(q.question))).toBe(false);
+    // ...and a fully exhausted pool re-answers instead of leaving the button dead.
+    const seenAll = fresh.map((q) => q.question);
+    expect(fallbackPlanQuestions("business analyst", seenAll).length).toBeGreaterThan(0);
   });
 });
