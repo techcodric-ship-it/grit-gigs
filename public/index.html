@@ -248,7 +248,7 @@
   .sec-sub{font-size:.95rem;color:var(--ink-2);max-width:62ch;margin:-14px 0 28px;}
 
   /* how it works */
-  .how-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .how-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;}
   .how-card{
     border:1px solid var(--line);border-radius:18px;background:var(--card);padding:24px 22px;
     position:relative;overflow:hidden;transition:transform .18s ease,box-shadow .18s ease;
@@ -424,6 +424,39 @@
     .dash-body{grid-template-columns:1fr;}
     .dash-side{display:none;}
   }
+
+  /* hero feature ticks */
+  .hero-ticks{list-style:none;margin:0 0 26px;padding:0;display:grid;gap:12px;}
+  .hero-ticks li{position:relative;padding-left:28px;}
+  .hero-ticks li::before{content:"\2713";position:absolute;left:0;top:1px;color:var(--purple);font-weight:800;}
+  .hero-ticks li b{display:block;color:var(--ink);font-size:.95rem;font-weight:700;line-height:1.4;}
+  .hero-ticks li span{display:block;color:var(--ink-2);font-size:.84rem;line-height:1.55;margin-top:2px;}
+
+  /* feature list */
+  .feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;}
+  .feat-card{
+    border:1px solid var(--line);border-radius:18px;background:var(--card);
+    padding:24px 22px 56px;position:relative;transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .feat-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-sm);}
+  .feat-k{
+    font-family:'Space Mono',monospace;font-size:.62rem;font-weight:700;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--purple);display:block;margin-bottom:12px;
+  }
+  .feat-card h3{
+    font-family:'Syne',sans-serif;font-weight:800;font-size:1.12rem;letter-spacing:-.02em;
+    line-height:1.25;color:var(--ink);margin-bottom:9px;
+  }
+  .feat-card p{font-size:.89rem;line-height:1.65;color:var(--ink-2);margin-bottom:14px;}
+  .feat-bullets{list-style:none;margin:0 0 4px;padding:0;display:grid;gap:7px;}
+  .feat-bullets li{position:relative;padding-left:20px;font-size:.83rem;color:var(--ink-2);}
+  .feat-bullets li::before{content:"\2713";position:absolute;left:0;top:0;color:#137A4B;font-weight:800;}
+  .feat-tag{
+    position:absolute;left:22px;bottom:18px;
+    font-family:'Space Mono',monospace;font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    background:var(--purple-pale);color:var(--purple-deep);border:1px solid var(--line);border-radius:999px;padding:4px 11px;
+  }
+  .feat-tag-split{background:#fff;color:var(--ink);}
 </style>
 </head>
 <body>
@@ -438,6 +471,7 @@
       <span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span>
     </a>
     <nav class="nav" aria-label="Main">
+      <a href="#features" class="link">Features</a>
       <a href="#how" class="link">How it works</a>
       <a href="#barter" class="link">Skill Exchange</a>
       <a href="/explore" class="link">Explore</a>
@@ -458,29 +492,20 @@
           No cash? Trade your skill for someone else's. Share your wins, build reputation, and
           <strong>prove every rupee you earn</strong> with a verified Income Passport.
         </p>
+        <ul class="hero-ticks">
+          <li><b>Post a barter, get AI-matched</b><span>the right partners come to you in minutes — no cash, no commission</span></li>
+          <li><b>Get paid on-platform</b><span>Razorpay-secured freelance orders with escrow-style confirmation</span></li>
+          <li><b>Prove every rupee</b><span>an Income Passport landlords, banks and visa officers can verify</span></li>
+          <li><b>Walk in prepared</b><span>Prep: sourced company reports, aptitude drills &amp; AI-scored interview mocks</span></li>
+        </ul>
         <div class="hero-links">
           <a class="btn-pill primary" href="#barter">Start for free</a>
-          <a class="btn-pill ghost" href="#how">See how it works</a>
+          <a class="btn-pill ghost" href="#features">See all features</a>
         </div>
         <div class="stats">
           <div class="stat"><b>28,000+</b><span>Active members</span></div>
           <div class="stat"><b>9,400+</b><span>Skills exchanged</span></div>
           <div class="stat"><b>₹4 Cr+</b><span>Paid to freelancers</span></div>
-        </div>
-        <div class="mock">
-          <div class="mock-screen">
-            <div class="mock-top">
-              <span class="mock-nav">hustle/<span class="n">feed</span></span>
-              <span class="mock-nav">+ wins · barter</span>
-            </div>
-            <div class="mock-post">
-              <div class="m-ph"><span class="chip">Logo for a coffee shop · barter</span></div>
-              <div class="m-actions"><span>♥ 1.2k</span><span>comments 214</span><span>share 89</span></div>
-              <div class="m-bar"><i></i></div>
-              <div class="m-caption"><b>@ak.dzn</b> — Logo for a cafe startup in exchange for their coffee for a year. HustleScore +8.</div>
-            </div>
-            <div class="m-score"><span>HUSTLESCORE</span><span class="sc">72/100 · TOP 6%</span></div>
-          </div>
         </div>
       </div>
 
@@ -554,14 +579,86 @@
     </div>
   </div>
 
+  <!-- FEATURE LIST -->
+  <section class="wrap section" id="features">
+    <div class="sec-head">
+      <span class="sec-num">THE FULL LIST</span>
+      <h2>Everything you get &mdash; free to start</h2>
+      <span class="rule"></span>
+    </div>
+    <p class="sec-sub">Six products, one account. No card needed to begin — upgrade only when you want unlimited Prep Pro.</p>
+    <div class="feat-grid">
+      <div class="feat-card">
+        <span class="feat-k">01 &middot; EXCHANGE</span>
+        <h3>Hire without money</h3>
+        <p>Post what you offer and what you need. The AI matches you by skill, city and rating — trade directly, zero commission.</p>
+        <ul class="feat-bullets">
+          <li>Matches in minutes, not days</li>
+          <li>Both sides confirm before it counts</li>
+        </ul>
+        <span class="feat-tag">Free</span>
+      </div>
+      <div class="feat-card">
+        <span class="feat-k">02 &middot; COMMUNITY</span>
+        <h3>Build a reputation that gets you hired</h3>
+        <p>Post wins, tips and offers. Earn likes, comments and reviews — then get discovered by people searching your skill.</p>
+        <ul class="feat-bullets">
+          <li>Public track record on every profile</li>
+          <li>Open messaging — talk to anyone</li>
+        </ul>
+        <span class="feat-tag">Free</span>
+      </div>
+      <div class="feat-card">
+        <span class="feat-k">03 &middot; INCOME</span>
+        <h3>Prove every rupee you earn</h3>
+        <p>Earnings verify in real time and compile into an Income Passport you can download and share anytime.</p>
+        <ul class="feat-bullets">
+          <li>Accepted by landlords, banks, visas</li>
+          <li>Wallet separates credits &amp; earnings</li>
+        </ul>
+        <span class="feat-tag">Free</span>
+      </div>
+      <div class="feat-card">
+        <span class="feat-k">04 &middot; FREELANCE</span>
+        <h3>Get paid for real work</h3>
+        <p>Take orders on-platform with Razorpay-secured payments and one dashboard for exchanges, orders and messages.</p>
+        <ul class="feat-bullets">
+          <li>Earnings analytics built in</li>
+          <li>Withdrawals processed on-platform</li>
+        </ul>
+        <span class="feat-tag">Free</span>
+      </div>
+      <div class="feat-card">
+        <span class="feat-k">05 &middot; PREP</span>
+        <h3>Walk in prepared — researched, not guessed</h3>
+        <p>Sourced company reports, 31 aptitude drills, question packs candidates were actually asked, and mocks where the AI scores every answer 0–10.</p>
+        <ul class="feat-bullets">
+          <li>Every claim labelled with its source</li>
+          <li>Free daily practice · Pro = unlimited</li>
+        </ul>
+        <span class="feat-tag feat-tag-split">Free · Pro ₹199</span>
+      </div>
+      <div class="feat-card">
+        <span class="feat-k">06 &middot; TRUST</span>
+        <h3>Nothing hidden, nothing scraped</h3>
+        <p>No Glassdoor or LinkedIn scraping. Member-reported data stays labelled, aggregates unlock at 5 reports, and payments run through Razorpay.</p>
+        <ul class="feat-bullets">
+          <li>Provenance on every data point</li>
+          <li>Free to start, one-time Pro price</li>
+        </ul>
+        <span class="feat-tag">Always</span>
+      </div>
+    </div>
+  </section>
+
   <!-- HOW IT WORKS -->
   <section class="wrap section" id="how">
     <div class="sec-head">
       <span class="sec-num">HOW IT WORKS</span>
-      <h2>Three ways to grow on Grit&Gigs</h2>
+      <h2>Four ways to grow on Grit&Gigs</h2>
       <span class="rule"></span>
     </div>
-    <p class="sec-sub">Whether you have money or not, there's a path for you — from your first skill trade to your first paycheck.</p>
+    <p class="sec-sub">Whether you have money or not, there's a path for you — from your first skill trade to your first paycheck, interview by interview.</p>
     <div class="how-grid">
       <div class="how-card">
         <span class="badge badge-v">Free · zero money</span>
@@ -589,6 +686,15 @@
         <div class="how-step"><i>1</i><span>Work, trade and get paid on-platform</span></div>
         <div class="how-step"><i>2</i><span>Earnings auto-verified in real time</span></div>
         <div class="how-step"><i>3</i><span>Download your Income Passport anytime</span></div>
+      </div>
+      <div class="how-card">
+        <span class="badge badge-v">Prep · free daily</span>
+        <span class="how-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M9 7.5h6"/></svg></span>
+        <h3>Prep — Career &amp; Interviews</h3>
+        <p>Company research you can trust, aptitude drills and mocks where the AI scores every answer you type.</p>
+        <div class="how-step"><i>1</i><span>Search a sourced company report</span></div>
+        <div class="how-step"><i>2</i><span>Drill aptitude &amp; interview questions</span></div>
+        <div class="how-step"><i>3</i><span>Get AI-scored mock feedback</span></div>
       </div>
     </div>
   </section>

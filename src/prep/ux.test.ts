@@ -419,7 +419,7 @@ describe("the Buy button can never look dead; members look like members (round 5
       "public/prep/interview.html",
       "public/prep/proof.html",
     ]) {
-      expect(read(p), p).toContain("window.PREP_V = 16;");
+      expect(read(p), p).toContain("window.PREP_V = 17;");
       expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
     }
   });
@@ -1183,7 +1183,7 @@ describe("round 16: Pro members never see the sell — resume file upload, zero 
 
   it("versions bumped in lockstep so stale cached pages self-heal", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 16;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 17;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1244,7 +1244,7 @@ describe("round 17: public daily drill — different questions every day", () =>
 
   it("versions bumped in lockstep (page changed, nav script changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 16;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 17;");
   });
 });
 
@@ -1349,7 +1349,7 @@ describe("round 18: an expired se_token self-heals via the shared SeAuth helper"
 
   it("versions bumped in lockstep (nav + all five pages changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 16;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 17;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1434,7 +1434,7 @@ describe("round 19: the plan card can roll fresh questions (never a repeat, neve
 
   it("versions bumped in lockstep (interview page + nav script changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 16;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 17;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1531,7 +1531,7 @@ describe("round 20: company packs + AI-scored answers, generic bank retired", ()
 
   it("versions bumped in lockstep (interview page + nav script changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 16;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 17;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1592,7 +1592,76 @@ describe("round 21: the interview page reads as a guided tour, the feed promo is
 
   it("versions bumped in lockstep (interview page + nav script changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 16;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 17;");
+    for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
+  });
+});
+
+describe("round 22: the interview session is visibly Pro-only, the landing reads professional", () => {
+  const ivPage = read("public/prep/interview.html");
+  const landing = read("public/index.html");
+  const router = read("src/prep/router.ts");
+
+  it("free users hit one unlock card listing benefits, not a bare upsell", () => {
+    expect(ivPage).toContain('class="prep-card prep-paywall"');
+    expect(ivPage).toContain('id="ivPaywall"');
+    expect(ivPage).toContain("You&rsquo;ve seen the free sample above");
+    expect(ivPage).toContain("every feature below goes unlimited for 30 days");
+    expect(ivPage).toContain('class="iv-unlock-grid"');
+    expect(ivPage).toContain('class="iv-unlock-list"');
+    for (const benefit of [
+      "Full mock sessions",
+      "AI answer scores, unlimited",
+      "Full company packs",
+      "Resume checks, unlimited",
+      "AI company plans, unlimited",
+    ]) expect(ivPage, benefit).toContain(benefit);
+    expect(ivPage).toContain("Unlock &amp; get everything unlimited &mdash; &#8377;199");
+    expect(ivPage).toContain('primary.textContent = "Unlock & get everything unlimited \\u2014 \\u20B9199"');
+    expect(ivPage).toContain(".iv-unlock-list li::before"); // checks come from styled CSS, not emoji spam
+  });
+
+  it("the proof block is real numbers and honest guarantees — no invented testimonials", () => {
+    expect(ivPage).toContain('class="iv-proof"');
+    expect(ivPage).toContain("original interview questions written in-repo");
+    expect(ivPage).toContain("original aptitude questions with worked explanations");
+    expect(ivPage).toContain("labelled with their source");
+    expect(ivPage).toContain("taste it before you pay");
+    expect(ivPage).not.toMatch(/[A-Z][a-z]+ [A-Z][a-z]+, (CS Student|Freelance|Startup)/); // no borrowed/fake faces
+  });
+
+  it("the session itself stays Pro-gated end to end", () => {
+    expect(router).toContain('prepRouter.get("/interview/mock", authenticate, interviewLimiter, requirePrepPro');
+    expect(router).toContain('prepRouter.post("/interview/mock/submit", authenticate, interviewLimiter, requirePrepPro');
+    expect(ivPage).toContain('id="mockCard" data-pro-content');
+    expect(ivPage).toContain('id="feedbackCard" data-pro-content hidden');
+  });
+
+  it("the landing lists every feature in a clean, professional grid", () => {
+    expect(landing).toContain('id="features"');
+    expect(landing).toContain('class="feat-grid"');
+    expect(landing).toContain('class="hero-ticks"');
+    expect((landing.match(/class="feat-card"/g) || []).length).toBe(6);
+    for (const t of [
+      "Hire without money",
+      "Prove every rupee you earn",
+      "Walk in prepared",
+      "Nothing hidden, nothing scraped",
+      "Four ways to grow on Grit&Gigs",
+      "Prep — Career &amp; Interviews",
+      'href="#features"',
+      "Free to start, no card needed",
+    ]) expect(landing, t).toContain(t);
+    // the old vibe-coded fake-engagement mock is retired
+    expect(landing).not.toContain('class="mock"');
+    expect(landing).not.toContain("1.2k");
+    expect(landing).not.toContain("See how it works");
+  });
+
+  it("versions bumped in lockstep (interview page changed, nav untouched)", () => {
+    const nav = read("public/js/prep-nav.js");
+    expect(nav).toContain("var WANT_V = 16;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 17;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });

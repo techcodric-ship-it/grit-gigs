@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex"/>
 <link rel="icon" href="/favicon.ico?v=3"/>
 <link rel="stylesheet" href="/assets/feed.css?v=36"/>
-<script>window.PREP_V = 16;</script>
+<script>window.PREP_V = 17;</script>
 <link rel="stylesheet" href="/prep/prep.css?v=10"/>
 <style>
   .iv-tabs { display:flex; gap:8px; margin-bottom:16px; }
@@ -76,6 +76,18 @@
   .iv-badge { flex:0 0 auto; display:inline-block; border-radius:999px; padding:3px 11px; font-size:0.75rem; font-weight:800; letter-spacing:0.03em; white-space:nowrap; }
   .iv-badge-free { background:#E7F7EE; color:#137A4B; border:1px solid #BFE7D2; }
   .iv-badge-pro { background:linear-gradient(90deg, #6C3FE8, #9F5BFF); color:#fff; border:1px solid #6C3FE8; }
+  .iv-unlock-grid { display:grid; gap:12px; grid-template-columns:repeat(auto-fit, minmax(270px, 1fr)); margin-top:14px; }
+  .iv-unlock-col { background:#fff; border:1px solid var(--prep-line); border-radius:12px; padding:15px 16px; }
+  .iv-unlock-h { font-size:0.8rem; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; color:var(--prep-violet-deep); margin:0 0 11px; }
+  .iv-unlock-list { list-style:none; margin:0; padding:0; display:grid; gap:10px; }
+  .iv-unlock-list li { position:relative; padding-left:23px; font-size:0.86rem; line-height:1.5; color:var(--prep-ink-2); }
+  .iv-unlock-list li::before { content:"\2713"; position:absolute; left:0; top:0; color:#137A4B; font-weight:800; }
+  .iv-unlock-list li b { display:block; color:var(--prep-ink); font-size:0.9rem; }
+  .iv-proof { display:grid; gap:10px; }
+  .iv-proof-stat { display:flex; gap:11px; align-items:baseline; }
+  .iv-proof-stat b { font-size:1.3rem; font-weight:800; color:var(--prep-violet-deep); min-width:46px; }
+  .iv-proof-stat span { font-size:0.83rem; line-height:1.45; color:var(--prep-ink-2); }
+  .iv-proof-note { margin-top:11px; font-size:0.82rem; line-height:1.5; color:var(--prep-ink-2); border-top:1px dashed var(--prep-line); padding-top:10px; }
 </style>
 </head>
 <body>
@@ -221,13 +233,36 @@
   </section>
 
   <section class="prep-card prep-paywall" id="ivPaywall" hidden>
-    <span class="plan-kicker">Prep Pro perk</span>
+    <span class="plan-kicker">Unlock Prep Pro &mdash; full session access</span>
     <h2 class="prep-h2">Practice<span id="ivPaywallCo"></span> the way the panel will</h2>
-    <p class="prep-sub">You&rsquo;ve seen the free sample above. Prep Pro is the full loop: full company packs of
-      real asked questions, mocks that research your target company&rsquo;s likely rounds and AI-score every answer
-      you type with a stronger version to rehearse &mdash; &#8377;199 for 30 days, one-time payment, nothing auto-renews.</p>
+    <p class="prep-sub">You&rsquo;ve seen the free sample above. The full interview session is for Prep Pro members &mdash;
+      and the moment you unlock, <b>every feature below goes unlimited for 30 days</b>. One payment of &#8377;199,
+      nothing auto-renews.</p>
+    <div class="iv-unlock-grid">
+      <div class="iv-unlock-col">
+        <h3 class="iv-unlock-h">What you unlock &mdash; unlimited after Pro</h3>
+        <ul class="iv-unlock-list">
+          <li><b>Full mock sessions</b><span>5 questions researched on your target company &mdash; the AI scores every answer you type and shows a stronger version</span></li>
+          <li><b>AI answer scores, unlimited</b><span>the free 1-a-day limit disappears</span></li>
+          <li><b>Full company packs</b><span>every question candidates shared for a company, not one free preview</span></li>
+          <li><b>Resume checks, unlimited</b><span>vs 1 check a day on the free plan</span></li>
+          <li><b>AI company plans, unlimited</b><span>the 5-a-day limit disappears</span></li>
+        </ul>
+      </div>
+      <div class="iv-unlock-col">
+        <h3 class="iv-unlock-h">Why candidates trust it</h3>
+        <div class="iv-proof">
+          <div class="iv-proof-stat"><b>24</b><span>original interview questions written in-repo &mdash; nothing scraped from Glassdoor or LinkedIn</span></div>
+          <div class="iv-proof-stat"><b>31</b><span>original aptitude questions with worked explanations</span></div>
+          <div class="iv-proof-stat"><b>100%</b><span>of report claims labelled with their source &mdash; official, news or member-reported</span></div>
+        </div>
+        <p class="iv-proof-note">The free sample above uses the exact same coaching &mdash; taste it before you pay.
+          Pack questions come from candidates who actually sat that interview, and Grit&amp;Gigs backs it with
+          28,000+ members trading skills every day.</p>
+      </div>
+    </div>
     <div class="prep-paywall-ctas">
-      <a class="prep-btn" id="ivPaywallPrimary" href="/prep#prepProCard">Get Prep Pro &mdash; &#8377;199</a>
+      <a class="prep-btn" id="ivPaywallPrimary" href="/prep#prepProCard">Unlock &amp; get everything unlimited &mdash; &#8377;199</a>
       <a class="prep-btn prep-btn-ghost" id="ivPaywallAlt" href="/login?next=/prep/interview">Sign in</a>
     </div>
   </section>
@@ -367,14 +402,14 @@
     if (kind === "signin") {
       primary.textContent = "Sign in to continue";
       primary.href = "/login?next=" + encodeURIComponent(location.pathname);
-      alt.textContent = "See Prep Pro";
+      alt.textContent = "See what's included";
       alt.href = "/prep#prepProCard";
       alt.style.display = "";
     } else {
       var t = typeof currentTarget === "function" ? currentTarget() : null;
       var coEl = document.getElementById("ivPaywallCo");
       if (coEl) coEl.textContent = t && t.company ? " for " + t.company : "";
-      primary.textContent = "Get Prep Pro \u2014 \u20B9199";
+      primary.textContent = "Unlock & get everything unlimited \u2014 \u20B9199";
       primary.href = "/prep#prepProCard";
       alt.style.display = "none";
     }
