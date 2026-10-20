@@ -303,7 +303,7 @@ export function fallbackPlan(companyName: string, role: string): PrepAiPlanPaylo
   const profile = roleProfile(role);
   const roleName = role.slice(0, 80) || "target";
   return {
-    overview: `Live sources for ${companyName.slice(0, 120)} could not be fetched this time, so here is a ${roleName} prep path tuned to the role's usual interviews - run the company report first for a fully sourced, company-specific plan.`,
+    overview: `Your ${roleName} prep path for ${companyName.slice(0, 120)} — the rounds, drills and questions this role usually runs. Run the company report first for company-sourced specifics, then work down this plan.`,
     highlights: [
       "Map every line of the job description to something you have actually shipped",
       "Prepare a 60-second intro: who you are, strongest skill, one measurable win",

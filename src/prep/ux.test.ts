@@ -419,7 +419,7 @@ describe("the Buy button can never look dead; members look like members (round 5
       "public/prep/interview.html",
       "public/prep/proof.html",
     ]) {
-      expect(read(p), p).toContain("window.PREP_V = 18;");
+      expect(read(p), p).toContain("window.PREP_V = 19;");
       expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
     }
   });
@@ -661,6 +661,14 @@ describe("AI company + role plans on aptitude & interview (round 9)", () => {
     expect(ai).toContain('grounded: false');
     expect(ai).toContain("maxOutputTokens = 700");
     expect(ai).toContain("1600");
+    // round 26: the fallback never reads as a failure to a paying member —
+    // no "could not be fetched" apology, and real pack questions fill in.
+    expect(ai).not.toContain("could not be fetched");
+    expect(ai).toContain("prep path for");
+    expect(router).toContain("planWithPackQuestions");
+    expect(router).toContain("Member-reported from a real");
+    expect(iv).toContain("Role-tuned prep path for your target");
+    expect(iv).not.toContain("Starter plan");
   });
   it("plans persist per company+role with a 30-minute freshness window", () => {
     expect(plans).toContain("PLAN_CACHE_TTL_MS = 30 * 60 * 1000");
@@ -1180,7 +1188,7 @@ describe("round 16: Pro members never see the sell — resume file upload, zero 
 
   it("versions bumped in lockstep so stale cached pages self-heal", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 18;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 19;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1241,7 +1249,7 @@ describe("round 17: public daily drill — different questions every day", () =>
 
   it("versions bumped in lockstep (page changed, nav script changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 18;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 19;");
   });
 });
 
@@ -1346,7 +1354,7 @@ describe("round 18: an expired se_token self-heals via the shared SeAuth helper"
 
   it("versions bumped in lockstep (nav + all five pages changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 18;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 19;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1431,7 +1439,7 @@ describe("round 19: the plan card can roll fresh questions (never a repeat, neve
 
   it("versions bumped in lockstep (interview page + nav script changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 18;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 19;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1528,7 +1536,7 @@ describe("round 20: company packs + AI-scored answers, generic bank retired", ()
 
   it("versions bumped in lockstep (interview page + nav script changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 18;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 19;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1593,7 +1601,7 @@ describe("round 21: the interview page reads as a guided tour, the feed promo is
 
   it("versions bumped in lockstep (interview page + nav script changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 18;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 19;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1665,6 +1673,11 @@ describe("round 22: the interview session is visibly Pro-only, the landing reads
     ]) expect(landing, t).toContain(t);
     // exactly one paid plan (Prep Pro) — no fake Starter/Pro/Squad tiers
     expect((landing.match(/<div class="price( hot)?">/g) || []).length).toBe(1);
+    // round 26: a Pro member never sees the landing sell to them — the
+    // pricing CTA checks /api/prep/pro/status and swaps to the dashboard
+    expect(landing).toContain('id="priceCta"');
+    expect(landing).toContain("/api/prep/pro/status");
+    expect(landing).toContain("Open your Prep dashboard");
     expect(landing).not.toContain("Starter");
     expect(landing).not.toContain("Squad");
     expect(landing).not.toContain("₹499");
@@ -1695,7 +1708,7 @@ describe("round 22: the interview session is visibly Pro-only, the landing reads
   it("versions bumped in lockstep (interview page changed, nav untouched)", () => {
     const nav = read("public/js/prep-nav.js");
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 18;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 19;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });

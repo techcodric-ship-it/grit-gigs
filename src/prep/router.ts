@@ -435,8 +435,8 @@ prepRouter.get("/companies/:slug/report", authenticate, reportLimiter, prepDbGat
 // a plan (skills, rounds, questions, topic weightage), cache per company+role
 // for 30 minutes. Free tier: 5 fresh AI research runs per day, Prep Pro
 // unlimited; cache hits and non-AI fallbacks never consume the allowance —
-// when research is used up the route still returns the role-tuned starter
-// plan (limited: true), so a search never dead-ends on an error.
+// when research is used up the route still returns the role-tuned plan
+// (limited: true), so a search never dead-ends on an error.
 
 const aiPlanLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -452,6 +452,39 @@ const aiPlanBody = z.object({
   company: z.string().min(2).max(200),
   role: z.string().min(2).max(120),
 });
+
+// Fallback plans still carry REAL company questions when members have filed
+// any: the role profile stays the skeleton, the pack supplies the specifics.
+// MEMBER_REPORTED is stated in each question's why — never presented as web
+// research (grounded stays false, sources stay empty).
+async function planWithPackQuestions(
+  company: { id: string; name: string },
+  role: string,
+): Promise<ReturnType<typeof fallbackPlan>> {
+  const plan = fallbackPlan(company.name, role);
+  try {
+    const pack = await listPackQuestions(company.id);
+    if (!pack.length) return plan;
+    const roleKey = role.toLowerCase();
+    const matchesRole = (r: string | null): boolean => {
+      const rk = (r || "").toLowerCase();
+      return !!rk && (rk.includes(roleKey) || roleKey.includes(rk));
+    };
+    const fromPack = [...pack]
+      .sort((a, b) => Number(matchesRole(b.role)) - Number(matchesRole(a.role)))
+      .slice(0, 6)
+      .map((q) => ({
+        question: q.question.slice(0, 300),
+        topic: (q.category || "Interview").slice(0, 80),
+        difficulty: "Medium" as const,
+        why: `Member-reported from a real ${company.name} interview — not web research.`,
+      }));
+    plan.questions = [...fromPack, ...plan.questions].slice(0, 10);
+  } catch {
+    // pack table unavailable: the role plan still stands on its own
+  }
+  return plan;
+}
 
 prepRouter.post("/ai/plan", authenticate, aiPlanLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
   const parsed = aiPlanBody.safeParse({
@@ -485,9 +518,9 @@ prepRouter.post("/ai/plan", authenticate, aiPlanLimiter, prepDbGate, async (req:
       if (used >= FREE_AI_PLANS_PER_DAY) {
         // The free allowance only gates live AI research. A searched company +
         // role must ALWAYS land on a plan — when research is used up for the
-        // day, answer with the role-tuned starter plan (limited: true)
-        // instead of an error the user cannot act on.
-        const plan = fallbackPlan(company.name, role);
+        // day, answer with the role-tuned plan (limited: true) instead of an
+        // error the user cannot act on.
+        const plan = await planWithPackQuestions(company, role);
         res.json({
           success: true,
           data: { plan, cached: false, aiUsed: false, limited: true, used, limit: FREE_AI_PLANS_PER_DAY },
@@ -501,7 +534,7 @@ prepRouter.post("/ai/plan", authenticate, aiPlanLimiter, prepDbGate, async (req:
       12_000,
     );
     const generated = await generatePrepPlan({ company: { name: company.name }, role, gathered });
-    const plan = generated ? generated.plan : fallbackPlan(company.name, role);
+    const plan = generated ? generated.plan : await planWithPackQuestions(company, role);
     plan.sources = gathered.documents.slice(0, 6).map((d) => ({ label: d.label, url: d.url, publisher: d.publisher }));
     plan.grounded = plan.sources.length > 0 && generated !== null;
 

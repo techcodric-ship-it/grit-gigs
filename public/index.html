@@ -529,7 +529,7 @@
           <p class="price-amt">₹199<small>one-time · 30 days</small></p>
           <p class="price-desc">Mocks, resume checks, company packs and prep plans — all of it, unlocked for 30 days.</p>
           <ul><li>AI scores every mock answer 0–10</li><li>Unlimited resume checks</li><li>Every full company pack, every question</li><li>AI-built prep plans per company</li></ul>
-          <a class="btn-price" href="/prep#prepProCard">Unlock Prep Pro →</a>
+          <a class="btn-price" id="priceCta" href="/prep#prepProCard">Unlock Prep Pro →</a>
         </div>
       </div>
       <p class="price-note">Barter, community and messaging stay free forever. Pay once for Prep Pro — no auto-renewal, no hidden charges.</p>
@@ -853,6 +853,36 @@
       $('liErr').textContent = d.message || 'If that email exists, a reset link has been sent.';
     });
   });
+})();
+</script>
+<script>
+// Round 26: a Prep Pro member must never be sold Prep Pro again. The pricing
+// CTA paints from the cached entitlement instantly, then reconciles against
+// /api/prep/pro/status — same source of truth the prep pages use.
+(function () {
+  var btn = document.getElementById('priceCta');
+  if (!btn) return;
+  function swapToDashboard() {
+    btn.textContent = 'Open your Prep dashboard →';
+    btn.setAttribute('href', '/prep');
+  }
+  try {
+    var last = JSON.parse(localStorage.getItem('se_pro_last') || 'null');
+    var pro = JSON.parse(localStorage.getItem('se_pro') || 'null');
+    if ((last && last.d && last.d.isPro) || (pro && pro.pro === true)) swapToDashboard();
+  } catch (e) { /* private mode */ }
+  var token = '';
+  try { token = localStorage.getItem('se_token') || ''; } catch (e) { /* private mode */ }
+  if (!token) return;
+  fetch('/api/prep/pro/status', { headers: { Authorization: 'Bearer ' + token } })
+    .then(function (r) { return r.json().catch(function () { return null; }); })
+    .then(function (d) {
+      if (d && d.success && d.data && d.data.isPro) {
+        swapToDashboard();
+        try { localStorage.setItem('se_pro', JSON.stringify({ v: 1, ts: Date.now(), pro: true })); } catch (e) { /* private mode */ }
+      }
+    })
+    .catch(function () { /* keep the last painted state */ });
 })();
 </script>
 </body>
