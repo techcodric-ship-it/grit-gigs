@@ -1676,6 +1676,8 @@ describe("round 22: the interview session is visibly Pro-only, the landing reads
       "font-family:'Syne'",
       // images come from an external stock source, not the platform's demo covers
       "images.unsplash.com",
+      // round 28: the interview-prep viral post is the landing's featured blog card
+      "blog-interview-rehearsal-test.html",
     ]) expect(landing, t).toContain(t);
     // exactly one paid plan (Prep Pro) — no fake Starter/Pro/Squad tiers
     expect((landing.match(/<div class="price( hot)?">/g) || []).length).toBe(1);
