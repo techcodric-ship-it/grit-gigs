@@ -419,7 +419,7 @@ describe("the Buy button can never look dead; members look like members (round 5
       "public/prep/interview.html",
       "public/prep/proof.html",
     ]) {
-      expect(read(p), p).toContain("window.PREP_V = 21;");
+      expect(read(p), p).toContain("window.PREP_V = 22;");
       expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
     }
   });
@@ -1188,7 +1188,7 @@ describe("round 16: Pro members never see the sell — resume file upload, zero 
 
   it("versions bumped in lockstep so stale cached pages self-heal", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 21;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 22;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1249,7 +1249,7 @@ describe("round 17: public daily drill — different questions every day", () =>
 
   it("versions bumped in lockstep (page changed, nav script changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 21;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 22;");
   });
 });
 
@@ -1354,7 +1354,7 @@ describe("round 18: an expired se_token self-heals via the shared SeAuth helper"
 
   it("versions bumped in lockstep (nav + all five pages changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 21;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 22;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1439,7 +1439,7 @@ describe("round 19: the plan card can roll fresh questions (never a repeat, neve
 
   it("versions bumped in lockstep (interview page + nav script changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 21;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 22;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1536,7 +1536,7 @@ describe("round 20: company packs + AI-scored answers, generic bank retired", ()
 
   it("versions bumped in lockstep (interview page + nav script changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 21;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 22;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1607,7 +1607,7 @@ describe("round 21: the interview page reads as a guided tour, the feed promo is
 
   it("versions bumped in lockstep (interview page + nav script changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 21;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 22;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1720,7 +1720,7 @@ describe("round 22: the interview session is visibly Pro-only, the landing reads
   it("versions bumped in lockstep (interview page changed, nav untouched)", () => {
     const nav = read("public/js/prep-nav.js");
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 21;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 22;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1815,6 +1815,38 @@ describe("admin panel — Prep command center (round 31)", () => {
     ]) {
       expect(read(p), p).not.toMatch(/28,000/);
     }
+  });
+});
+
+describe("prep tab strip order (round 32)", () => {
+  it("every prep page leads with Interview, then Reports, Aptitude, Contribute proof", () => {
+    for (const p of PREP_PAGES) {
+      const t = read(p);
+      const start = t.indexOf('<nav class="prep-tabs"');
+      expect(start, p + " has prep-tabs nav").toBeGreaterThan(-1);
+      const nav = t.slice(start, t.indexOf("</nav>", start));
+      const iv = nav.indexOf("/prep/interview");
+      const rep = nav.indexOf('href="/prep"');
+      const apt = nav.indexOf("/prep/aptitude");
+      const proof = nav.indexOf("/prep/proof");
+      expect(iv, p + " interview link present").toBeGreaterThan(-1);
+      expect(iv, p + " interview before reports").toBeLessThan(rep);
+      expect(rep, p + " reports before aptitude").toBeLessThan(apt);
+      expect(apt, p + " aptitude before proof").toBeLessThan(proof);
+    }
+  });
+
+  it("hub feature cards match the same order", () => {
+    const hub = read("public/prep/index.html");
+    const grid = hub.slice(hub.indexOf('class="prep-feature-grid"'));
+    const iv = grid.indexOf('href="/prep/interview"');
+    const rep = grid.indexOf('href="#prepSearchForm"');
+    const apt = grid.indexOf('href="/prep/aptitude"');
+    const proof = grid.indexOf('href="/prep/proof"');
+    expect(iv).toBeGreaterThan(-1);
+    expect(iv).toBeLessThan(rep);
+    expect(rep).toBeLessThan(apt);
+    expect(apt).toBeLessThan(proof);
   });
 });
 
