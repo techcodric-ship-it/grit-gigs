@@ -4,9 +4,11 @@
 
 import { and, count, desc, eq, gte } from "drizzle-orm";
 import { db } from "../db";
-import { prepCompanyQuestionsTable, type PrepCompanyQuestion } from "./schema";
+import { prepCompaniesTable, prepCompanyQuestionsTable, type PrepCompanyQuestion } from "./schema";
 
 export const PACKS_PER_USER_PER_DAY = 10;
+export const PACK_MODERATION_STATUSES = ["VISIBLE", "HIDDEN"] as const;
+export type PackModerationStatus = (typeof PACK_MODERATION_STATUSES)[number];
 
 function startOfUtcDay(): Date {
   const d = new Date();
@@ -53,4 +55,40 @@ export async function countPackSubmissionsToday(userId: string): Promise<number>
       ),
     );
   return Number(rows[0]?.n ?? 0);
+}
+
+/** Admin: latest member-reported questions across all companies, any status. */
+export async function listPackQuestionsForModeration(limit = 100): Promise<
+  Array<Omit<PrepCompanyQuestion, "companyId"> & { companyName: string }>
+> {
+  const rows = await db
+    .select({
+      id: prepCompanyQuestionsTable.id,
+      role: prepCompanyQuestionsTable.role,
+      category: prepCompanyQuestionsTable.category,
+      question: prepCompanyQuestionsTable.question,
+      context: prepCompanyQuestionsTable.context,
+      status: prepCompanyQuestionsTable.status,
+      submittedBy: prepCompanyQuestionsTable.submittedBy,
+      createdAt: prepCompanyQuestionsTable.createdAt,
+      companyName: prepCompaniesTable.name,
+    })
+    .from(prepCompanyQuestionsTable)
+    .innerJoin(prepCompaniesTable, eq(prepCompanyQuestionsTable.companyId, prepCompaniesTable.id))
+    .orderBy(desc(prepCompanyQuestionsTable.createdAt))
+    .limit(Math.min(Math.max(limit, 1), 200));
+  return rows;
+}
+
+/** Admin: hide an abusive question or restore a hidden one. */
+export async function updatePackQuestionStatus(
+  id: string,
+  status: PackModerationStatus,
+): Promise<PrepCompanyQuestion | null> {
+  const rows = await db
+    .update(prepCompanyQuestionsTable)
+    .set({ status })
+    .where(eq(prepCompanyQuestionsTable.id, id))
+    .returning();
+  return rows[0] ?? null;
 }

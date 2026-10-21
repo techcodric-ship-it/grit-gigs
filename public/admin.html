@@ -234,11 +234,30 @@ a{text-decoration:none;color:inherit;}
     <span class="lt2">Admin Panel</span>
   </div>
   <nav class="sb-nav">
-    <div class="ns">Main</div>
+    <div class="ns">Command Center</div>
     <button class="ni active" data-p="overview">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
       Overview
     </button>
+    <div class="ns">Prep</div>
+    <button class="ni" data-p="prep-interview">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="1" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 01-14 0v-1"/><line x1="12" y1="18" x2="12" y2="23"/></svg>
+      Interview
+    </button>
+    <button class="ni" data-p="prep-reports">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Company Reports
+    </button>
+    <button class="ni" data-p="prep-aptitude">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
+      Aptitude
+    </button>
+    <button class="ni" data-p="prep-proof">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Contribute Proof
+      <span class="stg" style="display:none" id="proofNavBadge">0</span>
+    </button>
+    <div class="ns">Platform</div>
     <button class="ni" data-p="users">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
       Users
@@ -249,11 +268,7 @@ a{text-decoration:none;color:inherit;}
     </button>
     <button class="ni" data-p="reports">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-      Reports
-    </button>
-    <button class="ni" data-p="jobs">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-      Jobs
+      Content Reports
     </button>
     <button class="ni" data-p="squads">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2"/><circle cx="17" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>
@@ -271,10 +286,6 @@ a{text-decoration:none;color:inherit;}
     <button class="ni" data-p="email">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
       Send Email
-    </button>
-    <button class="ni" data-p="equity">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 1 18"/><polyline points="16 7 22 7 22 13"/></svg>
-      Equity Waitlist
     </button>
     <button class="ni" data-p="withdrawals">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
@@ -321,13 +332,38 @@ a{text-decoration:none;color:inherit;}
 
 <!-- ═══ OVERVIEW ═══ -->
 <div class="ps active" id="ps-overview">
-  <div style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+  <div style="background:linear-gradient(135deg,#1C1C2E 0%,#4A25B8 55%,#6C3FE8 100%);border-radius:var(--rl);padding:24px 26px;color:#fff;margin-bottom:18px;position:relative;overflow:hidden;">
+    <div style="font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:#F5C842;font-weight:700;margin-bottom:6px;">Grit&amp;Gigs Command Center</div>
+    <h1 style="font-size:1.55rem;color:#fff;margin:0 0 6px;">Everything happening, in one screen</h1>
+    <p style="font-size:.82rem;color:rgba(255,255,255,.78);margin:0;">Live counts from the database — skill barter, interview prep, payments and moderation queues. Nothing here is estimated.</p>
+    <div id="overviewPulse" style="display:flex;gap:18px;flex-wrap:wrap;margin-top:16px;">
+      <div style="min-width:110px;"><div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.7rem;line-height:1;" data-pulse="users">—</div><div style="font-size:.66rem;color:rgba(255,255,255,.65);margin-top:3px;text-transform:uppercase;letter-spacing:.08em;">Members</div></div>
+      <div style="min-width:110px;"><div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.7rem;line-height:1;" data-pulse="prepProActive">—</div><div style="font-size:.66rem;color:rgba(255,255,255,.65);margin-top:3px;text-transform:uppercase;letter-spacing:.08em;">Prep Pro live</div></div>
+      <div style="min-width:110px;"><div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.7rem;line-height:1;" data-pulse="proofPending">—</div><div style="font-size:.66rem;color:rgba(255,255,255,.65);margin-top:3px;text-transform:uppercase;letter-spacing:.08em;">Proof waiting</div></div>
+      <div style="min-width:110px;"><div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.7rem;line-height:1;" data-pulse="pendingWithdrawals">—</div><div style="font-size:.66rem;color:rgba(255,255,255,.65);margin-top:3px;text-transform:uppercase;letter-spacing:.08em;">Withdrawals due</div></div>
+      <div style="min-width:110px;"><div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.7rem;line-height:1;" data-pulse="kycPending">—</div><div style="font-size:.66rem;color:rgba(255,255,255,.65);margin-top:3px;text-transform:uppercase;letter-spacing:.08em;">KYC waiting</div></div>
+    </div>
+  </div>
+  <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
     <div>
-      <h1 style="font-size:1.5rem;">Platform Overview</h1>
-      <p style="font-size:.82rem;color:var(--muted);margin-top:3px;">Real-time platform-wide statistics.</p>
+      <h1 style="font-size:1.2rem;">Platform statistics</h1>
+      <p style="font-size:.82rem;color:var(--muted);margin-top:3px;">Every card is a live database count. Refresh any time.</p>
     </div>
     <button class="btn bp btn-sm" onclick="loadStats()">⟳ Refresh</button>
   </div>
+  <div style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--violet);margin:4px 0 8px;">Prep</div>
+  <div class="sg" id="prepStatsGrid">
+    <div class="sc"><div class="sl">Prep Pro Active</div><div class="sv" data-prep="prepProActive">—</div></div>
+    <div class="sc"><div class="sl">Company Reports</div><div class="sv" data-prep="reports">—</div></div>
+    <div class="sc"><div class="sl">Pack Questions Live</div><div class="sv" data-prep="packQuestionsVisible">—</div></div>
+    <div class="sc"><div class="sl">Pack Questions Hidden</div><div class="sv" data-prep="packQuestionsHidden">—</div></div>
+    <div class="sc"><div class="sl">Companies</div><div class="sv" data-prep="companiesActive">—</div></div>
+    <div class="sc"><div class="sl">Companies Pending</div><div class="sv" data-prep="companiesPending">—</div></div>
+    <div class="sc"><div class="sl">Interview Bank</div><div class="sv" data-prep="interviewQuestions">—</div></div>
+    <div class="sc"><div class="sl">Aptitude Bank</div><div class="sv" data-prep="aptitudeQuestions">—</div></div>
+    <div class="sc"><div class="sl">Proof Pending</div><div class="sv" data-prep="proofPending">—</div></div>
+  </div>
+  <div style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px;">Marketplace &amp; Community</div>
   <div class="sg" id="statsGrid">
     <div class="sc"><div class="sl">Total Users</div><div class="sv" data-k="users">—</div></div>
     <div class="sc"><div class="sl">Services</div><div class="sv" data-k="services">—</div></div>
@@ -346,6 +382,58 @@ a{text-decoration:none;color:inherit;}
     <div class="sc"><div class="sl">Disputes</div><div class="sv" data-k="disputes">—</div></div>
     <div class="sc"><div class="sl">KYC Pending</div><div class="sv" data-k="kycPending">—</div></div>
   </div>
+</div>
+
+<!-- ═══ PREP: INTERVIEW ═══ -->
+<div class="ps" id="ps-prep-interview">
+  <div style="background:linear-gradient(135deg,#1C1C2E 0%,#4A25B8 60%,#6C3FE8 100%);border-radius:var(--rl);padding:20px 22px;color:#fff;margin-bottom:16px;">
+    <div style="font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:#F5C842;font-weight:700;margin-bottom:5px;">Prep · Interview</div>
+    <h1 style="font-size:1.3rem;color:#fff;margin:0 0 4px;">Company packs &amp; the AI-scored drill bank</h1>
+    <p style="font-size:.8rem;color:rgba(255,255,255,.75);margin:0;">The original in-repo question bank that powers the daily drill, plus every member-reported pack question — hide anything abusive with one click.</p>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+    <button class="btn bs btn-sm" onclick="loadPrepInterview()">⟳ Refresh</button>
+  </div>
+  <div id="prepInterviewList"><p style="font-size:.82rem;color:var(--muted);">Loading...</p></div>
+</div>
+
+<!-- ═══ PREP: COMPANY REPORTS ═══ -->
+<div class="ps" id="ps-prep-reports">
+  <div style="background:linear-gradient(135deg,#1C1C2E 0%,#4A25B8 60%,#6C3FE8 100%);border-radius:var(--rl);padding:20px 22px;color:#fff;margin-bottom:16px;">
+    <div style="font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:#F5C842;font-weight:700;margin-bottom:5px;">Prep · Company Reports</div>
+    <h1 style="font-size:1.3rem;color:#fff;margin:0 0 4px;">Every report members generated — newest first</h1>
+    <p style="font-size:.8rem;color:rgba(255,255,255,.75);margin:0;">Company + role reports are public once generated. Companies that arrived from member submissions sit below as PENDING — approve them so everyone can find them.</p>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+    <button class="btn bs btn-sm" onclick="loadPrepReports()">⟳ Refresh</button>
+  </div>
+  <div id="prepReportsList"><p style="font-size:.82rem;color:var(--muted);">Loading...</p></div>
+</div>
+
+<!-- ═══ PREP: APTITUDE ═══ -->
+<div class="ps" id="ps-prep-aptitude">
+  <div style="background:linear-gradient(135deg,#1C1C2E 0%,#4A25B8 60%,#6C3FE8 100%);border-radius:var(--rl);padding:20px 22px;color:#fff;margin-bottom:16px;">
+    <div style="font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:#F5C842;font-weight:700;margin-bottom:5px;">Prep · Aptitude</div>
+    <h1 style="font-size:1.3rem;color:#fff;margin:0 0 4px;">The question bank behind the daily test</h1>
+    <p style="font-size:.8rem;color:rgba(255,255,255,.75);margin:0;">Every question is original and written in-repo — quant, logical and verbal — each with a worked explanation members see after they answer.</p>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+    <button class="btn bs btn-sm" onclick="loadPrepAptitude()">⟳ Refresh</button>
+  </div>
+  <div id="prepAptitudeList"><p style="font-size:.82rem;color:var(--muted);">Loading...</p></div>
+</div>
+
+<!-- ═══ PREP: CONTRIBUTE PROOF ═══ -->
+<div class="ps" id="ps-prep-proof">
+  <div style="background:linear-gradient(135deg,#1C1C2E 0%,#4A25B8 60%,#6C3FE8 100%);border-radius:var(--rl);padding:20px 22px;color:#fff;margin-bottom:16px;">
+    <div style="font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:#F5C842;font-weight:700;margin-bottom:5px;">Prep · Contribute Proof</div>
+    <h1 style="font-size:1.3rem;color:#fff;margin:0 0 4px;">Verify what members claim — approve or reject</h1>
+    <p style="font-size:.8rem;color:rgba(255,255,255,.75);margin:0;">Members submit pay records, placement records and interview experiences to strengthen their Proof Score. Approving credits their account; rejecting keeps the platform honest.</p>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+    <button class="btn bs btn-sm" onclick="loadPrepProof()">⟳ Refresh</button>
+  </div>
+  <div id="prepProofList"><p style="font-size:.82rem;color:var(--muted);">Loading...</p></div>
 </div>
 
 <!-- ═══ USERS ═══ -->
@@ -397,7 +485,7 @@ a{text-decoration:none;color:inherit;}
 <!-- ═══ REPORTS ═══ -->
 <div class="ps" id="ps-reports">
   <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-    <div><h1 style="font-size:1.2rem;">Reports</h1><p style="font-size:.82rem;color:var(--muted);margin-top:3px;">User-submitted reports across the platform.</p></div>
+    <div><h1 style="font-size:1.2rem;">Content Reports</h1><p style="font-size:.82rem;color:var(--muted);margin-top:3px;">User-flagged content across the platform — resolve or dismiss each one.</p></div>
     <div class="filter-bar">
       <select class="fi" id="reportStatusFilter" onchange="loadReports(1)" style="width:auto;padding:6px 10px;font-size:.76rem;">
         <option value="">All Status</option>
@@ -414,26 +502,6 @@ a{text-decoration:none;color:inherit;}
     <span style="font-size:.78rem;color:var(--muted)" id="reportPageInfo">Page 1</span>
     <button class="btn bs btn-sm" id="reportNextPage" onclick="loadReports(currentReportPage+1)">Next →</button>
   </div>
-</div>
-
-<!-- ═══ JOBS ═══ -->
-<div class="ps" id="ps-jobs">
-  <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-    <div>
-      <h1 style="font-size:1.2rem;">Manage Jobs</h1>
-      <p style="font-size:.82rem;color:var(--muted);margin-top:3px;">Full-time job listings and their applications.</p>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      <select class="fi" id="jobStatusFilter" onchange="loadAdminJobs()" style="width:auto;padding:6px 10px;font-size:.76rem;">
-        <option value="">All Jobs</option>
-        <option value="active">Active</option>
-        <option value="paused">Paused</option>
-      </select>
-      <button class="btn bs btn-sm" onclick="loadAdminJobs()">⟳ Refresh</button>
-      <button class="btn bp btn-sm" onclick="openJobModal()">+ Post Job</button>
-    </div>
-  </div>
-  <div id="adminJobsList"></div>
 </div>
 
 <!-- ═══ GRIT CIRCLES / SQUADS ═══ -->
@@ -528,18 +596,6 @@ a{text-decoration:none;color:inherit;}
     </div>
     <div id="emailStatus" style="margin-top:10px;font-size:.82rem;"></div>
   </div>
-</div>
-
-<!-- ═══ EQUITY WAITLIST ═══ -->
-<div class="ps" id="ps-equity">
-  <div style="margin-bottom:16px;">
-    <h1 style="font-size:1.2rem;">MicroEquity Waitlist</h1>
-    <p style="font-size:.82rem;color:var(--muted);margin-top:3px;">Users who have joined the MicroEquity waitlist.</p>
-  </div>
-  <div style="display:flex;gap:8px;margin-bottom:14px;">
-    <button class="btn bs btn-sm" onclick="loadEquityWaitlist()">⟳ Refresh</button>
-  </div>
-  <div id="equityWaitlistContent"><p style="font-size:.82rem;color:var(--muted);">Loading...</p></div>
 </div>
 
 <!-- ═══ WITHDRAWALS ═══ -->
@@ -668,81 +724,6 @@ a{text-decoration:none;color:inherit;}
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
       <button class="btn bs" onclick="closeModal('announcementModal')">Cancel</button>
       <button class="btn" id="sendAnnouncementBtn" style="background:var(--gold);color:#fff;" onclick="sendAnnouncement()">Send to All Users</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ JOB MODAL ═══ -->
-<div class="mo" id="jobModal">
-  <div class="md" style="max-width:560px;">
-    <button class="mc" onclick="closeModal('jobModal')">✕</button>
-    <h2 class="mh" id="jobModalTitle">Post a Job</h2>
-    <p class="ms" style="font-size:.82rem;color:var(--muted);margin-bottom:12px;">Create or update a full-time job listing shown on the user dashboard.</p>
-    <input type="hidden" id="jobId"/>
-    <div class="fg">
-      <label class="fl">Job title</label>
-      <input class="fi" id="jobTitle" placeholder="e.g. Senior React Developer"/>
-    </div>
-    <div class="fg">
-      <label class="fl">Company</label>
-      <input class="fi" id="jobCompany" placeholder="e.g. Acme Corp"/>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <div class="fg" style="margin:0;">
-        <label class="fl">Location</label>
-        <input class="fi" id="jobLocation" placeholder="e.g. Remote / Bangalore"/>
-      </div>
-      <div class="fg" style="margin:0;">
-        <label class="fl">Job type</label>
-        <select class="fi" id="jobType">
-          <option value="Full-time">Full-time</option>
-          <option value="Part-time">Part-time</option>
-          <option value="Contract">Contract</option>
-          <option value="Internship">Internship</option>
-          <option value="Remote">Remote</option>
-        </select>
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
-      <div class="fg" style="margin:0;">
-        <label class="fl">Salary (₹)</label>
-        <input class="fi" id="jobSalary" placeholder="e.g. 1200000"/>
-      </div>
-      <div class="fg" style="margin:0;">
-        <label class="fl">Application deadline</label>
-        <input class="fi" type="date" id="jobDeadline"/>
-      </div>
-    </div>
-    <div class="fg">
-      <label class="fl">Skills (comma separated)</label>
-      <input class="fi" id="jobSkills" placeholder="e.g. React, Node.js, TypeScript"/>
-    </div>
-    <div class="fg">
-      <label class="fl">Apply link</label>
-      <input class="fi" id="jobLink" placeholder="e.g. https://example.com/careers/senior-developer"/>
-      <div style="font-size:.7rem;color:var(--muted);margin-top:3px;">Optional external URL where candidates apply (LinkedIn, career page, form).</div>
-    </div>
-    <div class="fg">
-      <label class="fl">Description</label>
-      <textarea class="fi" id="jobDescription" rows="4" placeholder="Role description, responsibilities, requirements..." style="resize:vertical;"></textarea>
-    </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
-      <button class="btn bs" onclick="closeModal('jobModal')">Cancel</button>
-      <button class="btn bp" id="saveJobBtn" onclick="saveJob()">Post Job</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ JOB APPLICANTS MODAL ═══ -->
-<div class="mo" id="jobAppModal">
-  <div class="md" style="max-width:640px;">
-    <button class="mc" onclick="closeModal('jobAppModal')">✕</button>
-    <h2 class="mh" id="jobAppModalTitle">Applications</h2>
-    <div class="tbl-wrap" style="max-height:60vh;overflow:auto;">
-      <table class="tbl"><thead><tr><th></th><th>Applicant</th><th>Message</th><th>Status</th><th>Update</th></tr></thead><tbody id="jobApplicantsList"></tbody></table>
-    </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
-      <button class="btn bs" onclick="closeModal('jobAppModal')">Close</button>
     </div>
   </div>
 </div>
@@ -944,19 +925,29 @@ document.querySelectorAll('.ni[data-p]').forEach(el => {
 
 function loadPage(n) {
   if (n==='overview') loadStats();
+  else if (n==='prep-interview') loadPrepInterview();
+  else if (n==='prep-reports') loadPrepReports();
+  else if (n==='prep-aptitude') loadPrepAptitude();
+  else if (n==='prep-proof') loadPrepProof();
   else if (n==='users') loadUsers(1);
   else if (n==='orders') loadAdminOrders(1);
   else if (n==='reports') loadReports(1);
-  else if (n==='jobs') loadAdminJobs();
   else if (n==='squads') loadAdminSquads();
   else if (n==='kyc') loadKyc();
   else if (n==='messages') { loadAdminConversations(); }
   else if (n==='email') {}
-  else if (n==='equity') loadEquityWaitlist();
   else if (n==='withdrawals') loadPendingWithdrawals();
   else if (n==='referrals') loadReferrals();
   else if (n==='tool-leads') loadToolLeads();
   else if (n==='activity') loadActivity();
+}
+
+const ADMIN_PAGES = ['overview','prep-interview','prep-reports','prep-aptitude','prep-proof','users','orders','reports','squads','kyc','messages','email','withdrawals','referrals','tool-leads','activity'];
+function gotoPage(n) {
+  if (!ADMIN_PAGES.includes(n)) n = 'overview';
+  document.querySelectorAll('.ni').forEach(b => { if (b.dataset.p) b.classList.toggle('active', b.dataset.p === n); });
+  document.querySelectorAll('.ps').forEach(p => p.classList.toggle('active', p.id === 'ps-'+n));
+  loadPage(n);
 }
 
 // ─── GRIT CIRCLES / SQUADS MANAGEMENT ───
@@ -1110,159 +1101,183 @@ function refreshActiveSquadModal() {
   if (_activeSquadModalId && document.getElementById('squadModal').classList.contains('open')) openSquadDetail(_activeSquadModalId);
 }
 
-// ─── JOBS MANAGEMENT ───
-let activeJobAppJobId = null, activeJobAppJobTitle = '';
-async function loadAdminJobs() {
-  const list = document.getElementById('adminJobsList');
-  list.innerHTML = `<div class="empty"><div class="empty-title">Loading...</div></div>`;
-  const filter = document.getElementById('jobStatusFilter').value;
+// ─── PREP COMMAND CENTER ───
+function prepPDate(v) { if (!v) return '—'; try { return new Date(v).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'numeric',minute:'2-digit'}); } catch(e) { return '—'; } }
+
+async function loadPrepInterview() {
+  const el = document.getElementById('prepInterviewList');
+  el.innerHTML = '<p style="font-size:.82rem;color:var(--muted);">Loading...</p>';
   try {
-    const r = await api('/admin/jobs');
-    let jobs = Array.isArray(r.data) ? r.data : [];
-    if (filter === 'active') jobs = jobs.filter(j => j.isActive);
-    else if (filter === 'paused') jobs = jobs.filter(j => !j.isActive);
-    if (!jobs.length) {
-      list.innerHTML = `<div class="empty"><div class="empty-title">No jobs posted yet</div><div class="empty-sub">Click "Post Job" to create the first listing.</div></div>`;
-      return;
-    }
-    list.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Job</th><th>Company</th><th>Type</th><th>Salary</th><th>Deadline</th><th>Applicants</th><th>Status</th><th></th></tr></thead><tbody>${jobs.map(j => {
-      const brand = j.company ? j.company[0] : (j.title||'J')[0];
-      const active = j.isActive;
-      return `<tr>
-        <td class="tdt"><strong>${esc(j.title)}</strong><div style="font-size:.68rem;color:var(--muted);">${esc(j.location||'')}</div></td>
-        <td class="tdt">${esc(j.company||'')}</td>
-        <td>${esc(j.type||'Full-time')}</td>
-        <td>${esc(j.salaryRange||'—')}</td>
-        <td>${j.applicationDeadline ? new Date(j.applicationDeadline).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '—'}</td>
-        <td><button class="btn bs btn-sm" onclick="openJobApplicants('${j.id}',this.dataset.t)" data-t="${esc(j.title)}">${j.applicants||0} view</button></td>
-        <td>${active?'<span style="color:var(--ok);font-weight:600;">Active</span>':'<span style="color:var(--err);font-weight:600;">Paused</span>'}</td>
-        <td style="white-space:nowrap;">
-          <button class="btn bs btn-xs" onclick="openJobModal('${j.id}')">Edit</button>
-          <button class="btn bs btn-xs" onclick="toggleJob('${j.id}',${active})">${active?'Pause':'Activate'}</button>
-          <button class="btn bs btn-xs" style="color:var(--err);" onclick="deleteJob('${j.id}')">Delete</button>
-        </td>
-      </tr>`;
-    }).join('')}</tbody></table></div>`;
-  } catch(e) { list.innerHTML = `<div class="empty"><div class="empty-title">Failed to load jobs</div><div class="empty-sub">${esc(e.message)}</div></div>`; }
+    const r = await api('/prep/admin/interview');
+    const d = r.data || {};
+    const bank = d.bank || [];
+    const packs = d.packs || [];
+    const visible = packs.filter(q => q.status === 'VISIBLE').length;
+    const hidden = packs.length - visible;
+    el.innerHTML = `
+      <div class="sg" style="margin-bottom:16px;">
+        <div class="sc"><div class="sl">Original bank questions</div><div class="sv">${bank.length}</div></div>
+        <div class="sc"><div class="sl">Member-reported live</div><div class="sv">${visible}</div></div>
+        <div class="sc"><div class="sl">Hidden by moderation</div><div class="sv">${hidden}</div></div>
+        <div class="sc"><div class="sl">Companies in packs</div><div class="sv">${new Set(packs.map(q=>q.companyName)).size}</div></div>
+      </div>
+      <h2 style="font-size:1rem;margin:0 0 8px;">Original question bank</h2>
+      <div class="tbl-wrap" style="margin-bottom:22px;"><table class="tbl"><thead><tr><th>Code</th><th>Track</th><th>Category</th><th>Difficulty</th><th>Question</th></tr></thead><tbody>
+        ${bank.length ? bank.map(q => `<tr>
+          <td style="font-size:.72rem;">${esc(q.code)}</td>
+          <td style="font-size:.74rem;">${esc(q.track)}</td>
+          <td style="font-size:.74rem;">${esc(q.category)}</td>
+          <td style="font-size:.74rem;">${esc(q.difficulty)}</td>
+          <td class="tdt" style="font-size:.78rem;">${esc(q.question)}</td>
+        </tr>`).join('') : '<tr><td colspan="5"><div class="empty"><div class="empty-sub">Bank empty</div></div></td></tr>'}
+      </tbody></table></div>
+      <h2 style="font-size:1rem;margin:0 0 8px;">Member-reported pack questions</h2>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Company</th><th>Role</th><th>Category</th><th>Question</th><th>Label</th><th>Submitted</th><th></th></tr></thead><tbody>
+        ${packs.length ? packs.map(q => `<tr>
+          <td class="tdt"><strong>${esc(q.companyName)}</strong></td>
+          <td style="font-size:.74rem;">${esc(q.role||'—')}</td>
+          <td style="font-size:.74rem;">${esc(q.category)}</td>
+          <td class="tdt" style="font-size:.78rem;">${esc(q.question)}</td>
+          <td style="font-size:.7rem;">${q.status==='VISIBLE'?'<span style="color:var(--ok);font-weight:600;">Live</span>':'<span style="color:var(--err);font-weight:600;">Hidden</span>'}</td>
+          <td style="font-size:.7rem;">${prepPDate(q.createdAt)}</td>
+          <td style="white-space:nowrap;">${q.status==='VISIBLE'
+            ? `<button class="btn bs btn-xs" style="color:var(--err);" onclick="moderatePack('${q.id}','HIDDEN')">Hide</button>`
+            : `<button class="btn bs btn-xs" onclick="moderatePack('${q.id}','VISIBLE')">Restore</button>`}</td>
+        </tr>`).join('') : '<tr><td colspan="7"><div class="empty"><div class="empty-sub">No pack questions yet</div></div></td></tr>'}
+      </tbody></table></div>`;
+  } catch(e) { el.innerHTML = `<div class="empty"><div class="empty-sub">${esc(e.message||'Failed to load interview data')}</div></div>`; }
 }
 
-async function openJobModal(id) {
-  document.getElementById('jobId').value = '';
-  document.getElementById('jobTitle').value = '';
-  document.getElementById('jobCompany').value = '';
-  document.getElementById('jobLocation').value = '';
-  document.getElementById('jobType').value = 'Full-time';
-  document.getElementById('jobSalary').value = '';
-  document.getElementById('jobDeadline').value = '';
-  document.getElementById('jobSkills').value = '';
-  document.getElementById('jobLink').value = '';
-  document.getElementById('jobDescription').value = '';
-  document.getElementById('jobModalTitle').textContent = 'Post a Job';
-  document.getElementById('saveJobBtn').textContent = 'Post Job';
-  if (id) {
-    try {
-      const r = await api('/admin/jobs');
-      const jobs = Array.isArray(r.data) ? r.data : [];
-      const j = jobs.find(x => x.id === id);
-      if (!j) { notify('Job not found','err'); return; }
-      document.getElementById('jobId').value = j.id;
-      document.getElementById('jobTitle').value = j.title||'';
-      document.getElementById('jobCompany').value = j.company||'';
-      document.getElementById('jobLocation').value = j.location||'';
-      document.getElementById('jobType').value = j.type||'Full-time';
-      document.getElementById('jobSalary').value = j.salaryRange||'';
-      document.getElementById('jobDeadline').value = j.applicationDeadline ? new Date(j.applicationDeadline).toISOString().slice(0,10) : '';
-      document.getElementById('jobSkills').value = (Array.isArray(j.skills)?j.skills:[]).join(', ');
-      document.getElementById('jobLink').value = j.link||'';
-      document.getElementById('jobDescription').value = j.description||'';
-      document.getElementById('jobModalTitle').textContent = 'Edit Job';
-      document.getElementById('saveJobBtn').textContent = 'Save Changes';
-    } catch(e) { notify(e.message||'Failed to load job','err'); return; }
-  }
-  openModal('jobModal');
-}
-
-async function saveJob() {
-  const id = document.getElementById('jobId').value;
-  const title = document.getElementById('jobTitle').value.trim();
-  const company = document.getElementById('jobCompany').value.trim();
-  const location = document.getElementById('jobLocation').value.trim();
-  const type = document.getElementById('jobType').value;
-  const salaryRange = document.getElementById('jobSalary').value.trim();
-  const deadlineVal = document.getElementById('jobDeadline').value;
-  const skillsStr = document.getElementById('jobSkills').value.trim();
-  const description = document.getElementById('jobDescription').value.trim();
-  const link = document.getElementById('jobLink').value.trim();
-  if (!title || !company || !description) { notify('Title, company, and description are required','err'); return; }
-  const skills = skillsStr ? skillsStr.split(',').map(s=>s.trim()).filter(Boolean) : [];
-  const payload = { title, company, location, type, salaryRange, description, skills, link: link || null, applicationDeadline: deadlineVal || null };
-  const btn = document.getElementById('saveJobBtn');
-  btn.disabled = true; btn.textContent = 'Saving...';
+async function moderatePack(id, status) {
+  if (status === 'HIDDEN' && !confirm('Hide this question everywhere? Members will stop seeing it.')) return;
   try {
-    if (id) {
-      await api('/admin/jobs/' + id, { method:'PUT', body:JSON.stringify(payload) });
-      notify('Job updated','ok');
-    } else {
-      await api('/admin/jobs', { method:'POST', body:JSON.stringify(payload) });
-      notify('Job posted','ok');
-    }
-    closeModal('jobModal');
-    loadAdminJobs();
-  } catch(e) { notify(e.message||'Failed to save', 'err'); }
-  finally { btn.disabled = false; btn.textContent = id ? 'Save Changes' : 'Post Job'; }
-}
-
-async function toggleJob(id, currentlyActive) {
-  try {
-    await api('/admin/jobs/' + id, { method:'PUT', body:JSON.stringify({ isActive: !currentlyActive }) });
-    notify(currentlyActive ? 'Job paused' : 'Job activated', 'ok');
-    loadAdminJobs();
+    await api(`/prep/admin/pack-questions/${id}/moderate`, { method:'POST', body:JSON.stringify({ status }) });
+    notify(status === 'HIDDEN' ? 'Question hidden' : 'Question restored', 'ok');
+    loadPrepInterview();
   } catch(e) { notify(e.message||'Failed','err'); }
 }
 
-function deleteJob(id) {
-  if (!confirm('Delete this job permanently? All its applications will also be removed.')) return;
-  api('/admin/jobs/' + id, { method:'DELETE' }).then(() => { notify('Job deleted','ok'); loadAdminJobs(); }).catch(e => notify(e.message||'Failed','err'));
+async function loadPrepReports() {
+  const el = document.getElementById('prepReportsList');
+  el.innerHTML = '<p style="font-size:.82rem;color:var(--muted);">Loading...</p>';
+  try {
+    const r = await api('/prep/admin/reports');
+    const d = r.data || {};
+    const reports = d.reports || [];
+    const pending = d.pendingCompanies || [];
+    el.innerHTML = `
+      <div class="sg" style="margin-bottom:16px;">
+        <div class="sc"><div class="sl">Reports generated</div><div class="sv">${reports.length}</div></div>
+        <div class="sc"><div class="sl">Pending companies</div><div class="sv">${pending.length}</div></div>
+      </div>
+      <h2 style="font-size:1rem;margin:0 0 8px;">Latest reports</h2>
+      <div class="tbl-wrap" style="margin-bottom:22px;"><table class="tbl"><thead><tr><th>Company</th><th>Role</th><th>Sources</th><th>AI summary</th><th>Generated</th></tr></thead><tbody>
+        ${reports.length ? reports.map(rp => `<tr>
+          <td class="tdt"><strong>${esc(rp.companyName)}</strong></td>
+          <td style="font-size:.74rem;">${esc(rp.role||rp.userType||'—')}</td>
+          <td>${rp.sourceCount||0}</td>
+          <td class="tdt" style="font-size:.76rem;max-width:340px;">${esc(rp.aiSummary||'—')}</td>
+          <td style="font-size:.7rem;">${prepPDate(rp.createdAt)}</td>
+        </tr>`).join('') : '<tr><td colspan="5"><div class="empty"><div class="empty-sub">No reports yet</div></div></td></tr>'}
+      </tbody></table></div>
+      <h2 style="font-size:1rem;margin:0 0 8px;">Pending companies <span style="font-weight:400;font-size:.76rem;color:var(--muted);">— arrived from member submissions; approve so everyone can search them</span></h2>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Slug</th><th>Domain</th><th>Submitted</th><th></th></tr></thead><tbody>
+        ${pending.length ? pending.map(c => `<tr>
+          <td class="tdt"><strong>${esc(c.name)}</strong></td>
+          <td style="font-size:.74rem;">${esc(c.slug)}</td>
+          <td style="font-size:.74rem;">${esc(c.domain||'—')}</td>
+          <td style="font-size:.7rem;">${prepPDate(c.createdAt)}</td>
+          <td style="white-space:nowrap;">
+            <button class="btn bp btn-xs" onclick="approvePrepCompany('${c.id}')">Approve</button>
+            <button class="btn bs btn-xs" style="color:var(--err);" onclick="rejectPrepCompany('${c.id}')">Reject</button>
+          </td>
+        </tr>`).join('') : '<tr><td colspan="5"><div class="empty"><div class="empty-sub">No pending companies</div></div></td></tr>'}
+      </tbody></table></div>`;
+  } catch(e) { el.innerHTML = `<div class="empty"><div class="empty-sub">${esc(e.message||'Failed to load reports')}</div></div>`; }
 }
 
-async function openJobApplicants(jobId, title) {
-  activeJobAppJobId = jobId;
-  activeJobAppJobTitle = title || 'Job';
-  const el = document.getElementById('jobApplicantsList');
-  el.innerHTML = `<tr><td colspan="5"><div class="empty"><div class="empty-title">Loading applications...</div></div></td></tr>`;
-  document.getElementById('jobAppModalTitle').textContent = 'Applications - ' + (activeJobAppJobTitle);
-  openModal('jobAppModal');
+async function approvePrepCompany(id) {
   try {
-    const r = await api('/admin/jobs/' + jobId + '/applications');
-    const rows = Array.isArray(r.data) ? r.data : [];
-    el.innerHTML = !rows.length ? `<tr><td colspan="5"><div class="empty"><div class="empty-title">No applications yet</div></div></td></tr>` : rows.map(row => {
-      const a = row.applicant || {};
-      const app = row.application || {};
-      const st = app.status || 'PENDING';
-      return `<tr>
-        <td>${a.profilePhoto ? `<img src="${esc(a.profilePhoto)}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;"/>` : `<div class="av" style="width:30px;height:30px;font-size:10px;flex-shrink:0;">${((a.firstName||'?')[0]).toUpperCase()}</div>`}</td>
-        <td class="tdt">${esc((a.firstName||'')+' '+(a.lastName||''))}<div style="font-size:.68rem;color:var(--muted);">${esc(a.email||'')}</div>${a.kycVerified?'<span style="font-size:.62rem;color:var(--ok);">KYC verified</span>':''}</td>
-        <td class="tdt" style="font-size:.74rem;">${esc(app.message||'—')}</td>
-        <td><span style="font-weight:600;color:${st==='ACCEPTED'?'var(--ok)':st==='REJECTED'?'var(--err)':st==='REVIEWED'?'var(--gold)':'var(--muted)'};">${st}</span></td>
-        <td>
-          <select class="fi" style="width:auto;padding:4px 6px;font-size:.7rem;" onchange="updateJobApplication('${app.id}',this.value)">
-            <option value="PENDING" ${st==='PENDING'?'selected':''}>Pending</option>
-            <option value="REVIEWED" ${st==='REVIEWED'?'selected':''}>Reviewed</option>
-            <option value="ACCEPTED" ${st==='ACCEPTED'?'selected':''}>Accept</option>
-            <option value="REJECTED" ${st==='REJECTED'?'selected':''}>Reject</option>
-          </select>
-        </td>
-      </tr>`;
-    }).join('');
-  } catch(e) { el.innerHTML = `<tr><td colspan="5"><div class="empty"><div class="empty-sub">${esc(e.message)}</div></div></td></tr>`; }
+    await api(`/prep/admin/companies/${id}/approve`, { method:'POST' });
+    notify('Company approved — it is now searchable by everyone', 'ok');
+    loadPrepReports();
+  } catch(e) { notify(e.message||'Failed','err'); }
 }
 
-async function updateJobApplication(applicationId, status) {
-  try {
-    await api('/admin/jobs/' + activeJobAppJobId + '/applications/' + applicationId, { method:'PUT', body:JSON.stringify({ status }) });
-    notify('Application updated','ok');
-  } catch(e) { notify(e.message||'Failed to update','err'); }
+function rejectPrepCompany(id) {
+  if (!confirm('Reject this company? This deletes the pending entry (only allowed while nothing references it).')) return;
+  api(`/prep/admin/companies/${id}/reject`, { method:'POST' }).then(() => { notify('Pending company rejected','ok'); loadPrepReports(); }).catch(e => notify(e.message||'Failed','err'));
 }
+
+async function loadPrepAptitude() {
+  const el = document.getElementById('prepAptitudeList');
+  el.innerHTML = '<p style="font-size:.82rem;color:var(--muted);">Loading...</p>';
+  try {
+    const r = await api('/prep/admin/aptitude');
+    const qs = (r.data && r.data.questions) || [];
+    const topics = { quant:0, logical:0, verbal:0 };
+    qs.forEach(q => { if (topics[q.topic] != null) topics[q.topic]++; });
+    el.innerHTML = `
+      <div class="sg" style="margin-bottom:16px;">
+        <div class="sc"><div class="sl">Total questions</div><div class="sv">${qs.length}</div></div>
+        <div class="sc"><div class="sl">Quant</div><div class="sv">${topics.quant}</div></div>
+        <div class="sc"><div class="sl">Logical</div><div class="sv">${topics.logical}</div></div>
+        <div class="sc"><div class="sl">Verbal</div><div class="sv">${topics.verbal}</div></div>
+      </div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Code</th><th>Topic</th><th>Difficulty</th><th>Question</th><th>Explanation (first 120 chars)</th></tr></thead><tbody>
+        ${qs.length ? qs.map(q => `<tr>
+          <td style="font-size:.72rem;">${esc(q.code)}</td>
+          <td style="font-size:.74rem;">${esc(q.topic)}</td>
+          <td style="font-size:.74rem;">${esc(q.difficulty)}</td>
+          <td class="tdt" style="font-size:.78rem;">${esc(q.question)}</td>
+          <td style="font-size:.72rem;color:var(--muted);">${esc((q.explanation||'').slice(0,120))}${(q.explanation||'').length>120?'…':''}</td>
+        </tr>`).join('') : '<tr><td colspan="5"><div class="empty"><div class="empty-sub">Bank empty</div></div></td></tr>'}
+      </tbody></table></div>`;
+  } catch(e) { el.innerHTML = `<div class="empty"><div class="empty-sub">${esc(e.message||'Failed to load aptitude bank')}</div></div>`; }
+}
+
+async function loadPrepProof() {
+  const el = document.getElementById('prepProofList');
+  el.innerHTML = '<p style="font-size:.82rem;color:var(--muted);">Loading...</p>';
+  try {
+    const r = await api('/prep/proof/pending');
+    const subs = (r.data && r.data.submissions) || [];
+    const kinds = { PAY_RECORD:0, PLACEMENT_RECORD:0, INTERVIEW_EXPERIENCE:0 };
+    subs.forEach(s => { if (kinds[s.kind] != null) kinds[s.kind]++; });
+    el.innerHTML = `
+      <div class="sg" style="margin-bottom:16px;">
+        <div class="sc"><div class="sl">Waiting for review</div><div class="sv">${subs.length}</div></div>
+        <div class="sc"><div class="sl">Pay records</div><div class="sv">${kinds.PAY_RECORD}</div></div>
+        <div class="sc"><div class="sl">Placement records</div><div class="sv">${kinds.PLACEMENT_RECORD}</div></div>
+        <div class="sc"><div class="sl">Interview experiences</div><div class="sv">${kinds.INTERVIEW_EXPERIENCE}</div></div>
+      </div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Kind</th><th>Company ID</th><th>File</th><th>Submitted</th><th>Decision</th></tr></thead><tbody>
+        ${subs.length ? subs.map(s => `<tr>
+          <td style="font-size:.74rem;font-weight:600;">${esc(s.kind)}</td>
+          <td style="font-size:.68rem;color:var(--muted);">${esc((s.companyId||'').slice(0,8))}…</td>
+          <td style="font-size:.72rem;">${s.fileProvided ? 'Yes' : 'No'}</td>
+          <td style="font-size:.7rem;">${prepPDate(s.submittedAt)}</td>
+          <td style="white-space:nowrap;">
+            <button class="btn bp btn-xs" onclick="reviewProof('${s.id}','APPROVED')">✓ Approve</button>
+            <button class="btn bs btn-xs" style="color:var(--err);" onclick="reviewProof('${s.id}','REJECTED')">✕ Reject</button>
+          </td>
+        </tr>`).join('') : '<tr><td colspan="5"><div class="empty"><div class="empty-title">Queue clear</div><div class="empty-sub">No proof submissions waiting — every claim has been reviewed.</div></div></td></tr>'}
+      </tbody></table></div>`;
+  } catch(e) { el.innerHTML = `<div class="empty"><div class="empty-sub">${esc(e.message||'Failed to load queue')}</div></div>`; }
+}
+
+async function reviewProof(id, decision) {
+  if (decision === 'REJECTED') {
+    if (!confirm('Reject this proof? The member gets no credit.')) return;
+  } else if (!confirm('Approve this proof? The member is credited and it counts toward their Proof Score.')) return;
+  const note = decision === 'REJECTED' ? (prompt('Rejection note (optional, max 500 chars):') || '') : '';
+  try {
+    await api(`/prep/proof/${id}/review`, { method:'POST', body:JSON.stringify({ decision, note: note || undefined }) });
+    notify(decision === 'APPROVED' ? 'Proof approved' : 'Proof rejected', 'ok');
+    loadPrepProof();
+  } catch(e) { notify(e.message||'Failed','err'); }
+}
+
 
 
 
@@ -1315,6 +1330,9 @@ async function sendEmailToAll() {
 async function initAdmin() {
   if (!getKey()) { showLogin(); return; }
   showApp(); loadStats(); loadAdminPhoto();
+  // Deep links from push notifications: /admin?tab=users, /admin?tab=prep-proof …
+  const tab = new URLSearchParams(location.search).get('tab');
+  if (tab && ADMIN_PAGES.includes(tab) && tab !== 'overview') gotoPage(tab);
 }
 
 // ════════════════════════════════════════════
@@ -1330,6 +1348,27 @@ async function loadStats() {
       const n = Number(v) || 0;
       el.textContent = el.dataset.inr ? '₹' + n.toLocaleString('en-IN') : n.toLocaleString('en-IN');
     });
+    // Command-center pulse strip
+    document.querySelectorAll('#overviewPulse [data-pulse]').forEach(el => {
+      const v = d[el.dataset.pulse];
+      el.textContent = v == null ? '—' : (Number(v) || 0).toLocaleString('en-IN');
+    });
+  } catch(e) { console.error(e); }
+  try {
+    const rp = await api('/prep/admin/overview');
+    const p = rp.data || {};
+    document.querySelectorAll('#prepStatsGrid .sv').forEach(el => {
+      const v = p[el.dataset.prep];
+      el.textContent = v == null ? '—' : (Number(v) || 0).toLocaleString('en-IN');
+    });
+    document.querySelectorAll('#overviewPulse [data-pulse]').forEach(el => {
+      if (el.dataset.pulse === 'prepProActive' || el.dataset.pulse === 'proofPending') {
+        const v = p[el.dataset.pulse];
+        if (v != null) el.textContent = (Number(v) || 0).toLocaleString('en-IN');
+      }
+    });
+    const badge = document.getElementById('proofNavBadge');
+    if (badge) { const n = Number(p.proofPending) || 0; badge.style.display = n ? '' : 'none'; badge.textContent = n; }
   } catch(e) { console.error(e); }
 }
 
@@ -1859,26 +1898,6 @@ async function loadKyc() {
       <td><button class="btn bp btn-xs" onclick="openUserDetail('${d.userId}')">Review</button></td>
     </tr>`).join('')}</tbody></table></div>`;
   } catch(e) { console.error(e); }
-}
-
-// ════════════════════════════════════════════
-//  EQUITY WAITLIST
-// ════════════════════════════════════════════
-async function loadEquityWaitlist() {
-  try {
-    const r = await api('/admin/equity/waitlist');
-    const entries = Array.isArray(r.data)?r.data:[];
-    const el = document.getElementById('equityWaitlistContent');
-    if (!entries.length) { el.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">No signups yet</div><div class="empty-sub">Waitlist is empty</div></div>`; return; }
-    el.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>Name</th><th>Email</th><th>GG ID</th><th>Joined</th></tr></thead><tbody>${entries.map((e,i) => `<tr>
-      <td style="font-size:.7rem;color:var(--muted);">${i+1}</td>
-      <td class="tdt">${esc(e.firstName||'')+' '+esc(e.lastName||'')}</td>
-      <td>${esc(e.email)}</td>
-      <td style="font-size:.7rem">${esc(ggId(e.userId))}</td>
-      <td style="font-size:.7rem">${e.joinedAt?new Date(e.joinedAt).toLocaleDateString():'—'}</td>
-    </tr>`).join('')}</tbody></table></div>
-    <div style="margin-top:8px;font-size:.72rem;color:var(--muted);text-align:right;">Total: ${entries.length}</div>`;
-  } catch(e) { document.getElementById('equityWaitlistContent').innerHTML = `<div class="empty"><div class="empty-sub">Failed to load waitlist</div></div>`; }
 }
 
 // ─── ADMIN CONVERSATIONS ───

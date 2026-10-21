@@ -2,7 +2,7 @@
 // resolution/creation logic. Pure functions are exported for unit tests; the
 // DB-backed functions take the drizzle db instance so tests can stub them.
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { prepCompaniesTable, type PrepCompany } from "./schema";
 
 // Legal suffixes dropped from the END of a normalized name so "Infosys
@@ -179,4 +179,35 @@ export async function createPendingCompany(
     })
     .returning();
   return inserted[0] as PrepCompany;
+}
+
+/** Admin: companies created from member submissions awaiting a decision. */
+export async function listPendingCompanies(db: Db): Promise<PrepCompany[]> {
+  return db
+    .select()
+    .from(prepCompaniesTable)
+    .where(eq(prepCompaniesTable.status, "PENDING"))
+    .orderBy(prepCompaniesTable.createdAt);
+}
+
+/** Admin: PENDING -> ACTIVE. Returns null when the row is not pending. */
+export async function approvePendingCompany(db: Db, id: string): Promise<PrepCompany | null> {
+  const rows = await db
+    .update(prepCompaniesTable)
+    .set({ status: "ACTIVE" })
+    .where(and(eq(prepCompaniesTable.id, id), eq(prepCompaniesTable.status, "PENDING")))
+    .returning();
+  return (rows[0] as PrepCompany) ?? null;
+}
+
+/**
+ * Admin: delete a PENDING company that nothing references yet. Returns false
+ * when the row is not pending — the router owns the orphan check.
+ */
+export async function deletePendingCompany(db: Db, id: string): Promise<boolean> {
+  const rows = await db
+    .delete(prepCompaniesTable)
+    .where(and(eq(prepCompaniesTable.id, id), eq(prepCompaniesTable.status, "PENDING")))
+    .returning({ id: prepCompaniesTable.id });
+  return rows.length > 0;
 }

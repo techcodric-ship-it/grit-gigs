@@ -6,14 +6,14 @@ import { Router, type Request, type Response, type NextFunction } from "express"
 import rateLimit from "express-rate-limit";
 import multer from "multer";
 import { z } from "zod";
-import { count, eq, inArray, sql } from "drizzle-orm";
+import { and, count, desc, eq, gt, gte, inArray, sql } from "drizzle-orm";
 import { db } from "../db";
 import { authenticate } from "../middlewares/authenticate";
 import { adminAuth } from "../middlewares/adminAuth";
 import { uploadToSupabase } from "../lib/storage";
 import { isPrepEnabled } from "./feature";
 import { ensurePrepDb } from "./db";
-import { resolveCompany, createPendingCompany, slugifyCompanyName } from "./companies";
+import { approvePendingCompany, createPendingCompany, deletePendingCompany, listPendingCompanies, resolveCompany, slugifyCompanyName } from "./companies";
 import { gatherSourcesWithBudget } from "./sources/gather";
 import {
   fallbackPlan,
@@ -29,10 +29,10 @@ import {
 import { countAiPlanRequestsToday, getCachedAiPlan, recordAiPlanRequest, saveAiPlan } from "./ai-plans";
 import { countResumeChecksToday, recordResumeCheck } from "./resume-checks";
 import { countAnswerScoresToday, recordAnswerScore } from "./answer-scores";
-import { PACKS_PER_USER_PER_DAY, countPackSubmissionsToday, findDuplicatePackQuestion, insertPackQuestion, listPackQuestions } from "./packs-db";
+import { PACKS_PER_USER_PER_DAY, countPackSubmissionsToday, findDuplicatePackQuestion, insertPackQuestion, listPackQuestions, listPackQuestionsForModeration, updatePackQuestionStatus } from "./packs-db";
 import { extractResumeText } from "./resume-text";
 import { aptitudeWeights, trackForRole, weightsFromPlanTopics, type AptitudeWeights } from "./role-skills";
-import { APTITUDE_TOPICS, prepAptitudeQuestionsTable, prepCompaniesTable, prepInterviewQuestionsTable, prepReportsTable } from "./schema";
+import { APTITUDE_TOPICS, prepAptitudeQuestionsTable, prepCompaniesTable, prepCompanyQuestionsTable, prepEntitlementsTable, prepInterviewQuestionsTable, prepProofSubmissionsTable, prepReportsTable } from "./schema";
 import { clampCount, pickQuiz, pickQuizWeighted, scoreQuiz, signQuizToken, toPublicQuestion, verifyQuizToken } from "./aptitude";
 import {
   PROOF_FILE_MAX_BYTES,
@@ -1693,5 +1693,184 @@ prepRouter.post("/pro/verify", authenticate, purchaseLimiter, prepDbGate, async 
     res
       .status(502)
       .json({ success: false, message: timedOut ? "Payment gateway timed out. Please try again." : "Verification failed" });
+  }
+});
+
+// ---- Admin: Prep command center (Interview / Company Reports / Aptitude / Contribute Proof) ----
+// Same adminAuth guard as /proof/pending; prepDbGate keeps everything inert
+// when the prep database is unreachable. All counts and lists are read-only
+// except company approve/reject and pack-question moderation.
+
+const packModerationBody = z.object({ status: z.enum(["VISIBLE", "HIDDEN"]) });
+
+prepRouter.get("/admin/overview", adminAuth, prepDbGate, async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const [interviewRows, aptitudeRows, packVisibleRows, packHiddenRows, companiesActiveRows, companiesPendingRows, reportsRows, prepProRows, proofPendingRows] =
+      await Promise.all([
+        db.select({ n: count() }).from(prepInterviewQuestionsTable),
+        db.select({ n: count() }).from(prepAptitudeQuestionsTable),
+        db.select({ n: count() }).from(prepCompanyQuestionsTable).where(eq(prepCompanyQuestionsTable.status, "VISIBLE")),
+        db.select({ n: count() }).from(prepCompanyQuestionsTable).where(eq(prepCompanyQuestionsTable.status, "HIDDEN")),
+        db.select({ n: count() }).from(prepCompaniesTable).where(eq(prepCompaniesTable.status, "ACTIVE")),
+        db.select({ n: count() }).from(prepCompaniesTable).where(eq(prepCompaniesTable.status, "PENDING")),
+        db.select({ n: count() }).from(prepReportsTable),
+        db
+          .select({ n: count() })
+          .from(prepEntitlementsTable)
+          .where(and(eq(prepEntitlementsTable.status, "ACTIVE"), gt(prepEntitlementsTable.expiresAt, new Date()))),
+        db.select({ n: count() }).from(prepProofSubmissionsTable).where(eq(prepProofSubmissionsTable.status, "PENDING")),
+      ]);
+    res.json({
+      success: true,
+      data: {
+        interviewQuestions: Number(interviewRows[0]?.n ?? 0),
+        aptitudeQuestions: Number(aptitudeRows[0]?.n ?? 0),
+        packQuestionsVisible: Number(packVisibleRows[0]?.n ?? 0),
+        packQuestionsHidden: Number(packHiddenRows[0]?.n ?? 0),
+        companiesActive: Number(companiesActiveRows[0]?.n ?? 0),
+        companiesPending: Number(companiesPendingRows[0]?.n ?? 0),
+        reports: Number(reportsRows[0]?.n ?? 0),
+        prepProActive: Number(prepProRows[0]?.n ?? 0),
+        proofPending: Number(proofPendingRows[0]?.n ?? 0),
+      },
+    });
+  } catch (err) {
+    console.error("[prep] admin overview failed:", err);
+    res.status(500).json({ success: false, message: "Could not load overview" });
+  }
+});
+
+prepRouter.get("/admin/interview", adminAuth, prepDbGate, async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const [bank, packs] = await Promise.all([
+      db
+        .select({
+          id: prepInterviewQuestionsTable.id,
+          code: prepInterviewQuestionsTable.code,
+          track: prepInterviewQuestionsTable.track,
+          category: prepInterviewQuestionsTable.category,
+          difficulty: prepInterviewQuestionsTable.difficulty,
+          question: prepInterviewQuestionsTable.question,
+        })
+        .from(prepInterviewQuestionsTable)
+        .orderBy(prepInterviewQuestionsTable.code)
+        .limit(100),
+      listPackQuestionsForModeration(100),
+    ]);
+    res.json({ success: true, data: { bank, packs } });
+  } catch (err) {
+    console.error("[prep] admin interview failed:", err);
+    res.status(500).json({ success: false, message: "Could not load interview data" });
+  }
+});
+
+prepRouter.get("/admin/reports", adminAuth, prepDbGate, async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const [rows, pendingCompanies] = await Promise.all([
+      db
+        .select({
+          id: prepReportsTable.id,
+          companyId: prepReportsTable.companyId,
+          companyName: prepCompaniesTable.name,
+          role: prepReportsTable.role,
+          userType: prepReportsTable.userType,
+          sourceCount: prepReportsTable.sourceCount,
+          aiSummary: prepReportsTable.aiSummary,
+          createdAt: prepReportsTable.createdAt,
+        })
+        .from(prepReportsTable)
+        .innerJoin(prepCompaniesTable, eq(prepReportsTable.companyId, prepCompaniesTable.id))
+        .orderBy(desc(prepReportsTable.createdAt))
+        .limit(100),
+      listPendingCompanies(db),
+    ]);
+    const reports = rows.map((r) => ({ ...r, aiSummary: r.aiSummary ? r.aiSummary.slice(0, 240) : null }));
+    res.json({ success: true, data: { reports, pendingCompanies } });
+  } catch (err) {
+    console.error("[prep] admin reports failed:", err);
+    res.status(500).json({ success: false, message: "Could not load reports" });
+  }
+});
+
+prepRouter.get("/admin/aptitude", adminAuth, prepDbGate, async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const rows = await db
+      .select({
+        id: prepAptitudeQuestionsTable.id,
+        code: prepAptitudeQuestionsTable.code,
+        topic: prepAptitudeQuestionsTable.topic,
+        difficulty: prepAptitudeQuestionsTable.difficulty,
+        question: prepAptitudeQuestionsTable.question,
+        explanation: prepAptitudeQuestionsTable.explanation,
+      })
+      .from(prepAptitudeQuestionsTable)
+      .orderBy(prepAptitudeQuestionsTable.topic, prepAptitudeQuestionsTable.code)
+      .limit(200);
+    const questions = rows.map((r) => ({ ...r, explanation: r.explanation.slice(0, 240) }));
+    res.json({ success: true, data: { questions } });
+  } catch (err) {
+    console.error("[prep] admin aptitude failed:", err);
+    res.status(500).json({ success: false, message: "Could not load aptitude bank" });
+  }
+});
+
+prepRouter.post("/admin/companies/:id/approve", adminAuth, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const updated = await approvePendingCompany(db, String(req.params.id));
+    if (!updated) {
+      res.status(404).json({ success: false, message: "Pending company not found" });
+      return;
+    }
+    res.json({ success: true, data: { company: updated } });
+  } catch (err) {
+    console.error("[prep] admin company approve failed:", err);
+    res.status(500).json({ success: false, message: "Approve failed" });
+  }
+});
+
+prepRouter.post("/admin/companies/:id/reject", adminAuth, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  const id = String(req.params.id);
+  try {
+    const [reportRows, packRows, proofRows] = await Promise.all([
+      db.select({ n: count() }).from(prepReportsTable).where(eq(prepReportsTable.companyId, id)),
+      db.select({ n: count() }).from(prepCompanyQuestionsTable).where(eq(prepCompanyQuestionsTable.companyId, id)),
+      db.select({ n: count() }).from(prepProofSubmissionsTable).where(eq(prepProofSubmissionsTable.companyId, id)),
+    ]);
+    const linked =
+      Number(reportRows[0]?.n ?? 0) + Number(packRows[0]?.n ?? 0) + Number(proofRows[0]?.n ?? 0);
+    if (linked > 0) {
+      res
+        .status(409)
+        .json({ success: false, message: "Company already has reports, questions or proof attached — approve it or moderate the content instead." });
+      return;
+    }
+    const removed = await deletePendingCompany(db, id);
+    if (!removed) {
+      res.status(404).json({ success: false, message: "Pending company not found" });
+      return;
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[prep] admin company reject failed:", err);
+    res.status(500).json({ success: false, message: "Reject failed" });
+  }
+});
+
+prepRouter.post("/admin/pack-questions/:id/moderate", adminAuth, prepDbGate, async (req: Request, res: Response): Promise<void> => {
+  const parsed = packModerationBody.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(400).json({ success: false, message: "status must be VISIBLE or HIDDEN" });
+    return;
+  }
+  try {
+    const updated = await updatePackQuestionStatus(String(req.params.id), parsed.data.status);
+    if (!updated) {
+      res.status(404).json({ success: false, message: "Question not found" });
+      return;
+    }
+    res.json({ success: true, data: { question: updated } });
+  } catch (err) {
+    console.error("[prep] admin pack moderate failed:", err);
+    res.status(500).json({ success: false, message: "Moderation failed" });
   }
 });

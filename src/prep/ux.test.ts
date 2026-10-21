@@ -419,7 +419,7 @@ describe("the Buy button can never look dead; members look like members (round 5
       "public/prep/interview.html",
       "public/prep/proof.html",
     ]) {
-      expect(read(p), p).toContain("window.PREP_V = 20;");
+      expect(read(p), p).toContain("window.PREP_V = 21;");
       expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
     }
   });
@@ -1188,7 +1188,7 @@ describe("round 16: Pro members never see the sell — resume file upload, zero 
 
   it("versions bumped in lockstep so stale cached pages self-heal", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 20;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 21;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1249,7 +1249,7 @@ describe("round 17: public daily drill — different questions every day", () =>
 
   it("versions bumped in lockstep (page changed, nav script changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 20;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 21;");
   });
 });
 
@@ -1354,7 +1354,7 @@ describe("round 18: an expired se_token self-heals via the shared SeAuth helper"
 
   it("versions bumped in lockstep (nav + all five pages changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 20;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 21;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1439,7 +1439,7 @@ describe("round 19: the plan card can roll fresh questions (never a repeat, neve
 
   it("versions bumped in lockstep (interview page + nav script changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 20;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 21;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1536,7 +1536,7 @@ describe("round 20: company packs + AI-scored answers, generic bank retired", ()
 
   it("versions bumped in lockstep (interview page + nav script changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 20;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 21;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1607,7 +1607,7 @@ describe("round 21: the interview page reads as a guided tour, the feed promo is
 
   it("versions bumped in lockstep (interview page + nav script changed)", () => {
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 20;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 21;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
   });
 });
@@ -1720,8 +1720,101 @@ describe("round 22: the interview session is visibly Pro-only, the landing reads
   it("versions bumped in lockstep (interview page changed, nav untouched)", () => {
     const nav = read("public/js/prep-nav.js");
     expect(nav).toContain("var WANT_V = 16;");
-    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 20;");
+    for (const p of PREP_PAGES) expect(read(p), p).toContain("window.PREP_V = 21;");
     for (const p of PREP_PAGES) expect(read(p), p).toMatch(/prep-nav\.js\?v=\d+/);
+  });
+});
+
+describe("admin panel — Prep command center (round 31)", () => {
+  const admin = read("public/admin.html");
+
+  it("prep tabs come first in the sidebar, in the required order", () => {
+    const order = [
+      'data-p="overview"',
+      'data-p="prep-interview"',
+      'data-p="prep-reports"',
+      'data-p="prep-aptitude"',
+      'data-p="prep-proof"',
+      'data-p="users"',
+    ];
+    let idx = -1;
+    for (const marker of order) {
+      const next = admin.indexOf(marker);
+      expect(next, marker).toBeGreaterThan(idx);
+      idx = next;
+    }
+    expect(admin).toContain("Company Reports");
+    expect(admin).toContain("Contribute Proof");
+    expect(admin).toContain("Command Center");
+  });
+
+  it("dead freelance-era features are gone", () => {
+    expect(admin).not.toContain('data-p="jobs"');
+    expect(admin).not.toContain('data-p="equity"');
+    expect(admin).not.toContain("ps-jobs");
+    expect(admin).not.toContain("ps-equity");
+    expect(admin).not.toContain("loadAdminJobs");
+    expect(admin).not.toContain("loadEquityWaitlist");
+    expect(admin).not.toContain("Manage Jobs");
+    expect(admin).not.toContain("Equity Waitlist");
+  });
+
+  it("wires the prep admin endpoints that exist on the server", () => {
+    expect(admin).toContain("/prep/admin/overview");
+    expect(admin).toContain("/prep/admin/interview");
+    expect(admin).toContain("/prep/admin/reports");
+    expect(admin).toContain("/prep/admin/aptitude");
+    expect(admin).toContain("/prep/admin/pack-questions");
+    expect(admin).toContain("/prep/admin/companies");
+    expect(admin).toContain("/prep/proof/pending");
+    expect(admin).toContain("reviewProof");
+  });
+
+  it("server exposes the same prep admin routes, all adminAuth-guarded", () => {
+    const router = read("src/prep/router.ts");
+    for (const route of [
+      '"/admin/overview", adminAuth, prepDbGate',
+      '"/admin/interview", adminAuth, prepDbGate',
+      '"/admin/reports", adminAuth, prepDbGate',
+      '"/admin/aptitude", adminAuth, prepDbGate',
+      '"/admin/companies/:id/approve", adminAuth, prepDbGate',
+      '"/admin/companies/:id/reject", adminAuth, prepDbGate',
+      '"/admin/pack-questions/:id/moderate", adminAuth, prepDbGate',
+    ]) expect(router, route).toContain(route);
+  });
+
+  it("trust banner + live prep cards on overview", () => {
+    expect(admin).toContain("Grit&amp;Gigs Command Center");
+    expect(admin).toContain("Nothing here is estimated");
+    expect(admin).toContain("prepStatsGrid");
+    expect(admin).toContain('data-prep="prepProActive"');
+    expect(admin).toContain('data-prep="proofPending"');
+  });
+
+  it("moderation helpers exist in the prep db layer", () => {
+    const packs = read("src/prep/packs-db.ts");
+    expect(packs).toContain("listPackQuestionsForModeration");
+    expect(packs).toContain("updatePackQuestionStatus");
+    const companies = read("src/prep/companies.ts");
+    expect(companies).toContain("listPendingCompanies");
+    expect(companies).toContain("approvePendingCompany");
+    expect(companies).toContain("deletePendingCompany");
+  });
+
+  it("deep links from push notifications land on the right tab", () => {
+    expect(admin).toContain("ADMIN_PAGES");
+    expect(admin).toContain("new URLSearchParams(location.search).get('tab')");
+  });
+
+  it("no fake member counts anywhere reachable", () => {
+    for (const p of [
+      "public/admin.html",
+      "public/prep/interview.html",
+      "public/design-preview.html",
+      "public/design-system.html",
+    ]) {
+      expect(read(p), p).not.toMatch(/28,000/);
+    }
   });
 });
 
