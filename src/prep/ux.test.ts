@@ -1893,3 +1893,27 @@ describe("landing craving hooks + mobile promo (round 33)", () => {
   });
 });
 
+describe("onboarding brand format (round 35)", () => {
+  const ob = read("public/assets/onboarding.js");
+
+  it("wordmark matches the real logo format — Syne, black Grit + blue &Gigs", () => {
+    expect(ob).toContain('<div class="brand"><span>Grit</span><span>&amp;Gigs</span></div>');
+    expect(ob).toContain("#gritOb .brand span{color:#0A0A0F}");
+    expect(ob).toContain("#gritOb .brand span+span{color:#6C3FE8;margin-left:3px}");
+    expect(ob).toContain("font-family:Syne,sans-serif;font-size:1.15rem;font-weight:800");
+    expect(ob).toContain("family=Syne");
+    expect(ob).toContain("#gritOb h3{margin:0 0 4px;font-size:20px;line-height:1.25;font-family:Syne,sans-serif");
+  });
+
+  it("every gold accent is replaced with the brand blue-violet", () => {
+    expect(ob).not.toContain("#eab308");
+    expect(ob).not.toContain("#f59e0b");
+    expect(ob).not.toContain("#a17400");
+    expect(ob).not.toContain("#fffbeb");
+    expect(ob).not.toContain("GRIT AND GIGS");
+    expect(ob).toContain("#6C3FE8");
+    expect(ob).toContain("background:#6C3FE8;color:#fff;border-radius:10px"); // primary button
+    expect(ob).toContain(".role.sel{border-color:#6C3FE8;background:#F4F0FF");
+  });
+});
+
