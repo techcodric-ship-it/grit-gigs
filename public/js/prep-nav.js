@@ -60,14 +60,31 @@
   }
 
   function injectPromo() {
+    // Desktop (>=1000px): the .col-side rail is visible — lead the rail with
+    // the promo, first child, exactly as before.
     var side = document.querySelector(".sidebar");
-    if (!side) return;
-    if (side.querySelector("[data-prep-promo]")) return;
-    var p = document.createElement("div");
-    p.className = "side-card";
-    p.setAttribute("data-prep-promo", "1");
-    p.innerHTML = promoMarkup();
-    side.insertBefore(p, side.firstElementChild);
+    var wide = window.matchMedia("(min-width: 1000px)").matches;
+    if (wide && side) {
+      if (side.querySelector("[data-prep-promo]")) return;
+      var p = document.createElement("div");
+      p.className = "side-card";
+      p.setAttribute("data-prep-promo", "rail");
+      p.innerHTML = promoMarkup();
+      side.insertBefore(p, side.firstElementChild);
+      return;
+    }
+    // Phones and tablets (<1000px): feed.css hides .col-side entirely
+    // (display:none), so the rail card would be invisible. Put the promo at
+    // the TOP of the main feed column instead — same card, same copy.
+    var main = document.querySelector(".col-main");
+    if (!main) return;
+    if (main.querySelector("[data-prep-promo]")) return;
+    var m = document.createElement("div");
+    m.className = "card";
+    m.setAttribute("data-prep-promo", "inline");
+    m.style.margin = "0 0 14px";
+    m.innerHTML = promoMarkup();
+    main.insertBefore(m, main.firstChild);
   }
 
   function removePromo() {

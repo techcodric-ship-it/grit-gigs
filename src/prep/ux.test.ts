@@ -1850,3 +1850,46 @@ describe("prep tab strip order (round 32)", () => {
   });
 });
 
+describe("landing craving hooks + mobile promo (round 33)", () => {
+  const landing = read("public/index.html");
+
+  it("hero leads with a pulsing NEW interview-prep pill and a gold free-trial CTA", () => {
+    expect(landing).toContain('class="hero-pill"');
+    expect(landing).toContain("Would you clear the interview");
+    expect(landing).toContain('class="btn-gold" href="/prep/interview"');
+    expect(landing).toContain("Try a question free");
+    expect(landing).toContain("@keyframes hpPulse");
+  });
+
+  it("curiosity hook band sits between the trust strip and the features grid", () => {
+    const strip = landing.indexOf('class="strip"');
+    const hook = landing.indexOf('id="hookPrep"');
+    const feat = landing.indexOf('id="features"');
+    expect(strip).toBeGreaterThan(-1);
+    expect(hook).toBeGreaterThan(strip);
+    expect(feat).toBeGreaterThan(hook);
+    expect(landing).toContain("Six fresh drill questions every day");
+    expect(landing).toContain("member-reported, every one labelled, never scraped");
+    expect(landing).toContain("Free to try · no card needed");
+    expect(landing).toContain("AI scores every answer 0&ndash;10");
+  });
+
+  it("hook band is honest — no banned claims snuck in", () => {
+    const hook = landing.slice(landing.indexOf('id="hookPrep"'), landing.indexOf('<!-- FEATURES -->'));
+    expect(hook).not.toMatch(/28,000|9,400|\u20B94 Crore|1\.2k/);
+    expect(hook).not.toMatch(/wallet|withdraw|escrow|100% placement/i);
+    expect(hook).not.toMatch(/Arjun K\./);
+  });
+
+  it("feed promo falls back into the main column when the rail is hidden under 1000px", () => {
+    const nav = read("public/js/prep-nav.js");
+    expect(nav).toContain('matchMedia("(min-width: 1000px)")');
+    expect(nav).toContain('document.querySelector(".col-main")');
+    expect(nav).toContain('setAttribute("data-prep-promo", "inline")');
+    expect(nav).toContain("main.insertBefore(m, main.firstChild)");
+    // the pinned desktop path must survive untouched
+    expect(nav).toContain('side.insertBefore(p, side.firstElementChild)');
+    expect(nav).toContain('side.querySelector("[data-prep-promo]")');
+  });
+});
+
