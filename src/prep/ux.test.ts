@@ -1679,9 +1679,9 @@ describe("round 22: the interview session is visibly Pro-only, the landing reads
       // round 28: the interview-prep viral post is the landing's featured blog card
       "blog-interview-rehearsal-test.html",
       // round 29: Grit Score is teased as coming soon (not shipped — no fake verdicts)
-      "Grit Score",
+      "Grit Score &mdash; coming soon",
       "Coming soon",
-      "Proof Score",
+      "Proof Score &middot; preview",
     ]) expect(landing, t).toContain(t);
     // exactly one paid plan (Prep Pro) — no fake Starter/Pro/Squad tiers
     expect((landing.match(/<div class="price( hot)?">/g) || []).length).toBe(1);
