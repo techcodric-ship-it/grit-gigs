@@ -1917,3 +1917,31 @@ describe("onboarding brand format (round 35)", () => {
   });
 });
 
+describe("onboarding is never forced on signup (round 36)", () => {
+  const feedJs = read("public/assets/feed-app.js");
+  const mainJs = read("public/js/main.js");
+
+  it("feed pages never auto-open the setup wizard after login or signup", () => {
+    expect(feedJs).toContain("Onboarding auto-prompt removed");
+    expect(feedJs).not.toMatch(/openOnboarding\(\);/);
+  });
+
+  it("main.js signup lands straight on /feed with no wizard", () => {
+    expect(mainJs).not.toContain("GritOnboarding.open");
+    expect(mainJs).toContain("window.location.href = '/feed';");
+  });
+
+  it("the phone prompt still runs — only the wizard was cut", () => {
+    expect(feedJs).toContain("function needsPhone(u)");
+    expect(feedJs).toContain("openPhoneModal({ onDone: maybeOnboard })");
+  });
+
+  it("admin has no onboarding surfaces at all", () => {
+    expect(read("public/admin.html")).not.toMatch(/onboarding/i);
+  });
+
+  it("settings keeps a manual profile-setup entry", () => {
+    expect(read("public/settings.html")).toContain("GritOnboarding.open");
+  });
+});
+

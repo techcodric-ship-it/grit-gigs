@@ -396,14 +396,10 @@
   }
 
   function maybeOnboard() {
-    var u = me || getUser();
-    if (!token || !u || !u.id || !window.GritOnboarding) return;
-    if (!needsOnboarding(u)) return;
-    if (obOpen()) return;
-    var seen = null;
-    try { seen = sessionStorage.getItem(OB_SEEN_KEY); } catch (e) {}
-    if (seen === (u.id || '1')) return;
-    openOnboarding();
+    // Onboarding auto-prompt removed (round 36): signup and login now land
+    // straight on the feed — the setup wizard never opens by itself.
+    // Profile setup stays available from Settings.
+    return;
   }
 
   // ── phone capture (compulsory) ──

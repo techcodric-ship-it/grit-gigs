@@ -947,11 +947,9 @@ var _obStep = 1;
 var _obRole = '';
 
 function goToDashboard(user, isNewSignup) {
-  if (isNewSignup && user && user.onboardingComplete === false && window.GritOnboarding) {
-    window.GritOnboarding.open({ user: user, onDone: function () { window.location.href = '/feed'; } });
-  } else {
-    window.location.href = '/feed';
-  }
+  // Onboarding wizard removed from the signup path (round 36):
+  // every signup goes straight to the feed.
+  window.location.href = '/feed';
 }
 
 function updateObStep() {
