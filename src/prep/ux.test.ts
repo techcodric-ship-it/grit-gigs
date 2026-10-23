@@ -1945,3 +1945,52 @@ describe("onboarding is never forced on signup (round 36)", () => {
   });
 });
 
+describe("viral barter + community blog (round 37)", () => {
+  const post = read("public/blog-trade-for-experience.html");
+  const listing = read("public/blog.html");
+  const sitemap = read("public/sitemap.xml");
+
+  it("the post exists with the pinned title, slug and author", () => {
+    expect(post).toContain("Nobody Will Hire You Without Experience — So Trade For It");
+    expect(post).toContain('rel="canonical" href="https://www.gritandgigs.in/blog-trade-for-experience"');
+    expect(post).toContain('"datePublished": "2026-10-23"');
+    expect(post).toContain('"name": "Amuthavanan"');
+  });
+
+  it("the barter → prove → belong → interview ladder is fully present", () => {
+    expect(post).toContain("Trade → Prove → Belong → Interview");
+    for (const n of ["1", "2", "3", "4"]) expect(post).toContain(`data-n="${n}"`);
+  });
+
+  it("uses the same honest stall numbers as the round-25 post, and links to it", () => {
+    expect(post).toContain("Of 21 barter requests on Grit&amp;Gigs, 13 found a match and 3 delivered finished work.");
+    expect(post).toContain('href="/blog-why-barter-swaps-stall"');
+  });
+
+  it("no fabricated stats or fake personas leak into the post", () => {
+    expect(post).not.toMatch(/28,000|9,400|\u20B94 Crore|1\.2k|Arjun K\./);
+  });
+
+  it("community, proof and interview prep CTAs are all linked", () => {
+    expect(post).toContain('href="/barter"');
+    expect(post).toContain('href="/explore?kind=BARTER"');
+    expect(post).toContain('href="/prep/interview"');
+  });
+
+  it("blog listing pins the new post as the top featured card", () => {
+    expect(listing).toContain('href="/blog-trade-for-experience"');
+    expect(listing).toContain("Barter &amp; Community");
+    const i = listing.indexOf("blog-trade-for-experience");
+    const j = listing.indexOf("blog-interview-rehearsal-test");
+    expect(i).toBeGreaterThan(-1);
+    expect(j).toBeGreaterThan(-1);
+    expect(i).toBeLessThan(j);
+  });
+
+  it("sitemap includes the new post with today's lastmod", () => {
+    expect(sitemap).toContain("https://www.gritandgigs.in/blog-trade-for-experience");
+    expect(sitemap).toContain("<lastmod>2026-10-23</lastmod>");
+  });
+});
+
+
