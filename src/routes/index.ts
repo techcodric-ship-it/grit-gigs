@@ -31,6 +31,7 @@ import aiSupportRouter from "./ai-support";
 import portfolioRouter from "./portfolio";
 import waitlistRouter from "./waitlist";
 import communityRouter from "./community";
+import focusRouter from "./focus";
 
 const router: IRouter = Router();
 
@@ -66,6 +67,7 @@ router.use(aiSupportRouter);
 router.use(portfolioRouter);
 router.use(waitlistRouter);
 router.use(communityRouter);
+router.use(focusRouter);
 router.use(adminRouter);
 
 router.use((_req: any, res: any) => {

@@ -13,8 +13,8 @@ import { adminAuth } from "../middlewares/adminAuth";
 import { uploadToSupabase } from "../lib/storage";
 import { isPrepEnabled } from "./feature";
 import { ensurePrepDb } from "./db";
-import { approvePendingCompany, createPendingCompany, deletePendingCompany, listPendingCompanies, resolveCompany, slugifyCompanyName } from "./companies";
-import { gatherSourcesWithBudget } from "./sources/gather";
+import { approvePendingCompany, createPendingCompany, deletePendingCompany, listPendingCompanies, markCompanyWebsiteVerified, resolveCompany, slugifyCompanyName } from "./companies";
+import { gatherSourcesWithBudget, type GatheredSources } from "./sources/gather";
 import {
   fallbackPlan,
   fallbackPlanQuestions,
@@ -32,7 +32,7 @@ import { countAnswerScoresToday, recordAnswerScore } from "./answer-scores";
 import { PACKS_PER_USER_PER_DAY, countPackSubmissionsToday, findDuplicatePackQuestion, insertPackQuestion, listPackQuestions, listPackQuestionsForModeration, updatePackQuestionStatus } from "./packs-db";
 import { extractResumeText } from "./resume-text";
 import { aptitudeWeights, trackForRole, weightsFromPlanTopics, type AptitudeWeights } from "./role-skills";
-import { APTITUDE_TOPICS, prepAptitudeQuestionsTable, prepCompaniesTable, prepCompanyQuestionsTable, prepEntitlementsTable, prepInterviewQuestionsTable, prepProofSubmissionsTable, prepReportsTable } from "./schema";
+import { APTITUDE_TOPICS, prepAptitudeQuestionsTable, prepCompaniesTable, prepCompanyQuestionsTable, prepEntitlementsTable, prepInterviewQuestionsTable, prepProofSubmissionsTable, prepReportsTable, type PrepCompany, type PrepReport } from "./schema";
 import { clampCount, pickQuiz, pickQuizWeighted, scoreQuiz, signQuizToken, toPublicQuestion, verifyQuizToken } from "./aptitude";
 import {
   PROOF_FILE_MAX_BYTES,
@@ -97,6 +97,7 @@ import {
   listRecentReportsForUser,
   publicReport,
   updateReportAi,
+  updateReportSources,
 } from "./reports";
 
 export const prepRouter = Router();
@@ -278,6 +279,63 @@ function quotaResponse(res: Response, used: number, limit: number): void {
   });
 }
 
+// A search-created company has website=null; the official adapter guesses a
+// domain from the name and only accepts it when the live page mentions the
+// company. Save that verdict back onto the row so the guess runs once, and so
+// the report overview shows a real website. Careers URLs are never persisted —
+// only a homepage (path "/") counts as the company's site.
+async function persistVerifiedWebsite(company: PrepCompany, gathered: GatheredSources): Promise<void> {
+  if (company.website) return;
+  const homepage = gathered.documents.find((d) => {
+    if (d.label !== "OFFICIAL") return false;
+    try {
+      const p = new URL(d.url).pathname;
+      return p === "/" || p === "";
+    } catch {
+      return false;
+    }
+  });
+  if (!homepage) return;
+  try {
+    const updated = await markCompanyWebsiteVerified(db, company.id, homepage.url);
+    if (updated) {
+      company.website = updated.website;
+      company.domain = updated.domain;
+    }
+  } catch (err) {
+    console.error("[prep] persist verified website failed:", err);
+  }
+}
+
+// A report saved with zero sources is almost always a cold-start timeout: the
+// gather budget expired before news/official finished and the empty result got
+// persisted. Serving it forever would make the first bad attempt permanent.
+// Re-gather (5-min source cache keeps this cheap) and update the SAME row —
+// no new report, no quota charge. Returns null when still empty; the caller
+// then serves the existing row instead of duplicating it.
+async function healEmptyReport(company: PrepCompany, existing: PrepReport, role: string | null): Promise<PrepReport | null> {
+  try {
+    const gathered = await gatherSourcesWithBudget(
+      { name: company.name, domain: company.domain, website: company.website },
+      20_000,
+    );
+    if (!gathered.documents.length) return null;
+    await persistVerifiedWebsite(company, gathered);
+    const skeleton = buildReportSkeleton(company, gathered, { role, userType: existing.userType });
+    const updated = await updateReportSources(existing.id, skeleton);
+    if (!updated) return null;
+    const ai = await summarizeReport({ company: { name: company.name }, role, gathered });
+    if (ai) {
+      const withAi = await updateReportAi(existing.id, { summary: ai.summary, model: ai.model });
+      if (withAi) return withAi;
+    }
+    return updated;
+  } catch (err) {
+    console.error("[prep] empty-report heal failed:", err);
+    return null;
+  }
+}
+
 prepRouter.post("/reports", authenticate, reportLimiter, prepDbGate, async (req: Request, res: Response): Promise<void> => {
   const parsed = reportBody.safeParse(req.body ?? {});
   if (!parsed.success) {
@@ -301,8 +359,9 @@ prepRouter.post("/reports", authenticate, reportLimiter, prepDbGate, async (req:
         domain: company.domain,
         website: company.website,
       },
-      12_000,
+      20_000,
     );
+    await persistVerifiedWebsite(company, gathered);
     const skeleton = buildReportSkeleton(company, gathered, {
       role: parsed.data.role ?? null,
       userType: parsed.data.userType ?? null,
@@ -389,8 +448,17 @@ prepRouter.get("/companies/:slug/report", authenticate, reportLimiter, prepDbGat
     }
     const role = typeof req.query.role === "string" && req.query.role.trim() ? req.query.role.trim() : null;
     const existing = await latestReportForCompany(company.id, role);
-    if (existing) {
+    // Cached reads stay free — but only when the cached report actually has
+    // sources. An empty one means the first gather timed out; heal it in
+    // place instead of serving the same "no sources" page forever. Quota is
+    // NOT charged for healing (nothing new is generated, same row).
+    if (existing && existing.sourceCount > 0) {
       res.json({ success: true, data: { report: publicReport(existing), cached: true } });
+      return;
+    }
+    if (existing) {
+      const healed = await healEmptyReport(company, existing, role);
+      res.json({ success: true, data: { report: publicReport(healed ?? existing), cached: true } });
       return;
     }
     const quota = await checkReportQuota(req.user!.id);
@@ -398,15 +466,16 @@ prepRouter.get("/companies/:slug/report", authenticate, reportLimiter, prepDbGat
       quotaResponse(res, quota.used, quota.limit);
       return;
     }
-    // 12s hard budget: a report must render even when sources are slow.
+    // 20s hard budget: a report must render even when sources are slow.
     const gathered = await gatherSourcesWithBudget(
       {
         name: company.name,
         domain: company.domain,
         website: company.website,
       },
-      12_000,
+      20_000,
     );
+    await persistVerifiedWebsite(company, gathered);
     const skeleton = buildReportSkeleton(company, gathered, { role, userType: null });
     const report = await createReport({
       companyId: company.id,

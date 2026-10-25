@@ -479,10 +479,10 @@ describe("reports always render: bounded gathering, honest progress (round 6)", 
   const gather = read("src/prep/sources/gather.ts");
   const ai = read("src/prep/ai.ts");
   const rp = read("public/prep/report.html");
-  it("every report path races gathering against a 12s hard budget", () => {
+  it("every report path races gathering against a 20s hard budget", () => {
     expect(router).toContain("gatherSourcesWithBudget(");
     expect(router).not.toMatch(/await gatherSources\(/);
-    expect(router.split("12_000").length - 1).toBeGreaterThanOrEqual(2); // POST + GET
+    expect(router.split("20_000").length - 1).toBeGreaterThanOrEqual(2); // POST + GET (+ heal)
     expect(gather).toContain("gatherSourcesWithBudget");
     expect(gather).toContain("gather:budget-exceeded");
   });
@@ -1990,6 +1990,52 @@ describe("viral barter + community blog (round 37)", () => {
   it("sitemap includes the new post with today's lastmod", () => {
     expect(sitemap).toContain("https://www.gritandgigs.in/blog-trade-for-experience");
     expect(sitemap).toContain("<lastmod>2026-10-23</lastmod>");
+  });
+});
+
+describe("any searched company can produce sources (round 38)", () => {
+  const official = read("src/prep/sources/official.ts");
+  const router = read("src/prep/router.ts");
+  const companies = read("src/prep/companies.ts");
+  const reports = read("src/prep/reports.ts");
+  const reportPage = read("public/prep/report.html");
+
+  it("the official adapter guesses a domain when none is known, and verifies it live", () => {
+    expect(official).toContain("guessWebsiteCandidates(");
+    expect(official).toContain("pageMentionsCompany(");
+    expect(official).toContain("guess-name-mismatch");
+    // a guess must never bypass the SSRF/denylist checker
+    expect(official).toContain("checkSourceUrl(base");
+  });
+
+  it("an empty cached report is healed in place instead of served forever", () => {
+    expect(router).toContain("existing.sourceCount > 0");
+    expect(router).toContain("healEmptyReport");
+    expect(router).toContain("updateReportSources");
+    expect(reports).toContain("export async function updateReportSources");
+  });
+
+  it("healing never burns quota and never creates a second row", () => {
+    const healIdx = router.indexOf("async function healEmptyReport");
+    expect(healIdx).toBeGreaterThan(-1);
+    const healBody = router.slice(healIdx, router.indexOf('prepRouter.post("/reports"', healIdx));
+    expect(healBody.length).toBeGreaterThan(100);
+    expect(healBody).not.toContain("checkReportQuota");
+    expect(healBody).not.toContain("createReport(");
+  });
+
+  it("a fetch-verified website is persisted on the company row, homepage only", () => {
+    expect(router).toContain("persistVerifiedWebsite");
+    expect(router).toContain("markCompanyWebsiteVerified(db, company.id, homepage.url)");
+    expect(router).toContain('if (p === "/" || p === "")'); // careers URLs never saved as the site
+    expect(companies).toContain("export async function markCompanyWebsiteVerified");
+    expect(companies).toContain("isNull(prepCompaniesTable.website)"); // never overwrites
+  });
+
+  it("report routes run a 20s budget and the empty-state explains the retry", () => {
+    expect(router.split("20_000").length - 1).toBeGreaterThanOrEqual(3); // POST + GET + heal
+    expect(reportPage).toContain("No public sources found yet"); // pinned heading survives
+    expect(reportPage).toContain("retries automatically");
   });
 });
 

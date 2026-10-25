@@ -1,8 +1,8 @@
 import type { Server as HttpServer } from "http";
 import { Server as SocketServer } from "socket.io";
 import { verifyAccessToken } from "./auth";
-import { db, usersTable, conversationsTable, conversationParticipantsTable, messagesTable, notificationsTable } from "../db";
-import { eq, and, ne } from "drizzle-orm";
+import { db, usersTable, conversationsTable, conversationParticipantsTable, messagesTable, notificationsTable, focusRoomsTable, focusRoomParticipantsTable, focusRoomMessagesTable } from "../db";
+import { eq, and, ne, isNull } from "drizzle-orm";
 import { logger } from "./logger";
 
 export function setupSocket(httpServer: HttpServer): SocketServer {
@@ -33,6 +33,50 @@ export function setupSocket(httpServer: HttpServer): SocketServer {
 
   const onlineUsers = new Map<string, Set<string>>();
   (io as unknown as { onlineUsers: Map<string, Set<string>> }).onlineUsers = onlineUsers;
+
+  // ── Focus Rooms live presence ─────────────────────────────────────────
+  // roomId -> (socketId -> participant info)
+  type FocusEntry = { userId: string; firstName: string; lastName: string; profilePhoto: string | null; cameraOn: boolean; joinedAt: number };
+  const focusRooms = new Map<string, Map<string, FocusEntry>>();
+
+  // Distinct participants (by userId) currently in a room.
+  function focusPresence(roomId: string) {
+    const seen = new Map<string, FocusEntry>();
+    for (const entry of focusRooms.get(roomId)?.values() ?? []) {
+      if (!seen.has(entry.userId)) seen.set(entry.userId, entry);
+    }
+    return [...seen.values()].map((e) => ({
+      userId: e.userId,
+      firstName: e.firstName,
+      lastName: e.lastName,
+      profilePhoto: e.profilePhoto,
+      cameraOn: e.cameraOn,
+    }));
+  }
+
+  function broadcastPresence(roomId: string) {
+    io.to(`focus:${roomId}`).emit("focus:presence", { roomId, participants: focusPresence(roomId) });
+  }
+
+  // Accumulate focus time for a user leaving a focus room.
+  async function closeFocusParticipation(roomId: string, userId: string) {
+    try {
+      const [existing] = await db
+        .select()
+        .from(focusRoomParticipantsTable)
+        .where(and(eq(focusRoomParticipantsTable.roomId, roomId), eq(focusRoomParticipantsTable.userId, userId)))
+        .limit(1);
+      if (existing && !existing.leftAt) {
+        const seconds = Math.max(0, Math.floor((Date.now() - new Date(existing.joinedAt).getTime()) / 1000));
+        await db
+          .update(focusRoomParticipantsTable)
+          .set({ leftAt: new Date(), cameraOn: false, focusSeconds: existing.focusSeconds + seconds })
+          .where(eq(focusRoomParticipantsTable.id, existing.id));
+      }
+    } catch (err) {
+      logger.error({ err, roomId, userId }, "focus: closeFocusParticipation error");
+    }
+  }
 
   io.on("connection", (socket) => {
     const sockWithUser = socket as unknown as { user: { id: string; firstName: string } };
@@ -152,6 +196,113 @@ export function setupSocket(httpServer: HttpServer): SocketServer {
       }
     });
 
+    socket.on("focus:join", async ({ roomId }: { roomId: string }) => {
+      if (!roomId) return;
+      try {
+        const [room] = await db.select().from(focusRoomsTable).where(eq(focusRoomsTable.id, roomId)).limit(1);
+        if (!room || room.status !== "LIVE") {
+          socket.emit("focus:error", { roomId, message: "Room not available" });
+          return;
+        }
+        // Ensure a participant row exists (REST join usually already made one).
+        const [existing] = await db
+          .select()
+          .from(focusRoomParticipantsTable)
+          .where(and(eq(focusRoomParticipantsTable.roomId, roomId), eq(focusRoomParticipantsTable.userId, userId)))
+          .limit(1);
+        if (existing) {
+          await db
+            .update(focusRoomParticipantsTable)
+            .set({ leftAt: null, joinedAt: new Date(), lastSeenAt: new Date() })
+            .where(eq(focusRoomParticipantsTable.id, existing.id));
+        } else {
+          await db.insert(focusRoomParticipantsTable).values({ roomId, userId, isHost: room.hostId === userId });
+        }
+
+        const map = focusRooms.get(roomId) ?? new Map<string, FocusEntry>();
+        const peersBefore = focusPresence(roomId);
+        map.set(socket.id, {
+          userId,
+          firstName: sockWithUser.user.firstName,
+          lastName: (sockWithUser.user as { lastName?: string }).lastName ?? "",
+          profilePhoto: (sockWithUser.user as { profilePhoto?: string | null }).profilePhoto ?? null,
+          cameraOn: false,
+          joinedAt: Date.now(),
+        });
+        focusRooms.set(roomId, map);
+        socket.join(`focus:${roomId}`);
+
+        socket.emit("focus:joined", { roomId, participants: focusPresence(roomId) });
+        socket.emit("focus:timer", {
+          roomId,
+          elapsedSeconds: room.timerElapsedSeconds + (room.timerRunning ? Math.floor((Date.now() - new Date(room.timerStartedAt).getTime()) / 1000) : 0),
+          running: room.timerRunning,
+          startedAt: room.timerStartedAt,
+          focusMinutes: room.focusMinutes,
+          breakMinutes: room.breakMinutes,
+        });
+        // Tell existing peers to open a connection toward the newcomer.
+        socket.to(`focus:${roomId}`).emit("focus:peer-joined", {
+          roomId,
+          user: { userId, firstName: sockWithUser.user.firstName, lastName: (sockWithUser.user as { lastName?: string }).lastName ?? "", profilePhoto: (sockWithUser.user as { profilePhoto?: string | null }).profilePhoto ?? null },
+          existingPeers: peersBefore,
+        });
+        broadcastPresence(roomId);
+      } catch (err) {
+        logger.error({ err, roomId }, "focus:join error");
+      }
+    });
+
+    socket.on("focus:leave", async ({ roomId }: { roomId: string }) => {
+      if (!roomId) return;
+      const map = focusRooms.get(roomId);
+      if (map) {
+        map.delete(socket.id);
+        if (map.size === 0) focusRooms.delete(roomId);
+      }
+      socket.leave(`focus:${roomId}`);
+      socket.to(`focus:${roomId}`).emit("focus:peer-left", { roomId, userId, socketId: socket.id });
+      broadcastPresence(roomId);
+      await closeFocusParticipation(roomId, userId);
+    });
+
+    socket.on("focus:camera", async ({ roomId, cameraOn }: { roomId: string; cameraOn: boolean }) => {
+      if (!roomId) return;
+      const map = focusRooms.get(roomId);
+      const entry = map?.get(socket.id);
+      if (entry) entry.cameraOn = cameraOn !== false;
+      broadcastPresence(roomId);
+      try {
+        await db
+          .update(focusRoomParticipantsTable)
+          .set({ cameraOn: cameraOn !== false, lastSeenAt: new Date() })
+          .where(and(eq(focusRoomParticipantsTable.roomId, roomId), eq(focusRoomParticipantsTable.userId, userId)));
+      } catch {}
+    });
+
+    socket.on("focus:chat", async ({ roomId, content }: { roomId: string; content: string }) => {
+      if (!roomId || !content?.trim()) return;
+      try {
+        const [message] = await db
+          .insert(focusRoomMessagesTable)
+          .values({ roomId, userId, content: content.trim().slice(0, 600) })
+          .returning();
+        io.to(`focus:${roomId}`).emit("focus:chat:new", {
+          ...message,
+          firstName: sockWithUser.user.firstName,
+          profilePhoto: (sockWithUser.user as { profilePhoto?: string | null }).profilePhoto ?? null,
+        });
+      } catch (err) {
+        logger.error({ err, roomId }, "focus:chat error");
+      }
+    });
+
+    // Generic WebRTC signaling relay (offer / answer / ice candidate).
+    socket.on("focus:signal", ({ roomId, to, data }: { roomId: string; to: string; data: unknown }) => {
+      if (!roomId || !to || !data) return;
+      io.to(`user:${to}`).emit("focus:signal", { roomId, from: userId, data });
+    });
+
     socket.on("disconnect", () => {
       const sockets = onlineUsers.get(userId);
       if (sockets) {
@@ -159,6 +310,16 @@ export function setupSocket(httpServer: HttpServer): SocketServer {
         if (sockets.size === 0) {
           onlineUsers.delete(userId);
           socket.broadcast.emit("user:offline", { userId });
+        }
+      }
+      // Clean up any focus rooms this socket was in.
+      for (const [roomId, map] of focusRooms) {
+        if (map.has(socket.id)) {
+          map.delete(socket.id);
+          if (map.size === 0) focusRooms.delete(roomId);
+          socket.to(`focus:${roomId}`).emit("focus:peer-left", { roomId, userId, socketId: socket.id });
+          broadcastPresence(roomId);
+          void closeFocusParticipation(roomId, userId);
         }
       }
       logger.debug({ userId }, "Socket disconnected");

@@ -2,7 +2,7 @@
 // resolution/creation logic. Pure functions are exported for unit tests; the
 // DB-backed functions take the drizzle db instance so tests can stub them.
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, or, sql } from "drizzle-orm";
 import { prepCompaniesTable, type PrepCompany } from "./schema";
 
 // Legal suffixes dropped from the END of a normalized name so "Infosys
@@ -196,6 +196,25 @@ export async function approvePendingCompany(db: Db, id: string): Promise<PrepCom
     .update(prepCompaniesTable)
     .set({ status: "ACTIVE" })
     .where(and(eq(prepCompaniesTable.id, id), eq(prepCompaniesTable.status, "PENDING")))
+    .returning();
+  return (rows[0] as PrepCompany) ?? null;
+}
+
+/**
+ * Persist a live-verified official website onto a company row that had none
+ * (search-created companies start with website=null; the official adapter
+ * guesses + fetch-verifyies a domain, and the router calls this so the guess
+ * runs at most once per company). Refuses to overwrite an existing website.
+ */
+export async function markCompanyWebsiteVerified(db: Db, id: string, website: string): Promise<PrepCompany | null> {
+  const domain = domainFromWebsite(website);
+  const rows = await db
+    .update(prepCompaniesTable)
+    .set({
+      website: website.slice(0, 500),
+      ...(domain ? { domain: domain.slice(0, 200) } : {}),
+    })
+    .where(and(eq(prepCompaniesTable.id, id), or(isNull(prepCompaniesTable.website), eq(prepCompaniesTable.website, ""))))
     .returning();
   return (rows[0] as PrepCompany) ?? null;
 }

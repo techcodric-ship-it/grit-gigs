@@ -1183,6 +1183,57 @@ $mig$
       await col(`CREATE INDEX IF NOT EXISTS idx_search_logs_user ON search_logs(user_id)`);
       await col(`CREATE INDEX IF NOT EXISTS idx_search_logs_created ON search_logs(created_at)`);
 
+      // Focus Rooms
+      await col(`
+        DO $$ BEGIN CREATE TYPE focus_room_mode AS ENUM ('STUDY','WORK'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+        DO $$ BEGIN CREATE TYPE focus_room_status AS ENUM ('LIVE','ENDED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+        CREATE TABLE IF NOT EXISTS focus_rooms (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+          host_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          title TEXT NOT NULL,
+          mode focus_room_mode NOT NULL DEFAULT 'STUDY',
+          goal TEXT,
+          topic TEXT,
+          cover_url TEXT,
+          is_private BOOLEAN NOT NULL DEFAULT false,
+          is_camera_suggested BOOLEAN NOT NULL DEFAULT false,
+          focus_minutes INTEGER NOT NULL DEFAULT 25,
+          break_minutes INTEGER NOT NULL DEFAULT 5,
+          max_participants INTEGER NOT NULL DEFAULT 6,
+          status focus_room_status NOT NULL DEFAULT 'LIVE',
+          timer_elapsed_seconds INTEGER NOT NULL DEFAULT 0,
+          timer_running BOOLEAN NOT NULL DEFAULT true,
+          timer_started_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          started_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          ended_at TIMESTAMP,
+          peak_participants INTEGER NOT NULL DEFAULT 0,
+          created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+        );
+        CREATE TABLE IF NOT EXISTS focus_room_participants (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+          room_id UUID NOT NULL REFERENCES focus_rooms(id) ON DELETE CASCADE,
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          is_host BOOLEAN NOT NULL DEFAULT false,
+          camera_on BOOLEAN NOT NULL DEFAULT false,
+          focus_seconds INTEGER NOT NULL DEFAULT 0,
+          joined_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          left_at TIMESTAMP,
+          last_seen_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          CONSTRAINT focus_room_participants_room_user_unique UNIQUE (room_id, user_id)
+        );
+        CREATE TABLE IF NOT EXISTS focus_room_messages (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+          room_id UUID NOT NULL REFERENCES focus_rooms(id) ON DELETE CASCADE,
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          content TEXT NOT NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS idx_focus_rooms_created ON focus_rooms(created_at);
+        CREATE INDEX IF NOT EXISTS idx_focus_room_participants_room ON focus_room_participants(room_id);
+        CREATE INDEX IF NOT EXISTS idx_focus_room_messages_room ON focus_room_messages(room_id);
+      `);
+
       logger.info("DB auto-migration: all tables ready");
     } catch (_me: unknown) {
       logger.error({ err: _me instanceof Error ? _me : new Error(String(_me)) }, "DB migration error (continuing)");

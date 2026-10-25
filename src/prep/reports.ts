@@ -57,6 +57,17 @@ export async function updateReportAi(
   return updated[0] ?? null;
 }
 
+/** Re-persist a report's skeleton after a heal re-gather. Same row — an
+ * empty first attempt must never become a permanent empty report. */
+export async function updateReportSources(id: string, skeleton: ReportSkeleton): Promise<PrepReport | null> {
+  const updated = await db
+    .update(prepReportsTable)
+    .set({ sections: skeleton as unknown as Record<string, unknown>, sourceCount: skeleton.sourceCount })
+    .where(eq(prepReportsTable.id, id))
+    .returning();
+  return updated[0] ?? null;
+}
+
 export async function latestReportForCompany(companyId: string, role: string | null): Promise<PrepReport | null> {
   const roleNorm = role?.slice(0, 120) ?? null;
   const rows = await db
