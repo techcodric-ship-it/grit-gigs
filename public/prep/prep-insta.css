@@ -1,0 +1,480 @@
+/* Grit&Gigs Prep — flat Instagram-style feed layer.
+   Palette: purple + black on white. No gradients.
+   Loaded AFTER prep.css and each page's inline <style>. */
+
+:root {
+  --ig-bg: #FAFAFA;
+  --ig-card: #FFFFFF;
+  --ig-line: #DBDBDB;
+  --ig-line-soft: #EFEFEF;
+  --ig-ink: #0F0F0F;
+  --ig-ink-2: #262626;
+  --ig-muted: #737373;
+  --ig-soft: #F5F5F5;
+  --ig-purple: #5B21B6;
+  --ig-purple-deep: #4C1D95;
+  --ig-purple-light: #F5F3FF;
+  --ig-purple-line: #E9DDFF;
+  --ig-purple-soft: #DDD6FE;
+}
+
+body {
+  background: var(--ig-bg) !important;
+  color: var(--ig-ink);
+}
+
+.prep-wrap {
+  max-width: 760px;
+  padding: 76px 16px 96px;
+}
+
+/* ---------- top bar ---------- */
+.topnav {
+  background: rgba(255, 255, 255, .96) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--ig-line-soft) !important;
+  box-shadow: none !important;
+}
+
+/* ---------- tabs ---------- */
+.prep-tabs {
+  display: flex !important;
+  gap: 8px !important;
+  flex-wrap: wrap;
+  padding: 14px 2px 18px !important;
+  margin: 0 0 6px !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  overflow: visible;
+}
+
+.prep-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 15px !important;
+  border-radius: 999px !important;
+  border: 1px solid var(--ig-line) !important;
+  background: #fff !important;
+  color: var(--ig-ink-2) !important;
+  font-size: .86rem !important;
+  font-weight: 500 !important;
+  letter-spacing: -.01em;
+  text-decoration: none;
+  box-shadow: none;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
+}
+
+.prep-tab::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ig-purple-soft);
+  flex: none;
+}
+
+.prep-tab:hover {
+  background: var(--ig-purple-light) !important;
+  border-color: var(--ig-purple-line) !important;
+  color: var(--ig-purple) !important;
+}
+
+.prep-tab.on {
+  background: var(--ig-purple) !important;
+  border-color: var(--ig-purple) !important;
+  color: #fff !important;
+}
+
+.prep-tab.on::before { background: #fff; }
+
+/* ---------- hero: solid black card ---------- */
+.prep-hero,
+.prep-hero-sm {
+  position: relative;
+  overflow: hidden;
+  text-align: left !important;
+  padding: 32px 30px 28px !important;
+  margin: 0 0 16px !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  color: #fff;
+  background: var(--ig-ink) !important;
+  box-shadow: none !important;
+}
+
+.prep-hero::before,
+.prep-hero-sm::before { display: none !important; }
+
+.prep-hero > *,
+.prep-hero-sm > * { position: relative; }
+
+.prep-eyebrow {
+  background: rgba(139, 92, 246, .14) !important;
+  border: 1px solid rgba(167, 139, 250, .42) !important;
+  color: #DDD6FE !important;
+  letter-spacing: .1em !important;
+  font-size: .64rem !important;
+  padding: 5px 12px !important;
+  margin-bottom: 14px !important;
+}
+
+.prep-eyebrow::before {
+  background: #A78BFA !important;
+  box-shadow: none !important;
+}
+
+.prep-hero .prep-h1,
+.prep-hero-sm-h {
+  font-size: clamp(1.5rem, 4.4vw, 2rem) !important;
+  line-height: 1.18 !important;
+  letter-spacing: -.03em !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  background: none !important;
+  max-width: 620px;
+  margin: 0 0 10px !important;
+  text-align: left;
+}
+
+.prep-hero .prep-sub,
+.prep-hero-sm .prep-sub,
+.prep-hero-sm + .prep-sub {
+  color: #A3A3A3 !important;
+  font-size: .93rem !important;
+  line-height: 1.6 !important;
+  max-width: 600px;
+  margin: 0 0 18px !important;
+  text-align: left;
+}
+
+.prep-trust-chips { justify-content: flex-start !important; gap: 7px !important; }
+
+.prep-trust-chips li {
+  background: rgba(255, 255, 255, .08) !important;
+  border: 1px solid rgba(255, 255, 255, .18) !important;
+  color: #E5E5E5 !important;
+  font-size: .7rem !important;
+  font-weight: 500 !important;
+  padding: 5px 11px !important;
+  box-shadow: none !important;
+}
+
+.prep-trust-chips li::before { color: #A78BFA !important; }
+
+.prep-hero-ctas { justify-content: flex-start !important; margin-top: 18px !important; }
+
+.prep-hero .prep-btn,
+.prep-hero-sm .prep-btn {
+  background: var(--ig-purple) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+.prep-hero .prep-btn:hover,
+.prep-hero-sm .prep-btn:hover {
+  background: var(--ig-purple-deep) !important;
+}
+
+.prep-hero .prep-btn-ghost,
+.prep-hero-sm .prep-btn-ghost {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, .3) !important;
+  color: #fff !important;
+}
+
+.prep-steps {
+  color: #A3A3A3 !important;
+  gap: 12px !important;
+  margin-bottom: 4px !important;
+}
+
+.prep-steps b { color: #fff !important; }
+.prep-steps li span { color: #8E8E8E !important; }
+.prep-steps li::before {
+  background: rgba(255, 255, 255, .08) !important;
+  border: 1px solid rgba(255, 255, 255, .22) !important;
+  color: #fff !important;
+}
+
+/* ---------- cards ---------- */
+.prep-card,
+.prep-features {
+  background: var(--ig-card) !important;
+  border: 1px solid var(--ig-line-soft) !important;
+  border-radius: 12px !important;
+  padding: 26px 26px 24px !important;
+  box-shadow: none !important;
+  scroll-margin-top: 84px;
+}
+
+.prep-card + .prep-card,
+.prep-features + .prep-card { margin-top: 14px !important; }
+
+.prep-card-pro {
+  border: 1px solid var(--ig-purple-line) !important;
+  background: #fff !important;
+}
+
+.plan-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .62rem !important;
+  font-weight: 600 !important;
+  letter-spacing: .1em !important;
+  text-transform: uppercase;
+  color: var(--ig-purple) !important;
+  background: var(--ig-purple-light) !important;
+  border: 1px solid var(--ig-purple-line) !important;
+  border-radius: 999px !important;
+  padding: 4px 11px !important;
+  margin-bottom: 12px !important;
+}
+
+.prep-h2 {
+  font-size: clamp(1.12rem, 3vw, 1.38rem) !important;
+  line-height: 1.28 !important;
+  letter-spacing: -.03em !important;
+  color: var(--ig-ink) !important;
+  margin: 0 0 8px !important;
+}
+
+.prep-h2::before { display: none !important; }
+
+.prep-sub {
+  color: var(--ig-muted) !important;
+  font-size: .89rem !important;
+  line-height: 1.6 !important;
+}
+
+/* ---------- buttons ---------- */
+.prep-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 8px !important;
+  padding: 11px 18px !important;
+  font-size: .88rem !important;
+  font-weight: 600 !important;
+  letter-spacing: -.01em;
+  border: 1px solid transparent !important;
+  background: var(--ig-purple) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+  transition: background .15s ease;
+}
+
+.prep-btn:hover {
+  transform: none;
+  background: var(--ig-purple-deep) !important;
+  box-shadow: none !important;
+}
+
+.prep-btn-ghost {
+  background: #fff !important;
+  color: var(--ig-ink) !important;
+  border: 1px solid var(--ig-line) !important;
+  box-shadow: none !important;
+}
+
+.prep-btn-ghost:hover { background: var(--ig-soft) !important; }
+
+/* ---------- feature cards ---------- */
+.iv-feat,
+.prep-feature {
+  border: 1px solid var(--ig-line-soft) !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  box-shadow: none;
+  transition: border-color .15s ease;
+}
+
+.iv-feat:hover,
+.prep-feature:hover {
+  transform: none;
+  box-shadow: none !important;
+  border-color: var(--ig-line) !important;
+}
+
+.iv-feat-img,
+.prep-feature-k {
+  border-radius: 8px !important;
+  background: var(--ig-purple-light) !important;
+  box-shadow: none !important;
+}
+
+.iv-feat-img svg,
+.prep-feature-k svg {
+  stroke: var(--ig-purple) !important;
+}
+
+.iv-feat h3 { font-size: .96rem !important; letter-spacing: -.02em !important; }
+.iv-feat p,
+.prep-feature p {
+  color: var(--ig-muted) !important;
+  font-size: .84rem !important;
+  line-height: 1.6 !important;
+}
+
+/* ---------- inner blocks ---------- */
+.iv-unlock-col,
+.iv-item,
+.iv-legend li,
+.prep-paywall,
+.prep-banner {
+  border: 1px solid var(--ig-line-soft) !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  box-shadow: none !important;
+}
+
+.iv-item { padding: 15px 17px !important; }
+
+.iv-q { font-size: .98rem !important; line-height: 1.5 !important; letter-spacing: -.015em; }
+
+.iv-proof-stat b { color: var(--ig-ink) !important; font-size: 1.35rem !important; }
+
+.iv-badge-pro {
+  background: var(--ig-purple) !important;
+  color: #fff !important;
+  border: 0 !important;
+}
+
+.iv-badge-free {
+  background: var(--ig-purple-light) !important;
+  color: var(--ig-purple) !important;
+  border: 1px solid var(--ig-purple-line) !important;
+}
+
+/* ---------- form controls ---------- */
+.prep-field input,
+.prep-field select,
+.prep-field textarea,
+.iv-pack-form input,
+.iv-pack-form select,
+.iv-pack-form textarea,
+.resume-ta,
+input[type="text"],
+input[type="email"],
+input[type="search"],
+select,
+textarea {
+  border: 1px solid var(--ig-line) !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  padding: 11px 13px !important;
+  font-size: .91rem !important;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.prep-field input:focus,
+.prep-field select:focus,
+.prep-field textarea:focus,
+.iv-pack-form input:focus,
+.iv-pack-form select:focus,
+.iv-pack-form textarea:focus,
+.resume-ta:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none !important;
+  background: #fff !important;
+  border-color: var(--ig-purple) !important;
+  box-shadow: 0 0 0 1px var(--ig-purple) !important;
+}
+
+.prep-field label {
+  font-size: .74rem !important;
+  font-weight: 600 !important;
+  letter-spacing: .01em;
+  color: var(--ig-ink-2) !important;
+}
+
+/* ---------- misc ---------- */
+.prep-empty {
+  background: #fff !important;
+  border: 1px dashed var(--ig-line) !important;
+  border-radius: 10px !important;
+  color: var(--ig-muted) !important;
+  padding: 22px !important;
+  text-align: center;
+}
+
+.prep-ok, .prep-err { border-radius: 8px !important; }
+.prep-ok { color: var(--ig-purple) !important; }
+
+.prep-pro-badge {
+  background: var(--ig-purple) !important;
+  border: 0 !important;
+}
+
+.prep-pay-trust { border-top: 1px solid var(--ig-line-soft) !important; }
+.prep-foot { border-top: 1px solid var(--ig-line-soft) !important; color: var(--ig-muted) !important; }
+
+/* ---------- kill every remaining legacy gradient ---------- */
+.prep-stats li,
+.mock-brief,
+.apt-focus,
+.prep-pro-on,
+.prep-paywall {
+  background: #fff !important;
+}
+
+.prep-pro-price {
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  -webkit-text-fill-color: var(--ig-purple) !important;
+  color: var(--ig-purple) !important;
+}
+
+.prep-pro-perks li::before,
+.prep-pro-tick {
+  background: var(--ig-purple) !important;
+  box-shadow: none !important;
+}
+
+.plan-bar { background: var(--ig-purple-light) !important; }
+.plan-bar i { background: var(--ig-purple) !important; }
+
+.prep-promo,
+.prep-banner-final {
+  background: var(--ig-ink) !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+
+.prep-promo-k { color: var(--ig-purple-soft) !important; }
+.prep-promo p { color: #A3A3A3 !important; }
+.prep-banner-final span { color: #A3A3A3 !important; }
+
+.prep-promo-cta,
+.prep-banner-final .prep-btn {
+  background: var(--ig-purple) !important;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+.prep-promo-cta:hover,
+.prep-banner-final .prep-btn:hover {
+  background: var(--ig-purple-deep) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ---------- mobile ---------- */
+@media (max-width: 640px) {
+  .prep-wrap { padding: 70px 12px 88px; }
+  .prep-hero, .prep-hero-sm { border-radius: 12px !important; padding: 24px 20px 22px !important; }
+  .prep-card, .prep-features { border-radius: 12px !important; padding: 20px 18px !important; }
+  .prep-tabs { gap: 6px !important; padding: 12px 0 14px !important; }
+  .prep-tab { padding: 7px 13px !important; font-size: .8rem !important; }
+  .iv-feat-grid { grid-template-columns: 1fr !important; }
+}
