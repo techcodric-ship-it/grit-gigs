@@ -38,7 +38,14 @@ body .prep-tab.on{ color:#111114 !important; background:transparent !important; 
 /* same width on every prep page */
 body .prep-wrap{ max-width:960px !important; margin-left:auto !important; margin-right:auto !important; }
 body .pd-hero-media{ aspect-ratio:auto !important; max-height:none !important; background:#FFFFFF !important; display:grid !important; place-items:center !important; padding:16px !important; }
-body .pd-hero-media img.cute{ width:auto !important; max-width:100% !important; height:250px !important; object-fit:contain !important; display:block; }
+.prep-field input[type=file]{ height:auto !important; padding:14px !important; font-size:14px !important;
+  border:1.5px dashed #D7D7DE !important; background:#F6F6F8 !important; border-radius:12px !important; }
+.prep-field input[type=file]::file-selector-button{ border:0 !important; background:var(--brand) !important; color:#fff !important;
+  font-weight:600 !important; font-size:14px !important; padding:10px 18px !important; border-radius:999px !important; margin-right:12px !important; cursor:pointer; font-family:var(--body) !important; }
+body .prep-wrap{ width:100% !important; max-width:960px !important; margin-left:auto !important; margin-right:auto !important;
+  padding:76px 20px 96px !important; background:#FFFFFF !important; }
+body .prep-card, body .prep-feature, body .prep-banner, body .prep-promoted, body .prep-banner-final{ width:100% !important; }
+body .pd-hero-media{ background:#FFFFFF !important; }
 
 /* promo */
 .prep-promo{ background:var(--soft) !important; border:0 !important; border-bottom:1px solid var(--line) !important;
