@@ -590,6 +590,18 @@ main .fb-btn{display:flex;align-items:center;justify-content:center;height:48px;
 main .fb-btn:active{background:#5430C9;}
 main .fb-note{margin-top:12px;font-size:13px;color:#6B6B76;}
 main .fbox-cta .fb-btn{max-width:240px;}
+/* ---------- Horizontal feature boxes: image left, text right ---------- */
+main .fbox{display:flex;align-items:center;gap:4px;}
+main .fb-media{width:150px;flex:none;aspect-ratio:1/1;border-radius:12px;margin:12px 0 12px 12px;}
+main .fb-body{flex:1;min-width:0;padding:20px 20px 20px 4px;}
+main .fb-body h3{font-size:19px;}
+main .fbox:not(:has(.fb-media)) .fb-body{padding:20px;}
+main .fbox-cta .fb-btn{max-width:240px;}
+@media (max-width:480px){
+  main .fb-media{width:118px;margin:10px 0 10px 10px;}
+  main .fb-body{padding:16px 16px 16px 2px;}
+  main .fb-body h3{font-size:17px;}
+}
 </style>
 
 
