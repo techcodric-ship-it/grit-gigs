@@ -147,12 +147,21 @@ app.get(["/spotlight-boost", "/spotlight"], (_req, res) => {
 // public/prep/* with extensionless URLs. Registered before static.
 app.use("/prep", makePrepPages(publicPath));
 
-app.use(express.static(publicPath));
+app.use(express.static(publicPath, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith(".html")) {
+      res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+    } else if (filePath.endsWith(".css") || filePath.endsWith(".js")) {
+      res.setHeader("Cache-Control", "public, max-age=86400");
+    }
+  },
+}));
 
 // Clean URL fallback — serve .html for extensionless requests
 app.use((req, res, next) => {
   if (req.path.startsWith("/api") || req.path.includes(".") || req.path === "/") return next();
   const htmlPath = path.join(publicPath, req.path + ".html");
+  res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
   res.sendFile(htmlPath, (err) => {
     if (err) next();
   });
