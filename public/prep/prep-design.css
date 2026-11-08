@@ -21,17 +21,25 @@ body{ background:#FFFFFF !important; color:#111114 !important; }
 .pd-hero-media{ border-radius:16px; overflow:hidden; border:1px solid #E5E5EA; background:#F5F5F7; margin-bottom:16px; }
 .pd-hero-media video{ width:100%; height:auto; aspect-ratio:16/9; object-fit:cover; display:block; }
 
-/* ---------- Light surfaces & colors only (no layout/spacing changes) ---------- */
-.prep-hero, .prep-hero-sm{ background:#FFFFFF !important; }
+/* ---------- Light hero (was black card + white text -> invisible) ---------- */
+.prep-hero, .prep-hero-sm{ background:#FFFFFF !important; border:1px solid #E5E5EA !important; color:#111114 !important; }
+.prep-hero .prep-h1, .prep-hero-sm .prep-hero-sm-h{ color:#111114 !important; -webkit-text-fill-color:#111114 !important; background:none !important; }
+.prep-hero .prep-sub, .prep-hero-sm .prep-sub{ color:#3E3E47 !important; }
+.prep-eyebrow{ background:#F0ECFD !important; border:1px solid #E9E2FE !important; color:#5430C9 !important; }
+.prep-eyebrow::before{ background:#6C3FE8 !important; box-shadow:none !important; }
+.prep-trust-chips li{ background:#FFFFFF !important; border:1px solid #E5E5EA !important; color:#3E3E47 !important; border-radius:999px !important; padding:6px 14px !important; }
+.prep-trust-chips li::before{ color:#6C3FE8 !important; }
+.prep-hero-stats li, .prep-stats li{ background:#FFFFFF !important; border:1px solid #E5E5EA !important; }
+.prep-hero-stats b, .prep-stats b{ color:#111114 !important; }
 .prep-card, .prep-feature, .prep-card-pro{ background:#FFFFFF !important; box-shadow:none !important; border-radius:16px !important; }
 .prep-feature:hover{ transform:none !important; }
 .prep-feature-k{ background:#F0ECFD !important; color:#5430C9 !important; box-shadow:none !important; }
 .prep-kicker{ color:#5430C9 !important; }
-.prep-trust-chips li{ color:#3E3E47 !important; }
-.prep-stats b, .prep-hero-stats b{ color:#111114 !important; }
-.prep-hero-stats li, .prep-stats li{ background:#FFFFFF !important; box-shadow:none !important; }
 .src-chip{ background:#F5F5F7 !important; color:#3E3E47 !important; }
 .iv-score-num{ color:#5430C9 !important; }
+.iv-badge-pro{ background:#6C3FE8 !important; border-color:#6C3FE8 !important; color:#fff !important; }
+.prep-pro-badge{ display:inline-flex !important; color:#fff !important; background:#6C3FE8 !important; border:0 !important; box-shadow:none !important; }
+.prep-card-pro.is-active .prep-pro-badge{ background:#6C3FE8 !important; color:#fff !important; }
 .prep-promo{ background:#F5F5F7 !important; }
 
 /* ---------- Buttons ---------- */
