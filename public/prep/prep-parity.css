@@ -1,0 +1,233 @@
+/* ---------------------------------------------------------------------------
+   Prep parity layer.
+   Loaded LAST on every prep page. Prep pages pull different combinations of
+   prep.css / prep-insta.css / professional-prep.css / prep-design.css, which
+   made the top nav, the prep tab bar and the page width drift from page to
+   page (and from the global feed.css nav). These rules normalise all of them
+   to one size, one position and one rhythm.
+
+   Keep this file as the final stylesheet: every rule here intentionally wins
+   over the per-page layers above it.
+   --------------------------------------------------------------------------- */
+
+/* ---- 1. Top nav: exactly the global feed.css dimensions ---- */
+.topnav {
+  height: 52px !important;
+  padding: 0 20px !important;
+  box-shadow: none !important;
+}
+.topnav .nav-logo { gap: 10px !important; white-space: nowrap; }
+.topnav .nav-logo-mark {
+  box-sizing: border-box;
+  min-width: 44px !important;
+  height: 44px !important;
+  padding: 0 8px !important;
+  border-radius: 12px !important;
+}
+.topnav .nav-logo-mark img {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 7px !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+.topnav .nav-logo > span:last-child {
+  display: inline-flex !important;
+  align-items: center !important;
+  font-family: 'Syne', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 1.1rem !important;
+  letter-spacing: -0.04em !important;
+}
+.topnav .icons { gap: 6px !important; }
+.topnav .icons a {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  display: grid !important;
+  place-items: center !important;
+}
+.topnav .icons svg { width: 23px !important; height: 23px !important; }
+.topnav .avatar { width: 24px !important; height: 24px !important; }
+
+/* prep.css drops Inbox / Orders / Wallet below 480px. The global nav keeps
+   every icon at every width, so keep them here too (the row is sized to fit
+   in the narrower breakpoints further down). */
+.topnav .icons a[href="/notifications.html"],
+.topnav .icons a[href="/orders.html"],
+.topnav .icons a[href="/wallet.html"] { display: grid !important; }
+
+@media (max-width: 600px) {
+  .topnav { padding: 0 12px !important; }
+  .topnav .nav-logo > span:last-child { display: none !important; }
+  .topnav .icons { gap: 2px !important; }
+  .topnav .icons a { width: 36px !important; height: 36px !important; }
+  .topnav .icons svg { width: 20px !important; height: 20px !important; }
+}
+
+/* Eight icons + the logo have to fit a 360px / 320px phone without a
+   horizontal scrollbar. */
+@media (max-width: 400px) {
+  .topnav { padding: 0 10px !important; }
+  .topnav .nav-logo { gap: 8px !important; }
+  .topnav .nav-logo-mark { min-width: 40px !important; height: 40px !important; padding: 0 6px !important; }
+  .topnav .nav-logo-mark img { width: 24px !important; height: 24px !important; }
+  .topnav .icons { gap: 0 !important; }
+  .topnav .icons a { width: 32px !important; height: 32px !important; }
+  .topnav .icons svg { width: 18px !important; height: 18px !important; }
+}
+@media (max-width: 340px) {
+  .topnav { padding: 0 8px !important; }
+  .topnav .nav-logo { gap: 6px !important; }
+  .topnav .nav-logo-mark { min-width: 36px !important; height: 36px !important; padding: 0 4px !important; }
+  .topnav .nav-logo-mark img { width: 22px !important; height: 22px !important; }
+  .topnav .icons a { width: 28px !important; height: 28px !important; }
+  .topnav .icons svg { width: 16px !important; height: 16px !important; }
+}
+
+/* Desktop app shell hides the header row in favour of the left sidebar. */
+@media (min-width: 1000px) {
+  .topnav.app-shell-topnav > .icons { display: none !important; }
+}
+
+/* ---- 2. Prep tab bar: one size and one position everywhere ---- */
+body .prep-tabs {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 0 !important;
+  width: 100% !important;
+  max-width: 1080px !important;
+  margin: 0 auto !important;
+  padding: 0 4px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #E5E5EA !important;
+  border-radius: 0 !important;
+  background: #fff !important;
+  position: sticky !important;
+  top: 52px !important;
+  z-index: 40;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+body .prep-tabs::-webkit-scrollbar { display: none; }
+
+body .prep-tab {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  height: 52px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 16px !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #6B6B76 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+  text-align: center !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+}
+body .prep-tab::before { display: none !important; }
+body .prep-tab.on {
+  color: #111114 !important;
+  background: transparent !important;
+  border-bottom-color: #6C3CE9 !important;
+  box-shadow: none !important;
+}
+
+/* ---- 3. One page width for every prep page ---- */
+body .prep-wrap {
+  width: 100% !important;
+  max-width: 960px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding: 76px 20px 96px !important;
+  background: #fff !important;
+}
+@media (min-width: 1000px) {
+  body.desktop-app-shell > .prep-wrap,
+  body.desktop-app-shell > .prep-wrap:has(.prep-hero-sm) {
+    width: min(960px, calc(100% - 328px)) !important;
+    max-width: 960px !important;
+    margin-left: calc(280px + (100% - 280px - min(960px, calc(100% - 328px))) / 2) !important;
+    margin-right: 0 !important;
+  }
+}
+
+/* ---- 4. Kill horizontal overflow ---- */
+
+/* professional-prep.css sets overflow:visible on the heroes, which lets the
+   decorative .prep-hero-sm::after circle escape ~80px to the right and adds a
+   page-wide horizontal scrollbar on Aptitude. Clip it again. */
+.prep-hero,
+.prep-hero-sm { overflow: hidden !important; }
+
+/* prep.css gives CTA rows flex-wrap:wrap + flex:1 1 100%, while the design
+   layer stacks them in a column. Column + wrap + 100% basis pushed the second
+   button into a second column ~430px off-screen on Reports. Keep the column,
+   stop wrapping, and let each button keep its own height. */
+.prep-hero-ctas,
+.prep-paywall-ctas { flex-wrap: nowrap !important; }
+@media (max-width: 759px) {
+  .prep-hero-ctas,
+  .prep-paywall-ctas {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .prep-hero-ctas > a,
+  .prep-paywall-ctas > a {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    height: 52px !important;
+  }
+}
+
+/* Interview page: the unlock grid is written inline with a hard 270px
+   minimum, which is wider than the card on a 320-390px phone. */
+@media (max-width: 560px) {
+  .iv-unlock-grid { grid-template-columns: 1fr !important; }
+}
+
+/* Stats rows: 1fr tracks keep an automatic min-content floor, so a long
+   unbreakable label can force the row wider than its card (Contribute proof
+   at phone widths). minmax(0,1fr) lets the tracks shrink and wrap instead. */
+.prep-stats,
+.prep-hero-stats { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+.prep-stats > li,
+.prep-hero-stats > li { min-width: 0 !important; }
+.prep-stats b,
+.prep-stats span,
+.prep-hero-stats b,
+.prep-hero-stats span { overflow-wrap: anywhere !important; }
+
+/* Three stats across a 320px phone leaves ~45px per label, too narrow for
+   words like "Reviewed" / "Unlocks". Stack the in-card rows (Reports,
+   Aptitude, Contribute proof) instead of overflowing. The dark hero keeps its
+   compact three-across row. */
+@media (max-width: 560px) {
+  .prep-card .prep-stats { grid-template-columns: 1fr !important; }
+  .prep-card .prep-stats li + li {
+    padding-left: 0 !important;
+    border-left: 0 !important;
+    padding-top: 10px !important;
+    border-top: 1px solid var(--line) !important;
+  }
+}
+
+/* The design layer puts the 260px label column beside the text inside each
+   feature card. Those cards live in a two-column grid only ~280-500px wide,
+   so the label was pushed outside the card and stretched the page. Keep each
+   card as a single column. */
+@media (min-width: 760px) {
+  .prep-feature {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+    align-items: start !important;
+  }
+}
