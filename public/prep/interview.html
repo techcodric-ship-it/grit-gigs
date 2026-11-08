@@ -532,8 +532,16 @@
   }
   function gate() {
     if (!haveSession()) { showPaywall("signin"); return; }
+    // No session: the guest paywall is correct, shown immediately. Signed in
+    // but a slow/hung status API must never deadlock on a sign-in wall —
+    // reveal the sessions after 5s and let every call still enforce the
+    // entitlement server-side.
+    var settled = false;
+    var fallback = setTimeout(function () { if (!settled) { settled = true; showSessions(); } }, 5000);
     proFetch("/api/prep/pro/status")
       .then(function (r) {
+        if (settled) return null;
+        settled = true; clearTimeout(fallback);
         if (r.status === 401) { showPaywall("signin"); return null; }
         // Rate limit / hiccup: show the session area anyway — every call the
         // server makes still enforces the entitlement and flips the paywall.
