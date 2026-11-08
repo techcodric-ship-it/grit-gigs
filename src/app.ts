@@ -15,9 +15,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app: Express = express();
 
-// Behind Cloudflare + Railway (2 proxy hops): trust both so the rate limiter
-// keys by the real client IP. `true` makes express-rate-limit throw.
 app.set("trust proxy", 2);
+// Auth-adjacent GETs must never be cached or revalidated by 304 — a pinned
+// stale 401 makes the prep gates show "Sign in" forever. Disable ETags and
+// serve the API no-store.
+app.disable("etag");
+app.use("/api", (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, private");
+  res.removeHeader("ETag");
+  next();
+});
 
 // Canonical host: the Google OAuth callback is registered on www, so a session
 // created there is invisible to a page opened on the bare apex (localStorage
