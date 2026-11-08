@@ -96,7 +96,7 @@
   .iv-feat p { font-size:0.86rem; line-height:1.55; color:var(--prep-ink-2); margin:0; }
   .iv-sub { font-size:0.83rem; line-height:1.5; color:var(--prep-ink-2); margin:6px 0 0; }
 </style>
-<link rel="stylesheet" href="/prep/prep-insta.css?v=3"/>
+<link rel="stylesheet" href="/prep/prep-insta.css?v=3"/><link rel="stylesheet" href="/prep/prep-design.css?v=1"/>
 </head>
 <body>
 <header class="topnav">
@@ -120,6 +120,8 @@
     <a class="prep-tab" href="/prep/aptitude">Aptitude</a>
     <a class="prep-tab" href="/prep/proof">Contribute proof</a>
   </nav>
+  <div class="pd-hero-media"><video data-mp4="/assets/interview-hero.mp4" data-webm="/assets/interview-hero.webm" poster="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=760&q=60&fm=jpg" muted loop playsinline preload="metadata" aria-hidden="true"></video></div>
+  
   <section class="prep-hero-sm">
     <span class="prep-eyebrow">Interview &middot; company packs &amp; AI-scored mocks</span>
     <h1 class="prep-hero-sm-h">Walk into the panel already knowing the questions &mdash; and the answers that score</h1>
@@ -1419,6 +1421,31 @@
 
   renderMockCount();
   gate();
+})();
+</script>
+<div class="prep-sticky"><span>Start free — free to start, no card needed</span><a href="#ivHeroCtas">Start free</a></div>
+<script>
+(function(){
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var saveData = navigator.connection && navigator.connection.saveData;
+  var vids = Array.prototype.slice.call(document.querySelectorAll('.pd-hero-media video'));
+  if (!reduce && !saveData){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        var v = e.target;
+        if (e.isIntersecting){
+          if (!v.dataset.armed){
+            v.dataset.armed = '1';
+            if (v.dataset.webm){ var s1=document.createElement('source'); s1.src=v.dataset.webm; s1.type='video/webm'; v.appendChild(s1); }
+            if (v.dataset.mp4){ var s2=document.createElement('source'); s2.src=v.dataset.mp4; s2.type='video/mp4'; v.appendChild(s2); }
+            v.load();
+          }
+          v.play().catch(function(){});
+        } else { v.pause(); }
+      });
+    }, {threshold:.15});
+    vids.forEach(function(v){ io.observe(v); });
+  }
 })();
 </script>
 </body>

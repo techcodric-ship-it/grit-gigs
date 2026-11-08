@@ -1,0 +1,141 @@
+/* ==========================================================================
+   Prep design system — shared visual layer (Interview / Reports / Aptitude /
+   Contribute proof). Loaded last so it wins over prep.css + prep-insta.css.
+   Visual-only: no markup, copy, IDs, or behaviour changes.
+   ========================================================================== */
+:root{
+  --pd-bg:#FFFFFF; --pd-surface:#FFFFFF; --pd-soft:#F5F5F7;
+  --pd-ink:#111114; --pd-ink2:#3E3E47; --pd-muted:#6B6B76;
+  --pd-line:#E5E5EA; --pd-line2:#D7D7DE;
+  --pd-purple:#6C3FE8; --pd-purple-deep:#5430C9; --pd-purple-soft:#F0ECFD;
+  --pd-radius:16px; --pd-radius-sm:12px;
+  --pd-font:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --pd-top:58px; /* under the fixed topnav */
+}
+@media (prefers-color-scheme: dark){
+  :root{ --pd-bg:#0B0B0F; --pd-surface:#17171C; --pd-soft:#1F1F26;
+    --pd-ink:#F5F5F7; --pd-ink2:#C9C9D2; --pd-muted:#9A9AA6;
+    --pd-line:#2A2A32; --pd-line2:#3A3A44; --pd-purple:#8A74F5;
+    --pd-purple-deep:#A78BFA; --pd-purple-soft:#241D47; }
+}
+html{ scroll-behavior:smooth; }
+body{ background:var(--pd-bg) !important; color:var(--pd-ink) !important; font-family:var(--pd-font) !important; font-size:16px; line-height:1.6; }
+body, .prep-wrap, .prep-hero, .prep-hero-sm, .prep-card, .prep-section,
+.prep-trust-chips, .prep-stats, .prep-btn, .prep-field input, .prep-field select,
+.prep-tabs, .prep-tab{ font-family:var(--pd-font) !important; }
+::selection{ background:var(--pd-purple); color:#fff; }
+a{ text-underline-offset:2px; }
+
+/* ---------- Layout ---------- */
+.prep-wrap{ max-width:760px !important; margin:0 auto !important; padding:20px 16px 96px !important; }
+@media (min-width:900px){ .prep-wrap{ max-width:960px !important; } }
+.prep-wrap h1, .prep-hero-sm-h, .prep-h1{ letter-spacing:-.02em !important; }
+.prep-h2, .prep-section h2, .prep-sec-h{ font-size:clamp(22px,3.2vw,28px) !important; font-weight:700 !important; letter-spacing:-.02em !important; }
+
+/* ---------- Sticky tab bar ---------- */
+.prep-tabs{ position:sticky !important; top:var(--pd-top) !important; z-index:40;
+  display:flex !important; gap:2px !important; background:var(--pd-surface) !important;
+  border-bottom:1px solid var(--pd-line) !important; padding:0 4px !important; margin:0 -4px 20px !important;
+  overflow-x:auto; scrollbar-width:none; }
+.prep-tabs::-webkit-scrollbar{ display:none; }
+.prep-tab{ flex:1 0 auto !important; display:inline-flex !important; align-items:center; justify-content:center;
+  padding:14px 10px !important; font-size:14px !important; font-weight:600 !important; color:var(--pd-muted) !important;
+  text-decoration:none !important; border-bottom:2px solid transparent !important; white-space:nowrap; }
+.prep-tab svg{ width:16px; height:16px; margin-right:6px; stroke-width:1.5; }
+.prep-tab.on{ color:var(--pd-ink) !important; border-bottom-color:var(--pd-purple) !important; }
+
+/* ---------- Hero media (one clip per page) ---------- */
+.pd-hero-media{ margin:0 0 20px; border-radius:var(--pd-radius); overflow:hidden; border:1px solid var(--pd-line); background:#EDEDEF; }
+.pd-hero-media video{ width:100%; height:auto; aspect-ratio:16/9; object-fit:cover; display:block; }
+.pd-hero-note{ margin:8px 0 0; font-size:13px; color:var(--pd-muted); }
+
+/* ---------- Hero ---------- */
+.prep-hero, .prep-hero-sm{ background:var(--pd-surface) !important; border:1px solid var(--pd-line) !important;
+  border-radius:var(--pd-radius) !important; padding:28px 24px !important; text-align:left !important; }
+.prep-hero::before, .prep-hero-sm::before{ display:none !important; }
+.prep-hero > *, .prep-hero-sm > *{ position:relative; }
+.prep-hero .prep-h1, .prep-hero-sm .prep-hero-sm-h{ font-size:clamp(28px,4.4vw,38px) !important; line-height:1.12 !important; font-weight:700 !important; }
+.prep-hero .prep-h1 em, .prep-hero-sm .prep-hero-sm-h em{ font-style:normal; color:var(--pd-purple); }
+.prep-hero .prep-sub, .prep-hero-sm .prep-sub{ color:var(--pd-ink2) !important; font-size:16px !important; max-width:62ch; }
+
+/* ---------- Trust row: slim, thin dividers ---------- */
+.prep-trust-chips{ display:flex !important; flex-wrap:wrap !important; gap:0 !important;
+  border-top:1px solid var(--pd-line) !important; border-bottom:1px solid var(--pd-line) !important;
+  padding:10px 0 !important; margin:18px 0 0 !important; list-style:none !important; }
+.prep-trust-chips li{ padding:4px 14px 4px 0 !important; margin-right:14px !important; border-right:1px solid var(--pd-line) !important;
+  font-size:13px !important; color:var(--pd-ink2) !important; }
+.prep-trust-chips li:last-child{ border-right:0 !important; }
+.prep-trust-chips li::before{ content:"" !important; display:none !important; }
+
+/* ---------- Stats row ---------- */
+.prep-stats, .prep-hero-stats{ display:flex !important; flex-wrap:wrap !important; gap:0 !important;
+  border-top:1px solid var(--pd-line) !important; border-bottom:1px solid var(--pd-line) !important;
+  padding:12px 0 !important; margin:18px 0 0 !important; }
+.prep-stats > *, .prep-hero-stats > *{ padding:0 20px 0 0 !important; margin-right:20px !important; border-right:1px solid var(--pd-line) !important; }
+.prep-stats > *:last-child, .prep-hero-stats > *:last-child{ border-right:0 !important; }
+.prep-stats b, .prep-hero-stats b{ font-size:22px !important; color:var(--pd-ink) !important; }
+
+/* ---------- Cards ---------- */
+.prep-card, .prep-feature, .prep-card-pro, .prep-promo{ background:var(--pd-surface) !important;
+  border:1px solid var(--pd-line) !important; border-radius:var(--pd-radius) !important;
+  box-shadow:none !important; padding:24px !important; }
+.prep-feature:hover, .prep-card:hover{ border-color:var(--pd-line2) !important; transform:none !important; }
+.prep-feature-k{ background:var(--pd-purple-soft) !important; color:var(--pd-purple-deep) !important; box-shadow:none !important; border-radius:var(--pd-radius-sm) !important; }
+.prep-promo{ background:var(--pd-soft) !important; }
+.prep-section{ margin-top:48px !important; }
+.prep-sec-h, .prep-kicker{ text-align:left !important; }
+.prep-kicker{ font-size:12px !important; letter-spacing:.08em !important; color:var(--pd-purple-deep) !important; }
+
+/* ---------- Buttons ---------- */
+.prep-btn, .prep-btn-ghost, .prep-pro-badge, .prep-hero-ctas a{ border-radius:999px !important; }
+.prep-btn{ height:48px !important; padding:0 24px !important; font-size:16px !important; background:var(--pd-purple) !important;
+  color:#fff !important; border:1px solid var(--pd-purple) !important; box-shadow:none !important; text-decoration:none !important;
+  display:inline-flex !important; align-items:center; justify-content:center; gap:8px; min-height:48px; }
+.prep-btn:hover{ background:var(--pd-purple-deep) !important; border-color:var(--pd-purple-deep) !important; transform:none !important; }
+.prep-btn-ghost{ height:48px !important; background:var(--pd-surface) !important; color:var(--pd-ink) !important; border:1px solid var(--pd-line2) !important; }
+.prep-btn-ghost:hover{ background:var(--pd-soft) !important; }
+.prep-btn-ghost, .btn-ghost-nav{ color:var(--pd-ink) !important; }
+.prep-hero-ctas{ display:flex !important; flex-wrap:wrap !important; gap:12px !important; margin-top:20px !important; }
+.prep-microcopy, .prep-hero-ctas ~ *{ }
+.pd-microcopy{ margin:10px 0 0; font-size:13px; color:var(--pd-muted); }
+
+/* ---------- Forms ---------- */
+.prep-field label{ font-size:13px !important; font-weight:600 !important; }
+.prep-field input, .prep-field select, .prep-field textarea{ min-height:48px !important; font-size:16px !important;
+  border-radius:var(--pd-radius-sm) !important; border:1px solid var(--pd-line2) !important; background:var(--pd-surface) !important; color:var(--pd-ink) !important; }
+.prep-field input:focus, .prep-field select:focus, .prep-field textarea:focus{ outline:none !important;
+  border-color:var(--pd-purple) !important; box-shadow:0 0 0 3px var(--pd-purple-soft) !important; }
+
+/* ---------- Score + report cards (flat product UI) ---------- */
+.iv-score-card, .prep-report-card, #aptQuizCard, #aptResultCard{ background:var(--pd-surface) !important;
+  border:1px solid var(--pd-line) !important; border-radius:var(--pd-radius) !important; box-shadow:none !important; }
+.iv-score-num, .prep-score{ color:var(--pd-purple-deep) !important; }
+.src-chip{ border-color:var(--pd-line) !important; background:var(--pd-soft) !important; color:var(--pd-ink2) !important; }
+
+/* ---------- Stepper / timeline ---------- */
+.prep-steps li{ padding-left:0 !important; }
+.prep-steps li::before{ display:none !important; }
+.prep-steps li span{ display:block; font-size:14px; color:var(--pd-muted); }
+
+/* ---------- Footer links near payment/upload ---------- */
+.prep-fineprint{ margin-top:16px; font-size:13px; color:var(--pd-muted); line-height:1.7; }
+.prep-fineprint a{ color:var(--pd-purple-deep); text-decoration:none; font-weight:600; }
+
+/* ---------- Sticky bottom bar (mobile only) ---------- */
+.prep-sticky{ position:fixed; left:0; right:0; bottom:0; z-index:60; display:none;
+  align-items:center; gap:12px; padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+  background:var(--pd-surface); border-top:1px solid var(--pd-line); }
+.prep-sticky span{ flex:1; font-size:13px; color:var(--pd-muted); }
+.prep-sticky a{ display:flex; align-items:center; justify-content:center; height:48px; padding:0 22px;
+  background:var(--pd-purple); color:#fff; border-radius:999px; text-decoration:none; font-weight:600; font-size:15px; }
+@media (max-width:760px){
+  .prep-sticky{ display:flex; }
+  .prep-wrap{ padding-bottom:120px !important; }
+  .prep-hero, .prep-hero-sm{ padding:22px 18px !important; }
+  .prep-card, .prep-feature{ padding:20px !important; }
+}
+@media (min-width:761px){ .prep-sticky{ display:none !important; } }
+@media (prefers-reduced-motion: reduce){
+  html{ scroll-behavior:auto; }
+  *{ transition:none !important; animation:none !important; }
+}

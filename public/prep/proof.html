@@ -22,7 +22,7 @@
   .pf-status.APPROVED { background:var(--prep-violet-light); color:var(--prep-violet-deep); }
   .pf-status.REJECTED { background:#FBEAE8; color:#C0392B; }
 </style>
-<link rel="stylesheet" href="/prep/prep-insta.css?v=3"/>
+<link rel="stylesheet" href="/prep/prep-insta.css?v=3"/><link rel="stylesheet" href="/prep/prep-design.css?v=1"/>
 </head>
 <body>
 <header class="topnav">
@@ -46,6 +46,8 @@
     <a class="prep-tab" href="/prep/aptitude">Aptitude</a>
     <a class="prep-tab on" href="/prep/proof">Contribute proof</a>
   </nav>
+  <div class="pd-hero-media"><video data-mp4="/assets/proof-hero.mp4" data-webm="/assets/proof-hero.webm" poster="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=760&q=60&fm=jpg" muted loop playsinline preload="metadata" aria-hidden="true"></video></div>
+  
   <section class="prep-hero-sm">
     <span class="prep-eyebrow">Contribute proof &middot; pay &amp; placement</span>
     <h2 class="prep-hero-sm-h">One anonymised slip from you unlocks pay data for thousands</h2>
@@ -283,6 +285,31 @@
   renderKinds();
   renderFields();
   loadMine();
+})();
+</script>
+<div class="prep-sticky"><span>Contribute proof — free to start, no card needed</span><a href="#pfForm">Contribute proof</a></div>
+<script>
+(function(){
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var saveData = navigator.connection && navigator.connection.saveData;
+  var vids = Array.prototype.slice.call(document.querySelectorAll('.pd-hero-media video'));
+  if (!reduce && !saveData){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        var v = e.target;
+        if (e.isIntersecting){
+          if (!v.dataset.armed){
+            v.dataset.armed = '1';
+            if (v.dataset.webm){ var s1=document.createElement('source'); s1.src=v.dataset.webm; s1.type='video/webm'; v.appendChild(s1); }
+            if (v.dataset.mp4){ var s2=document.createElement('source'); s2.src=v.dataset.mp4; s2.type='video/mp4'; v.appendChild(s2); }
+            v.load();
+          }
+          v.play().catch(function(){});
+        } else { v.pause(); }
+      });
+    }, {threshold:.15});
+    vids.forEach(function(v){ io.observe(v); });
+  }
 })();
 </script>
 </body>
