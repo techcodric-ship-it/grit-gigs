@@ -198,3 +198,10 @@ section.prep-card:has(#prepSearchForm) .prep-h2{ font-size:26px !important; }
   .prep-banner,.prep-banner-final{ display:flex !important; align-items:center !important; justify-content:space-between !important; }
   body:has(#prepSearchForm) .prep-wrap{ max-width:960px !important; }
 }
+
+.prep-hero > .prep-stats b, .prep-hero > .prep-live b{ color:#111114 !important; }
+.prep-hero > .prep-hero-ctas .prep-btn:first-child, .prep-hero-sm .prep-hero-ctas .prep-btn:first-child{ background:#6C3FE8 !important; color:#fff !important; }
+.prep-promo-k{ color:#5430C9 !important; }
+.prep-eyebrow::before{ background:#6C3FE8 !important; }
+.prep-trust-chips li::before{ color:#6C3FE8 !important; }
+.prep-card-pro .prep-h2::before{ background:#6C3FE8 !important; }
