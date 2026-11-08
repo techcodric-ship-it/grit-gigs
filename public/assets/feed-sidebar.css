@@ -9,27 +9,27 @@
     top: 52px;
     bottom: 0;
     z-index: 45;
-    width: 224px;
+    width: 280px;
     display: flex;
     flex-direction: column;
     gap: 4px;
-    padding: 24px 16px;
+    padding: 28px 20px;
     background: #fff;
     border-right: 1px solid var(--line);
     overflow-y: auto;
   }
   .feed-side-link {
     position: relative;
-    height: 48px;
-    min-height: 48px;
+    height: 56px;
+    min-height: 56px;
     display: grid;
-    grid-template-columns: 24px minmax(0, 1fr);
+    grid-template-columns: 26px minmax(0, 1fr);
     align-items: center;
     column-gap: 14px;
     padding: 0 14px;
     border-radius: 10px;
     color: var(--ink);
-    font-size: 15px;
+    font-size: 16px;
     line-height: 24px;
     font-weight: 500;
     text-decoration: none;
@@ -42,9 +42,9 @@
   .feed-side-link > span:not(.cnt) { min-width: 0; align-self: center; }
   .feed-side-link .cnt { position: absolute; left: 31px; top: 7px; width: 17px; height: 17px; }
   body.feed-sidebar-page .wrap {
-    width: calc(100% - 224px) !important;
+    width: calc(100% - 280px) !important;
     max-width: 1080px !important;
-    margin-left: 224px !important;
+    margin-left: 280px !important;
     margin-right: 0 !important;
     padding-left: 16px !important;
     padding-right: 16px !important;
