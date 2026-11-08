@@ -428,15 +428,129 @@
     .cta{padding:38px 20px;}
   }
 </style>
-<link rel="stylesheet" href="/assets/insta-home.css?v=3"/>
+<link rel="stylesheet" href="/css/professional-platform.css?v=4"/><link rel="stylesheet" href="/css/landing-social.css?v=5"/>
+<style>
+/* Instagram-style feed body (scoped to main). Header/footer untouched. */
+body{background:#FFFFFF;margin:0;}
+main{
+  --bg:#FFFFFF; --surface:#FFFFFF; --surface-2:#F7F7F8; --line:#E5E5EA;
+  --ink:#111114; --ink-2:#3E3E47; --ink-3:#6B6B76;
+  --purple:#6C3FE8; --purple-deep:#5430C9; --purple-soft:#F0ECFD;
+  --r:12px; --font:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  background:var(--bg); color:var(--ink); font-family:var(--font);
+  font-size:16px; line-height:1.55; padding:16px 0 64px;
+}
+@media (prefers-color-scheme: dark){
+  body{background:#0B0B0F;}
+  main{ --bg:#0B0B0F; --surface:#17171C; --surface-2:#1F1F26; --line:#2A2A33;
+    --ink:#F5F5F7; --ink-2:#C9C9D2; --ink-3:#9A9AA6; --purple:#7C63F0; --purple-deep:#9D85F5; --purple-soft:#241D47; }
+}
+main *{box-sizing:border-box;}
+main a{color:inherit;}
+main .feed-wrap{max-width:470px;margin:0 auto;padding:0 16px;}
+main .post{scroll-margin-top:76px;}
+main h1,main h2,main h3,main p,main ul,main figure{margin:0;}
+main img,main video{max-width:100%;display:block;}
+main .lucide{width:24px;height:24px;stroke-width:1.5;flex:none;}
+
+/* ---------- Stories ---------- */
+main .stories{display:flex;gap:16px;overflow-x:auto;padding:4px 2px 12px;margin-bottom:16px;scrollbar-width:none;}
+main .stories::-webkit-scrollbar{display:none;}
+main .story{display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;flex:0 0 auto;width:56px;}
+main .story-ring{padding:2.5px;border-radius:50%;background:conic-gradient(from 210deg,#6C3FE8,#C4B5FD,#8B5CF6,#5430C9,#6C3FE8);}
+main .story-ic{width:52px;height:52px;border-radius:50%;background:var(--surface);border:2px solid var(--bg);display:grid;place-items:center;color:var(--ink);}
+main .story-ic .lucide{width:22px;height:22px;}
+main .story-label{font-size:11px;line-height:1.2;color:var(--ink-2);text-align:center;}
+main .story:active .story-ic{color:var(--purple);}
+
+/* ---------- Post chrome ---------- */
+main .post{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-bottom:24px;}
+main .post-head{display:flex;align-items:center;gap:10px;padding:12px;}
+main .avatar{width:36px;height:36px;border-radius:50%;background:var(--purple-soft);color:var(--purple-deep);display:grid;place-items:center;font-weight:700;font-size:15px;flex:none;}
+main .post-name{font-size:14px;font-weight:600;line-height:1.25;}
+main .post-sub{font-size:12px;color:var(--ink-3);line-height:1.25;}
+main .post-head .grow{flex:1;min-width:0;}
+main .tag{font-size:11px;font-weight:600;color:var(--purple-deep);background:var(--purple-soft);border:1px solid var(--line);padding:3px 8px;border-radius:999px;white-space:nowrap;}
+main .post-media{position:relative;background:#E9E9EE;overflow:hidden;}
+main .post-media video{width:100%;height:100%;object-fit:cover;}
+main .hero-media{aspect-ratio:4/5;}
+main .feat-media{aspect-ratio:1/1;}
+main .hero-scrim{position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(10,10,14,.62));pointer-events:none;}
+main .hero-h1{position:absolute;left:20px;right:20px;bottom:16px;color:#fff;font-size:32px;line-height:1.06;font-weight:700;letter-spacing:-.02em;}
+@media (min-width:480px){main .hero-h1{font-size:40px;}}
+main .chip{position:absolute;left:12px;bottom:12px;background:rgba(255,255,255,.96);color:#111114;font-size:12px;font-weight:600;padding:6px 10px;border-radius:999px;border:1px solid var(--line);}
+main .post-actions{display:flex;align-items:center;gap:6px;padding:8px 12px 0;}
+main .post-actions .spacer{flex:1;}
+main .icon-btn{width:40px;height:40px;border:0;background:none;display:grid;place-items:center;color:var(--ink);cursor:pointer;border-radius:10px;padding:0;}
+main .icon-btn:active{transform:scale(.92);transition:transform .15s;}
+main .icon-btn.on{color:var(--purple);}
+main .icon-btn.on svg{fill:var(--purple);stroke:var(--purple);}
+main .post-body{padding:8px 12px 16px;}
+main .post-caption{font-size:15px;line-height:1.5;color:var(--ink);}
+main .post-caption strong{font-weight:600;}
+main .post-caption p{font-size:15px;color:var(--ink-2);line-height:1.55;margin-top:4px;}
+main .btn-primary{display:flex;align-items:center;justify-content:center;height:48px;background:var(--purple);color:#fff;text-decoration:none;font-weight:600;font-size:16px;border-radius:12px;margin-top:12px;}
+main .btn-primary:active{background:var(--purple-deep);}
+main .text-link{display:inline-flex;align-items:center;gap:4px;color:var(--purple-deep);font-weight:600;font-size:15px;text-decoration:none;margin-top:12px;}
+main .text-link:active{text-decoration:underline;}
+main .trust-line{font-size:13px;color:var(--ink-3);margin-top:12px;line-height:1.5;}
+
+/* ---------- Mid CTA / Pricing ---------- */
+main .mid-cta{background:var(--surface-2);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:24px;}
+main .mid-cta h2{font-size:20px;font-weight:700;letter-spacing:-.01em;}
+main .mid-cta p{font-size:14px;color:var(--ink-2);margin-top:4px;}
+main .price-head{display:flex;align-items:center;gap:10px;padding:12px;}
+main .price-amt{padding:4px 12px 0;font-size:32px;font-weight:700;letter-spacing:-.02em;}
+main .price-amt small{font-size:14px;color:var(--ink-2);font-weight:400;letter-spacing:0;}
+main .price-list{list-style:none;padding:12px;display:grid;gap:8px;}
+main .price-list li{display:flex;gap:8px;align-items:flex-start;font-size:15px;color:var(--ink-2);}
+main .price-list .lucide{width:18px;height:18px;color:var(--purple);margin-top:3px;}
+main .price-note{padding:0 12px 12px;font-size:13px;color:var(--ink-3);}
+
+/* ---------- Signup ---------- */
+main .auth{padding:16px 12px 20px;}
+main .auth h2{font-size:20px;font-weight:700;letter-spacing:-.01em;}
+main .auth .sub{font-size:14px;color:var(--ink-2);margin:4px 0 16px;}
+main .g-btn{width:100%;height:48px;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#111114;border:1px solid var(--line);border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;}
+main .g-or{display:flex;align-items:center;gap:12px;color:var(--ink-3);font-size:12px;margin:14px 0;text-transform:uppercase;letter-spacing:.08em;}
+main .g-or::before,main .g-or::after{content:"";flex:1;height:1px;background:var(--line);}
+main .tabs{display:flex;gap:4px;background:var(--surface-2);border-radius:12px;padding:4px;margin-bottom:16px;}
+main .tab{flex:1;border:0;background:transparent;padding:10px;border-radius:8px;font-size:14px;font-weight:600;color:var(--ink-2);cursor:pointer;font-family:inherit;}
+main .tab.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1);}
+main .step{display:none;}
+main .step.on{display:block;}
+main .fld-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+main .fld{margin-bottom:12px;}
+main .fld label{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px;}
+main .fld input{width:100%;height:48px;border:1px solid var(--line);border-radius:12px;padding:0 14px;font-size:16px;font-family:inherit;background:var(--surface);color:var(--ink);}
+main .fld input:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-soft);}
+main .fld input::placeholder{color:var(--ink-3);}
+main .err{color:#C13A3A;font-size:13px;min-height:18px;margin-bottom:8px;}
+main .btn{width:100%;height:48px;background:var(--purple);color:#fff;border:0;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;}
+main .btn:disabled{opacity:.7;}
+main .hint{font-size:14px;color:var(--ink-2);text-align:center;margin:12px 0 0;}
+main .hint a{color:var(--purple-deep);cursor:pointer;font-weight:600;}
+main .spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ---------- Sticky mobile CTA ---------- */
+.sticky-cta{position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;align-items:center;gap:12px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:var(--surface,#fff);border-top:1px solid var(--line,#E5E5EA);transform:translateY(110%);transition:transform .25s ease;}
+.sticky-cta.show{transform:translateY(0);}
+.sticky-cta small{display:block;font-size:12px;color:var(--ink-3,#6B6B76);}
+.sticky-cta .grow{flex:1;}
+.sticky-cta a{display:flex;align-items:center;justify-content:center;height:46px;padding:0 24px;background:var(--purple,#6C3FE8);color:#fff;text-decoration:none;font-weight:600;font-size:16px;border-radius:12px;}
+@media (max-width:760px){.sticky-cta{display:flex;} body{padding-bottom:0;} body.cta-show main{padding-bottom:128px;}}
+@media (prefers-reduced-motion: reduce){main *, .sticky-cta{transition:none !important;animation:none !important;}}
+</style>
+
 </head>
 <body>
 
 <header>
   <div class="wrap bar">
     <a class="nav-logo" href="/" aria-label="Grit&amp;Gigs home">
-      <span class="nav-logo-mark"><img src="/logo.svg?v=3" alt="" width="28" height="28"></span>
-      <span>Grit<span class="logo-purple">&amp;Gigs</span></span>
+      <div class="nav-logo-mark"><img src="/logo.svg?v=3" alt="" width="32" height="32"></div>
+      <span class="nav-logo-text"><span class="logo-text-black">Grit</span><span class="logo-text-blue">&amp;Gigs</span></span>
     </a>
     <nav class="nav" aria-label="Main">
       <a href="#features" class="link hide-sm">Features</a>
@@ -450,425 +564,287 @@
   </div>
 </header>
 
-<nav class="stories" aria-label="Quick links">
-  <a class="story" href="/prep/interview">
-    <span class="story-ring"><span class="story-in"><svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><path d="M12 18v3"/></svg></span></span>
-    <span class="story-lb">Interview</span>
-  </a>
-  <a class="story" href="/prep">
-    <span class="story-ring"><span class="story-in"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h4"/></svg></span></span>
-    <span class="story-lb">Reports</span>
-  </a>
-  <a class="story" href="/prep/aptitude">
-    <span class="story-ring"><span class="story-in"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg></span></span>
-    <span class="story-lb">Aptitude</span>
-  </a>
-  <a class="story" href="/prep/proof">
-    <span class="story-ring"><span class="story-in"><svg viewBox="0 0 24 24"><path d="M12 2 4 6v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V6Z"/><path d="m9 12 2 2 4-4"/></svg></span></span>
-    <span class="story-lb">Proof</span>
-  </a>
-  <a class="story" href="/explore?kind=BARTER">
-    <span class="story-ring"><span class="story-in"><svg viewBox="0 0 24 24"><path d="M16 3h5v5"/><path d="M21 3l-7 7"/><path d="M8 21H3v-5"/><path d="M3 21l7-7"/></svg></span></span>
-    <span class="story-lb">Barter</span>
-  </a>
-  <a class="story" href="/explore">
-    <span class="story-ring"><span class="story-in"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></span>
-    <span class="story-lb">Community</span>
-  </a>
-</nav>
-
 <main>
-  <!-- HERO -->
-  <section class="hero">
-    <div class="wrap hero-grid">
-      <div>
-        <span class="eyebrow"><span class="dot"></span>Built for India's early-career talent</span>
-        <h1>Put your skills<br><span class="grad">to work for you.</span></h1>
-        <p class="lead">Build proof before you have a portfolio. Trade a skill, share the work you do, and prepare for interviews with company reports and focused practice.</p>
-        <ul class="hero-ticks">
-          <li><b>Trade skills with no money involved</b><span>Post what you offer and need; barter trades carry zero commission.</span></li>
-          <li><b>Make your work easier to discover</b><span>Share projects, build a public track record and collect verified reviews.</span></li>
-          <li><b>Practise before interview day</b><span>Explore company reports free daily; Prep Pro adds deeper practice for ₹199 once.</span></li>
-        </ul>
-        <div class="hero-cta">
-          <a class="btn-primary" href="/prep/interview">Try a question free →</a>
-          <a class="btn-secondary" href="#join">Build my free profile</a>
-        </div>
-        <p class="hero-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Free community and barter · no card required · Prep Pro is one-time, not a subscription</p>
-      </div>
+<div class="feed-wrap">
 
-      <div class="hero-visual">
-        <div class="exchange-preview" aria-label="Example skill barter exchange">
-          <div class="xp-top">
-            <div class="xp-brand"><span class="xp-brand-mark">G</span><span>Skill exchange</span></div>
-            <span class="xp-example">Example trade</span>
-          </div>
-          <h2 class="xp-title">A useful trade starts with what you can do.</h2>
-          <p class="xp-caption">Two people. Two skills. No cash changes hands.</p>
-          <div class="xp-sides">
-            <div class="xp-side">
-              <span class="xp-side-icon">YOU</span>
-              <span><span class="xp-label">You offer</span><strong>Brand identity</strong><small>Logo · colors · guidelines</small></span>
-              <span class="xp-arrow">01</span>
-            </div>
-            <div class="xp-side need">
-              <span class="xp-side-icon">NEED</span>
-              <span><span class="xp-label">You need</span><strong>Landing page</strong><small>Design · build · launch</small></span>
-              <span class="xp-arrow">02</span>
-            </div>
-          </div>
-          <div class="xp-match"><span class="xp-check">✓</span><span><b>Matched by skill, location and rating</b><br>Both sides confirm before a trade is complete.</span></div>
-        </div>
-      </div>
-    </div>
-  </section>
+  <!-- Stories -->
+  <nav class="stories" aria-label="Jump to a feature">
+    <a class="story" href="#post-barter"><span class="story-ring"><span class="story-ic"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></span></span><span class="story-label">Barter</span></a>
+    <a class="story" href="#post-community"><span class="story-ring"><span class="story-ic"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></span><span class="story-label">Community</span></a>
+    <a class="story" href="#post-interview"><span class="story-ring"><span class="story-ic"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg></span></span><span class="story-label">Interview</span></a>
+    <a class="story" href="#post-reports"><span class="story-ring"><span class="story-ic"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span></span><span class="story-label">Reports</span></a>
+    <a class="story" href="#post-aptitude"><span class="story-ring"><span class="story-ic"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg></span></span><span class="story-label">Aptitude</span></a>
+    <a class="story" href="#post-gritscore"><span class="story-ring"><span class="story-ic"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0Z"/></svg></span></span><span class="story-label">Grit Score</span></a>
+  </nav>
 
-  <!-- TRUST STRIP -->
-  <div class="strip" aria-hidden="true">
-    <div class="strip-track">
-      <span class="strip-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7"/></svg>Zero commission on barter trades</span>
-      <span class="strip-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 6v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V6z"/><path d="m9 12 2 2 4-4"/></svg>KYC-verified members</span>
-      <span class="strip-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>Free to start, no card needed</span>
-      <span class="strip-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Prep Pro · ₹199 one-time</span>
-      <span class="strip-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Open messaging · talk to anyone</span>
-      <span class="strip-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 6v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V6z"/></svg>Built in Chennai, India</span>
-      <span class="strip-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7"/></svg>Zero commission on barter trades</span>
-      <span class="strip-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 6v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V6z"/><path d="m9 12 2 2 4-4"/></svg>KYC-verified members</span>
-      <span class="strip-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>Free to start, no card needed</span>
-      <span class="strip-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Prep Pro · ₹199 one-time</span>
-      <span class="strip-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Open messaging · talk to anyone</span>
-      <span class="strip-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 6v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V6z"/></svg>Built in Chennai, India</span>
+  <!-- HERO POST -->
+  <article class="post" id="post-hero">
+    <div class="post-media hero-media">
+      <video data-mp4="/assets/hero.mp4" data-webm="/assets/hero.webm" data-poster="poster" poster="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&amp;fit=crop&amp;w=760&amp;q=60&amp;fm=jpg" muted loop playsinline preload="metadata" aria-label="Early-career professionals collaborating on laptops"></video>
+      <div class="hero-scrim"></div>
+      <h1 class="hero-h1">Put your skills to work for you.</h1>
     </div>
+    <div class="post-actions" role="group" aria-label="Post actions">
+      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Like"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
+      <button class="icon-btn" type="button" aria-label="Comment"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg></button>
+      <button class="icon-btn" type="button" aria-label="Share"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
+      <span class="spacer"></span>
+      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Save"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"/></svg></button>
+    </div>
+    <div class="post-body">
+      <p class="post-caption"><strong>gritandgigs</strong> Build proof before you have a portfolio. Trade a skill, share the work you do, and prepare for interviews with company reports and focused practice.</p>
+      <a class="btn-primary" id="heroCta" href="#join">Build my free profile</a>
+      <a class="text-link" href="/prep/interview">Try a question free <span aria-hidden="true">&rarr;</span></a>
+      <p class="trust-line">Zero commission on barter &middot; KYC-verified &middot; Free to start, no card</p>
+    </div>
+  </article>
+
+  <!-- 1 BARTER -->
+  <article class="post" id="post-barter">
+    <div class="post-head"><span class="avatar" aria-hidden="true">B</span><div class="grow"><p class="post-name">Skill Barter Exchange</p><p class="post-sub">gritandgigs</p></div><span class="tag">Free</span></div>
+    <div class="post-media feat-media">
+      <video data-mp4="/assets/barter.mp4" data-webm="/assets/barter.webm" poster="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&amp;fit=crop&amp;w=760&amp;q=60&amp;fm=jpg" muted loop playsinline preload="none" aria-label="Two people exchanging work on a laptop"></video>
+      <span class="chip">Matched by skill, location and rating</span>
+    </div>
+    <div class="post-actions" role="group" aria-label="Post actions">
+      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Like"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
+      <button class="icon-btn" type="button" aria-label="Comment"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg></button>
+      <button class="icon-btn" type="button" aria-label="Share"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
+      <span class="spacer"></span>
+      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Save"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"/></svg></button>
+    </div>
+    <div class="post-body">
+      <p class="post-caption"><strong>gritandgigs</strong> Post what you offer and need. Our AI matches you by skill, city and rating &mdash; zero commission, both sides confirm.</p>
+      <p><a href="/explore?kind=BARTER">Browse the barter market &rarr;</a></p>
+    </div>
+  </article>
+
+  <!-- 2 COMMUNITY -->
+  <article class="post" id="post-community">
+    <div class="post-head"><span class="avatar" aria-hidden="true">C</span><div class="grow"><p class="post-name">Community Feed</p><p class="post-sub">gritandgigs</p></div><span class="tag">Free</span></div>
+    <div class="post-media feat-media">
+      <video data-mp4="/assets/community.mp4" data-webm="/assets/community.webm" poster="https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&amp;fit=crop&amp;w=760&amp;q=60&amp;fm=jpg" muted loop playsinline preload="none" aria-label="People sharing work in a group"></video>
+    </div>
+    <div class="post-actions" role="group" aria-label="Post actions">
+      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Like"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
+      <button class="icon-btn" type="button" aria-label="Comment"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg></button>
+      <button class="icon-btn" type="button" aria-label="Share"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
+      <span class="spacer"></span>
+      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Save"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"/></svg></button>
+    </div>
+    <div class="post-body">
+      <p class="post-caption"><strong>gritandgigs</strong> Share wins, tips and clips. Get likes, comments and reviews &mdash; follow and get discovered by people searching your skill.</p>
+      <p><a href="/explore">Explore the feed &rarr;</a></p>
+    </div>
+  </article>
+
+  <!-- 3 INTERVIEW -->
+  <article class="post" id="post-interview">
+    <div class="post-head"><span class="avatar" aria-hidden="true">I</span><div class="grow"><p class="post-name">Interview Prep</p><p class="post-sub">gritandgigs</p></div><span class="tag">Prep Pro</span></div>
+    <div class="post-media feat-media">
+      <video data-mp4="/assets/interview.mp4" data-webm="/assets/interview.webm" poster="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&amp;fit=crop&amp;w=760&amp;q=60&amp;fm=jpg" muted loop playsinline preload="none" aria-label="Candidate practising interview answers"></video>
+      <span class="chip">7/10</span>
+    </div>
+    <div class="post-actions" role="group" aria-label="Post actions">
+      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Like"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
+      <button class="icon-btn" type="button" aria-label="Comment"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg></button>
+      <button class="icon-btn" type="button" aria-label="Share"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
+      <span class="spacer"></span>
+      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Save"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"/></svg></button>
+    </div>
+    <div class="post-body">
+      <p class="post-caption"><strong>gritandgigs</strong> Six fresh drill questions daily. AI scores every answer 0&ndash;10, with mocks, resume checks and prep plans.</p>
+      <p><a href="/prep">Open Prep &rarr;</a></p>
+    </div>
+  </article>
+
+  <!-- MID CTA -->
+  <div class="mid-cta">
+    <h2>Join free</h2>
+    <p>Free forever for barter, community and messaging. No card required.</p>
+    <a class="btn-primary" href="#join">Join free</a>
   </div>
 
-  <!-- PREP CURIOSITY HOOK -->
-  <section class="hook" id="hookPrep">
-    <div class="wrap">
-      <span class="hook-kicker">New · Interview prep</span>
-      <h2>Know what to practise before interview day.</h2>
-      <p class="hook-lead">Start with company reports written by candidates, then rehearse an answer and get specific feedback. See the format before deciding whether Prep Pro is right for you.</p>
-      <div class="hook-mini">
-        <div><b>Six fresh drill questions every day</b><span>the same set for everyone until midnight UTC — answer out loud first, that's the practice</span></div>
-        <div><b>Real company packs</b><span>questions candidates were actually asked — member-reported, every one labelled, never scraped</span></div>
-        <div><b>AI scores every answer 0&ndash;10</b><span>weaknesses named, plus a stronger version of your answer to rehearse</span></div>
-      </div>
-      <a class="hook-cta" href="/prep/interview">Try a question free <span>→</span></a>
-      <p class="hook-note">Free to try · no card needed · the sample uses the exact same coaching as Pro</p>
+  <!-- 4 REPORTS -->
+  <article class="post" id="post-reports">
+    <div class="post-head"><span class="avatar" aria-hidden="true">R</span><div class="grow"><p class="post-name">Company Reports</p><p class="post-sub">gritandgigs</p></div><span class="tag">Free daily</span></div>
+    <div class="post-media feat-media">
+      <video data-mp4="/assets/reports.mp4" data-webm="/assets/reports.webm" poster="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&amp;fit=crop&amp;w=760&amp;q=60&amp;fm=jpg" muted loop playsinline preload="none" aria-label="Reading company documents at a desk"></video>
     </div>
-  </section>
+    <div class="post-actions" role="group" aria-label="Post actions">
+      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Like"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
+      <button class="icon-btn" type="button" aria-label="Comment"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg></button>
+      <button class="icon-btn" type="button" aria-label="Share"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
+      <span class="spacer"></span>
+      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Save"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"/></svg></button>
+    </div>
+    <div class="post-body">
+      <p class="post-caption"><strong>gritandgigs</strong> Written by candidates after real interviews, every claim source-labelled, nothing scraped. Free daily &mdash; unlimited on Pro.</p>
+      <p><a href="/prep">Read a free report &rarr;</a></p>
+    </div>
+  </article>
 
-  <!-- FEATURES -->
-  <section class="block" id="features">
-    <div class="wrap">
-      <div class="sec-head">
-        <p class="sec-kicker">Everything you get</p>
-        <h2>One account. Every tool to trade, connect and get hired.</h2>
-        <p>Real features that work today — barter, community, messaging and interview prep, all in one place.</p>
-      </div>
-      <div class="feat-grid">
-        <div class="feat">
-          <span class="tag tag-free">Free</span>
-          <div class="feat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7"/></svg></div>
-          <h3>Skill Barter Exchange</h3>
-          <p>Post what you offer and what you need. Our AI matches you by skill, city and rating — trade directly, no cash.</p>
-          <ul><li>Both sides confirm before it counts</li><li>Zero commission on trades</li><li>Trending requests near you</li></ul>
-        </div>
-        <div class="feat">
-          <span class="tag tag-free">Free</span>
-          <div class="feat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="m4 12 8-8 8 8M4 12h16"/><path d="M12 4v16"/></svg></div>
-          <h3>Community Feed</h3>
-          <p>Share wins, tips and clips. Get likes, comments and reviews — then get discovered by people searching your skill.</p>
-          <ul><li>Follow creators &amp; build an audience</li><li>Real-time notifications</li><li>Public track record on every profile</li></ul>
-        </div>
-        <div class="feat">
-          <span class="tag tag-free">Free</span>
-          <div class="feat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
-          <h3>Open Messaging</h3>
-          <p>Start a conversation with anyone — no follow needed. Plus group chats and Grit Circles for squads up to six.</p>
-          <ul><li>DM any member directly</li><li>Group chats &amp; squad rooms</li><li>Real-time delivery</li></ul>
-        </div>
-        <div class="feat">
-          <span class="tag tag-free">Free</span>
-          <div class="feat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 15 9l7 .5-5.5 4.5L18 21l-6-3.5L6 21l1.5-7L2 9.5 9 9z"/></svg></div>
-          <h3>Reviews &amp; Reputation</h3>
-          <p>Verified reviews from real trades and collaborations. KYC-verified members carry a trusted badge.</p>
-          <ul><li>Reviews after every barter trade</li><li>KYC-verified badge</li><li>Search &amp; discovery by skill</li></ul>
-        </div>
-        <div class="feat">
-          <span class="tag">Prep Pro</span>
-          <div class="feat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M9 7.5h6"/></svg></div>
-          <h3>Interview Prep</h3>
-          <p>AI-scored mock interviews, resume checks and company prep plans — practice until the panel feels familiar.</p>
-          <ul><li>AI scores every answer 0–10</li><li>Unlimited resume checks</li><li>AI-built prep plans per company</li></ul>
-        </div>
-        <div class="feat">
-          <span class="tag">Prep Pro</span>
-          <div class="feat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></div>
-          <h3>Company Reports &amp; Aptitude</h3>
-          <p>Company reports candidates wrote after real interviews, plus aptitude drills built from what Indian companies actually ask.</p>
-          <ul><li>Free daily report generations — unlimited on Pro</li><li>Quant, logic &amp; verbal aptitude drills</li><li>Every claim source-labelled — nothing scraped</li></ul>
-        </div>
-      </div>
+  <!-- 5 APTITUDE -->
+  <article class="post" id="post-aptitude">
+    <div class="post-head"><span class="avatar" aria-hidden="true">A</span><div class="grow"><p class="post-name">Aptitude</p><p class="post-sub">gritandgigs</p></div><span class="tag">Prep Pro</span></div>
+    <div class="post-media feat-media">
+      <video data-mp4="/assets/aptitude.mp4" data-webm="/assets/aptitude.webm" poster="https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&amp;fit=crop&amp;w=760&amp;q=60&amp;fm=jpg" muted loop playsinline preload="none" aria-label="Student solving aptitude problems"></video>
     </div>
-  </section>
+    <div class="post-actions" role="group" aria-label="Post actions">
+      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Like"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
+      <button class="icon-btn" type="button" aria-label="Comment"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg></button>
+      <button class="icon-btn" type="button" aria-label="Share"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
+      <span class="spacer"></span>
+      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Save"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"/></svg></button>
+    </div>
+    <div class="post-body">
+      <p class="post-caption"><strong>gritandgigs</strong> Quant, logic and verbal drills built from what Indian companies ask.</p>
+      <p><a href="/prep/aptitude">Start a drill &rarr;</a></p>
+    </div>
+  </article>
 
-  <!-- COMING SOON: GRIT SCORE -->
-  <section class="block soon">
-    <div class="wrap soon-grid">
-      <div>
-        <span class="tag" style="background:rgba(253,224,71,.14);color:#FDE047;border:none;font-size:.72rem;padding:5px 12px;">Coming soon</span>
-        <h2>Grit Score &mdash; coming soon</h2>
-        <p><b style="color:#fff;">Your proof, scored.</b> Upload your resume and real work with proof. AI extracts what you&rsquo;ve actually shipped &mdash; then a 300&ndash;900 Proof Score computes from the evidence itself. Not a hiring verdict. Just receipts, scored.</p>
-        <ul>
-          <li>Evidence beats claims — live links, files and screenshots, not vibes</li>
-          <li>Verification tiers: self-reported, evidence-checked, referee-confirmed</li>
-          <li>Shareable scorecard — public only when you opt in</li>
-        </ul>
-      </div>
-      <div class="soon-card">
-        <div class="sc-label">Proof Score &middot; preview</div>
-        <div class="sc-score">742</div>
-        <div class="sc-tier">Solid</div>
-        <p class="sc-note">A preview of your card — the number comes from your evidence.</p>
-        <div class="soon-wm">Grit&amp;Gigs</div>
-      </div>
+  <!-- 6 GRIT SCORE -->
+  <article class="post" id="post-gritscore">
+    <div class="post-head"><span class="avatar" aria-hidden="true">G</span><div class="grow"><p class="post-name">Grit Score</p><p class="post-sub">gritandgigs</p></div><span class="tag">Coming soon</span></div>
+    <div class="post-media feat-media">
+      <video data-mp4="/assets/gritscore.mp4" data-webm="/assets/gritscore.webm" poster="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&amp;fit=crop&amp;w=760&amp;q=60&amp;fm=jpg" muted loop playsinline preload="none" aria-label="Evidence feeding a score dashboard"></video>
+      <span class="chip">742 &middot; Solid</span>
     </div>
-  </section>
-
-  <!-- HOW IT WORKS -->
-  <section class="block" id="how" style="background:var(--bg-soft);border-top:1px solid var(--line);border-bottom:1px solid var(--line);">
-    <div class="wrap">
-      <div class="sec-head">
-        <p class="sec-kicker">How it works</p>
-        <h2>Four ways to grow on Grit&amp;Gigs</h2>
-        <p>Whether you have money or not, there's a path for you — from your first skill trade to your dream offer.</p>
-      </div>
-      <div class="how-grid">
-        <div class="how"><div class="how-num">01 · EXCHANGE</div><h3>Barter a skill</h3><p>Post what you offer and need. Get AI-matched, chat, deliver and both confirm — zero money, zero commission.</p></div>
-        <div class="how"><div class="how-num">02 · CONNECT</div><h3>Message &amp; circle up</h3><p>DM anyone without following first, run group chats and Grit Circles of up to six to take on bigger challenges together.</p></div>
-        <div class="how"><div class="how-num">03 · COMMUNITY</div><h3>Build reputation</h3><p>Post wins and tips, collect likes and reviews, and grow an audience that turns into your next client.</p></div>
-        <div class="how"><div class="how-num">04 · PREP</div><h3>Crack the interview</h3><p>Research a company, drill aptitude and run AI-scored mocks until you can answer anything the panel asks.</p></div>
-      </div>
+    <div class="post-actions" role="group" aria-label="Post actions">
+      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Like"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
+      <button class="icon-btn" type="button" aria-label="Comment"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg></button>
+      <button class="icon-btn" type="button" aria-label="Share"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
+      <span class="spacer"></span>
+      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Save"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"/></svg></button>
     </div>
-  </section>
-
-  <!-- SHOWCASE: BARTER -->
-  <section class="block">
-    <div class="wrap split">
-      <div class="sp-media">
-        <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&amp;h=600&amp;fit=crop&amp;q=75&amp;fm=jpg" alt="Two professionals celebrating a skill exchange" loading="lazy" width="560" height="420">
-        <span class="sp-badge"><span class="dot"></span>Zero cash · zero commission</span>
-      </div>
-      <div class="sp-body">
-        <p class="sec-kicker" style="text-align:left;">Skill Exchange</p>
-        <h2>Trade what you're good at for what you need</h2>
-        <p>A designer gets a website. A developer gets a logo. No invoices, no cash — just two people swapping skills both sides actually need.</p>
-        <ul class="sp-list">
-          <li><b>Post in 30 seconds</b> — what you offer, what you need</li>
-          <li><b>AI-matched</b> by skill, location and rating</li>
-          <li><b>Both confirm</b> before the trade is marked complete</li>
-        </ul>
-        <a class="sp-link" href="/explore?kind=BARTER">Browse the barter market →</a>
-      </div>
+    <div class="post-body">
+      <p class="post-caption"><strong>gritandgigs</strong> Your proof, scored. A 300&ndash;900 Proof Score computed from evidence &mdash; shareable only when you opt in.</p>
     </div>
-  </section>
-
-  <!-- SHOWCASE: COMMUNITY -->
-  <section class="block" style="background:var(--bg-soft);border-top:1px solid var(--line);border-bottom:1px solid var(--line);">
-    <div class="wrap split rev">
-      <div class="sp-media">
-        <img src="https://images.unsplash.com/photo-1543269865-cbf427effbad?w=800&amp;h=600&amp;fit=crop&amp;q=75&amp;fm=jpg" alt="A group of creators sharing work together" loading="lazy" width="560" height="420">
-        <span class="sp-badge"><span class="dot"></span>Wins, tips &amp; clips</span>
-      </div>
-      <div class="sp-body">
-        <p class="sec-kicker" style="text-align:left;">Community Feed</p>
-        <h2>Your work is your best marketing</h2>
-        <p>Post wins, share tips and drop clips. The community likes, comments and reviews — and clients find you through search.</p>
-        <ul class="sp-list">
-          <li><b>Wins, tips &amp; clips</b> — the formats India's freelancers actually use</li>
-          <li><b>Follow &amp; get followed</b> — build an audience around your craft</li>
-          <li><b>Reviews that stick</b> — verified feedback on every deal</li>
-        </ul>
-        <a class="sp-link" href="/explore">Explore the feed →</a>
-      </div>
-    </div>
-  </section>
-
-  <!-- SHOWCASE: REPORTS & APTITUDE -->
-  <section class="block">
-    <div class="wrap split">
-      <div class="sp-media">
-        <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&amp;h=600&amp;fit=crop&amp;q=75&amp;fm=jpg" alt="A laptop screen showing analytics reports and charts" loading="lazy" width="560" height="420">
-        <span class="sp-badge"><span class="dot"></span>Reports free daily · drills on Pro</span>
-      </div>
-      <div class="sp-body">
-        <p class="sec-kicker" style="text-align:left;">Reports &amp; Aptitude</p>
-        <h2>Know the company. Then crush it.</h2>
-        <p>Company reports candidates actually wrote after their interviews, plus aptitude drills built from what Indian companies ask — every line labelled with its source.</p>
-        <ul class="sp-list">
-          <li><b>Company reports</b> — hiring process, CTC bands and asked questions</li>
-          <li><b>Free daily reports</b> — generate one every day; unlimited on Prep Pro</li>
-          <li><b>Aptitude drills</b> — quant, logic and verbal, built for Prep Pro</li>
-        </ul>
-        <a class="sp-link" href="/prep">Open Prep →</a>
-      </div>
-    </div>
-  </section>
-
-  <!-- SHOWCASE: PREP -->
-  <section class="block">
-    <div class="wrap split rev">
-      <div class="sp-media">
-        <img src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&amp;h=600&amp;fit=crop&amp;q=75&amp;fm=jpg" alt="A candidate practising answers before an interview" loading="lazy" width="560" height="420">
-        <span class="sp-badge"><span class="dot"></span>Prep Pro · ₹199</span>
-      </div>
-      <div class="sp-body">
-        <p class="sec-kicker" style="text-align:left;">Interview Prep</p>
-        <h2>Walk in already knowing the questions</h2>
-        <p>AI-scored mocks, resume checks and full company packs — one ₹199 unlock for 30 days of serious practice.</p>
-        <ul class="sp-list">
-          <li><b>AI-scored mocks</b> — every answer graded 0–10 with what to fix</li>
-          <li><b>Resume checks</b> — against the role you're targeting</li>
-          <li><b>Prep plans</b> — AI-built schedules for each company you pick</li>
-        </ul>
-        <a class="sp-link" href="/prep">Open Prep →</a>
-      </div>
-    </div>
-  </section>
+  </article>
 
   <!-- PRICING -->
-  <section class="block" id="pricing" style="background:var(--bg-soft);border-top:1px solid var(--line);border-bottom:1px solid var(--line);">
-    <div class="wrap">
-      <div class="sec-head">
-        <p class="sec-kicker">Pricing</p>
-        <h2>One plan. Everything unlocked.</h2>
-        <p>Barter, community, messaging and reviews are free forever. There is exactly one paid plan — Prep Pro.</p>
-      </div>
-      <div class="price-grid">
-        <div class="price hot">
-          <span class="price-ribbon">THE ONLY PAID PLAN</span>
-          <p class="price-name">Prep Pro</p>
-          <p class="price-amt">₹199<small>one-time · 30 days</small></p>
-          <p class="price-desc">Mocks, resume checks, company packs and prep plans — all of it, unlocked for 30 days.</p>
-          <ul><li>AI scores every mock answer 0–10</li><li>Unlimited resume checks</li><li>Every full company pack, every question</li><li>AI-built prep plans per company</li></ul>
-          <a class="btn-price" id="priceCta" href="/prep#prepProCard">Unlock Prep Pro →</a>
-        </div>
-      </div>
-      <p class="price-note">Barter, community and messaging stay free forever. Pay once for Prep Pro — no auto-renewal, no hidden charges.</p>
-    </div>
-  </section>
+  <article class="post" id="pricing">
+    <div class="price-head"><span class="avatar" aria-hidden="true">&#8377;</span><div class="grow"><p class="post-name">Prep Pro</p><p class="post-sub">gritandgigs</p></div><span class="tag">The only paid plan</span></div>
+    <p class="price-amt">&#8377;199 <small>one-time &middot; 30 days &middot; no auto-renewal</small></p>
+    <ul class="price-list">
+      <li><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>AI scores every mock answer 0&ndash;10</span></li>
+      <li><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Unlimited resume checks</span></li>
+      <li><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Every full company pack, every question</span></li>
+      <li><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>AI-built prep plans per company</span></li>
+    </ul>
+    <div class="post-body"><a class="btn-primary" id="priceCta" href="/prep#prepProCard">Unlock Prep Pro &rarr;</a><p class="price-note">Barter, community and messaging stay free forever. Pay once &mdash; no hidden charges.</p></div>
+  </article>
 
-  <!-- BLOG -->
-  <section class="block" id="blog">
-    <div class="wrap">
-      <div class="sec-head">
-        <p class="sec-kicker">From the blog</p>
-        <h2>Learn. Build. Repeat.</h2>
-        <p>Guides on skill barter, career growth and interview prep in India.</p>
-      </div>
-      <div class="blog-grid">
-        <a class="blog-card" href="blog-interview-rehearsal-test.html">
-          <div class="blog-thumb"><img src="https://images.unsplash.com/photo-1488190211105-8b0e65b80b4e?w=800&amp;h=450&amp;fit=crop&amp;q=75&amp;fm=jpg" alt="" loading="lazy" width="400" height="225"></div>
-          <div class="blog-body"><span class="blog-cat">Interview Prep</span><span class="blog-title">Interviews Aren't a Knowledge Test — They're a Rehearsal Test</span><span class="blog-meta">7 min read · New</span></div>
-        </a>
-        <a class="blog-card" href="blog-start-freelancing-india-2026.html">
-          <div class="blog-thumb"><img src="https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?w=800&amp;h=450&amp;fit=crop&amp;q=75&amp;fm=jpg" alt="" loading="lazy" width="400" height="225"></div>
-          <div class="blog-body"><span class="blog-cat">Freelancing</span><span class="blog-title">How to Start Freelancing in India 2026 — Earn ₹50K–₹2L/Month from Home</span><span class="blog-meta">7 min read · Beginner friendly</span></div>
-        </a>
-        <a class="blog-card" href="blog-skill-barter.html">
-          <div class="blog-thumb"><img src="https://images.unsplash.com/photo-1556761175-b413da4baf72?w=800&amp;h=450&amp;fit=crop&amp;q=75&amp;fm=jpg" alt="" loading="lazy" width="400" height="225"></div>
-          <div class="blog-body"><span class="blog-cat">Skill Barter</span><span class="blog-title">Introducing the Grit&amp;Gigs Skill Barter Marketplace</span><span class="blog-meta">4 min read · New</span></div>
-        </a>
-        <a class="blog-card" href="blog-rate-calculator.html">
-          <div class="blog-thumb"><img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&amp;h=450&amp;fit=crop&amp;q=75&amp;fm=jpg" alt="" loading="lazy" width="400" height="225"></div>
-          <div class="blog-body"><span class="blog-cat">Rate Calculator</span><span class="blog-title">Rate Calculator India — How Much Should You Charge as a Freelancer in 2026?</span><span class="blog-meta">Free tool · Guide</span></div>
-        </a>
-        <a class="blog-card" href="blog-best-side-hustles-india-2026.html">
-          <div class="blog-thumb"><img src="https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&amp;h=450&amp;fit=crop&amp;q=75&amp;fm=jpg" alt="" loading="lazy" width="400" height="225"></div>
-          <div class="blog-body"><span class="blog-cat">Side Hustles</span><span class="blog-title">Best Side Hustles in India 2026 — Earn ₹10,000–₹50,000/Month</span><span class="blog-meta">10 min read · Guides</span></div>
-        </a>
-      </div>
-      <div style="text-align:center;margin-top:30px;"><a class="btn-secondary" href="blog.html">Read all articles →</a></div>
-    </div>
-  </section>
-
-  <!-- AUTH + CTA -->
-  <section class="block" id="join" style="padding-top:20px;">
-    <div class="wrap" style="max-width:1120px;">
-      <div class="split" style="align-items:stretch;">
-        <div class="sp-body" style="display:flex;flex-direction:column;justify-content:center;">
-          <p class="sec-kicker" style="text-align:left;">Join free</p>
-          <h2>Start bartering today.<br>It's completely free.</h2>
-          <p>No credit card. No hidden fees. Sign up in 30 seconds and start trading your skills for things you actually need.</p>
-          <ul class="sp-list">
-            <li><b>Free forever</b> for barter, community and messaging</li>
-            <li><b>One paid plan</b> — Prep Pro at ₹199, only when you want interview prep</li>
-            <li><b>Verified reputation</b> that gets you hired again and again</li>
-          </ul>
-        </div>
-        <div class="auth-wrap">
-          <div class="card" id="authCard">
-            <h2 id="cardTitle">Create your free account</h2>
-              <div class="sub" id="cardSub">Join to trade skills, share your work and connect with the community.</div>
-
-            <div class="step on" id="stepAuth">
-              <button class="g-btn" id="ggBtn" type="button">
-                <svg viewBox="0 0 48 48" width="19" height="19" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.4 6.1 29.5 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.1 18.9 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.4 6.1 29.5 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C33.5 42.6 43.6 36.9 43.6 20.1z"/></svg>
-                Continue with Google
-              </button>
-              <div class="g-or">or</div>
-              <div class="tabs" role="tablist">
-                <button class="tab on" id="tabSignup" type="button">Sign up</button>
-                <button class="tab" id="tabLogin" type="button">Log in</button>
-              </div>
-
-              <div id="formSignup" class="step on">
-                <div class="fld-row">
-                  <div class="fld"><label>First name</label><input type="text" id="suFirst" placeholder="Arjun" autocomplete="given-name"/></div>
-                  <div class="fld"><label>Last name</label><input type="text" id="suLast" placeholder="Kumar" autocomplete="family-name"/></div>
-                </div>
-                <div class="fld"><label>Email</label><input type="email" id="suEmail" placeholder="you@email.com" autocomplete="email"/></div>
-                <div class="fld"><label>Phone (WhatsApp)</label><input type="tel" id="suPhone" placeholder="+91 98765 43210" autocomplete="tel"/></div>
-                <div class="fld"><label>Password (8+ chars)</label><input type="password" id="suPass" placeholder="Password" autocomplete="new-password"/></div>
-                <div class="err" id="suErr"></div>
-                <button class="btn" id="suBtn" type="button">Create account</button>
-              </div>
-
-              <div id="formLogin" class="step">
-                <div class="fld"><label>Email</label><input type="email" id="liEmail" placeholder="you@email.com" autocomplete="email"/></div>
-                <div class="fld"><label>Password</label><input type="password" id="liPass" placeholder="Your password" autocomplete="current-password"/></div>
-                <div class="err" id="liErr"></div>
-                <button class="btn" id="liBtn" type="button">Log in</button>
-                <p class="hint">Forgot password? <a id="liForgot">Reset it</a></p>
-              </div>
+  <!-- SIGNUP -->
+  <article class="post" id="join">
+    <div class="post-head"><span class="avatar" aria-hidden="true">G</span><div class="grow"><p class="post-name">Create your free account</p><p class="post-sub">gritandgigs</p></div></div>
+    <div class="auth">
+      <div class="card" id="authCard">
+        <h2 id="cardTitle">Create your free account</h2>
+        <p class="sub" id="cardSub">Join to trade skills, share your work and connect with the community.</p>
+        <div class="step on" id="stepAuth">
+          <button class="g-btn" id="ggBtn" type="button">
+            <svg viewBox="0 0 48 48" width="19" height="19" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.4 6.1 29.5 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.1 18.9 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.4 6.1 29.5 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C33.5 42.6 43.6 36.9 43.6 20.1z"/></svg>
+            Continue with Google
+          </button>
+          <div class="g-or">or</div>
+          <div class="tabs" role="tablist">
+            <button class="tab on" id="tabSignup" type="button">Sign up</button>
+            <button class="tab" id="tabLogin" type="button">Log in</button>
+          </div>
+          <div id="formSignup" class="step on">
+            <div class="fld-row">
+              <div class="fld"><label for="suFirst">First name</label><input type="text" id="suFirst" placeholder="Arjun" autocomplete="given-name"/></div>
+              <div class="fld"><label for="suLast">Last name</label><input type="text" id="suLast" placeholder="Kumar" autocomplete="family-name"/></div>
             </div>
-
-            <div class="step" id="stepVerify">
-              <h2 style="font-size:1.2rem;font-weight:800;margin:0 0 10px;">Verify your email</h2>
-              <div class="sub" style="margin-bottom:14px;">We emailed a 6-digit code to<br><b id="verifyEmail" style="color:var(--purple-deep);"></b></div>
-              <div class="fld"><label>6-digit code</label><input type="text" id="verifyOtp" maxlength="6" placeholder="123456" inputmode="numeric"/></div>
-              <div class="err" id="verifyErr"></div>
-              <button class="btn" id="verifyBtn" type="button">Verify &amp; continue</button>
-              <p class="hint">Didn't get it? <a id="verifyResend">Resend code</a> · <a id="verifyBack">Back</a></p>
-            </div>
+            <div class="fld"><label for="suEmail">Email</label><input type="email" id="suEmail" placeholder="you@email.com" autocomplete="email"/></div>
+            <div class="fld"><label for="suPhone">Phone (WhatsApp)</label><input type="tel" id="suPhone" placeholder="+91 98765 43210" autocomplete="tel"/></div>
+            <div class="fld"><label for="suPass">Password (8+ chars)</label><input type="password" id="suPass" placeholder="Password" autocomplete="new-password"/></div>
+            <div class="err" id="suErr"></div>
+            <button class="btn" id="suBtn" type="button">Create account</button>
+          </div>
+          <div id="formLogin" class="step">
+            <div class="fld"><label for="liEmail">Email</label><input type="email" id="liEmail" placeholder="you@email.com" autocomplete="email"/></div>
+            <div class="fld"><label for="liPass">Password</label><input type="password" id="liPass" placeholder="Your password" autocomplete="current-password"/></div>
+            <div class="err" id="liErr"></div>
+            <button class="btn" id="liBtn" type="button">Log in</button>
+            <p class="hint">Forgot password? <a id="liForgot">Reset it</a></p>
           </div>
         </div>
+        <div class="step" id="stepVerify">
+          <h2 style="font-size:19px;margin-bottom:8px;">Verify your email</h2>
+          <p class="sub">We emailed a 6-digit code to<br><b id="verifyEmail"></b></p>
+          <div class="fld"><label for="verifyOtp">6-digit code</label><input type="text" id="verifyOtp" maxlength="6" placeholder="123456" inputmode="numeric"/></div>
+          <div class="err" id="verifyErr"></div>
+          <button class="btn" id="verifyBtn" type="button">Verify &amp; continue</button>
+          <p class="hint">Didn't get it? <a id="verifyResend">Resend code</a> &middot; <a id="verifyBack">Back</a></p>
+        </div>
       </div>
     </div>
-  </section>
+  </article>
 
-  <!-- CTA -->
-  <section class="wrap" style="padding-bottom:20px;">
-    <div class="cta">
-      <h2>Start with one skill. Build from there.</h2>
-      <p>Create a free profile, find a useful exchange, and make your work easier for the right people to discover.</p>
-      <div class="cta-btns">
-        <a class="btn-primary" href="#join">Create free account</a>
-        <a class="btn-outline" href="#features">See all features</a>
-      </div>
-    </div>
-  </section>
+</div>
 </main>
+
+<div class="sticky-cta" id="stickyCta">
+  <div class="grow"><strong style="font-size:15px;">Join free</strong><small>Free to start &middot; no card</small></div>
+  <a href="#join">Join free</a>
+</div>
+
+<script>
+(function(){
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var saveData = navigator.connection && navigator.connection.saveData;
+  var vids = Array.prototype.slice.call(document.querySelectorAll('video'));
+  function arm(v){
+    if (v.dataset.armed) return; v.dataset.armed = '1';
+    if (v.dataset.webm){ var s1=document.createElement('source'); s1.src=v.dataset.webm; s1.type='video/webm'; v.appendChild(s1); }
+    if (v.dataset.mp4){ var s2=document.createElement('source'); s2.src=v.dataset.mp4; s2.type='video/mp4'; v.appendChild(s2); }
+    v.load();
+  }
+  if (!reduce && !saveData){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        var v = e.target;
+        if (e.isIntersecting){ arm(v); v.play().catch(function(){}); }
+        else { v.pause(); }
+      });
+    }, {threshold:.15, rootMargin:'80px 0px'});
+    vids.forEach(function(v){ io.observe(v); });
+  }
+  // Heart / save toggles
+  document.querySelectorAll('.icon-btn').forEach(function(btn){
+    var label = btn.getAttribute('aria-label');
+    if (label === 'Like' || label === 'Save'){
+      btn.addEventListener('click', function(){
+        btn.classList.toggle('on');
+        btn.setAttribute('aria-pressed', btn.classList.contains('on') ? 'true' : 'false');
+      });
+    }
+    if (label === 'Share'){
+      btn.addEventListener('click', function(){
+        var url = location.href;
+        if (navigator.share){ navigator.share({title:document.title, url:url}).catch(function(){}); }
+        else if (navigator.clipboard){ navigator.clipboard.writeText(url).catch(function(){}); }
+      });
+    }
+    if (label === 'Comment'){
+      btn.addEventListener('click', function(){ document.getElementById('join').scrollIntoView({behavior: reduce ? 'auto' : 'smooth'}); });
+    }
+  });
+  // Sticky bar: show only after hero CTA leaves viewport (mobile CSS gates visibility)
+  var bar = document.getElementById('stickyCta');
+  var heroCta = document.getElementById('heroCta');
+  if (bar && heroCta && 'IntersectionObserver' in window){
+    new IntersectionObserver(function(entries){
+      var gone = !entries[0].isIntersecting && entries[0].boundingClientRect.top < 0;
+      bar.classList.toggle('show', gone);
+      document.body.classList.toggle('cta-show', gone);
+    }, {threshold:0}).observe(heroCta);
+  }
+})();
+</script>
+
 
 <footer>
   <div class="wrap foot">
@@ -1111,10 +1087,5 @@
     .catch(function () { /* keep the last painted state */ });
 })();
 </script>
-
-<div class="mob-cta" aria-label="Quick actions">
-  <a class="mob-ghost" href="/prep/interview">Try Prep free</a>
-  <a class="mob-main" href="#join">Join free</a>
-</div>
 </body>
 </html>

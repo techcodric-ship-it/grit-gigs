@@ -1,0 +1,67 @@
+/* Shared desktop application sidebar */
+.app-left-sidebar { display: none; }
+
+@media (min-width: 1000px) {
+  .app-left-sidebar {
+    position: fixed;
+    left: 0;
+    top: 52px;
+    bottom: 0;
+    z-index: 45;
+    width: 224px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 24px 16px;
+    box-sizing: border-box;
+    border-right: 1px solid var(--line);
+    background: var(--card, #fff);
+    overflow-y: auto;
+  }
+
+  .app-side-link {
+    height: 48px;
+    display: grid;
+    grid-template-columns: 24px 1fr;
+    align-items: center;
+    column-gap: 14px;
+    padding: 0 14px;
+    border-radius: 10px;
+    color: var(--ink, #262626);
+    font-size: 15px;
+    line-height: 24px;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .app-side-link:hover { background: var(--bg, #fafafa); }
+  .app-side-link.active { font-weight: 800; }
+  .app-side-icon { width: 24px; height: 24px; display: grid; place-items: center; }
+  .app-side-icon svg { width: 24px; height: 24px; display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .app-side-link.active .app-side-icon svg { stroke: #6c3fe8; }
+  .app-side-icon img { width: 24px !important; height: 24px !important; display: block !important; margin: 0 !important; border-radius: 50%; object-fit: cover; }
+  .app-side-label { min-width: 0; display: block; line-height: 24px; }
+
+  .app-shell-topnav { padding-right: 16px !important; }
+  .app-shell-topnav > .icons { display: none !important; }
+
+  body.desktop-app-shell > .wrap:not(:has(.prep-hero-sm)) {
+    width: calc(100% - 224px) !important;
+    max-width: none !important;
+    margin-left: 224px !important;
+    margin-right: 0 !important;
+    box-sizing: border-box;
+    justify-content: center !important;
+  }
+
+  body.desktop-app-shell > .prep-wrap:has(.prep-hero-sm) {
+    width: min(1080px, calc(100% - 272px)) !important;
+    max-width: 1080px !important;
+    margin-left: calc(224px + (100% - 224px - min(1080px, calc(100% - 272px))) / 2) !important;
+  }
+
+  body.desktop-app-shell > .wrap > .col-main { margin-left: 0 !important; }
+}
+
+@media (max-width: 999px) {
+  .app-left-sidebar { display: none; }
+}

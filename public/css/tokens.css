@@ -1,0 +1,85 @@
+/* ==========================================================================
+   Grit&Gigs — refreshed product tokens
+   Instagram x Reddit direction: white and warm neutral surfaces, purple used as
+   a sharp accent only where it signals action, trust or importance.
+   ========================================================================== */
+
+:root {
+  /* ---- Brand ------------------------------------------------------------ */
+  --gg-paper: #F5F5F7;
+  --gg-paper-2: #F0F1F4;
+  --gg-surface: #FFFFFF;
+  --gg-surface-2: #FAFAFB;
+  --gg-ink: #111114;
+  --gg-ink-2: #3E3E47;
+  --gg-ink-3: #6B6B76;
+  --gg-line: #E5E5EA;
+  --gg-line-strong: #D7D7DE;
+  --gg-accent: #5B3DF5;
+  --gg-accent-deep: #4832D5;
+  --gg-accent-soft: #EFEAFF;
+  --gg-on-accent: #FFFFFF;
+  --gg-success: #1F8F64;
+  --gg-success-soft: #E9F8F0;
+  --gg-danger: #C13A3A;
+  --gg-danger-soft: #FDECEC;
+  --gg-warning: #8A5A2B;
+  --gg-warning-soft: #FFF4E6;
+
+  /* ---- Type ------------------------------------------------------------ */
+  --gg-font-display: 'Syne', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --gg-font-body: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --gg-text-xs: 0.75rem;
+  --gg-text-sm: 0.875rem;
+  --gg-text-base: 1rem;
+  --gg-text-lg: 1.0625rem;
+  --gg-text-xl: 1.25rem;
+
+  --gg-h1: clamp(2.5rem, 6vw, 4.25rem);
+  --gg-h2: clamp(1.85rem, 3.2vw, 2.8rem);
+  --gg-h3: clamp(1.125rem, 1.4vw, 1.5rem);
+  --gg-lead: 1.0625rem;
+
+  --gg-leading-tight: 1.04;
+  --gg-leading-heading: 1.1;
+  --gg-leading-body: 1.55;
+  --gg-tracking-tight: -0.03em;
+  --gg-tracking-label: 0.08em;
+
+  /* ---- Spacing scale ---------------------------------------------------- */
+  --gg-space-1: 4px;
+  --gg-space-2: 8px;
+  --gg-space-3: 12px;
+  --gg-space-4: 16px;
+  --gg-space-6: 24px;
+  --gg-space-8: 32px;
+  --gg-space-12: 48px;
+  --gg-space-16: 64px;
+  --gg-space-24: 96px;
+
+  --gg-section-y: clamp(64px, 8vw, 104px);
+  --gg-section-y-sm: clamp(48px, 6vw, 72px);
+  --gg-container: 1180px;
+  --gg-gutter: clamp(18px, 4vw, 30px);
+
+  /* ---- Radius and shadows ----------------------------------------------- */
+  --gg-radius-sm: 8px;
+  --gg-radius: 12px;
+  --gg-radius-md: 14px;
+  --gg-radius-lg: 16px;
+  --gg-radius-pill: 999px;
+
+  --gg-shadow-sm: 0 1px 2px rgba(17, 17, 20, 0.04);
+  --gg-shadow: 0 1px 2px rgba(17, 17, 20, 0.04), 0 12px 24px rgba(17, 17, 20, 0.04);
+
+  /* ---- Motion ----------------------------------------------------------- */
+  --gg-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --gg-dur: 220ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --gg-dur: 0ms;
+  }
+}
