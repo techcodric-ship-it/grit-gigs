@@ -430,41 +430,97 @@
 </style>
 <link rel="stylesheet" href="/css/professional-platform.css?v=4"/><link rel="stylesheet" href="/css/landing-social.css?v=5"/>
 <style>
-/* Instagram-style feed body (scoped to main). Header/footer untouched. */
+/* IG login hero (light) + feed. Header/footer untouched. */
 body{background:#FFFFFF;margin:0;}
-main{
-  --bg:#FFFFFF; --surface:#FFFFFF; --surface-2:#F7F7F8; --line:#E5E5EA;
-  --ink:#111114; --ink-2:#3E3E47; --ink-3:#6B6B76;
+main{ --line:#E5E5EA; --ink:#111114; --ink-2:#3E3E47; --ink-3:#6B6B76;
   --purple:#6C3FE8; --purple-deep:#5430C9; --purple-soft:#F0ECFD;
-  --r:12px; --font:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
-  background:var(--bg); color:var(--ink); font-family:var(--font);
-  font-size:16px; line-height:1.55; padding:16px 0 64px;
-}
-@media (prefers-color-scheme: dark){
-  body{background:#0B0B0F;}
-  main{ --bg:#0B0B0F; --surface:#17171C; --surface-2:#1F1F26; --line:#2A2A33;
-    --ink:#F5F5F7; --ink-2:#C9C9D2; --ink-3:#9A9AA6; --purple:#7C63F0; --purple-deep:#9D85F5; --purple-soft:#241D47; }
-}
+  --font:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif; }
 main *{box-sizing:border-box;}
 main a{color:inherit;}
-main .feed-wrap{max-width:470px;margin:0 auto;padding:0 16px;}
-main .post{scroll-margin-top:76px;}
-main h1,main h2,main h3,main p,main ul,main figure{margin:0;}
-main img,main video{max-width:100%;display:block;}
 main .lucide{width:24px;height:24px;stroke-width:1.5;flex:none;}
 
-/* ---------- Stories ---------- */
+/* ---------- Hero: light split ---------- */
+main .ig-hero{display:grid;grid-template-columns:1.08fr 1fr;background:#FFFFFF;color:#111114;}
+main .ig-left{background:#FFFFFF;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:48px 32px;border-right:1px solid #E5E5EA;}
+main .ig-right{background:#F7F7F8;display:flex;align-items:center;justify-content:center;padding:48px 32px;}
+main .ig-h1{font-size:44px;line-height:1.08;font-weight:300;letter-spacing:-.02em;margin:0;}
+main .ig-h1 span{display:block;}
+main .ig-h1 em{font-style:normal;font-weight:600;background:linear-gradient(90deg,#8B5CF6,#6C3FE8 60%,#C4B5FD);-webkit-background-clip:text;background-clip:text;color:transparent;}
+main .ig-sub{margin:16px 0 0;font-size:16px;font-weight:400;color:#6B6B76;}
+
+/* Phone collage */
+main .ig-phones{position:relative;display:flex;justify-content:center;align-items:flex-end;margin-top:32px;height:300px;}
+main .ig-phone{position:relative;width:140px;height:260px;border-radius:24px;overflow:hidden;border:1px solid #E5E5EA;background:#EDEDEF;flex:none;box-shadow:0 12px 32px rgba(17,17,20,.12);}
+main .ig-phone video{width:100%;height:100%;object-fit:cover;}
+main .ig-phone.ig-main{width:188px;height:300px;z-index:2;}
+main .ig-phone.ig-l{transform:rotate(-7deg);margin-right:-18px;opacity:.94;}
+main .ig-phone.ig-r{transform:rotate(7deg);margin-left:-18px;opacity:.94;}
+main .ig-progress{position:absolute;top:0;left:0;right:0;height:3px;background:rgba(17,17,20,.18);z-index:3;}
+main .ig-progress i{display:block;height:100%;width:32%;border-radius:0 99px 99px 0;background:#6C3FE8;}
+main .ig-phone-bar{position:absolute;left:10px;right:10px;bottom:10px;display:flex;align-items:center;gap:8px;z-index:3;}
+main .ig-reply{flex:1;background:rgba(255,255,255,.92);border:1px solid #E5E5EA;color:#3E3E47;font-size:12px;padding:7px 12px;border-radius:999px;}
+main .ig-heart{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.92);border:1px solid #E5E5EA;color:#111114;}
+main .ig-heart .lucide{width:15px;height:15px;}
+main .ig-chip{position:absolute;z-index:4;background:#fff;color:#111114;border:1px solid #E5E5EA;font-size:12px;font-weight:600;padding:8px 12px;border-radius:12px;box-shadow:0 8px 24px rgba(17,17,20,.12);max-width:220px;text-align:left;line-height:1.35;}
+main .ig-chip-1{left:0;top:36px;transform:rotate(-2deg);}
+main .ig-chip-2{right:8px;bottom:52px;font-weight:700;color:#6C3FE8;}
+@media (max-width:900px){
+  main .ig-hero{grid-template-columns:1fr;}
+  main .ig-left{border-right:0;border-bottom:1px solid #E5E5EA;padding:40px 20px 28px;}
+  main .ig-right{padding:28px 16px 40px;}
+}
+@media (max-width:640px){
+  main .ig-h1{font-size:34px;}
+  main .ig-phones{height:230px;margin-top:24px;}
+  main .ig-phone{width:112px;height:200px;}
+  main .ig-phone.ig-main{width:150px;height:230px;}
+  main .ig-chip-1{max-width:180px;left:0;top:24px;}
+}
+
+/* ---------- Join panel (pills) ---------- */
+main .ig-join{width:100%;max-width:380px;}
+main .ig-join-title{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:0 0 6px;color:#111114;}
+main .ig-sr{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;}
+main .ig-join .sub{font-size:14px;color:#6B6B76;margin:0 0 20px;}
+main .ig-join .g-btn{width:100%;height:48px;display:flex;align-items:center;justify-content:center;gap:10px;background:#FFFFFF;color:#111114;border:1px solid #E5E5EA;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;}
+main .ig-join .g-or{display:flex;align-items:center;gap:12px;color:#6B6B76;font-size:12px;margin:14px 0;text-transform:uppercase;letter-spacing:.08em;}
+main .ig-join .g-or::before,main .ig-join .g-or::after{content:"";flex:1;height:1px;background:#E5E5EA;}
+main .ig-join .fld-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+main .ig-join .fld{margin-bottom:8px;}
+main .ig-join .fld label{position:absolute;left:-9999px;}
+main .ig-join .fld input{width:100%;height:48px;border-radius:999px;border:1px solid #E5E5EA;background:#FFFFFF;color:#111114;padding:0 18px;font-size:16px;font-family:inherit;}
+main .ig-join .fld input::placeholder{color:#6B6B76;}
+main .ig-join .fld input:focus{outline:none;border-color:#6C3FE8;box-shadow:0 0 0 3px #F0ECFD;}
+main .ig-join .err{color:#C13A3A;font-size:13px;min-height:18px;margin:4px 0 8px;}
+main .ig-join .btn{width:100%;height:48px;background:#6C3FE8;color:#fff;border:0;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;}
+main .ig-join .btn:active{background:#5430C9;}
+main .ig-join .tab-login{width:100%;height:48px;margin-top:10px;background:transparent;color:#6C3FE8;border:1px solid #6C3FE8;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;}
+main .ig-join .tab-signup{width:100%;margin-top:10px;background:none;border:0;color:#6B6B76;font-size:13px;cursor:pointer;font-family:inherit;padding:6px;}
+main .ig-join .hint{font-size:13px;color:#6B6B76;text-align:center;margin:12px 0 0;}
+main .ig-join .hint a{color:#6C3FE8;cursor:pointer;font-weight:600;}
+main .ig-trust{margin-top:20px;font-size:12px;color:#6B6B76;text-align:center;line-height:1.6;}
+main .ig-join .step{display:none;} main .ig-join .step.on{display:block;}
+main .ig-join .tabs{display:none;}
+main .spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+main .ig-join .auth h2{color:#111114;}
+main .ig-join .auth .sub{color:#6B6B76;}
+
+/* ---------- Feed ---------- */
+main .ig-feed{background:#FFFFFF;padding:24px 0 64px;}
+@media (prefers-color-scheme: dark){ main .ig-feed{ background:#0B0B0F; } }
+main .feed-wrap{max-width:470px;margin:0 auto;padding:0 16px;}
+main .post{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-bottom:24px;scroll-margin-top:76px;}
+@media (prefers-color-scheme: dark){ main .post{ background:#17171C; border-color:#2A2A33; } }
 main .stories{display:flex;gap:16px;overflow-x:auto;padding:4px 2px 12px;margin-bottom:16px;scrollbar-width:none;}
 main .stories::-webkit-scrollbar{display:none;}
 main .story{display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;flex:0 0 auto;width:56px;}
 main .story-ring{padding:2.5px;border-radius:50%;background:conic-gradient(from 210deg,#6C3FE8,#C4B5FD,#8B5CF6,#5430C9,#6C3FE8);}
-main .story-ic{width:52px;height:52px;border-radius:50%;background:var(--surface);border:2px solid var(--bg);display:grid;place-items:center;color:var(--ink);}
+main .story-ic{width:52px;height:52px;border-radius:50%;background:#fff;border:2px solid #fff;display:grid;place-items:center;color:#111114;}
+@media (prefers-color-scheme: dark){ main .story-ic{ background:#17171C; border-color:#17171C; color:#F5F5F7; } }
 main .story-ic .lucide{width:22px;height:22px;}
-main .story-label{font-size:11px;line-height:1.2;color:var(--ink-2);text-align:center;}
-main .story:active .story-ic{color:var(--purple);}
-
-/* ---------- Post chrome ---------- */
-main .post{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-bottom:24px;}
+main .story-label{font-size:11px;line-height:1.2;color:#3E3E47;text-align:center;}
+@media (prefers-color-scheme: dark){ main .story-label{ color:#C9C9D2; } }
 main .post-head{display:flex;align-items:center;gap:10px;padding:12px;}
 main .avatar{width:36px;height:36px;border-radius:50%;background:var(--purple-soft);color:var(--purple-deep);display:grid;place-items:center;font-weight:700;font-size:15px;flex:none;}
 main .post-name{font-size:14px;font-weight:600;line-height:1.25;}
@@ -473,75 +529,43 @@ main .post-head .grow{flex:1;min-width:0;}
 main .tag{font-size:11px;font-weight:600;color:var(--purple-deep);background:var(--purple-soft);border:1px solid var(--line);padding:3px 8px;border-radius:999px;white-space:nowrap;}
 main .post-media{position:relative;background:#E9E9EE;overflow:hidden;}
 main .post-media video{width:100%;height:100%;object-fit:cover;}
-main .hero-media{aspect-ratio:4/5;}
 main .feat-media{aspect-ratio:1/1;}
-main .hero-scrim{position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(10,10,14,.62));pointer-events:none;}
-main .hero-h1{position:absolute;left:20px;right:20px;bottom:16px;color:#fff;font-size:32px;line-height:1.06;font-weight:700;letter-spacing:-.02em;}
-@media (min-width:480px){main .hero-h1{font-size:40px;}}
 main .chip{position:absolute;left:12px;bottom:12px;background:rgba(255,255,255,.96);color:#111114;font-size:12px;font-weight:600;padding:6px 10px;border-radius:999px;border:1px solid var(--line);}
 main .post-actions{display:flex;align-items:center;gap:6px;padding:8px 12px 0;}
 main .post-actions .spacer{flex:1;}
-main .icon-btn{width:40px;height:40px;border:0;background:none;display:grid;place-items:center;color:var(--ink);cursor:pointer;border-radius:10px;padding:0;}
+main .icon-btn{width:40px;height:40px;border:0;background:none;display:grid;place-items:center;color:#111114;cursor:pointer;border-radius:10px;padding:0;}
+@media (prefers-color-scheme: dark){ main .icon-btn{ color:#F5F5F7; } }
 main .icon-btn:active{transform:scale(.92);transition:transform .15s;}
 main .icon-btn.on{color:var(--purple);}
 main .icon-btn.on svg{fill:var(--purple);stroke:var(--purple);}
 main .post-body{padding:8px 12px 16px;}
-main .post-caption{font-size:15px;line-height:1.5;color:var(--ink);}
+main .post-caption{font-size:15px;line-height:1.5;}
 main .post-caption strong{font-weight:600;}
-main .post-caption p{font-size:15px;color:var(--ink-2);line-height:1.55;margin-top:4px;}
+main .post-caption + p{font-size:15px;margin-top:6px;}
+main .post-caption + p a{color:var(--purple-deep);text-decoration:none;font-weight:600;}
 main .btn-primary{display:flex;align-items:center;justify-content:center;height:48px;background:var(--purple);color:#fff;text-decoration:none;font-weight:600;font-size:16px;border-radius:12px;margin-top:12px;}
-main .btn-primary:active{background:var(--purple-deep);}
-main .text-link{display:inline-flex;align-items:center;gap:4px;color:var(--purple-deep);font-weight:600;font-size:15px;text-decoration:none;margin-top:12px;}
-main .text-link:active{text-decoration:underline;}
-main .trust-line{font-size:13px;color:var(--ink-3);margin-top:12px;line-height:1.5;}
-
-/* ---------- Mid CTA / Pricing ---------- */
-main .mid-cta{background:var(--surface-2);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:24px;}
-main .mid-cta h2{font-size:20px;font-weight:700;letter-spacing:-.01em;}
-main .mid-cta p{font-size:14px;color:var(--ink-2);margin-top:4px;}
+main .mid-cta{background:#F7F7F8;border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:24px;}
+@media (prefers-color-scheme: dark){ main .mid-cta{ background:#17171C; } }
+main .mid-cta h2{font-size:20px;font-weight:700;letter-spacing:-.01em;margin:0;}
+main .mid-cta p{font-size:14px;color:var(--ink-2);margin:4px 0 0;}
 main .price-head{display:flex;align-items:center;gap:10px;padding:12px;}
-main .price-amt{padding:4px 12px 0;font-size:32px;font-weight:700;letter-spacing:-.02em;}
+main .price-amt{padding:4px 12px 0;font-size:32px;font-weight:700;letter-spacing:-.02em;margin:0;}
 main .price-amt small{font-size:14px;color:var(--ink-2);font-weight:400;letter-spacing:0;}
-main .price-list{list-style:none;padding:12px;display:grid;gap:8px;}
+main .price-list{list-style:none;padding:12px;display:grid;gap:8px;margin:0;}
 main .price-list li{display:flex;gap:8px;align-items:flex-start;font-size:15px;color:var(--ink-2);}
 main .price-list .lucide{width:18px;height:18px;color:var(--purple);margin-top:3px;}
-main .price-note{padding:0 12px 12px;font-size:13px;color:var(--ink-3);}
-
-/* ---------- Signup ---------- */
-main .auth{padding:16px 12px 20px;}
-main .auth h2{font-size:20px;font-weight:700;letter-spacing:-.01em;}
-main .auth .sub{font-size:14px;color:var(--ink-2);margin:4px 0 16px;}
-main .g-btn{width:100%;height:48px;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#111114;border:1px solid var(--line);border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;}
-main .g-or{display:flex;align-items:center;gap:12px;color:var(--ink-3);font-size:12px;margin:14px 0;text-transform:uppercase;letter-spacing:.08em;}
-main .g-or::before,main .g-or::after{content:"";flex:1;height:1px;background:var(--line);}
-main .tabs{display:flex;gap:4px;background:var(--surface-2);border-radius:12px;padding:4px;margin-bottom:16px;}
-main .tab{flex:1;border:0;background:transparent;padding:10px;border-radius:8px;font-size:14px;font-weight:600;color:var(--ink-2);cursor:pointer;font-family:inherit;}
-main .tab.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1);}
-main .step{display:none;}
-main .step.on{display:block;}
-main .fld-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-main .fld{margin-bottom:12px;}
-main .fld label{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px;}
-main .fld input{width:100%;height:48px;border:1px solid var(--line);border-radius:12px;padding:0 14px;font-size:16px;font-family:inherit;background:var(--surface);color:var(--ink);}
-main .fld input:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-soft);}
-main .fld input::placeholder{color:var(--ink-3);}
-main .err{color:#C13A3A;font-size:13px;min-height:18px;margin-bottom:8px;}
-main .btn{width:100%;height:48px;background:var(--purple);color:#fff;border:0;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;}
-main .btn:disabled{opacity:.7;}
-main .hint{font-size:14px;color:var(--ink-2);text-align:center;margin:12px 0 0;}
-main .hint a{color:var(--purple-deep);cursor:pointer;font-weight:600;}
-main .spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;}
-@keyframes spin{to{transform:rotate(360deg);}}
+main .price-note{padding:0 12px 12px;font-size:13px;color:var(--ink-3);margin:0;}
 
 /* ---------- Sticky mobile CTA ---------- */
-.sticky-cta{position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;align-items:center;gap:12px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:var(--surface,#fff);border-top:1px solid var(--line,#E5E5EA);transform:translateY(110%);transition:transform .25s ease;}
+.sticky-cta{position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;align-items:center;gap:12px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid #E5E5EA;transform:translateY(110%);transition:transform .25s ease;}
 .sticky-cta.show{transform:translateY(0);}
-.sticky-cta small{display:block;font-size:12px;color:var(--ink-3,#6B6B76);}
+.sticky-cta small{display:block;font-size:12px;color:#6B6B76;}
 .sticky-cta .grow{flex:1;}
-.sticky-cta a{display:flex;align-items:center;justify-content:center;height:46px;padding:0 24px;background:var(--purple,#6C3FE8);color:#fff;text-decoration:none;font-weight:600;font-size:16px;border-radius:12px;}
-@media (max-width:760px){.sticky-cta{display:flex;} body{padding-bottom:0;} body.cta-show main{padding-bottom:128px;}}
+.sticky-cta a{display:flex;align-items:center;justify-content:center;height:46px;padding:0 24px;background:#6C3FE8;color:#fff;text-decoration:none;font-weight:600;font-size:16px;border-radius:999px;}
+@media (max-width:760px){.sticky-cta{display:flex;} body.cta-show main{padding-bottom:80px;}}
 @media (prefers-reduced-motion: reduce){main *, .sticky-cta{transition:none !important;animation:none !important;}}
 </style>
+
 
 </head>
 <body>
@@ -565,9 +589,88 @@ main .spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255
 </header>
 
 <main>
-<div class="feed-wrap">
 
-  <!-- Stories -->
+  <!-- IG LOGIN HERO -->
+  <section class="ig-hero" aria-label="Join Grit&Gigs">
+    <div class="ig-left">
+      <h1 class="ig-h1"><span>Put your skills</span><span>to <em>work for you.</em></span></h1>
+      <p class="ig-sub">Build proof before you have a portfolio.</p>
+      <div class="ig-phones" aria-hidden="true">
+        <div class="ig-phone ig-l">
+          <div class="ig-progress"><i></i></div>
+          <video data-mp4="/assets/hero-left.mp4" data-webm="/assets/hero-left.webm" poster="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&amp;fit=crop&amp;w=640&amp;q=55&amp;fm=jpg" muted loop playsinline preload="metadata"></video>
+          <div class="ig-phone-bar"><span class="ig-reply">Reply...</span><span class="ig-heart"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></span></div>
+        </div>
+        <div class="ig-phone ig-main">
+          <div class="ig-progress"><i style="width:58%"></i></div>
+          <video data-mp4="/assets/hero-center.mp4" data-webm="/assets/hero-center.webm" poster="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&amp;fit=crop&amp;w=760&amp;q=55&amp;fm=jpg" muted loop playsinline preload="metadata"></video>
+          <div class="ig-phone-bar"><span class="ig-reply">Reply...</span><span class="ig-heart"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></span></div>
+        </div>
+        <div class="ig-phone ig-r">
+          <div class="ig-progress"><i></i></div>
+          <video data-mp4="/assets/hero-right.mp4" data-webm="/assets/hero-right.webm" poster="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&amp;fit=crop&amp;w=640&amp;q=55&amp;fm=jpg" muted loop playsinline preload="metadata"></video>
+          <div class="ig-phone-bar"><span class="ig-reply">Reply...</span><span class="ig-heart"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></span></div>
+        </div>
+        <span class="ig-chip ig-chip-1">Matched by skill, location and rating</span>
+        <span class="ig-chip ig-chip-2">7/10</span>
+      </div>
+    </div>
+    <div class="ig-right" id="join">
+      <div class="ig-join">
+        <h2 class="ig-join-title">Join Grit&amp;Gigs free</h2>
+        <div class="card" id="authCard">
+          <h2 class="ig-sr" id="cardTitle">Create your free account</h2>
+          <p class="sub" id="cardSub">Join to trade skills, share your work and connect with the community.</p>
+          <div class="step on" id="stepAuth">
+            <button class="g-btn" id="ggBtn" type="button">
+              <svg viewBox="0 0 48 48" width="19" height="19" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.4 6.1 29.5 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.1 18.9 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.4 6.1 29.5 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C33.5 42.6 43.6 36.9 43.6 20.1z"/></svg>
+              Continue with Google
+            </button>
+            <div class="g-or">or</div>
+            <div class="tabs" role="tablist">
+              <button class="tab on" id="tabSignup" type="button">Sign up</button>
+              <button class="tab" id="tabLogin" type="button">Log in</button>
+            </div>
+            <div id="formSignup" class="step on">
+              <div class="fld-row">
+                <div class="fld"><label for="suFirst">First name</label><input type="text" id="suFirst" placeholder="First name" autocomplete="given-name"/></div>
+                <div class="fld"><label for="suLast">Last name</label><input type="text" id="suLast" placeholder="Last name" autocomplete="family-name"/></div>
+              </div>
+              <div class="fld"><label for="suEmail">Email</label><input type="email" id="suEmail" placeholder="Email" autocomplete="email"/></div>
+              <div class="fld"><label for="suPhone">Phone (WhatsApp)</label><input type="tel" id="suPhone" placeholder="WhatsApp phone" autocomplete="tel"/></div>
+              <div class="fld"><label for="suPass">Password (8+ chars)</label><input type="password" id="suPass" placeholder="Password" autocomplete="new-password"/></div>
+              <div class="err" id="suErr"></div>
+              <button class="btn" id="suBtn" type="button">Create account</button>
+            </div>
+            <div id="formLogin" class="step">
+              <div class="fld"><label for="liEmail">Email</label><input type="email" id="liEmail" placeholder="Email" autocomplete="email"/></div>
+              <div class="fld"><label for="liPass">Password</label><input type="password" id="liPass" placeholder="Password" autocomplete="current-password"/></div>
+              <div class="err" id="liErr"></div>
+              <button class="btn" id="liBtn" type="button">Log in</button>
+              <p class="hint">Forgot password? <a id="liForgot">Reset it</a></p>
+            </div>
+            <button class="tab-login" id="tabLoginAlt" type="button">Already a member? Log in</button>
+            <button class="tab-signup" id="tabSignupAlt" type="button">New here? Create account</button>
+          </div>
+          <div class="step" id="stepVerify">
+            <h2 style="font-size:19px;margin-bottom:8px;">Verify your email</h2>
+            <p class="sub">We emailed a 6-digit code to<br><b id="verifyEmail"></b></p>
+            <div class="fld"><label for="verifyOtp">6-digit code</label><input type="text" id="verifyOtp" maxlength="6" placeholder="123456" inputmode="numeric"/></div>
+            <div class="err" id="verifyErr"></div>
+            <button class="btn" id="verifyBtn" type="button">Verify &amp; continue</button>
+            <p class="hint">Didn't get it? <a id="verifyResend">Resend code</a> &middot; <a id="verifyBack">Back</a></p>
+          </div>
+        </div>
+        <p class="ig-trust">Zero commission on barter &middot; KYC-verified &middot; Free to start, no card</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEED -->
+  <section class="ig-feed">
+    <div class="feed-wrap">
+
+<!-- Stories -->
   <nav class="stories" aria-label="Jump to a feature">
     <a class="story" href="#post-barter"><span class="story-ring"><span class="story-ic"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></span></span><span class="story-label">Barter</span></a>
     <a class="story" href="#post-community"><span class="story-ring"><span class="story-ic"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></span><span class="story-label">Community</span></a>
@@ -577,29 +680,7 @@ main .spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255
     <a class="story" href="#post-gritscore"><span class="story-ring"><span class="story-ic"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0Z"/></svg></span></span><span class="story-label">Grit Score</span></a>
   </nav>
 
-  <!-- HERO POST -->
-  <article class="post" id="post-hero">
-    <div class="post-media hero-media">
-      <video data-mp4="/assets/hero.mp4" data-webm="/assets/hero.webm" data-poster="poster" poster="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&amp;fit=crop&amp;w=760&amp;q=60&amp;fm=jpg" muted loop playsinline preload="metadata" aria-label="Early-career professionals collaborating on laptops"></video>
-      <div class="hero-scrim"></div>
-      <h1 class="hero-h1">Put your skills to work for you.</h1>
-    </div>
-    <div class="post-actions" role="group" aria-label="Post actions">
-      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Like"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
-      <button class="icon-btn" type="button" aria-label="Comment"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg></button>
-      <button class="icon-btn" type="button" aria-label="Share"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
-      <span class="spacer"></span>
-      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Save"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"/></svg></button>
-    </div>
-    <div class="post-body">
-      <p class="post-caption"><strong>gritandgigs</strong> Build proof before you have a portfolio. Trade a skill, share the work you do, and prepare for interviews with company reports and focused practice.</p>
-      <a class="btn-primary" id="heroCta" href="#join">Build my free profile</a>
-      <a class="text-link" href="/prep/interview">Try a question free <span aria-hidden="true">&rarr;</span></a>
-      <p class="trust-line">Zero commission on barter &middot; KYC-verified &middot; Free to start, no card</p>
-    </div>
-  </article>
-
-  <!-- 1 BARTER -->
+<!-- 1 BARTER -->
   <article class="post" id="post-barter">
     <div class="post-head"><span class="avatar" aria-hidden="true">B</span><div class="grow"><p class="post-name">Skill Barter Exchange</p><p class="post-sub">gritandgigs</p></div><span class="tag">Free</span></div>
     <div class="post-media feat-media">
@@ -735,57 +816,10 @@ main .spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255
     <div class="post-body"><a class="btn-primary" id="priceCta" href="/prep#prepProCard">Unlock Prep Pro &rarr;</a><p class="price-note">Barter, community and messaging stay free forever. Pay once &mdash; no hidden charges.</p></div>
   </article>
 
-  <!-- SIGNUP -->
-  <article class="post" id="join">
-    <div class="post-head"><span class="avatar" aria-hidden="true">G</span><div class="grow"><p class="post-name">Create your free account</p><p class="post-sub">gritandgigs</p></div></div>
-    <div class="auth">
-      <div class="card" id="authCard">
-        <h2 id="cardTitle">Create your free account</h2>
-        <p class="sub" id="cardSub">Join to trade skills, share your work and connect with the community.</p>
-        <div class="step on" id="stepAuth">
-          <button class="g-btn" id="ggBtn" type="button">
-            <svg viewBox="0 0 48 48" width="19" height="19" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.4 6.1 29.5 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.1 18.9 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.4 6.1 29.5 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C33.5 42.6 43.6 36.9 43.6 20.1z"/></svg>
-            Continue with Google
-          </button>
-          <div class="g-or">or</div>
-          <div class="tabs" role="tablist">
-            <button class="tab on" id="tabSignup" type="button">Sign up</button>
-            <button class="tab" id="tabLogin" type="button">Log in</button>
-          </div>
-          <div id="formSignup" class="step on">
-            <div class="fld-row">
-              <div class="fld"><label for="suFirst">First name</label><input type="text" id="suFirst" placeholder="Arjun" autocomplete="given-name"/></div>
-              <div class="fld"><label for="suLast">Last name</label><input type="text" id="suLast" placeholder="Kumar" autocomplete="family-name"/></div>
-            </div>
-            <div class="fld"><label for="suEmail">Email</label><input type="email" id="suEmail" placeholder="you@email.com" autocomplete="email"/></div>
-            <div class="fld"><label for="suPhone">Phone (WhatsApp)</label><input type="tel" id="suPhone" placeholder="+91 98765 43210" autocomplete="tel"/></div>
-            <div class="fld"><label for="suPass">Password (8+ chars)</label><input type="password" id="suPass" placeholder="Password" autocomplete="new-password"/></div>
-            <div class="err" id="suErr"></div>
-            <button class="btn" id="suBtn" type="button">Create account</button>
-          </div>
-          <div id="formLogin" class="step">
-            <div class="fld"><label for="liEmail">Email</label><input type="email" id="liEmail" placeholder="you@email.com" autocomplete="email"/></div>
-            <div class="fld"><label for="liPass">Password</label><input type="password" id="liPass" placeholder="Your password" autocomplete="current-password"/></div>
-            <div class="err" id="liErr"></div>
-            <button class="btn" id="liBtn" type="button">Log in</button>
-            <p class="hint">Forgot password? <a id="liForgot">Reset it</a></p>
-          </div>
-        </div>
-        <div class="step" id="stepVerify">
-          <h2 style="font-size:19px;margin-bottom:8px;">Verify your email</h2>
-          <p class="sub">We emailed a 6-digit code to<br><b id="verifyEmail"></b></p>
-          <div class="fld"><label for="verifyOtp">6-digit code</label><input type="text" id="verifyOtp" maxlength="6" placeholder="123456" inputmode="numeric"/></div>
-          <div class="err" id="verifyErr"></div>
-          <button class="btn" id="verifyBtn" type="button">Verify &amp; continue</button>
-          <p class="hint">Didn't get it? <a id="verifyResend">Resend code</a> &middot; <a id="verifyBack">Back</a></p>
-        </div>
-      </div>
     </div>
-  </article>
+  </section>
 
-</div>
 </main>
-
 <div class="sticky-cta" id="stickyCta">
   <div class="grow"><strong style="font-size:15px;">Join free</strong><small>Free to start &middot; no card</small></div>
   <a href="#join">Join free</a>
@@ -812,7 +846,6 @@ main .spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255
     }, {threshold:.15, rootMargin:'80px 0px'});
     vids.forEach(function(v){ io.observe(v); });
   }
-  // Heart / save toggles
   document.querySelectorAll('.icon-btn').forEach(function(btn){
     var label = btn.getAttribute('aria-label');
     if (label === 'Like' || label === 'Save'){
@@ -832,19 +865,30 @@ main .spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255
       btn.addEventListener('click', function(){ document.getElementById('join').scrollIntoView({behavior: reduce ? 'auto' : 'smooth'}); });
     }
   });
-  // Sticky bar: show only after hero CTA leaves viewport (mobile CSS gates visibility)
+  // Alt login/signup toggles mirror the hidden tabs
+  function alt(id, target){
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('click', function(){
+      var t = document.getElementById(target);
+      if (t) t.click();
+      el.scrollIntoView({behavior: reduce ? 'auto' : 'smooth', block:'center'});
+    });
+  }
+  alt('tabLoginAlt', 'tabLogin');
+  alt('tabSignupAlt', 'tabSignup');
+  // Sticky bar: show only after the join panel leaves viewport (mobile CSS gates visibility)
   var bar = document.getElementById('stickyCta');
-  var heroCta = document.getElementById('heroCta');
-  if (bar && heroCta && 'IntersectionObserver' in window){
+  var join = document.getElementById('join');
+  if (bar && join && 'IntersectionObserver' in window){
     new IntersectionObserver(function(entries){
       var gone = !entries[0].isIntersecting && entries[0].boundingClientRect.top < 0;
       bar.classList.toggle('show', gone);
       document.body.classList.toggle('cta-show', gone);
-    }, {threshold:0}).observe(heroCta);
+    }, {threshold:0}).observe(join);
   }
 })();
 </script>
-
 
 <footer>
   <div class="wrap foot">
