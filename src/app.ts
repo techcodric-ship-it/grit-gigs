@@ -15,10 +15,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app: Express = express();
 
-// Behind Cloudflare + Railway: trust the proxy chain so the rate limiter keys
-// by the real client IP. Trusting only 1 hop buckets every visitor into a
-// single shared IP — everyone then 429s together.
-app.set("trust proxy", true);
+// Behind Cloudflare + Railway (2 proxy hops): trust both so the rate limiter
+// keys by the real client IP. `true` makes express-rate-limit throw.
+app.set("trust proxy", 2);
 
 // Canonical host: the Google OAuth callback is registered on www, so a session
 // created there is invisible to a page opened on the bare apex (localStorage
