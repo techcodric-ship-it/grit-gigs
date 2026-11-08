@@ -148,6 +148,7 @@
               <button class="pbtn" id="pShareBtn" style="display:none;">Share</button>
               <button class="pbtn view" id="pViewBtn" style="display:none;">View profile</button>
               <a class="pbtn ghost" id="pEditBtn" href="/settings.html" style="display:none;text-decoration:none;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>Edit profile</a>
+              <button class="pbtn" id="pLogoutBtn" type="button" style="display:none;">Log out</button>
             </div>
           </div>
         </div>
@@ -700,6 +701,20 @@
       var own = !!(curMe && curMe.id === u.id);
       $('pEditBtn').style.display = own ? '' : 'none';
       $('pViewBtn').style.display = own ? '' : 'none';
+      $('pLogoutBtn').style.display = own ? '' : 'none';
+      $('pLogoutBtn').onclick = function () {
+        var btn = this;
+        if (btn.dataset.busy) return;
+        btn.dataset.busy = '1';
+        btn.textContent = 'Logging out…';
+        var rt = null;
+        try { rt = localStorage.getItem('se_refresh'); } catch (e) {}
+        var done = function () {
+          try { localStorage.removeItem('se_token'); localStorage.removeItem('se_refresh'); localStorage.removeItem('se_user'); localStorage.removeItem('se_pro'); } catch (e) {}
+          location.href = '/';
+        };
+        fetch('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken: rt }) }).then(done, done);
+      };
       var shareBtn = $('pShareBtn');
       shareBtn.style.display = '';
       shareBtn.onclick = function () { c.shareProfile(u.id); };
