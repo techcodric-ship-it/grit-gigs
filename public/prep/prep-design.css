@@ -24,15 +24,18 @@ button,input,select,textarea{font:inherit;color:inherit}
   color:var(--ink) !important; -webkit-text-fill-color:var(--ink) !important; background:none !important; letter-spacing:-.035em !important; line-height:1.05 !important; }
 .prep-sub{ font-size:17px !important; color:var(--muted) !important; max-width:56ch; }
 
-/* tab bar */
-.prep-tabs{ position:sticky !important; top:52px !important; z-index:40; background:var(--bg) !important;
-  border-bottom:1px solid var(--line) !important; display:flex !important; gap:0 !important; margin:0 -4px 20px !important;
-  padding:0 4px !important; overflow-x:auto; scrollbar-width:none; }
-.prep-tabs::-webkit-scrollbar{ display:none; }
-.prep-tab{ flex:1 0 auto !important; border-radius:0 !important; border:0 !important; background:none !important;
-  border-bottom:2px solid transparent !important; color:var(--muted) !important; font-size:14px !important; font-weight:600 !important;
-  padding:14px 16px !important; text-align:center !important; }
-.prep-tab.on{ color:var(--ink) !important; background:none !important; border-bottom-color:var(--brand) !important; }
+/* tab bar — one design on every prep page */
+body .prep-tabs{ position:sticky !important; top:52px !important; z-index:40; background:#FFFFFF !important;
+  border-bottom:1px solid #E5E5EA !important; display:flex !important; gap:0 !important;
+  margin:0 auto !important; padding:0 4px !important; overflow-x:auto; scrollbar-width:none;
+  max-width:1080px !important; width:100% !important; }
+body .prep-tabs::-webkit-scrollbar{ display:none; }
+body .prep-tab{ flex:1 0 auto !important; border-radius:0 !important; border:0 !important; background:transparent !important;
+  border-bottom:2px solid transparent !important; color:#6B6B76 !important; font-size:14px !important; font-weight:600 !important;
+  padding:14px 16px !important; text-align:center !important; box-shadow:none !important; text-decoration:none !important; }
+body .prep-tab::before{ display:none !important; }
+body .prep-tab.on{ color:#111114 !important; background:transparent !important; border-bottom-color:#6C3CE9 !important; box-shadow:none !important; }
+body .prep-wrap{ max-width:1080px !important; margin-left:auto !important; margin-right:auto !important; }
 
 /* promo */
 .prep-promo{ background:var(--soft) !important; border:0 !important; border-bottom:1px solid var(--line) !important;
