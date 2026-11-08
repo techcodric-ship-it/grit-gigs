@@ -20,7 +20,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .prep-pro-price,.prep-stats b{ font-family:var(--display) !important; letter-spacing:-.035em !important; line-height:1.05 !important; }
 .prep-wrap h2,.prep-h2{ font-size:clamp(28px,5.5vw,42px) !important; font-weight:800 !important; }
 .prep-wrap h3{ font-size:19px !important; font-weight:700 !important; letter-spacing:-.02em !important; line-height:1.2 !important; }
-.prep-hero .prep-h1,.prep-hero-sm .prep-hero-sm-h{ font-size:clamp(38px,9vw,68px) !important; font-weight:800 !important;
+KEY !important; font-weight:800 !important;
   color:var(--ink) !important; -webkit-text-fill-color:var(--ink) !important; background:none !important; letter-spacing:-.035em !important; line-height:1.05 !important; }
 .prep-sub{ font-size:17px !important; color:var(--muted) !important; max-width:56ch; }
 
@@ -93,8 +93,7 @@ body .pd-hero-media{ background:#FFFFFF !important; }
 .prep-live b{ color:var(--ink) !important; }
 
 /* hero clip */
-.pd-hero-media{ border-radius:18px !important; overflow:hidden; aspect-ratio:16/6; max-height:260px; border:1px solid var(--line) !important;
-  background:linear-gradient(135deg,var(--soft),var(--sunk)) !important; margin:0 0 28px !important; }
+.pd-hero-media{ border-radius:18px !important; overflow:hidden !important; height:320px !important; aspect-ratio:auto !important; max-height:none !important; border:1px solid var(--line) !important; background:#FFFFFF !important; display:grid !important; place-items:center !important; margin:0 0 28px !important; }
 .pd-hero-media video{ width:100%; height:100%; object-fit:cover; display:block; }
 @media (max-width:760px){ .pd-hero-media{ aspect-ratio:16/9; max-height:none; } }
 
@@ -205,3 +204,8 @@ section.prep-card:has(#prepSearchForm) .prep-h2{ font-size:26px !important; }
 .prep-eyebrow::before{ background:#6C3FE8 !important; }
 .prep-trust-chips li::before{ color:#6C3FE8 !important; }
 .prep-card-pro .prep-h2::before{ background:#6C3FE8 !important; }
+
+/* headline compact + no decorative arcs */
+.prep-hero .prep-h1,.prep-hero-sm .prep-hero-sm-h{ font-size:clamp(30px,5.2vw,44px) !important; }
+.prep-hero::before,.prep-hero::after,.prep-hero-sm::before,.prep-hero-sm::after{ content:none !important; background:none !important; display:none !important; }
+.pd-hero-media img.cute{ max-height:280px !important; }
