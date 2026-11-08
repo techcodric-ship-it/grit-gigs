@@ -1162,5 +1162,35 @@ main .fbox-cta .fb-btn{flex:none;margin:0;min-width:168px;height:52px;font-size:
     .catch(function () { /* keep the last painted state */ });
 })();
 </script>
+<script>
+(function () {
+  try {
+    var ua = navigator.userAgent || "";
+    if (!/Instagram|FBAN|FB_IAB|FBAN|MicroMessenger|Line\//i.test(ua)) return;
+    if (document.getElementById("igOpenBanner")) return;
+    var bar = document.createElement("div");
+    bar.id = "igOpenBanner";
+    bar.style.cssText = "position:fixed;left:0;right:0;top:0;z-index:99999;background:#6C3FE8;color:#fff;font:500 14px/1.4 system-ui,sans-serif;padding:12px 16px;text-align:center";
+    bar.innerHTML = "Instagram's browser can't keep you signed in. " +
+      '<button id="igOpenBtn" style="margin-left:8px;background:#fff;color:#6C3FE8;border:0;border-radius:999px;padding:7px 16px;font-weight:700;cursor:pointer">Open in Chrome</button>' +
+      '<button id="igStayBtn" style="margin-left:8px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:999px;padding:6px 14px;cursor:pointer">Keep browsing</button>' +
+      '<div style="opacity:.85;margin-top:4px;font-size:12px">Prep drill, aptitude and saved sessions need a normal browser.</div>';
+    document.body.insertBefore(bar, document.body.firstChild);
+    document.getElementById("igOpenBtn").addEventListener("click", function () {
+      var url = location.href;
+      var inAppUrl = url.replace(/^https?:\/\//, "");
+      var isAndroid = /Android/i.test(ua);
+      if (isAndroid) {
+        location.href = "intent://" + inAppUrl + "#Intent;scheme=" + location.protocol.replace(":", "") +
+          ";package=com.android.chrome;end";
+      } else {
+        location.href = "googlechromes://" + inAppUrl;
+      }
+    });
+    document.getElementById("igStayBtn").addEventListener("click", function () { bar.remove(); });
+  } catch (e) {}
+})();
+</script>
+
 </body>
 </html>
