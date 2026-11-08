@@ -96,7 +96,7 @@
   .iv-feat p { font-size:0.86rem; line-height:1.55; color:var(--prep-ink-2); margin:0; }
   .iv-sub { font-size:0.83rem; line-height:1.5; color:var(--prep-ink-2); margin:6px 0 0; }
 </style>
-<link rel="stylesheet" href="/prep/prep-insta.css?v=3"/><link rel="stylesheet" href="/prep/prep-design.css?v=14"/><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">"/>
+<link rel="stylesheet" href="/prep/prep-insta.css?v=3"/><link rel="stylesheet" href="/prep/prep-design.css?v=15"/><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">"/>
 </head>
 <body>
 <header class="topnav">
@@ -463,6 +463,20 @@
   function setLocked(hidden) {
     for (var i = 0; i < lockedSections.length; i++) lockedSections[i].style.display = hidden ? "none" : "";
   }
+  // prep-design.css gives .prep-btn and .prep-hero-ctas `display:...!important`,
+  // which beats both the inline style and the [hidden] attribute. Hiding with
+  // an important inline declaration is the only reliable way to keep a CTA
+  // such as "Sign in" away from a member who is already signed in.
+  function setShown(el, shown) {
+    if (!el) return;
+    if (shown) {
+      el.hidden = false;
+      el.style.removeProperty("display");
+    } else {
+      el.hidden = true;
+      el.style.setProperty("display", "none", "important");
+    }
+  }
   function showPaywall(kind) {
     paywall.hidden = false;
     setLocked(true);
@@ -476,7 +490,7 @@
     var heroUnlock = document.getElementById("ivHeroUnlock");
     if (heroUnlock) { heroUnlock.textContent = "Unlock Prep Pro \u2014 \u20B9199"; heroUnlock.href = "#ivPaywall"; }
     var heroInside = document.getElementById("ivHeroInside");
-    if (heroInside) heroInside.style.display = "";
+    if (heroInside) setShown(heroInside, true);
     var primary = document.getElementById("ivPaywallPrimary");
     var alt = document.getElementById("ivPaywallAlt");
     if (kind === "signin") {
@@ -484,14 +498,14 @@
       primary.href = "/login?next=" + encodeURIComponent(location.pathname);
       alt.textContent = "See what's included";
       alt.href = "/prep#prepProCard";
-      alt.style.display = "";
+      setShown(alt, true);
     } else {
       var t = typeof currentTarget === "function" ? currentTarget() : null;
       var coEl = document.getElementById("ivPaywallCo");
       if (coEl) coEl.textContent = t && t.company ? " for " + t.company : "";
       primary.textContent = "Unlock & get everything unlimited \u2014 \u20B9199";
       primary.href = "/prep#prepProCard";
-      alt.style.display = "none";
+      setShown(alt, false);
     }
   }
   function showSessions() {
@@ -507,14 +521,14 @@
     var heroUnlock = document.getElementById("ivHeroUnlock");
     if (heroUnlock) { heroUnlock.textContent = "Start today's drill"; heroUnlock.href = "#todayCard"; }
     var heroInside = document.getElementById("ivHeroInside");
-    if (heroInside) heroInside.style.display = "none";
+    if (heroInside) setShown(heroInside, false);
   }
   // Pro owns everything the free sample sells — a paid member must never see
-  // the buy CTA or "1 a day" quota copy (style.display, not hidden: the CTA
-  // wrapper carries display:flex which beats the [hidden] attribute).
+  // the buy CTA or "1 a day" quota copy. The CTA wrapper carries
+  // display:flex !important, so hiding goes through setShown().
   function applyProExtras() {
     var up = document.getElementById("sampleUpsell");
-    if (up) up.style.display = "none";
+    if (up) setShown(up, false);
     var sub = document.getElementById("sampleSub");
     if (sub) sub.textContent = "Part of Prep Pro \u2014 unlimited AI answer scores, full company packs and AI-scored mocks.";
     var kick = document.getElementById("resumeKick");
@@ -619,7 +633,7 @@
         document.getElementById("packList").innerHTML = qs.length
           ? qs.map(packQuestionHtml).join("")
           : '<div class="prep-empty">Nothing shared yet. Use the form below to add the first question.</div>';
-        packUpsell.hidden = !!(data.isPro || data.found === false || data.total === 0);
+        setShown(packUpsell, !(data.isPro || data.found === false || data.total === 0));
         packOut.hidden = false;
         if (data.found === false) {
           document.getElementById("packForm").hidden = false;

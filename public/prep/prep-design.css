@@ -205,3 +205,24 @@ section.prep-card:has(#prepSearchForm) .prep-h2{ font-size:26px !important; }
 .prep-eyebrow::before{ background:#6C3FE8 !important; }
 .prep-trust-chips li::before{ color:#6C3FE8 !important; }
 .prep-card-pro .prep-h2::before{ background:#6C3FE8 !important; }
+
+/* --------------------------------------------------------------------------
+   Light-theme corrections.
+   prep-insta.css paints the hero for a black card (white heading, white step
+   titles, translucent chips, transparent ghost button). This design layer
+   removes that black background, so those colours must be reset to the light
+   theme or they disappear against white. These rules are last and match the
+   incoming specificity, so they win the cascade.
+   -------------------------------------------------------------------------- */
+[hidden]{ display:none !important; }
+.prep-hero .prep-sub,
+.prep-hero-sm .prep-sub,
+.prep-hero-sm + .prep-sub{ color:var(--muted) !important; }
+.prep-steps{ color:var(--muted) !important; }
+.prep-steps b,
+.prep-steps strong{ color:var(--ink) !important; }
+.prep-steps li span{ color:var(--muted) !important; }
+.prep-hero .prep-btn-ghost,
+.prep-hero-sm .prep-btn-ghost{ background:var(--bg) !important; color:var(--ink) !important; border-color:var(--line) !important; }
+.prep-hero .prep-btn-ghost:hover,
+.prep-hero-sm .prep-btn-ghost:hover{ background:var(--sunk) !important; }

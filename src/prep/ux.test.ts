@@ -1170,9 +1170,20 @@ describe("round 16: Pro members never see the sell — resume file upload, zero 
     expect(ivPage).toContain('id="resumeKick"');
     expect(ivPage).toContain("function applyProExtras()");
     expect(ivPage).toMatch(/isPro.*applyProExtras\(\)/);
-    expect(ivPage).toContain('up.style.display = "none"');
+    expect(ivPage).toContain("if (up) setShown(up, false);");
     expect(ivPage).toContain("Part of Prep Pro \\u2014 unlimited AI answer scores, full company packs and AI-scored mocks.");
     expect(ivPage).toContain('kick.textContent = "AI resume checks \\u00B7 unlimited"');
+  });
+
+  it("hidden CTAs stay hidden even when a stylesheet forces display", () => {
+    // The light-theme layer forces .prep-btn / .prep-hero-ctas to display, so
+    // a plain inline "none" loses. Hiding must use an important declaration or
+    // a signed-in member still sees "Sign in" / the Pro upsell.
+    const design = read("public/prep/prep-design.css");
+    expect(design).toContain("[hidden]{ display:none !important; }");
+    expect(ivPage).toContain('el.style.setProperty("display", "none", "important")');
+    expect(ivPage).toContain("setShown(alt, false);");
+    expect(ivPage).toContain("setShown(heroInside, false);");
   });
 
   it("upload fills the same textarea the check reads — review before spending a check", () => {

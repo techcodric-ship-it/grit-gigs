@@ -182,6 +182,10 @@ describe("aptitude wiring (source-level)", () => {
     expect(page).toContain("esc(q.question)");
     expect(page).toContain("esc(r.explanation)");
   });
+  it("hides the Sign in CTA for signed-in members with an important display", () => {
+    expect(page).toContain('el.style.setProperty("display", "none", "important")');
+    expect(page).toContain("setShown(alt, false);");
+  });
   const pages = read("src/prep/pages.ts");
   it("pages middleware serves aptitude.html extensionlessly", () => {
     expect(pages).toContain('${rel}.html');

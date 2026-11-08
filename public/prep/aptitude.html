@@ -24,7 +24,7 @@
   .apt-topic { border:1px solid var(--prep-line); background:#fff; border-radius:999px; padding:8px 16px; font:inherit; font-size:0.9rem; font-weight:700; cursor:pointer; color: var(--prep-ink-2); text-transform:capitalize; }
   .apt-topic[aria-pressed="true"] { background: var(--prep-violet); border-color: var(--prep-violet); color:#fff; }
 </style>
-<link rel="stylesheet" href="/prep/prep-insta.css?v=3"/><link rel="stylesheet" href="/prep/prep-design.css?v=14"/><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">"/>
+<link rel="stylesheet" href="/prep/prep-insta.css?v=3"/><link rel="stylesheet" href="/prep/prep-design.css?v=15"/><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">"/>
 </head>
 <body>
 <header class="topnav">
@@ -181,6 +181,20 @@
   function setLocked(hidden) {
     for (var i = 0; i < lockedSections.length; i++) lockedSections[i].style.display = hidden ? "none" : "";
   }
+  // prep-design.css gives .prep-btn `display:inline-flex !important`, which
+  // beats both the inline style and the [hidden] attribute. Hiding with an
+  // important inline declaration is the only reliable way to keep "Sign in"
+  // away from a member who is already signed in.
+  function setShown(el, shown) {
+    if (!el) return;
+    if (shown) {
+      el.hidden = false;
+      el.style.removeProperty("display");
+    } else {
+      el.hidden = true;
+      el.style.setProperty("display", "none", "important");
+    }
+  }
   function showPaywall(kind) {
     paywall.hidden = false;
     setLocked(true);
@@ -191,11 +205,11 @@
       primary.href = "/login?next=" + encodeURIComponent(location.pathname);
       alt.textContent = "See Prep Pro";
       alt.href = "/prep#prepProCard";
-      alt.style.display = "";
+      setShown(alt, true);
     } else {
       primary.textContent = "Get Prep Pro";
       primary.href = "/prep#prepProCard";
-      alt.style.display = "none";
+      setShown(alt, false);
     }
   }
   function showSessions() {
