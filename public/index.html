@@ -564,6 +564,32 @@ main .price-note{padding:0 12px 12px;font-size:13px;color:var(--ink-3);margin:0;
 .sticky-cta a{display:flex;align-items:center;justify-content:center;height:46px;padding:0 24px;background:#6C3FE8;color:#fff;text-decoration:none;font-weight:600;font-size:16px;border-radius:999px;}
 @media (max-width:760px){.sticky-cta{display:flex;} body.cta-show main{padding-bottom:80px;}}
 @media (prefers-reduced-motion: reduce){main *, .sticky-cta{transition:none !important;animation:none !important;}}
+/* ---------- Plain feature boxes (replaces IG feed) ---------- */
+main .ig-feed{background:#FFFFFF;padding:24px 0 64px;}
+main .fn-pills{display:flex;gap:8px;overflow-x:auto;padding:0 0 16px;margin:0 0 16px;border-bottom:1px solid #E5E5EA;scrollbar-width:none;}
+main .fn-pills::-webkit-scrollbar{display:none;}
+main .fn-pill{flex:none;text-decoration:none;font-size:13px;font-weight:600;color:#3E3E47;background:#F7F7F8;border:1px solid #E5E5EA;border-radius:999px;padding:8px 14px;}
+main .fn-pill.on{color:#5430C9;background:#F0ECFD;border-color:#E9E2FE;}
+main .fbox{background:#FFFFFF;border:1px solid #E5E5EA;border-radius:16px;overflow:hidden;margin-bottom:20px;scroll-margin-top:76px;}
+main .fb-media{aspect-ratio:4/3;background:#EDEDEF;overflow:hidden;}
+main .fb-media video{width:100%;height:100%;object-fit:cover;display:block;}
+main .fb-body{padding:20px;}
+main .fb-body h3{font-size:20px;font-weight:700;letter-spacing:-.01em;margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+main .fb-tag{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5430C9;background:#F0ECFD;border-radius:999px;padding:4px 10px;}
+main .fb-body p{margin:8px 0 0;font-size:15px;line-height:1.6;color:#3E3E47;}
+main .fb-link{display:inline-flex;margin-top:12px;color:#6C3FE8;font-weight:600;font-size:15px;text-decoration:none;}
+main .fb-link:active{text-decoration:underline;}
+main .fb-score{font-size:14px;color:#6B6B76;}
+main .fb-score b{color:#6C3FE8;}
+main .fb-price{font-size:32px;font-weight:700;letter-spacing:-.02em;margin:8px 0 0;}
+main .fb-price span{font-size:14px;font-weight:400;color:#6B6B76;letter-spacing:0;}
+main .fb-body .price-list{list-style:none;padding:16px 0 4px;display:grid;gap:10px;margin:0;}
+main .fb-body .price-list li{display:flex;gap:10px;align-items:flex-start;font-size:15px;color:#3E3E47;}
+main .fb-body .price-list .lucide{width:18px;height:18px;color:#6C3FE8;margin-top:3px;flex:none;}
+main .fb-btn{display:flex;align-items:center;justify-content:center;height:48px;background:#6C3FE8;color:#fff;text-decoration:none;font-weight:600;font-size:16px;border-radius:999px;margin-top:16px;}
+main .fb-btn:active{background:#5430C9;}
+main .fb-note{margin-top:12px;font-size:13px;color:#6B6B76;}
+main .fbox-cta .fb-btn{max-width:240px;}
 </style>
 
 
@@ -668,156 +694,115 @@ main .price-note{padding:0 12px 12px;font-size:13px;color:var(--ink-3);margin:0;
 
   <!-- FEED -->
   <section class="ig-feed">
-    <div class="feed-wrap">
+  <div class="feed-wrap">
 
-<!-- Stories -->
-  <nav class="stories" aria-label="Jump to a feature">
-    <a class="story" href="#post-barter"><span class="story-ring"><span class="story-ic"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></span></span><span class="story-label">Barter</span></a>
-    <a class="story" href="#post-community"><span class="story-ring"><span class="story-ic"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></span><span class="story-label">Community</span></a>
-    <a class="story" href="#post-interview"><span class="story-ring"><span class="story-ic"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg></span></span><span class="story-label">Interview</span></a>
-    <a class="story" href="#post-reports"><span class="story-ring"><span class="story-ic"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span></span><span class="story-label">Reports</span></a>
-    <a class="story" href="#post-aptitude"><span class="story-ring"><span class="story-ic"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg></span></span><span class="story-label">Aptitude</span></a>
-    <a class="story" href="#post-gritscore"><span class="story-ring"><span class="story-ic"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0Z"/></svg></span></span><span class="story-label">Grit Score</span></a>
-  </nav>
+    <nav class="fn-pills" aria-label="Jump to a feature">
+      <a class="fn-pill on" href="#post-barter">Barter</a>
+      <a class="fn-pill" href="#post-community">Community</a>
+      <a class="fn-pill" href="#post-interview">Interview</a>
+      <a class="fn-pill" href="#post-reports">Reports</a>
+      <a class="fn-pill" href="#post-aptitude">Aptitude</a>
+      <a class="fn-pill" href="#post-gritscore">Grit Score</a>
+    </nav>
 
-<!-- 1 BARTER -->
-  <article class="post" id="post-barter">
-    <div class="post-head"><span class="avatar" aria-hidden="true">B</span><div class="grow"><p class="post-name">Skill Barter Exchange</p><p class="post-sub">gritandgigs</p></div><span class="tag">Free</span></div>
-    <div class="post-media feat-media">
-      <video data-mp4="/assets/barter.mp4" data-webm="/assets/barter.webm" poster="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&amp;fit=crop&amp;w=760&amp;q=60&amp;fm=jpg" muted loop playsinline preload="none" aria-label="Two people exchanging work on a laptop"></video>
-      <span class="chip">Matched by skill, location and rating</span>
-    </div>
-    <div class="post-actions" role="group" aria-label="Post actions">
-      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Like"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
-      <button class="icon-btn" type="button" aria-label="Comment"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg></button>
-      <button class="icon-btn" type="button" aria-label="Share"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
-      <span class="spacer"></span>
-      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Save"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"/></svg></button>
-    </div>
-    <div class="post-body">
-      <p class="post-caption"><strong>gritandgigs</strong> Post what you offer and need. Our AI matches you by skill, city and rating &mdash; zero commission, both sides confirm.</p>
-      <p><a href="/explore?kind=BARTER">Browse the barter market &rarr;</a></p>
-    </div>
-  </article>
+    <!-- 1 BARTER -->
+    <article class="fbox" id="post-barter">
+      <div class="fb-media">
+        <video data-mp4="/assets/barter.mp4" data-webm="/assets/barter.webm" poster="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&amp;fit=crop&amp;w=760&amp;q=60&amp;fm=jpg" muted loop playsinline preload="none" aria-label="Two people exchanging work on a laptop"></video>
+      </div>
+      <div class="fb-body">
+        <h3>Skill Barter Exchange <span class="fb-tag">Free</span></h3>
+        <p>Post what you offer and need. Our AI matches you by skill, city and rating &mdash; zero commission, both sides confirm.</p>
+        <a class="fb-link" href="/explore?kind=BARTER">Browse the barter market &rarr;</a>
+      </div>
+    </article>
 
-  <!-- 2 COMMUNITY -->
-  <article class="post" id="post-community">
-    <div class="post-head"><span class="avatar" aria-hidden="true">C</span><div class="grow"><p class="post-name">Community Feed</p><p class="post-sub">gritandgigs</p></div><span class="tag">Free</span></div>
-    <div class="post-media feat-media">
-      <video data-mp4="/assets/community.mp4" data-webm="/assets/community.webm" poster="https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&amp;fit=crop&amp;w=760&amp;q=60&amp;fm=jpg" muted loop playsinline preload="none" aria-label="People sharing work in a group"></video>
-    </div>
-    <div class="post-actions" role="group" aria-label="Post actions">
-      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Like"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
-      <button class="icon-btn" type="button" aria-label="Comment"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg></button>
-      <button class="icon-btn" type="button" aria-label="Share"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
-      <span class="spacer"></span>
-      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Save"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"/></svg></button>
-    </div>
-    <div class="post-body">
-      <p class="post-caption"><strong>gritandgigs</strong> Share wins, tips and clips. Get likes, comments and reviews &mdash; follow and get discovered by people searching your skill.</p>
-      <p><a href="/explore">Explore the feed &rarr;</a></p>
-    </div>
-  </article>
+    <!-- 2 COMMUNITY -->
+    <article class="fbox" id="post-community">
+      <div class="fb-media">
+        <video data-mp4="/assets/community.mp4" data-webm="/assets/community.webm" poster="https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&amp;fit=crop&amp;w=760&amp;q=60&amp;fm=jpg" muted loop playsinline preload="none" aria-label="People sharing work in a group"></video>
+      </div>
+      <div class="fb-body">
+        <h3>Community Feed <span class="fb-tag">Free</span></h3>
+        <p>Share wins, tips and clips. Get likes, comments and reviews &mdash; follow and get discovered by people searching your skill.</p>
+        <a class="fb-link" href="/explore">Explore the feed &rarr;</a>
+      </div>
+    </article>
 
-  <!-- 3 INTERVIEW -->
-  <article class="post" id="post-interview">
-    <div class="post-head"><span class="avatar" aria-hidden="true">I</span><div class="grow"><p class="post-name">Interview Prep</p><p class="post-sub">gritandgigs</p></div><span class="tag">Prep Pro</span></div>
-    <div class="post-media feat-media">
-      <video data-mp4="/assets/interview.mp4" data-webm="/assets/interview.webm" poster="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&amp;fit=crop&amp;w=760&amp;q=60&amp;fm=jpg" muted loop playsinline preload="none" aria-label="Candidate practising interview answers"></video>
-      <span class="chip">7/10</span>
-    </div>
-    <div class="post-actions" role="group" aria-label="Post actions">
-      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Like"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
-      <button class="icon-btn" type="button" aria-label="Comment"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg></button>
-      <button class="icon-btn" type="button" aria-label="Share"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
-      <span class="spacer"></span>
-      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Save"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"/></svg></button>
-    </div>
-    <div class="post-body">
-      <p class="post-caption"><strong>gritandgigs</strong> Six fresh drill questions daily. AI scores every answer 0&ndash;10, with mocks, resume checks and prep plans.</p>
-      <p><a href="/prep">Open Prep &rarr;</a></p>
-    </div>
-  </article>
+    <!-- 3 INTERVIEW -->
+    <article class="fbox" id="post-interview">
+      <div class="fb-media">
+        <video data-mp4="/assets/interview.mp4" data-webm="/assets/interview.webm" poster="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&amp;fit=crop&amp;w=760&amp;q=60&amp;fm=jpg" muted loop playsinline preload="none" aria-label="Candidate practising interview answers"></video>
+      </div>
+      <div class="fb-body">
+        <h3>Interview Prep <span class="fb-tag">Prep Pro</span></h3>
+        <p>Six fresh drill questions daily. AI scores every answer 0&ndash;10, with mocks, resume checks and prep plans.</p>
+        <a class="fb-link" href="/prep">Open Prep &rarr;</a>
+      </div>
+    </article>
 
-  <!-- MID CTA -->
-  <div class="mid-cta">
-    <h2>Join free</h2>
-    <p>Free forever for barter, community and messaging. No card required.</p>
-    <a class="btn-primary" href="#join">Join free</a>
+    <!-- MID CTA -->
+    <div class="fbox fbox-cta">
+      <h3>Join free</h3>
+      <p>Free forever for barter, community and messaging. No card required.</p>
+      <a class="fb-btn" href="#join">Join free</a>
+    </div>
+
+    <!-- 4 REPORTS -->
+    <article class="fbox" id="post-reports">
+      <div class="fb-media">
+        <video data-mp4="/assets/reports.mp4" data-webm="/assets/reports.webm" poster="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&amp;fit=crop&amp;w=760&amp;q=60&amp;fm=jpg" muted loop playsinline preload="none" aria-label="Reading company documents at a desk"></video>
+      </div>
+      <div class="fb-body">
+        <h3>Company Reports <span class="fb-tag">Free daily</span></h3>
+        <p>Written by candidates after real interviews, every claim source-labelled, nothing scraped. Free daily &mdash; unlimited on Pro.</p>
+        <a class="fb-link" href="/prep">Read a free report &rarr;</a>
+      </div>
+    </article>
+
+    <!-- 5 APTITUDE -->
+    <article class="fbox" id="post-aptitude">
+      <div class="fb-media">
+        <video data-mp4="/assets/aptitude.mp4" data-webm="/assets/aptitude.webm" poster="https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&amp;fit=crop&amp;w=760&amp;q=60&amp;fm=jpg" muted loop playsinline preload="none" aria-label="Student solving aptitude problems"></video>
+      </div>
+      <div class="fb-body">
+        <h3>Aptitude <span class="fb-tag">Prep Pro</span></h3>
+        <p>Quant, logic and verbal drills built from what Indian companies ask.</p>
+        <a class="fb-link" href="/prep/aptitude">Start a drill &rarr;</a>
+      </div>
+    </article>
+
+    <!-- 6 GRIT SCORE -->
+    <article class="fbox" id="post-gritscore">
+      <div class="fb-media">
+        <video data-mp4="/assets/gritscore.mp4" data-webm="/assets/gritscore.webm" poster="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&amp;fit=crop&amp;w=760&amp;q=60&amp;fm=jpg" muted loop playsinline preload="none" aria-label="Evidence feeding a score dashboard"></video>
+      </div>
+      <div class="fb-body">
+        <h3>Grit Score <span class="fb-tag">Coming soon</span></h3>
+        <p>Your proof, scored. A 300&ndash;900 Proof Score computed from evidence &mdash; shareable only when you opt in.</p>
+        <p class="fb-score">Preview: <b>742 &middot; Solid</b></p>
+      </div>
+    </article>
+
+    <!-- PRICING -->
+    <article class="fbox" id="pricing">
+      <div class="fb-body">
+        <h3>Prep Pro</h3>
+        <p class="fb-price">&#8377;199 <span>one-time &middot; 30 days &middot; no auto-renewal</span></p>
+        <ul class="price-list">
+          <li><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>AI scores every mock answer 0&ndash;10</span></li>
+          <li><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Unlimited resume checks</span></li>
+          <li><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Every full company pack, every question</span></li>
+          <li><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>AI-built prep plans per company</span></li>
+        </ul>
+        <a class="fb-btn" id="priceCta" href="/prep#prepProCard">Unlock Prep Pro &rarr;</a>
+        <p class="fb-note">Barter, community and messaging stay free forever. Pay once &mdash; no hidden charges.</p>
+      </div>
+    </article>
+
   </div>
+</section>
 
-  <!-- 4 REPORTS -->
-  <article class="post" id="post-reports">
-    <div class="post-head"><span class="avatar" aria-hidden="true">R</span><div class="grow"><p class="post-name">Company Reports</p><p class="post-sub">gritandgigs</p></div><span class="tag">Free daily</span></div>
-    <div class="post-media feat-media">
-      <video data-mp4="/assets/reports.mp4" data-webm="/assets/reports.webm" poster="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&amp;fit=crop&amp;w=760&amp;q=60&amp;fm=jpg" muted loop playsinline preload="none" aria-label="Reading company documents at a desk"></video>
-    </div>
-    <div class="post-actions" role="group" aria-label="Post actions">
-      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Like"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
-      <button class="icon-btn" type="button" aria-label="Comment"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg></button>
-      <button class="icon-btn" type="button" aria-label="Share"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
-      <span class="spacer"></span>
-      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Save"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"/></svg></button>
-    </div>
-    <div class="post-body">
-      <p class="post-caption"><strong>gritandgigs</strong> Written by candidates after real interviews, every claim source-labelled, nothing scraped. Free daily &mdash; unlimited on Pro.</p>
-      <p><a href="/prep">Read a free report &rarr;</a></p>
-    </div>
-  </article>
-
-  <!-- 5 APTITUDE -->
-  <article class="post" id="post-aptitude">
-    <div class="post-head"><span class="avatar" aria-hidden="true">A</span><div class="grow"><p class="post-name">Aptitude</p><p class="post-sub">gritandgigs</p></div><span class="tag">Prep Pro</span></div>
-    <div class="post-media feat-media">
-      <video data-mp4="/assets/aptitude.mp4" data-webm="/assets/aptitude.webm" poster="https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&amp;fit=crop&amp;w=760&amp;q=60&amp;fm=jpg" muted loop playsinline preload="none" aria-label="Student solving aptitude problems"></video>
-    </div>
-    <div class="post-actions" role="group" aria-label="Post actions">
-      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Like"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
-      <button class="icon-btn" type="button" aria-label="Comment"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg></button>
-      <button class="icon-btn" type="button" aria-label="Share"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
-      <span class="spacer"></span>
-      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Save"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"/></svg></button>
-    </div>
-    <div class="post-body">
-      <p class="post-caption"><strong>gritandgigs</strong> Quant, logic and verbal drills built from what Indian companies ask.</p>
-      <p><a href="/prep/aptitude">Start a drill &rarr;</a></p>
-    </div>
-  </article>
-
-  <!-- 6 GRIT SCORE -->
-  <article class="post" id="post-gritscore">
-    <div class="post-head"><span class="avatar" aria-hidden="true">G</span><div class="grow"><p class="post-name">Grit Score</p><p class="post-sub">gritandgigs</p></div><span class="tag">Coming soon</span></div>
-    <div class="post-media feat-media">
-      <video data-mp4="/assets/gritscore.mp4" data-webm="/assets/gritscore.webm" poster="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&amp;fit=crop&amp;w=760&amp;q=60&amp;fm=jpg" muted loop playsinline preload="none" aria-label="Evidence feeding a score dashboard"></video>
-      <span class="chip">742 &middot; Solid</span>
-    </div>
-    <div class="post-actions" role="group" aria-label="Post actions">
-      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Like"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
-      <button class="icon-btn" type="button" aria-label="Comment"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg></button>
-      <button class="icon-btn" type="button" aria-label="Share"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
-      <span class="spacer"></span>
-      <button class="icon-btn" type="button" aria-pressed="false" aria-label="Save"><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"/></svg></button>
-    </div>
-    <div class="post-body">
-      <p class="post-caption"><strong>gritandgigs</strong> Your proof, scored. A 300&ndash;900 Proof Score computed from evidence &mdash; shareable only when you opt in.</p>
-    </div>
-  </article>
-
-  <!-- PRICING -->
-  <article class="post" id="pricing">
-    <div class="price-head"><span class="avatar" aria-hidden="true">&#8377;</span><div class="grow"><p class="post-name">Prep Pro</p><p class="post-sub">gritandgigs</p></div><span class="tag">The only paid plan</span></div>
-    <p class="price-amt">&#8377;199 <small>one-time &middot; 30 days &middot; no auto-renewal</small></p>
-    <ul class="price-list">
-      <li><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>AI scores every mock answer 0&ndash;10</span></li>
-      <li><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Unlimited resume checks</span></li>
-      <li><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Every full company pack, every question</span></li>
-      <li><svg class="lucide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>AI-built prep plans per company</span></li>
-    </ul>
-    <div class="post-body"><a class="btn-primary" id="priceCta" href="/prep#prepProCard">Unlock Prep Pro &rarr;</a><p class="price-note">Barter, community and messaging stay free forever. Pay once &mdash; no hidden charges.</p></div>
-  </article>
-
-    </div>
-  </section>
 
 </main>
 <div class="sticky-cta" id="stickyCta">
