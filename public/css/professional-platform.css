@@ -83,9 +83,9 @@ footer { background: #fff !important; border-top: 1px solid var(--pro-line) !imp
 footer a:hover { color: var(--pro-accent) !important; }
 
 /* Feed-matched logo: exact locked geometry */
-header .nav-logo { display: inline-flex !important; align-items: center !important; gap: 10px !important; height: 44px !important; line-height: 44px !important; text-decoration: none !important; }
-header .nav-logo-mark { flex: 0 0 44px !important; box-sizing: border-box !important; width: 44px !important; min-width: 44px !important; height: 44px !important; padding: 0 !important; margin: 0 !important; border-radius: 12px !important; background: #fff !important; border: 1px solid rgba(0,0,0,.12) !important; box-shadow: 0 1px 2px rgba(0,0,0,.03) !important; display: flex !important; align-items: center !important; justify-content: center !important; overflow: hidden !important; }
-header .nav-logo-mark img { width: 32px !important; height: 32px !important; max-width: 32px !important; max-height: 32px !important; object-fit: contain !important; display: block !important; margin: 0 !important; }
+header .nav-logo, footer .nav-logo { display: inline-flex !important; align-items: center !important; gap: 10px !important; height: 44px !important; line-height: 44px !important; text-decoration: none !important; }
+header .nav-logo-mark, footer .nav-logo-mark { flex: 0 0 44px !important; box-sizing: border-box !important; width: 44px !important; min-width: 44px !important; height: 44px !important; padding: 0 !important; margin: 0 !important; border-radius: 12px !important; background: #fff !important; border: 1px solid rgba(0,0,0,.12) !important; box-shadow: 0 1px 2px rgba(0,0,0,.03) !important; display: flex !important; align-items: center !important; justify-content: center !important; overflow: hidden !important; }
+header .nav-logo-mark img, footer .nav-logo-mark img { width: 32px !important; height: 32px !important; max-width: 32px !important; max-height: 32px !important; object-fit: contain !important; display: block !important; margin: 0 !important; }
 .nav-logo-text { display: inline-flex !important; align-items: center !important; height: 44px !important; line-height: 44px !important; font-family: Syne, Inter, sans-serif !important; font-size: 1.1rem !important; font-weight: 800 !important; letter-spacing: -0.04em !important; white-space: nowrap !important; }
 .nav-logo-text .logo-text-black { color: #0a0a0f !important; }
 .nav-logo-text .logo-text-blue { color: #6c3fe8 !important; margin-left: 3px !important; }
