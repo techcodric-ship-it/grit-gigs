@@ -10,6 +10,12 @@
 <script>window.PREP_V = 22;</script>
 <link rel="stylesheet" href="/prep/prep.css?v=12"/><link rel="stylesheet" href="/assets/app-left-sidebar.css?v=1"/><script src="/assets/app-left-sidebar.js?v=1" defer></script><link rel="stylesheet" href="/css/professional-prep.css?v=2"/><link rel="stylesheet" href="/prep/prep-design.css?v=15"/><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">"/>
 <link rel="stylesheet" href="/prep/prep-parity.css?v=2"/>
+<script src="/js/meta-pixel.js?v=1" defer></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  if (window.PrepTrack) window.PrepTrack.viewContent();
+});
+</script>
 </head>
 <body>
 <header class="topnav">
@@ -482,6 +488,7 @@
           return;
         }
         if ((v.status === 201 || v.status === 200) && v.d.success) {
+          if (window.PrepTrack) window.PrepTrack.purchase(resp.razorpay_payment_id, 199);
           var ent = v.d.data && v.d.data.entitlement;
           proErr.className = "prep-err info";
           proErr.textContent = "You’re Prep Pro. Enjoy unlimited reports!";
@@ -499,6 +506,7 @@
   proBuy.addEventListener("click", function (e) {
     e.preventDefault();
     e.stopPropagation();
+    if (window.PrepTrack) window.PrepTrack.initiateCheckout(199);
     proInfo("Opening secure checkout...");
     proBuy.disabled = true;
     proBuy.textContent = "Opening secure checkout...";

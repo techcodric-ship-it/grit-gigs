@@ -1,7 +1,10 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, sql, and, or, inArray } from "drizzle-orm";
-import { db, withdrawalRequestsTable, transactionsTable, freelanceWalletsTable, notificationsTable } from "../db";
+import { db, withdrawalRequestsTable, transactionsTable, freelanceWalletsTable, notificationsTable, usersTable } from "../db";
 import { verifyWebhookSignature } from "../lib/razorpay";
+import { completeProOrder } from "../prep/monetization-db";
+import { PREP_PRO_PRICE_INR } from "../prep/monetization";
+import { trackPurchase } from "../lib/meta-capi";
 
 const router: IRouter = Router();
 
@@ -116,7 +119,7 @@ router.post("/payments/webhook", async (req: Request, res: Response): Promise<vo
     // is the permanent key; gatewayTxnId is also matched because it holds the
     // order id until the payment settles and then the payment id.
     const [pending] = await db
-      .select({ id: transactionsTable.id, userId: transactionsTable.userId, amount: transactionsTable.amount, status: transactionsTable.status, type: transactionsTable.type })
+      .select({ id: transactionsTable.id, userId: transactionsTable.userId, amount: transactionsTable.amount, status: transactionsTable.status, type: transactionsTable.type, description: transactionsTable.description })
       .from(transactionsTable)
       .where(or(eq(transactionsTable.gatewayOrderId, orderId), eq(transactionsTable.gatewayTxnId, orderId)))
       .limit(1);
@@ -130,6 +133,39 @@ router.post("/payments/webhook", async (req: Request, res: Response): Promise<vo
     // Guarding here stops the same ₹ payment from being credited twice.
     if (pending.type === "QUOTA_BUNDLE") {
       res.status(200).json({ success: true, message: "Quota bundle order - handled by quota verify" });
+      return;
+    }
+
+    // Prep Pro orders share the SUBSCRIPTION type but must never credit wallet
+    // cash. They are completed here instead of via /pro/verify so a capture is
+    // never lost when the browser closes before verification runs. The amount
+    // is re-checked against the product price before anything is granted.
+    if (pending.type === "SUBSCRIPTION" && (pending.description || "").startsWith("PREP_PRO:")) {
+      if (Number(amountPaise) !== Math.round(PREP_PRO_PRICE_INR * 100)) {
+        res.status(200).json({ success: true, message: "Prep Pro amount mismatch" });
+        return;
+      }
+      try {
+        const result = await completeProOrder(pending.userId, orderId, paymentId);
+        if (result.ok) {
+          const [buyer] = await db
+            .select({ email: usersTable.email })
+            .from(usersTable)
+            .where(eq(usersTable.id, pending.userId))
+            .limit(1);
+          void trackPurchase({
+            eventId: paymentId,
+            value: PREP_PRO_PRICE_INR,
+            currency: "INR",
+            email: buyer?.email ?? null,
+            sourceUrl: "https://www.gritandgigs.in/prep",
+          });
+        }
+        res.status(200).json({ success: true, message: "Prep Pro order handled" });
+      } catch (err) {
+        console.error("[payments] prep pro webhook completion failed:", err);
+        res.status(500).json({ success: false, message: "Prep Pro completion failed" });
+      }
       return;
     }
 

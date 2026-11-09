@@ -10,6 +10,7 @@ import { logger } from "./lib/logger";
 import { prepRouter } from "./prep/router";
 import { makePrepPages } from "./prep/pages";
 import { isPrepEnabled } from "./prep/feature";
+import { metaPixelScript } from "./lib/meta-pixel-script";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -149,6 +150,16 @@ app.get(
 // Spotlight boosting is retired; old explainer links land on the feed.
 app.get(["/spotlight-boost", "/spotlight"], (_req, res) => {
   res.redirect(302, "/feed");
+});
+
+// Meta pixel loader. Served from the app origin so the pixel id comes from
+// config instead of an inline snippet in every page, and so a single place
+// owns PageView. Registered before static so it can never be shadowed by a
+// public/js file. Short cache: a pixel id change must take effect quickly.
+app.get("/js/meta-pixel.js", (_req, res) => {
+  res.type("application/javascript");
+  res.set("Cache-Control", "public, max-age=300");
+  res.send(metaPixelScript());
 });
 
 // Prep pages: redirect to /feed while FEATURE_PREP is off, otherwise serve

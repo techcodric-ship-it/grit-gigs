@@ -57,6 +57,7 @@ import {
   isEntitlementActive,
   resolveFreeDailyReports,
 } from "./monetization";
+import { cookieValue, trackPurchase } from "../lib/meta-capi";
 import {
   completeProOrder,
   countReportsLast24h,
@@ -1740,6 +1741,18 @@ prepRouter.post("/pro/verify", authenticate, purchaseLimiter, prepDbGate, async 
 
     const result = await completeProOrder(req.user!.id, razorpayOrderId, razorpayPaymentId);
     if (result.ok) {
+      // The browser fires Purchase with the same payment id as event_id, so
+      // Meta keeps whichever arrives first and discards the duplicate.
+      void trackPurchase({
+        eventId: razorpayPaymentId,
+        value: PREP_PRO_PRICE_INR,
+        currency: "INR",
+        email: req.user!.email,
+        clientIp: req.ip,
+        userAgent: req.headers["user-agent"] ?? null,
+        fbp: cookieValue(req.headers.cookie, "_fbp"),
+        fbc: cookieValue(req.headers.cookie, "_fbc"),
+      });
       res.status(201).json({
         success: true,
         data: {
