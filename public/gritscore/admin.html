@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="robots" content="noindex, nofollow"/>
+<title>GritScore admin — Grit&amp;Gigs</title>
+<link rel="icon" href="/favicon.ico?v=10"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=1"/>
+<script src="/assets/gritscore.js?v=1" defer></script>
+</head>
+<body class="gs-page">
+<div class="gs-toast" id="gsToast"></div>
+
+<div class="gs-topbar">
+  <a class="gs-brand" href="/gritscore">
+    <span class="gs-brand-mark"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6Z"/><path d="m8.6 11.9 2.3 2.3 4.5-4.6"/></svg></span>
+    GritScore
+  </a>
+  <span class="gs-brand-sep">/</span>
+  <span class="gs-muted gs-small">Admin</span>
+  <span class="gs-topbar-spacer"></span>
+  <a class="gs-topbar-link" href="/gritscore">My cards</a>
+</div>
+
+<main class="gs-wrap">
+
+  <div id="login" class="gs-card" style="max-width:420px;margin:40px auto;">
+    <h1 class="gs-h2">Admin access</h1>
+    <p class="gs-muted gs-small" style="margin:0 0 16px;">Enter the same admin key used on /admin.</p>
+    <div class="gs-field">
+      <label class="gs-label" for="adminKey">Admin key</label>
+      <input class="gs-input" id="adminKey" type="password" autocomplete="current-password" placeholder="Paste admin key"/>
+    </div>
+    <button class="gs-btn block" type="button" id="loginBtn">Sign in</button>
+    <div id="loginErr" class="gs-alert bad" style="margin-top:14px;" hidden></div>
+  </div>
+
+  <div id="app" hidden>
+    <p class="gs-eyebrow">GritScore</p>
+    <h1 class="gs-h1">Scans and scoring</h1>
+    <p class="gs-lede">Every card, its computed components, and the tunable weights. Weights are validated to sum to 1 before they are saved.</p>
+
+    <div class="gs-tabs" role="tablist">
+      <button class="gs-tab on" type="button" data-tab="scans" role="tab">Scans</button>
+      <button class="gs-tab" type="button" data-tab="config" role="tab">Weights config</button>
+    </div>
+
+    <section class="gs-panel" id="panelScans">
+      <div class="gs-card">
+        <div class="gs-between" style="margin-bottom:14px;">
+          <h2 class="gs-h2" style="margin:0;">Scans</h2>
+          <div class="gs-inline-form">
+            <input class="gs-input" id="search" placeholder="Search name or slug" style="min-width:220px;"/>
+            <button class="gs-btn subtle sm" type="button" id="searchBtn">Search</button>
+            <button class="gs-btn ghost sm" type="button" id="refreshBtn">Refresh</button>
+          </div>
+        </div>
+        <div id="scanList"><p class="gs-muted gs-small">Loading…</p></div>
+        <div class="gs-between" style="margin-top:14px;">
+          <button class="gs-btn subtle sm" type="button" id="prevPage">Previous</button>
+          <span class="gs-muted gs-small" id="pageLabel">Page 1</span>
+          <button class="gs-btn subtle sm" type="button" id="nextPage">Next</button>
+        </div>
+      </div>
+      <div id="scanDetail"></div>
+    </section>
+
+    <section class="gs-panel" id="panelConfig" hidden>
+      <div class="gs-card">
+        <h2 class="gs-h2">Score weights</h2>
+        <p class="gs-muted gs-small" style="margin:0 0 16px;">Five numbers from 0 to 1 that must sum to exactly 1. Changing these changes every future recompute. Verified caps, tiers and evidence values stay in the code config.</p>
+        <div class="gs-grid gs-2">
+          <div class="gs-field"><label class="gs-label" for="wProof">Proof</label><input class="gs-input" id="wProof" type="number" step="0.01" min="0" max="1"/></div>
+          <div class="gs-field"><label class="gs-label" for="wSkillDepth">Skill depth</label><input class="gs-input" id="wSkillDepth" type="number" step="0.01" min="0" max="1"/></div>
+          <div class="gs-field"><label class="gs-label" for="wImpact">Impact</label><input class="gs-input" id="wImpact" type="number" step="0.01" min="0" max="1"/></div>
+          <div class="gs-field"><label class="gs-label" for="wConsistency">Consistency</label><input class="gs-input" id="wConsistency" type="number" step="0.01" min="0" max="1"/></div>
+          <div class="gs-field"><label class="gs-label" for="wClarity">Clarity</label><input class="gs-input" id="wClarity" type="number" step="0.01" min="0" max="1"/></div>
+        </div>
+        <p class="gs-muted gs-small" id="weightSum" style="margin:0 0 14px;"></p>
+        <div style="display:flex;gap:9px;flex-wrap:wrap;">
+          <button class="gs-btn" type="button" id="saveWeights">Save weights</button>
+          <button class="gs-btn ghost" type="button" id="resetWeights">Reset to defaults</button>
+        </div>
+      </div>
+      <div class="gs-card">
+        <h2 class="gs-h2">Fixed configuration</h2>
+        <div id="fixedConfig" class="gs-muted gs-small">Loading…</div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (!window.GS) return;
+  var GS = window.GS;
+  var KEY_STORE = 'admin_api_key';
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { page: 1, q: '', scans: [], config: null, currentId: null };
+  var LABELS = { proof: 'Proof', skillDepth: 'Skill depth', impact: 'Impact', consistency: 'Consistency', clarity: 'Clarity' };
+
+  function key() { return localStorage.getItem(KEY_STORE) || ''; }
+
+  function api(path, options) {
+    var opts = options || {};
+    var headers = { 'X-Admin-Key': key() };
+    if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
+    return fetch(GS.API + path, {
+      method: opts.method || 'GET',
+      headers: headers,
+      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined
+    }).then(function (res) {
+      if (res.status === 401) {
+        localStorage.removeItem(KEY_STORE);
+        $('app').hidden = true;
+        $('login').hidden = false;
+        throw new Error('Admin key rejected');
+      }
+      return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+    });
+  }
+
+  function tierClass(tier) { return 'gs-tier gs-tier-' + (tier || 'Starter'); }
+
+  // ---- Login ---------------------------------------------------------------
+  $('loginBtn').addEventListener('click', function () {
+    var value = $('adminKey').value.trim();
+    var err = $('loginErr');
+    err.hidden = true;
+    if (!value) { err.textContent = 'Enter the admin key.'; err.hidden = false; return; }
+    localStorage.setItem(KEY_STORE, value);
+    api('/admin/scans?page=1').then(function (res) {
+      if (!res.ok || !res.data.success) { throw new Error((res.data && res.data.message) || 'Admin key rejected'); }
+      enterApp();
+      renderScans(res.data.data);
+    }).catch(function (e) {
+      localStorage.removeItem(KEY_STORE);
+      err.textContent = e.message || 'Could not sign in';
+      err.hidden = false;
+    });
+  });
+  $('adminKey').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('loginBtn').click(); });
+
+  function enterApp() {
+    $('login').hidden = true;
+    $('app').hidden = false;
+    loadConfig();
+  }
+
+  // ---- Tabs ----------------------------------------------------------------
+  document.querySelectorAll('.gs-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      document.querySelectorAll('.gs-tab').forEach(function (t) { t.classList.remove('on'); });
+      tab.classList.add('on');
+      var name = tab.getAttribute('data-tab');
+      $('panelScans').hidden = name !== 'scans';
+      $('panelConfig').hidden = name !== 'config';
+    });
+  });
+
+  // ---- Scans ---------------------------------------------------------------
+  function renderScans(data) {
+    state.scans = data.scans || [];
+    state.page = data.page || 1;
+    $('pageLabel').textContent = 'Page ' + state.page;
+    var wrap = $('scanList');
+    if (!state.scans.length) {
+      wrap.innerHTML = '<p class="gs-muted gs-small" style="margin:0;">No scans found.</p>';
+      return;
+    }
+    var rows = state.scans.map(function (s) {
+      return '<tr data-id="' + GS.esc(s.id) + '" style="cursor:pointer;">' +
+        '<td><strong style="color:var(--gs-ink);">' + GS.esc(s.displayName || '—') + '</strong>' +
+          '<div class="gs-muted" style="font-size:0.72rem;">' + GS.esc(s.slug) + '</div></td>' +
+        '<td class="num">' + (s.score == null ? '—' : s.score) + '</td>' +
+        '<td class="num gs-muted">' + (s.rawScore == null ? '—' : s.rawScore) + '</td>' +
+        '<td><span class="' + tierClass(s.tier) + '" style="font-size:0.72rem;padding:2px 8px;">' + GS.esc(s.tier || '—') + '</span></td>' +
+        '<td>' + GS.esc((s.verificationTier || '').replace(/_/g, ' ')) + '</td>' +
+        '<td>' + (s.isPublic ? '<span class="gs-badge ok">Public</span>' : '<span class="gs-badge">Private</span>') + '</td>' +
+        '<td>' + (Number(s.abused) > 0 ? '<span class="gs-badge warn">' + s.abused + '</span>' : '<span class="gs-muted">0</span>') + '</td>' +
+        '<td>' + (s.aiUsed ? 'AI' : 'heuristic') + '</td>' +
+        '<td class="gs-muted gs-nowrap">' + GS.timeAgo(s.createdAt) + '</td>' +
+      '</tr>';
+    }).join('');
+    wrap.innerHTML = '<div class="gs-table-wrap"><table class="gs-table"><thead><tr>' +
+      '<th>Person</th><th>Score</th><th>Raw</th><th>Tier</th><th>Verification</th><th>Public</th><th>Flags</th><th>Extraction</th><th>Created</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+
+    wrap.querySelectorAll('tr[data-id]').forEach(function (row) {
+      row.addEventListener('click', function () { openScan(row.getAttribute('data-id')); });
+    });
+  }
+
+  function loadScans() {
+    api('/admin/scans?page=' + state.page + (state.q ? '&q=' + encodeURIComponent(state.q) : ''))
+      .then(function (res) {
+        if (!res.ok || !res.data.success) { GS.toast((res.data && res.data.message) || 'Could not load scans'); return; }
+        renderScans(res.data.data);
+      }).catch(function (e) { GS.toast(e.message || 'Could not load scans'); });
+  }
+
+  $('searchBtn').addEventListener('click', function () {
+    state.q = $('search').value.trim();
+    state.page = 1;
+    loadScans();
+  });
+  $('search').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('searchBtn').click(); });
+  $('refreshBtn').addEventListener('click', loadScans);
+  $('prevPage').addEventListener('click', function () { if (state.page > 1) { state.page--; loadScans(); } });
+  $('nextPage').addEventListener('click', function () {
+    if (state.scans.length === 25) { state.page++; loadScans(); }
+  });
+
+  function openScan(id) {
+    state.currentId = id;
+    var host = $('scanDetail');
+    host.innerHTML = '<div class="gs-card" style="margin-top:16px;"><div class="gs-skeleton" style="width:40%;margin-bottom:12px;"></div><div class="gs-skeleton" style="width:66%;"></div></div>';
+    api('/admin/scans/' + id).then(function (res) {
+      if (!res.ok || !res.data.success) { host.innerHTML = ''; GS.toast((res.data && res.data.message) || 'Could not load scan'); return; }
+      renderDetail(res.data.data);
+    }).catch(function (e) { host.innerHTML = ''; GS.toast(e.message || 'Could not load scan'); });
+  }
+
+  function renderDetail(data) {
+    var scan = data.scan;
+    var computed = data.computed || {};
+    var items = data.items || [];
+    var components = computed.components || {};
+
+    var meters = Object.keys(components).map(function (k) {
+      var pct = Math.round((components[k] || 0) * 100);
+      return '<div class="gs-meter"><div class="gs-meter-top"><span class="k">' + (LABELS[k] || k) + '</span><span class="v">' + pct + '%</span></div>' +
+        '<div class="gs-meter-track"><div class="gs-meter-fill" style="width:' + pct + '%"></div></div></div>';
+    }).join('');
+
+    var html = '<div class="gs-card" style="margin-top:16px;">' +
+      '<div class="gs-between" style="margin-bottom:12px;">' +
+        '<h2 class="gs-h2" style="margin:0;">' + GS.esc(scan.displayName || scan.slug) + '</h2>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<button class="gs-btn sm" type="button" id="recomputeBtn">Recompute</button>' +
+          (scan.isPublic ? '<a class="gs-btn subtle sm" href="/score/' + GS.esc(scan.slug) + '" target="_blank" rel="noopener">Public page</a>' : '') +
+        '</div>' +
+      '</div>' +
+      '<div class="gs-muted gs-small" style="margin-bottom:14px;">ID ' + GS.esc(scan.id) + ' · slug <code>' + GS.esc(scan.slug) + '</code> · created ' + new Date(scan.createdAt).toLocaleString('en-IN') + '</div>' +
+      '<div class="gs-grid gs-3" style="margin-bottom:16px;">' +
+        '<div><div class="gs-label">Stored score</div><div style="font-family:var(--gs-font-display);font-size:1.8rem;font-weight:800;">' + (scan.score == null ? '—' : scan.score) + '</div></div>' +
+        '<div><div class="gs-label">Computed now</div><div style="font-family:var(--gs-font-display);font-size:1.8rem;font-weight:800;">' + (computed.score == null ? '—' : computed.score) + '</div></div>' +
+        '<div><div class="gs-label">Raw (pre-cap)</div><div style="font-family:var(--gs-font-display);font-size:1.8rem;font-weight:800;">' + (computed.rawScore == null ? '—' : computed.rawScore) + '</div></div>' +
+      '</div>' +
+      (computed.capped ? '<div class="gs-capped" style="margin:0 0 16px;">Capped at ' + computed.cap + ' (self-reported). Raw ' + computed.rawScore + '.</div>' : '') +
+      '<div class="gs-label">Components</div>' + (meters || '<p class="gs-muted gs-small">No items.</p>') +
+      '<div class="gs-divider"></div>' +
+      '<div class="gs-label">Recompute check</div>' +
+      '<p class="gs-muted gs-small" style="margin:0;">Stored tier <strong>' + GS.esc(scan.tier || '—') + '</strong>, verification <strong>' + GS.esc((scan.verificationTier || '').replace(/_/g, ' ')) + '</strong>. ' +
+        'Recomputing re-derives the verification tier from current evidence and referee state, then rewrites the stored score.</p>' +
+      (data.abuseFlags && data.abuseFlags.length ? '<div class="gs-alert warn" style="margin-top:14px;"><strong>Abuse flags</strong><br/>' + data.abuseFlags.map(GS.esc).join('<br/>') + '</div>' : '') +
+    '</div>';
+
+    html += '<div class="gs-card" style="margin-top:16px;"><h2 class="gs-h2">Items</h2>' +
+      items.map(function (item) {
+        var status = GS.STATUS_LABEL[item.evidenceStatus] || { text: item.evidenceStatus, cls: '' };
+        return '<div class="gs-item">' +
+          '<div class="gs-item-head"><div><p class="gs-item-title">' + GS.esc(item.title) + '</p>' +
+            '<div class="gs-item-meta">' + GS.esc(item.evidenceType) + ' · ' + status.text +
+            ' · complexity ' + item.complexity + ' · clarity ' + item.clarity + '</div></div>' +
+            (item.hasQuantifiedImpact ? '<span class="gs-badge ok">Quantified</span>' : '<span class="gs-badge">No metric</span>') + '</div>' +
+          '<p class="gs-item-desc">' + GS.esc(item.description) + '</p>' +
+          (item.proofUrl ? '<p class="gs-hint" style="word-break:break-all;">' + GS.esc(item.proofUrl) + '</p>' : '') +
+          (item.impactNotes ? '<p class="gs-hint">Impact note: ' + GS.esc(item.impactNotes) + '</p>' : '') +
+        '</div>';
+      }).join('') +
+    '</div>';
+
+    $('scanDetail').innerHTML = html;
+    $('scanDetail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    $('recomputeBtn').addEventListener('click', function (e) {
+      var btn = e.currentTarget;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="gs-spinner"></span> Recomputing';
+      api('/admin/scans/' + scan.id + '/recompute', { method: 'POST' }).then(function (res) {
+        btn.disabled = false;
+        btn.textContent = 'Recompute';
+        if (!res.ok || !res.data.success) { GS.toast((res.data && res.data.message) || 'Could not recompute'); return; }
+        GS.toast('Recomputed');
+        openScan(scan.id);
+        loadScans();
+      }).catch(function (err) {
+        btn.disabled = false;
+        btn.textContent = 'Recompute';
+        GS.toast(err.message || 'Could not recompute');
+      });
+    });
+  }
+
+  // ---- Config --------------------------------------------------------------
+  function fillWeights(weights) {
+    ['proof', 'skillDepth', 'impact', 'consistency', 'clarity'].forEach(function (k) {
+      var id = 'w' + k.charAt(0).toUpperCase() + k.slice(1);
+      $(id).value = Number(weights[k] || 0).toFixed(2);
+    });
+    updateSum();
+  }
+
+  function readWeights() {
+    return {
+      proof: Number($('wProof').value),
+      skillDepth: Number($('wSkillDepth').value),
+      impact: Number($('wImpact').value),
+      consistency: Number($('wConsistency').value),
+      clarity: Number($('wClarity').value)
+    };
+  }
+
+  function updateSum() {
+    var w = readWeights();
+    var sum = ['proof', 'skillDepth', 'impact', 'consistency', 'clarity'].reduce(function (a, k) { return a + (isFinite(w[k]) ? w[k] : 0); }, 0);
+    var el = $('weightSum');
+    var ok = Math.abs(sum - 1) <= 0.001;
+    el.textContent = 'Sum: ' + sum.toFixed(3) + (ok ? ' — valid' : ' — must equal 1.000');
+    el.style.color = ok ? 'var(--gs-ok)' : 'var(--gs-bad)';
+  }
+
+  ['wProof', 'wSkillDepth', 'wImpact', 'wConsistency', 'wClarity'].forEach(function (id) {
+    $(id).addEventListener('input', updateSum);
+  });
+
+  function loadConfig() {
+    api('/admin/config').then(function (res) {
+      if (!res.ok || !res.data.success) { GS.toast((res.data && res.data.message) || 'Could not load config'); return; }
+      state.config = res.data.data;
+      fillWeights(state.config.weights);
+      var fixed = [
+        ['Self-reported cap', state.config.caps.self_reported == null ? 'none' : state.config.caps.self_reported],
+        ['Evidence-checked cap', state.config.caps.evidence_checked == null ? 'none' : state.config.caps.evidence_checked],
+        ['Third-party cap', state.config.caps.third_party_confirmed == null ? 'none' : state.config.caps.third_party_confirmed],
+        ['Saturation', state.config.saturateAfter],
+        ['Tiers', (state.config.tiers || []).map(function (t) { return t.name + ' ≥ ' + t.min; }).join(' · ')],
+        ['Evidence values', Object.keys(state.config.evidenceValue || {}).map(function (k) { return k + ' ' + state.config.evidenceValue[k]; }).join(' · ')],
+        ['GritScore Pro', '\u20B9' + state.config.priceInr + ' / ' + state.config.days + ' days']
+      ];
+      $('fixedConfig').innerHTML = fixed.map(function (pair) {
+        return '<div style="display:flex;justify-content:space-between;gap:16px;padding:7px 0;border-bottom:1px solid var(--gs-line);">' +
+          '<span>' + GS.esc(pair[0]) + '</span><span style="color:var(--gs-ink);text-align:right;">' + GS.esc(String(pair[1])) + '</span></div>';
+      }).join('');
+    }).catch(function (e) { GS.toast(e.message || 'Could not load config'); });
+  }
+
+  $('saveWeights').addEventListener('click', function () {
+    var w = readWeights();
+    var sum = ['proof', 'skillDepth', 'impact', 'consistency', 'clarity'].reduce(function (a, k) { return a + (isFinite(w[k]) ? w[k] : 0); }, 0);
+    if (Math.abs(sum - 1) > 0.001) { GS.toast('Weights must sum to 1.000'); return; }
+    var btn = $('saveWeights');
+    btn.disabled = true;
+    api('/admin/config', { method: 'PATCH', body: { weights: w } }).then(function (res) {
+      btn.disabled = false;
+      if (!res.ok || !res.data.success) { GS.toast((res.data && res.data.message) || 'Could not save'); return; }
+      GS.toast('Weights saved. New scores use them immediately.');
+      loadConfig();
+    }).catch(function (e) { btn.disabled = false; GS.toast(e.message || 'Could not save'); });
+  });
+
+  $('resetWeights').addEventListener('click', function () {
+    if (!state.config) return;
+    fillWeights(state.config.defaults);
+    GS.toast('Defaults loaded — save to apply');
+  });
+
+  // ---- Boot ----------------------------------------------------------------
+  if (!key()) {
+    $('login').hidden = false;
+  } else {
+    api('/admin/scans?page=1').then(function (res) {
+      if (!res.ok || !res.data.success) throw new Error((res.data && res.data.message) || 'Admin key rejected');
+      enterApp();
+      renderScans(res.data.data);
+    }).catch(function () {
+      localStorage.removeItem(KEY_STORE);
+      $('login').hidden = false;
+    });
+  }
+});
+</script>
+</body>
+</html>

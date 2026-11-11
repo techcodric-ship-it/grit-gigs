@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="robots" content="noindex, nofollow"/>
+<title>Confirm a work item — Grit&amp;Gigs</title>
+<link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=1"/>
+<script src="/assets/gritscore.js?v=1" defer></script>
+</head>
+<body class="gs-page">
+<div class="gs-toast" id="gsToast"></div>
+
+<div class="gs-topbar">
+  <a class="gs-brand" href="/">
+    <span class="gs-brand-mark"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6Z"/><path d="m8.6 11.9 2.3 2.3 4.5-4.6"/></svg></span>
+    GritScore
+  </a>
+  <span class="gs-topbar-spacer"></span>
+  <span class="gs-muted gs-small">No account needed</span>
+</div>
+
+<main class="gs-wrap gs-narrow">
+  <div id="loading" class="gs-card">
+    <div class="gs-skeleton" style="width:44%;margin-bottom:14px;"></div>
+    <div class="gs-skeleton" style="width:70%;margin-bottom:12px;"></div>
+    <div class="gs-skeleton" style="width:58%;"></div>
+  </div>
+
+  <div id="notFound" class="gs-empty" hidden>
+    <h2 class="gs-h2">This link is not valid</h2>
+    <p>The request may have been withdrawn or the link may have expired. Ask the person who sent it to share a new one.</p>
+    <a class="gs-btn" href="/">Go to Grit&amp;Gigs</a>
+  </div>
+
+  <div id="body" hidden></div>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (!window.GS) return;
+  var GS = window.GS;
+  var token = (location.search.match(/[?&]token=([A-Za-z0-9]+)/) || [])[1] || '';
+  var $ = function (id) { return document.getElementById(id); };
+  var current = null;
+
+  function finish() { $('loading').hidden = true; }
+
+  function render(data) {
+    current = data;
+    var decided = data.status && data.status !== 'PENDING';
+    var statusText = data.status === 'CONFIRMED' ? 'confirmed' : 'declined';
+
+    var html = '<p class="gs-eyebrow">Referee request</p>' +
+      '<h1 class="gs-h1">One tap to confirm a work item.</h1>' +
+      '<p class="gs-lede"><strong>' + GS.esc(data.ownerName) + '</strong> listed the work below and named you as someone who can confirm it. ' +
+        'Confirm only if you have direct knowledge of it. Declining is just as useful and is not held against anyone.</p>';
+
+    html += '<div class="gs-card">' +
+      '<span class="gs-badge accent">Work item</span>' +
+      '<h2 class="gs-h2" style="margin:12px 0 4px;">' + GS.esc(data.itemTitle) + '</h2>' +
+      (data.itemRole ? '<div class="gs-item-meta">' + GS.esc(data.itemRole) + '</div>' : '') +
+      (data.itemDescription ? '<p class="gs-item-desc" style="margin-top:10px;">' + GS.esc(data.itemDescription) + '</p>' : '') +
+    '</div>';
+
+    if (decided) {
+      html += '<div class="gs-alert ' + (data.status === 'CONFIRMED' ? 'ok' : '') + '" style="margin-top:16px;">' +
+        'You already ' + statusText + ' this item' +
+        (data.respondedAt ? ' on ' + new Date(data.respondedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '') +
+        '. Nothing else is needed.</div>' +
+        '<a class="gs-btn ghost" href="/gritscore">What is GritScore?</a>';
+    } else {
+      html += '<div class="gs-card" style="margin-top:16px;">' +
+        '<h2 class="gs-h2">Your response</h2>' +
+        '<p class="gs-muted" style="font-size:0.88rem;line-height:1.6;margin:0 0 16px;">Your name is not published on the public card. A confirmation only changes the card from "self-reported" to "third-party confirmed" and lifts a cap on the score.</p>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
+          '<button class="gs-btn" type="button" id="confirmBtn">Confirm this is accurate</button>' +
+          '<button class="gs-btn ghost" type="button" id="declineBtn">Decline</button>' +
+        '</div>' +
+        '<p class="gs-hint" style="margin-top:12px;">If you did not work with this person, or the description overstates what happened, decline.</p>' +
+      '</div>';
+    }
+
+    html += '<p class="gs-disclaimer" style="margin-top:20px;">A Proof Score summarises evidence a person chose to show. It is not a hiring verdict, background check or credit score.</p>';
+
+    $('body').innerHTML = html;
+    $('body').hidden = false;
+
+    var confirmBtn = $('confirmBtn');
+    var declineBtn = $('declineBtn');
+    if (confirmBtn) confirmBtn.addEventListener('click', function () { respond('CONFIRM', confirmBtn); });
+    if (declineBtn) declineBtn.addEventListener('click', function () { respond('DECLINE', declineBtn); });
+  }
+
+  function respond(decision, btn) {
+    var other = decision === 'CONFIRM' ? $('declineBtn') : $('confirmBtn');
+    if (other) other.disabled = true;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="gs-spinner"></span> Saving';
+    GS.request('/referee/' + encodeURIComponent(token), { method: 'POST', body: { decision: decision } })
+      .then(function (res) {
+        if (!res.ok || !res.data.success) {
+          btn.disabled = false;
+          btn.textContent = decision === 'CONFIRM' ? 'Confirm this is accurate' : 'Decline';
+          if (other) other.disabled = false;
+          GS.toast((res.data && res.data.message) || 'Could not record your response');
+          return;
+        }
+        GS.toast(decision === 'CONFIRM' ? 'Thank you — confirmed' : 'Response recorded');
+        load();
+      }).catch(function () {
+        btn.disabled = false;
+        if (other) other.disabled = false;
+        GS.toast('Could not record your response');
+      });
+  }
+
+  function load() {
+    fetch(GS.API + '/referee/' + encodeURIComponent(token))
+      .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+      .then(function (res) {
+        finish();
+        if (!res.ok || !res.data.success) { $('notFound').hidden = false; return; }
+        $('body').hidden = true;
+        render(res.data.data);
+      })
+      .catch(function () { finish(); $('notFound').hidden = false; });
+  }
+
+  if (!/^[a-f0-9]{32,64}$/i.test(token)) { finish(); $('notFound').hidden = false; return; }
+  load();
+});
+</script>
+</body>
+</html>

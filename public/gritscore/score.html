@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="robots" content="index, follow"/>
+<title>Proof Score — Grit&amp;Gigs</title>
+<meta name="description" content="A shareable Proof Score built from work a person can prove: links, files and referee confirmations."/>
+<meta property="og:type" content="profile"/>
+<meta property="og:site_name" content="Grit&amp;Gigs"/>
+<meta property="og:title" content="Proof Score — Grit&amp;Gigs"/>
+<meta property="og:description" content="A shareable Proof Score built from work a person can prove."/>
+<meta property="og:image" content="https://www.gritandgigs.in/og-default.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Proof Score — Grit&amp;Gigs"/>
+<meta name="twitter:description" content="A shareable Proof Score built from work a person can prove."/>
+<link rel="canonical" href="https://www.gritandgigs.in/score"/>
+<link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=1"/>
+<script src="/assets/gritscore.js?v=1" defer></script>
+</head>
+<body class="gs-page">
+<div class="gs-toast" id="gsToast"></div>
+
+<div class="gs-topbar">
+  <a class="gs-brand" href="/">
+    <span class="gs-brand-mark"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6Z"/><path d="m8.6 11.9 2.3 2.3 4.5-4.6"/></svg></span>
+    GritScore
+  </a>
+  <span class="gs-topbar-spacer"></span>
+  <a class="gs-topbar-link" href="/gritscore">Build your own</a>
+</div>
+
+<main class="gs-wrap gs-public">
+  <div id="loading" class="gs-card">
+    <div class="gs-skeleton" style="width:30%;height:18px;margin-bottom:16px;"></div>
+    <div class="gs-skeleton" style="width:52%;height:64px;margin-bottom:14px;"></div>
+    <div class="gs-skeleton" style="width:68%;"></div>
+  </div>
+
+  <div id="notFound" class="gs-empty" hidden>
+    <h2 class="gs-h2">This scorecard is not public</h2>
+    <p>The link may be wrong, or the owner has taken the card private. Nothing is shown until the owner chooses to share it.</p>
+    <a class="gs-btn" href="/gritscore">Build your own Proof Score</a>
+  </div>
+
+  <div id="card" hidden></div>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (!window.GS) return;
+  var GS = window.GS;
+  var slug = (location.pathname.match(/\/score\/([^\/?#]+)/) || [])[1] || '';
+  var $ = function (id) { return document.getElementById(id); };
+  var payload = null;
+
+  function finish() { $('loading').hidden = true; }
+
+  function tierVerifiedClass(tier) {
+    return tier === 'third_party_confirmed' ? 'third' : (tier === 'evidence_checked' ? 'ok' : '');
+  }
+
+  function render(data) {
+    payload = data;
+    var scan = data.scan;
+    var items = data.items || [];
+    var reviews = data.reviews || { count: 0, average: 0, items: [], canReview: true };
+    var topSkills = (scan.skills || []).slice(0, 5);
+
+    var html = '';
+
+    // Hero
+    html += '<section class="gs-hero gs-public-hero">' +
+      '<div class="gs-hero-top">' +
+        '<div>' +
+          '<p class="gs-eyebrow" style="margin-bottom:6px;">Proof Score</p>' +
+          '<div class="gs-score-num">' +
+            (scan.score === null || scan.score === undefined
+              ? '<span style="font-size:2.1rem;letter-spacing:-0.02em;">' + GS.esc(scan.tier || 'Starter') + '</span>'
+              : scan.score + '<span class="gs-score-outof"> /900</span>') +
+          '</div>' +
+          '<div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:10px;">' +
+            '<span class="' + GS.tierClass(scan.tier) + '">' + GS.esc(scan.tier || 'Starter') + '</span>' +
+            '<span class="gs-verify ' + tierVerifiedClass(scan.verificationTier) + '">' +
+              '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>' +
+              GS.esc(scan.verificationLabel || 'Self-reported') +
+            '</span>' +
+          '</div>' +
+          (scan.scoreHidden ? '<p class="gs-hint" style="margin-top:10px;max-width:44ch;">This card shows the tier rather than the exact number until at least three items carry checked evidence.</p>' : '') +
+        '</div>' +
+        (reviews.count ?
+          '<div class="gs-right"><div class="gs-rating-big">' + reviews.average.toFixed(1) + '</div>' +
+            '<div>' + GS.starsHtml(reviews.average) + '</div>' +
+            '<div class="gs-rating-sub">' + reviews.count + ' ' + GS.plural(reviews.count, 'review') + '</div></div>' : '') +
+      '</div>' +
+
+      '<div style="margin-top:22px;">' +
+        '<h1 class="gs-public-name">' + GS.esc(scan.displayName) + '</h1>' +
+        (scan.headline ? '<p class="gs-public-headline">' + GS.esc(scan.headline) + '</p>' : '') +
+        (scan.roles && scan.roles.length ? '<div class="gs-chips" style="margin-bottom:12px;">' + scan.roles.map(function (r) {
+          return '<span class="gs-chip">' + GS.esc(r) + '</span>';
+        }).join('') + '</div>' : '') +
+        (topSkills.length ? '<div class="gs-chips">' + topSkills.map(function (s) {
+          return '<span class="gs-chip accent">' + GS.esc(s) + '</span>';
+        }).join('') + '</div>' : '') +
+      '</div>' +
+
+      (scan.summary ? '<p class="gs-muted" style="margin:18px 0 0;font-size:0.9rem;line-height:1.6;max-width:66ch;">' + GS.esc(scan.summary) + '</p>' : '') +
+
+      '<div class="gs-share-row">' +
+        '<button class="gs-btn sm" type="button" id="copyLink">Copy link</button>' +
+        '<a class="gs-btn subtle sm" href="' + GS.API + '/public/' + encodeURIComponent(scan.slug) + '/card.png" target="_blank" rel="noopener">Share image</a>' +
+        '<a class="gs-btn subtle sm" href="/gritscore">Build your own</a>' +
+      '</div>' +
+
+      (scan.watermark ?
+        '<div class="gs-watermark"><strong>Grit&amp;Gigs</strong><span>· free GritScore card</span></div>' : '') +
+
+      '<p class="gs-disclaimer">' + GS.esc(data.disclaimer) + '</p>' +
+    '</section>';
+
+    // Items
+    if (items.length) {
+      html += '<section class="gs-card" style="margin-top:16px;">' +
+        '<h2 class="gs-h2">Strongest proof</h2>' +
+        items.map(function (item) {
+          var dates = [item.startDate, item.endDate].filter(Boolean).join(' – ');
+          var status = GS.STATUS_LABEL[item.evidenceStatus];
+          var badge = '';
+          if (item.evidenceStatus === 'ok') badge = '<span class="gs-badge ok">Checked</span>';
+          else if (item.evidenceStatus === 'blocked') badge = '<span class="gs-badge warn">Blocks bots</span>';
+          else if (item.evidenceType && item.evidenceType !== 'none') badge = '<span class="gs-badge">' + GS.esc(GS.EVIDENCE_LABEL[item.evidenceType] || item.evidenceType) + '</span>';
+          else badge = '<span class="gs-badge">No proof</span>';
+          return '<article class="gs-item">' +
+            '<div class="gs-item-head"><div>' +
+              '<p class="gs-item-title">' + GS.esc(item.title) + '</p>' +
+              '<div class="gs-item-meta">' + [item.role, dates].filter(Boolean).map(GS.esc).join(' · ') + '</div>' +
+            '</div>' + badge + '</div>' +
+            (item.description ? '<p class="gs-item-desc">' + GS.esc(item.description) + '</p>' : '') +
+            '<div class="gs-item-foot">' +
+              (item.skills || []).slice(0, 6).map(function (s) { return '<span class="gs-chip">' + GS.esc(s) + '</span>'; }).join('') +
+              (item.proofUrl ? '<a class="gs-item-link" href="' + GS.esc(item.proofUrl) + '" target="_blank" rel="noopener nofollow">' + GS.esc(item.proofLabel || 'Open proof') + '</a>' : '') +
+            '</div>' +
+          '</article>';
+        }).join('') +
+        '<p class="gs-hint" style="margin-top:14px;">Showing up to six items. ' + (scan.itemCount || items.length) + ' in total' +
+          (scan.confirmedReferees ? ', ' + scan.confirmedReferees + ' confirmed by a referee' : '') + '.</p>' +
+      '</section>';
+    }
+
+    // Reviews
+    html += '<section class="gs-card" style="margin-top:16px;">' +
+      '<div class="gs-card-head"><h2 class="gs-h2" style="margin:0;">Reviews</h2>' +
+        (reviews.count ? '<span class="gs-muted gs-small">' + reviews.average.toFixed(1) + ' / 5 from ' + reviews.count + '</span>' : '') +
+      '</div>' +
+      (reviews.items && reviews.items.length ? reviews.items.map(function (r) {
+        return '<div class="gs-review"><div class="gs-review-avatar">' + GS.esc((r.name || 'A').slice(0, 1).toUpperCase()) + '</div>' +
+          '<div class="gs-review-body"><div class="gs-review-head">' +
+            '<span class="gs-review-name">' + GS.esc(r.name) + '</span>' + GS.starsHtml(r.stars) +
+            '<span class="gs-review-date">' + GS.timeAgo(r.createdAt) + '</span></div>' +
+            (r.comment ? '<p class="gs-review-text">' + GS.esc(r.comment) + '</p>' : '') +
+          '</div></div>';
+      }).join('') : '<p class="gs-muted" style="margin:0 0 6px;">No reviews yet. If you have worked with this person, you can add one.</p>') +
+      '<div class="gs-divider"></div>' +
+      (reviews.canReview ? reviewForm() : '<p class="gs-muted" style="margin:0;">This is your own card, so you cannot review it.</p>') +
+    '</section>';
+
+    $('card').innerHTML = html;
+    $('card').hidden = false;
+    wire(data);
+    document.title = scan.displayName + ' — ' + (scan.tier || 'Starter') + ' Proof Score | Grit & Gigs';
+  }
+
+  function reviewForm() {
+    var u = GS.user();
+    var nameValue = u ? [u.firstName, u.lastName].filter(Boolean).join(' ').trim() : '';
+    return '<div id="reviewBox">' +
+      '<h3 class="gs-h3">Add your review</h3>' +
+      '<div class="gs-field">' +
+        '<label class="gs-label">Your rating</label>' +
+        '<div class="gs-stars" id="starPicker" role="radiogroup" aria-label="Rating">' +
+          [1,2,3,4,5].map(function (n) {
+            return '<button class="gs-star" type="button" data-star="' + n + '" role="radio" aria-checked="false" aria-label="' + n + ' star' + (n > 1 ? 's' : '') + '">&#9733;</button>';
+          }).join('') +
+        '</div>' +
+      '</div>' +
+      '<div class="gs-row">' +
+        '<div class="gs-field"><label class="gs-label" for="revName">Your name</label>' +
+          '<input class="gs-input" id="revName" maxlength="120" value="' + GS.esc(nameValue) + '" placeholder="Who is reviewing"/></div>' +
+        '<div class="gs-field"><label class="gs-label" for="revContext">Where you worked together <span class="gs-muted" style="font-weight:500;">(optional)</span></label>' +
+          '<input class="gs-input" id="revContext" maxlength="120" placeholder="Same team at Acme"/></div>' +
+      '</div>' +
+      '<div class="gs-field"><label class="gs-label" for="revComment">What did you see them do? <span class="gs-muted" style="font-weight:500;">(optional)</span></label>' +
+        '<textarea class="gs-textarea" id="revComment" maxlength="800" placeholder="One specific thing you saw them ship or handle."></textarea>' +
+        '<p class="gs-hint">Reviews are public. Keep it factual — this is not a place for private feedback.</p></div>' +
+      '<button class="gs-btn" type="button" id="submitReview">Post review</button>' +
+    '</div>';
+  }
+
+  function wire(data) {
+    var copy = $('copyLink');
+    if (copy) copy.addEventListener('click', function () {
+      var url = location.href;
+      if (navigator.clipboard) navigator.clipboard.writeText(url).then(function () { GS.toast('Link copied'); });
+      else GS.toast(url);
+    });
+
+    var rating = 0;
+    var picker = $('starPicker');
+    if (picker) {
+      var stars = Array.prototype.slice.call(picker.querySelectorAll('[data-star]'));
+      var paint = function (value) {
+        stars.forEach(function (s) {
+          var n = Number(s.getAttribute('data-star'));
+          s.classList.toggle('on', n <= value);
+          s.setAttribute('aria-checked', String(n === value));
+        });
+      };
+      stars.forEach(function (star) {
+        star.addEventListener('click', function () { rating = Number(star.getAttribute('data-star')); paint(rating); });
+        star.addEventListener('mouseenter', function () { paint(Number(star.getAttribute('data-star'))); });
+      });
+      picker.addEventListener('mouseleave', function () { paint(rating); });
+
+      $('submitReview').addEventListener('click', function () {
+        var btn = $('submitReview');
+        if (!rating) { GS.toast('Choose a rating from 1 to 5 stars'); return; }
+        var name = $('revName').value.trim();
+        if (!name) { GS.toast('Add your name with the review'); $('revName').focus(); return; }
+        var context = $('revContext').value.trim();
+        var comment = $('revComment').value.trim();
+        btn.disabled = true;
+        btn.innerHTML = '<span class="gs-spinner"></span> Posting';
+        GS.request('/public/' + encodeURIComponent(data.scan.slug) + '/reviews', {
+          method: 'POST',
+          body: {
+            stars: rating,
+            reviewerName: name,
+            comment: context ? (context + ' — ' + comment).trim() : comment
+          }
+        }).then(function (res) {
+          btn.disabled = false;
+          btn.textContent = 'Post review';
+          if (!res.ok || !res.data.success) { GS.toast((res.data && res.data.message) || 'Could not post the review'); return; }
+          GS.toast('Review posted');
+          load(true);
+        }).catch(function () {
+          btn.disabled = false;
+          btn.textContent = 'Post review';
+          GS.toast('Could not post the review');
+        });
+      });
+    }
+  }
+
+  function load(skipSpinner) {
+    if (!skipSpinner) { $('loading').hidden = false; }
+    fetch(GS.API + '/public/' + encodeURIComponent(slug), {
+      headers: GS.token() ? { Authorization: 'Bearer ' + GS.token() } : {}
+    }).then(function (res) {
+      return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+    }).then(function (res) {
+      finish();
+      if (!res.ok || !res.data.success) {
+        $('notFound').hidden = false;
+        return;
+      }
+      render(res.data.data);
+    }).catch(function () {
+      finish();
+      $('notFound').hidden = false;
+    });
+  }
+
+  if (!slug) { finish(); $('notFound').hidden = false; return; }
+  load();
+});
+</script>
+</body>
+</html>

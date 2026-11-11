@@ -9,6 +9,8 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 import { prepRouter } from "./prep/router";
 import { makePrepPages } from "./prep/pages";
+import { gritscoreRouter } from "./gritscore/router";
+import { makeGritScorePages, makeScorePage } from "./gritscore/pages";
 import { isPrepEnabled } from "./prep/feature";
 import { metaPixelScript } from "./lib/meta-pixel-script";
 
@@ -88,6 +90,8 @@ app.use("/uploads", express.static(path.join(rootDir, "uploads")));
 // terminal 404 catch-all that never calls next(), so mounting prep after it
 // would make every /api/prep/* route answer "Route not found".
 app.use("/api/prep", prepRouter);
+// GritScore — same ordering rule as prep: mount before the terminal 404.
+app.use("/api/gritscore", gritscoreRouter);
 app.use("/api", router);
 
 // Prep nav flash fix: ship the flag as a cookie on every response (including
@@ -165,6 +169,12 @@ app.get("/js/meta-pixel.js", (_req, res) => {
 // Prep pages: redirect to /feed while FEATURE_PREP is off, otherwise serve
 // public/prep/* with extensionless URLs. Registered before static.
 app.use("/prep", makePrepPages(publicPath));
+
+// GritScore pages: /gritscore, /gritscore/admin, /gritscore/referee, and the
+// public /score/:slug shell with server-injected Open Graph tags. Both must be
+// registered before express.static so the shell is never served untagged.
+app.use("/gritscore", makeGritScorePages(publicPath));
+app.get("/score/:slug", makeScorePage(publicPath));
 
 app.use(express.static(publicPath, {
   setHeaders: (res, filePath) => {

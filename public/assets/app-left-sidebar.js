@@ -4,6 +4,7 @@
   var items = [
     ['Home', '/feed', '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.7V21h14V9.7"/>'],
     ['Prep', '/prep', '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M9 7.5h6"/>'],
+    ['GritScore', '/gritscore', '<path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6Z"/><path d="m8.6 11.9 2.3 2.3 4.5-4.6"/>'],
     ['Search', '/explore.html', '<circle cx="11" cy="11" r="7"/><path d="m16.3 16.3 4.2 4.2"/>'],
     ['Messages', '/messages.html', '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/>'],
     ['Inbox', '/notifications.html', '<path d="M12 20.3 4.9 13a4.7 4.7 0 0 1 6.6-6.6l.5.5.5-.5A4.7 4.7 0 0 1 19 13Z"/>'],
@@ -14,6 +15,7 @@
   function isActive(href) {
     if (href === '/feed') return path === '/feed';
     if (href === '/prep') return path === '/prep' || path.indexOf('/prep/') === 0;
+    if (href === '/gritscore') return path === '/gritscore' || path.indexOf('/gritscore/') === 0 || path.indexOf('/score/') === 0;
     return path === href;
   }
 

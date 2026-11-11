@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>try{if(!localStorage.getItem('se_token')){location.replace('/');}}catch(e){}</script>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="robots" content="noindex, follow"/>
+<title>GritScore — Proof Score for your work | Grit&amp;Gigs</title>
+<meta name="description" content="Turn the work you have actually shipped into a shareable Proof Score backed by links, files and referees."/>
+<link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
+<link rel="stylesheet" href="/assets/app-left-sidebar.css?v=1"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=1"/>
+<script src="/assets/app-left-sidebar.js?v=2" defer></script>
+<script src="/assets/gritscore.js?v=1" defer></script>
+</head>
+<body class="gs-page">
+<div class="gs-toast" id="gsToast"></div>
+
+<div class="gs-topbar">
+  <a class="gs-brand" href="/gritscore">
+    <span class="gs-brand-mark"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6Z"/><path d="m8.6 11.9 2.3 2.3 4.5-4.6"/></svg></span>
+    GritScore
+  </a>
+  <span class="gs-brand-sep">/</span>
+  <span class="gs-muted gs-small">Proof Score</span>
+  <span class="gs-topbar-spacer"></span>
+  <a class="gs-topbar-link" href="/feed">Home</a>
+  <a class="gs-topbar-link" href="/prep">Prep</a>
+  <a class="gs-topbar-link" href="/gritscore/admin" id="adminLink" hidden>Admin</a>
+</div>
+
+<main class="gs-wrap">
+
+  <section id="listView">
+    <p class="gs-eyebrow">GritScore</p>
+    <h1 class="gs-h1">The work you can prove, in one number.</h1>
+    <p class="gs-lede">Add what you have shipped, attach the link, file or screenshot that proves it, and GritScore turns it into a shareable scorecard. The score is arithmetic on verified evidence — never a guess about who you are.</p>
+
+    <div id="planBar" class="gs-alert" hidden></div>
+
+    <div class="gs-between" style="margin-bottom:18px;">
+      <h2 class="gs-h2" style="margin:0;">Your scorecards</h2>
+      <button class="gs-btn" id="newBtn" type="button">New scorecard</button>
+    </div>
+
+    <div id="listLoading" class="gs-card">
+      <div class="gs-skeleton" style="width:38%;margin-bottom:12px;"></div>
+      <div class="gs-skeleton" style="width:70%;margin-bottom:12px;"></div>
+      <div class="gs-skeleton" style="width:52%;"></div>
+    </div>
+    <div id="listEmpty" class="gs-empty" hidden>
+      <h2 class="gs-h2">No scorecards yet</h2>
+      <p>Your first card is free. Add two or three pieces of work, attach proof, and you will have a shareable score in about five minutes.</p>
+      <button class="gs-btn" type="button" data-action="new">Build my first card</button>
+    </div>
+    <div id="listCards" class="gs-grid gs-2"></div>
+  </section>
+
+  <section id="createView" hidden>
+    <button class="gs-btn subtle sm" id="backToList" type="button">Back to cards</button>
+    <h1 class="gs-h1" style="margin-top:18px;">Build your scorecard</h1>
+    <p class="gs-lede">Upload a PDF resume <em>or</em> paste the text, then list the work you want scored. Proof is what moves the number: an openable link beats a screenshot, and a referee confirmation lifts the self-reported cap.</p>
+
+    <form id="createForm" novalidate>
+      <div class="gs-card">
+        <h2 class="gs-h2">1. About you</h2>
+        <div class="gs-row">
+          <div class="gs-field">
+            <label class="gs-label" for="displayName">Name on the card</label>
+            <input class="gs-input" id="displayName" name="displayName" maxlength="120" placeholder="How your name should appear"/>
+            <p class="gs-hint">Defaults to your Grit&amp;Gigs profile name.</p>
+          </div>
+          <div class="gs-field">
+            <label class="gs-label" for="headline">Headline</label>
+            <input class="gs-input" id="headline" name="headline" maxlength="200" placeholder="Frontend engineer, design systems"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="gs-card">
+        <h2 class="gs-h2">2. Resume <span class="gs-muted gs-small" style="font-weight:500;">(optional but recommended)</span></h2>
+        <div class="gs-row">
+          <div class="gs-field">
+            <label class="gs-label" for="resumeFile">PDF resume</label>
+            <input class="gs-input" id="resumeFile" name="resume" type="file" accept=".pdf,application/pdf,text/plain"/>
+            <p class="gs-hint">Up to 5 MB. The file is read and discarded unless you tick the box below.</p>
+          </div>
+          <div class="gs-field">
+            <label class="gs-label" for="resumeText">Or paste the text</label>
+            <textarea class="gs-textarea" id="resumeText" maxlength="60000" placeholder="Paste your resume text here if the PDF will not read."></textarea>
+          </div>
+        </div>
+        <label class="gs-check">
+          <input type="checkbox" id="storeResume"/>
+          <span>Keep my resume text on my card so I can edit it later. Leave this off and only the extracted summary is stored.</span>
+        </label>
+      </div>
+
+      <div class="gs-card">
+        <div class="gs-card-head">
+          <h2 class="gs-h2" style="margin:0;">3. Work items</h2>
+          <button class="gs-btn subtle sm" id="addItem" type="button">Add item</button>
+        </div>
+        <p class="gs-muted gs-small" style="margin:0 0 16px;">Two to five strong items score better than ten thin ones. Describe the hard part and the result.</p>
+        <div id="itemsList"></div>
+      </div>
+
+      <div class="gs-card">
+        <h2 class="gs-h2">4. Sharing</h2>
+        <label class="gs-check" style="margin-bottom:10px;">
+          <input type="checkbox" id="isPublic" checked/>
+          <span>Make this card public at <strong>/score/&lt;slug&gt;</strong> so I can share the link. You can turn this off at any time.</span>
+        </label>
+        <p class="gs-hint" style="margin-bottom:0;">The public page shows your score, tier, verification status, top skills and strongest proof. Visitors can leave a star rating and a short review. It is labelled a Proof Score — never a hiring verdict.</p>
+      </div>
+
+      <div id="createError" class="gs-alert bad" hidden></div>
+
+      <div class="gs-between" style="margin-top:18px;">
+        <button class="gs-btn ghost" id="cancelCreate" type="button">Cancel</button>
+        <button class="gs-btn" id="submitCreate" type="submit">Build my scorecard</button>
+      </div>
+    </form>
+  </section>
+
+  <section id="detailView" hidden></section>
+</main>
+
+<template id="itemTemplate">
+  <div class="gs-item" data-item>
+    <div class="gs-item-head">
+      <div class="gs-field" style="flex:1;margin-bottom:0;">
+        <label class="gs-label">Title <span class="gs-req">*</span></label>
+        <input class="gs-input" data-field="title" maxlength="200" placeholder="Billing pipeline rewrite"/>
+      </div>
+      <button class="gs-btn danger sm" type="button" data-remove style="margin-top:20px;">Remove</button>
+    </div>
+    <div class="gs-field">
+      <label class="gs-label">What you did <span class="gs-req">*</span></label>
+      <textarea class="gs-textarea" data-field="description" maxlength="2000" placeholder="What you built or changed, for whom, and the result. Numbers help: 38% fewer errors, 12,000 users, four-person team."></textarea>
+    </div>
+    <div class="gs-row-3">
+      <div class="gs-field">
+        <label class="gs-label">Role</label>
+        <input class="gs-input" data-field="role" maxlength="160" placeholder="Senior engineer"/>
+      </div>
+      <div class="gs-field">
+        <label class="gs-label">Start</label>
+        <input class="gs-input" data-field="startDate" maxlength="10" placeholder="2023-01"/>
+      </div>
+      <div class="gs-field">
+        <label class="gs-label">End</label>
+        <input class="gs-input" data-field="endDate" maxlength="10" placeholder="2023-12 or present"/>
+      </div>
+    </div>
+    <div class="gs-row">
+      <div class="gs-field">
+        <label class="gs-label">Proof link</label>
+        <input class="gs-input" data-field="proofUrl" maxlength="600" placeholder="https://github.com/you/project"/>
+        <p class="gs-hint">A live link, repo, published piece or certificate URL.</p>
+      </div>
+      <div class="gs-field">
+        <label class="gs-label">Or attach a file</label>
+        <input class="gs-input" type="file" data-field="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.txt,.md"/>
+        <p class="gs-hint">PDF or image, up to 5 MB.</p>
+      </div>
+    </div>
+    <div class="gs-field" style="margin-bottom:0;">
+      <label class="gs-label">Skills used</label>
+      <input class="gs-input" data-field="skills" maxlength="240" placeholder="TypeScript, PostgreSQL, Stripe"/>
+    </div>
+  </div>
+</template>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (!window.GS) return;
+  var GS = window.GS;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var listView = $('listView'), createView = $('createView'), detailView = $('detailView');
+  var itemsList = $('itemsList'), itemTemplate = $('itemTemplate');
+  var state = { scans: [], isPro: false, freeScans: 1, proScans: 20, priceInr: 99, days: 30 };
+
+  function show(which) {
+    listView.hidden = which !== 'list';
+    createView.hidden = which !== 'create';
+    detailView.hidden = which !== 'detail';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function money(n) { return '\u20B9' + n; }
+
+  // ---- Plan bar ------------------------------------------------------------
+  function renderPlanBar() {
+    var bar = $('planBar');
+    var isAdmin = GS.user() && GS.user().role === 'ADMIN';
+    if (isAdmin) $('adminLink').hidden = false;
+    if (state.isPro) {
+      bar.hidden = false;
+      bar.className = 'gs-alert ok';
+      bar.innerHTML = '<strong>GritScore Pro is active.</strong> Full breakdown, improvement tips, PDF export, no watermark, up to ' + state.proScans + ' cards.';
+      return;
+    }
+    bar.hidden = false;
+    bar.className = 'gs-alert';
+    bar.innerHTML = 'Free plan: <strong>' + state.freeScans + ' scorecard</strong>, score preview and a watermarked card. ' +
+      'GritScore Pro is ' + money(state.priceInr) + ' for ' + state.days + ' days and removes the cap on rescans, adds the full breakdown, tips and PDF export. ' +
+      '<a href="#" id="upgradeInline">See what Pro adds</a>.';
+    var link = $('upgradeInline');
+    if (link) link.addEventListener('click', function (e) { e.preventDefault(); startCheckout(); });
+  }
+
+  // ---- List ----------------------------------------------------------------
+  function loadScans() {
+    return GS.request('/me').then(function (res) {
+      $('listLoading').hidden = true;
+      if (!res.ok || !res.data.success) {
+        $('listEmpty').hidden = false;
+        GS.toast((res.data && res.data.message) || 'Could not load your cards');
+        return;
+      }
+      var data = res.data.data;
+      state.scans = data.scans || [];
+      state.isPro = !!data.isPro;
+      state.freeScans = data.freeScans || 1;
+      state.proScans = data.proScans || 20;
+      state.priceInr = data.priceInr || 99;
+      state.days = data.days || 30;
+      renderPlanBar();
+      renderList();
+    }).catch(function () {
+      $('listLoading').hidden = true;
+      $('listEmpty').hidden = false;
+    });
+  }
+
+  function renderList() {
+    var wrap = $('listCards');
+    $('listEmpty').hidden = state.scans.length > 0;
+    if (!state.scans.length) { wrap.innerHTML = ''; return; }
+    wrap.innerHTML = state.scans.map(function (s) {
+      var verified = s.verificationTier === 'third_party_confirmed' ? 'third' : (s.verificationTier === 'evidence_checked' ? 'ok' : '');
+      return '<article class="gs-card" style="display:flex;flex-direction:column;gap:10px;">' +
+        '<div class="gs-between">' +
+          '<span class="' + GS.tierClass(s.tier) + '">' + GS.esc(s.tier || 'Starter') + '</span>' +
+          '<span class="gs-badge ' + (s.isPublic ? 'ok' : '') + '">' + (s.isPublic ? 'Public' : 'Private') + '</span>' +
+        '</div>' +
+        '<div>' +
+          '<div style="font-family:var(--gs-font-display);font-size:2.6rem;font-weight:800;line-height:1;letter-spacing:-0.04em;">' +
+            (s.score === null || s.score === undefined ? '—' : s.score) +
+            '<span class="gs-score-outof" style="font-size:0.9rem;"> /900</span>' +
+          '</div>' +
+          '<div class="gs-muted gs-small" style="margin-top:4px;">' + GS.esc(s.displayName) + ' · ' + s.itemCount + ' ' + GS.plural(s.itemCount, 'item') + '</div>' +
+        '</div>' +
+        '<span class="gs-verify ' + verified + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>' + GS.esc(s.verificationLabel) + '</span>' +
+        '<div class="gs-between" style="margin-top:4px;">' +
+          '<button class="gs-btn sm" type="button" data-open="' + GS.esc(s.id) + '">Open</button>' +
+          (s.isPublic ? '<a class="gs-btn subtle sm" href="/score/' + GS.esc(s.slug) + '" target="_blank" rel="noopener">View public</a>' : '') +
+        '</div>' +
+      '</article>';
+    }).join('');
+  }
+
+  // ---- Create form ---------------------------------------------------------
+  function addItem(prefill) {
+    var existing = itemsList.querySelectorAll('[data-item]').length;
+    if (existing >= 8) { GS.toast('Eight items is the maximum. Focus on your strongest work.'); return; }
+    var node = itemTemplate.content.firstElementChild.cloneNode(true);
+    itemsList.appendChild(node);
+    var remove = node.querySelector('[data-remove]');
+    remove.addEventListener('click', function () {
+      node.remove();
+      if (!itemsList.querySelector('[data-item]')) addItem();
+    });
+    if (prefill) fillItem(node, prefill);
+    return node;
+  }
+
+  function fillItem(node, prefill) {
+    Object.keys(prefill).forEach(function (key) {
+      var field = node.querySelector('[data-field="' + key + '"]');
+      if (field && prefill[key] != null) field.value = prefill[key];
+    });
+  }
+
+  function readItems() {
+    var nodes = Array.prototype.slice.call(itemsList.querySelectorAll('[data-item]'));
+    return nodes.map(function (node, index) {
+      var get = function (key) {
+        var field = node.querySelector('[data-field="' + key + '"]');
+        return field ? String(field.value || '').trim() : '';
+      };
+      var fileField = node.querySelector('[data-field="file"]');
+      return {
+        index: index,
+        title: get('title'),
+        description: get('description'),
+        role: get('role') || null,
+        startDate: get('startDate') || null,
+        endDate: get('endDate') || null,
+        proofUrl: get('proofUrl') || null,
+        skills: get('skills') ? get('skills').split(',').map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 12) : [],
+        file: fileField && fileField.files && fileField.files[0] ? fileField.files[0] : null
+      };
+    });
+  }
+
+  function startCreate() {
+    if (!state.isPro && state.scans.length >= state.freeScans) {
+      showUpgrade('Free accounts get ' + state.freeScans + ' scorecard. GritScore Pro unlocks unlimited new cards and rescans.');
+      return;
+    }
+    itemsList.innerHTML = '';
+    addItem();
+    addItem();
+    var u = GS.user();
+    if (u && !$('displayName').value) {
+      $('displayName').value = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
+    }
+    $('createError').hidden = true;
+    show('create');
+  }
+
+  function submitCreate(e) {
+    e.preventDefault();
+    var btn = $('submitCreate');
+    var errBox = $('createError');
+    errBox.hidden = true;
+
+    var items = readItems().filter(function (item) {
+      return item.title || item.description;
+    });
+    if (!items.length) {
+      errBox.textContent = 'Add at least one work item with a title and a description.';
+      errBox.hidden = false;
+      return;
+    }
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].title.length < 2) {
+        errBox.textContent = 'Item ' + (i + 1) + ' needs a title.';
+        errBox.hidden = false;
+        return;
+      }
+      if (items[i].description.length < 10) {
+        errBox.textContent = 'Item ' + (i + 1) + ' needs a description of at least 10 characters.';
+        errBox.hidden = false;
+        return;
+      }
+    }
+
+    var form = new FormData();
+    form.append('displayName', $('displayName').value.trim());
+    form.append('headline', $('headline').value.trim());
+    form.append('isPublic', $('isPublic').checked ? 'true' : 'false');
+    form.append('storeResume', $('storeResume').checked ? 'true' : 'false');
+    var pasted = $('resumeText').value.trim();
+    if (pasted) form.append('resumeText', pasted);
+    var resumeFile = $('resumeFile').files[0];
+    if (resumeFile) form.append('resume', resumeFile);
+    form.append('items', JSON.stringify(items.map(function (item) {
+      return {
+        title: item.title, description: item.description, role: item.role,
+        startDate: item.startDate, endDate: item.endDate,
+        proofUrl: item.proofUrl, skills: item.skills
+      };
+    })));
+    items.forEach(function (item) {
+      if (item.file) form.append('proof_' + item.index, item.file);
+    });
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="gs-spinner"></span> Scoring';
+    GS.request('/scans', { method: 'POST', body: form, timeout: 90000 }).then(function (res) {
+      btn.disabled = false;
+      btn.textContent = 'Build my scorecard';
+      if (res.status === 401) {
+        GS.toast('Your session expired. Sign in again.');
+        setTimeout(function () { location.href = '/'; }, 1200);
+        return;
+      }
+      if (res.status === 402) {
+        showUpgrade((res.data && res.data.message) || 'That needs GritScore Pro.');
+        return;
+      }
+      if (!res.ok || !res.data.success) {
+        errBox.textContent = (res.data && res.data.message) || 'Could not build your card. Try again.';
+        errBox.hidden = false;
+        return;
+      }
+      GS.toast('Scorecard ready');
+      loadScans();
+      openDetail(res.data.data.scan.id, res.data.data);
+    }).catch(function () {
+      btn.disabled = false;
+      btn.textContent = 'Build my scorecard';
+      errBox.textContent = 'That took too long. Check your connection and try again.';
+      errBox.hidden = false;
+    });
+  }
+
+  // ---- Detail --------------------------------------------------------------
+  function componentsHtml(components) {
+    if (!components) {
+      return '<div class="gs-alert">' +
+        'The full breakdown — proof strength, skill depth, quantified impact, consistency and clarity — is part of GritScore Pro. ' +
+        '<a href="#" data-action="upgrade">Unlock it</a>.</div>';
+    }
+    var labels = { proof: 'Proof strength', skillDepth: 'Skill depth', impact: 'Quantified impact', consistency: 'Consistency', clarity: 'Clarity' };
+    return Object.keys(labels).map(function (key) {
+      var pct = Math.round((components[key] || 0) * 100);
+      return '<div class="gs-meter">' +
+        '<div class="gs-meter-top"><span class="k">' + labels[key] + '</span><span class="v">' + pct + '%</span></div>' +
+        '<div class="gs-meter-track"><div class="gs-meter-fill" style="width:' + pct + '%"></div></div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function itemStatus(item) {
+    var s = GS.STATUS_LABEL[item.evidenceStatus] || { text: item.evidenceStatus || 'Not checked', cls: '' };
+    if (item.evidenceType === 'file' || item.evidenceType === 'screenshot' || item.evidenceType === 'certificate') {
+      s = { text: 'File attached', cls: 'ok' };
+    }
+    return '<span class="gs-badge ' + s.cls + '">' + GS.esc(s.text) + '</span>';
+  }
+
+  function renderDetail(data, fresh) {
+    var scan = data.scan;
+    var items = data.items || [];
+    var score = fresh && fresh.score != null ? fresh.score : scan.score;
+    var tier = fresh && fresh.tier ? fresh.tier : scan.tier;
+    var verified = scan.verificationTier === 'third_party_confirmed' ? 'third' : (scan.verificationTier === 'evidence_checked' ? 'ok' : '');
+    var cached = fresh && typeof fresh === 'object' && 'components' in fresh ? fresh : null;
+
+    var html = '';
+    html += '<button class="gs-btn subtle sm" type="button" data-action="back">Back to cards</button>';
+
+    html += '<div class="gs-hero" style="margin-top:18px;">' +
+      '<div class="gs-hero-top">' +
+        '<div>' +
+          '<p class="gs-eyebrow" style="margin-bottom:6px;">Proof Score</p>' +
+          '<div class="gs-score-num">' + (score == null ? '—' : score) + '<span class="gs-score-outof"> /900</span></div>' +
+          '<div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:10px;">' +
+            '<span class="' + GS.tierClass(tier) + '">' + GS.esc(tier || 'Starter') + '</span>' +
+            '<span class="gs-verify ' + verified + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>' + GS.esc(scan.verificationLabel || data.verificationNote || 'Self-reported') + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="gs-right">' +
+          '<div class="gs-muted gs-small">' + items.length + ' ' + GS.plural(items.length, 'item') + '</div>' +
+          '<div class="gs-muted gs-small">' + (scan.isPublic ? 'Public' : 'Private') + '</div>' +
+        '</div>' +
+      '</div>' +
+      (cached && cached.capped ? '<div class="gs-capped">Your evidence supports a ' + cached.rawScore + ', but self-reported work is capped at 600. A referee confirmation lifts the cap.</div>' : '') +
+      '<div class="gs-share-row">' +
+        (scan.isPublic ? '<a class="gs-btn sm" href="/score/' + GS.esc(scan.slug) + '" target="_blank" rel="noopener">Open public page</a>' +
+          '<button class="gs-btn subtle sm" type="button" data-action="copy" data-url="' + GS.esc(scan.publicUrl) + '">Copy link</button>' +
+          '<a class="gs-btn subtle sm" href="' + GS.API + '/scans/' + GS.esc(scan.id) + '/card.png" data-download="png">Download image</a>' : '') +
+        '<a class="gs-btn subtle sm" href="' + GS.API + '/scans/' + GS.esc(scan.id) + '/card.pdf" data-download="pdf" data-pro="' + (data.isPro ? '1' : '0') + '">PDF export' + (data.isPro ? '' : ' · Pro') + '</a>' +
+      '</div>' +
+    '</div>';
+
+    // Owner controls
+    html += '<div class="gs-card" style="margin-top:16px;">' +
+      '<div class="gs-card-head"><h2 class="gs-h2" style="margin:0;">Card settings</h2>' +
+        '<button class="gs-btn danger sm" type="button" data-action="delete">Delete card</button></div>' +
+      '<div class="gs-row">' +
+        '<div class="gs-field"><label class="gs-label">Name on card</label>' +
+          '<input class="gs-input" id="editName" maxlength="120" value="' + GS.esc(scan.displayName) + '"/></div>' +
+        '<div class="gs-field"><label class="gs-label">Headline</label>' +
+          '<input class="gs-input" id="editHeadline" maxlength="200" value="' + GS.esc(scan.headline || '') + '"/></div>' +
+      '</div>' +
+      '<label class="gs-check" style="margin-bottom:10px;"><input type="checkbox" id="editPublic"' + (scan.isPublic ? ' checked' : '') + '/>' +
+        '<span>Public page is live at <code>/score/' + GS.esc(scan.slug) + '</code></span></label>' +
+      '<button class="gs-btn sm" type="button" data-action="save">Save changes</button>' +
+    '</div>';
+
+    // Summary + skills
+    if (data.summary) {
+      html += '<div class="gs-card" style="margin-top:16px;">' +
+        '<h2 class="gs-h2">Summary</h2>' +
+        '<p class="gs-muted" style="font-size:0.9rem;line-height:1.6;margin:0;">' + GS.esc(data.summary) + '</p>' +
+        ((data.skills && data.skills.length) ? '<div class="gs-chips" style="margin-top:14px;">' + data.skills.map(function (s) {
+          return '<span class="gs-chip">' + GS.esc(s) + '</span>';
+        }).join('') + '</div>' : '') +
+      '</div>';
+    }
+
+    // Breakdown + tips
+    html += '<div class="gs-card" style="margin-top:16px;">' +
+      '<div class="gs-card-head"><h2 class="gs-h2" style="margin:0;">What makes up the score</h2>' +
+        (data.isPro ? '' : '<span class="gs-badge accent">Pro</span>') + '</div>' +
+      componentsHtml(data.components) +
+    '</div>';
+
+    if (data.isPro && data.tips && data.tips.length) {
+      html += '<div class="gs-card" style="margin-top:16px;">' +
+        '<h2 class="gs-h2">Where the next points are</h2>' +
+        '<ul class="gs-pro-list" style="margin:0;">' + data.tips.map(function (tip) {
+          return '<li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg><span>' + GS.esc(tip) + '</span></li>';
+        }).join('') + '</ul>' +
+      '</div>';
+    }
+
+    // Items
+    html += '<div class="gs-card" style="margin-top:16px;">' +
+      '<h2 class="gs-h2">Work and proof</h2>' +
+      items.map(function (item) {
+        var dates = [item.startDate, item.endDate].filter(Boolean).join(' – ');
+        return '<div class="gs-item">' +
+          '<div class="gs-item-head"><div>' +
+            '<p class="gs-item-title">' + GS.esc(item.title) + '</p>' +
+            '<div class="gs-item-meta">' + [item.role, dates].filter(Boolean).map(GS.esc).join(' · ') + '</div>' +
+          '</div>' + itemStatus(item) + '</div>' +
+          '<p class="gs-item-desc">' + GS.esc(item.description) + '</p>' +
+          '<div class="gs-item-foot">' +
+            '<span class="gs-chip accent">' + GS.esc(GS.EVIDENCE_LABEL[item.evidenceType] || item.evidenceType) + '</span>' +
+            (item.skills || []).slice(0, 6).map(function (s) { return '<span class="gs-chip">' + GS.esc(s) + '</span>'; }).join('') +
+            (item.proofUrl ? '<a class="gs-item-link" href="' + GS.esc(item.proofUrl) + '" target="_blank" rel="noopener nofollow">Open proof</a>' : '') +
+          '</div>' +
+          (item.evidenceNote ? '<p class="gs-hint" style="margin-top:8px;">' + GS.esc(item.evidenceNote) + '</p>' : '') +
+          '<div class="gs-inline-form" style="margin-top:10px;">' +
+            '<input class="gs-input" data-ref-email="' + GS.esc(item.id) + '" type="email" placeholder="Referee email" style="flex:1;min-width:180px;"/>' +
+            '<button class="gs-btn subtle sm" type="button" data-action="invite" data-item="' + GS.esc(item.id) + '">Ask for confirmation</button>' +
+          '</div>' +
+        '</div>';
+      }).join('') +
+      (data.abuseFlags && data.abuseFlags.length ? '<div class="gs-alert warn" style="margin-top:14px;">' +
+        '<strong>Checks that need attention:</strong><br/>' + data.abuseFlags.map(GS.esc).join('<br/>') + '</div>' : '') +
+    '</div>';
+
+    // Referees
+    if (data.referees && data.referees.length) {
+      html += '<div class="gs-card" style="margin-top:16px;">' +
+        '<h2 class="gs-h2">Referees</h2>' +
+        data.referees.map(function (r) {
+          var cls = r.status === 'CONFIRMED' ? 'ok' : (r.status === 'DECLINED' ? 'bad' : '');
+          return '<div class="gs-item"><div class="gs-item-head"><div>' +
+            '<p class="gs-item-title">' + GS.esc(r.name || r.email || r.phone || 'Referee') + '</p>' +
+            '<div class="gs-item-meta">' + GS.esc(r.email || r.phone || '') + '</div>' +
+          '</div><span class="gs-badge ' + cls + '">' + GS.esc(r.status) + '</span></div>' +
+          (r.link ? '<p class="gs-hint" style="word-break:break-all;margin-top:8px;">Invite link: <a href="' + GS.esc(r.link) + '" target="_blank" rel="noopener">' + GS.esc(r.link) + '</a></p>' : '') +
+          '</div>';
+        }).join('') +
+      '</div>';
+    }
+
+    // Reviews
+    if (data.reviews) {
+      html += '<div class="gs-card" style="margin-top:16px;">' +
+        '<h2 class="gs-h2">Reviews</h2>' +
+        (data.reviews.count ?
+          '<div class="gs-rating-summary"><div><div class="gs-rating-big">' + data.reviews.average.toFixed(1) + '</div>' +
+            '<div class="gs-rating-sub">' + data.reviews.count + ' ' + GS.plural(data.reviews.count, 'review') + '</div></div>' +
+            '<div>' + GS.starsHtml(data.reviews.average) + '</div></div>' : '') +
+        (data.reviews.latest && data.reviews.latest.length ? data.reviews.latest.map(function (r) {
+          return '<div class="gs-review"><div class="gs-review-avatar">' + GS.esc((r.reviewerName || 'A').slice(0, 1).toUpperCase()) + '</div>' +
+            '<div class="gs-review-body"><div class="gs-review-head"><span class="gs-review-name">' + GS.esc(r.reviewerName) + '</span>' +
+            GS.starsHtml(r.stars) + '<span class="gs-review-date">' + GS.timeAgo(r.createdAt) + '</span></div>' +
+            (r.comment ? '<p class="gs-review-text">' + GS.esc(r.comment) + '</p>' : '') + '</div></div>';
+        }).join('') : '<p class="gs-muted" style="margin:0;">No reviews yet. Share the public link and ask one person whose opinion you respect.</p>') +
+      '</div>';
+    }
+
+    detailView.innerHTML = html;
+    show('detail');
+    bindDetail(data);
+  }
+
+  function bindDetail(data) {
+    var scan = data.scan;
+    detailView.querySelectorAll('[data-action]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var action = btn.getAttribute('data-action');
+        if (action === 'back') { show('list'); loadScans(); return; }
+        if (action === 'upgrade') { startCheckout(); return; }
+        if (action === 'copy') {
+          var url = btn.getAttribute('data-url');
+          if (navigator.clipboard) navigator.clipboard.writeText(url).then(function () { GS.toast('Link copied'); });
+          else GS.toast(url);
+          return;
+        }
+        if (action === 'save') return saveSettings(scan.id);
+        if (action === 'delete') return deleteCard(scan.id);
+        if (action === 'invite') {
+          var itemId = btn.getAttribute('data-item');
+          var input = detailView.querySelector('[data-ref-email="' + itemId + '"]');
+          var email = input ? input.value.trim() : '';
+          if (!email) { GS.toast('Add the referee email first'); if (input) input.focus(); return; }
+          return inviteReferee(scan.id, itemId, email, btn);
+        }
+      });
+    });
+    detailView.querySelectorAll('[data-download]').forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        var kind = link.getAttribute('data-download');
+        if (kind === 'pdf' && link.getAttribute('data-pro') === '0') {
+          startCheckout('PDF export is part of GritScore Pro.');
+          return;
+        }
+        downloadFile(link.getAttribute('href'), 'gritscore-' + scan.slug + (kind === 'pdf' ? '.pdf' : '.png'), link);
+      });
+    });
+  }
+
+  // The API expects the bearer token in a header, so a plain anchor click would
+  // land on a 401. Fetch the file, then hand the bytes to the browser.
+  function downloadFile(url, filename, link) {
+    var original = link.textContent;
+    link.textContent = 'Preparing';
+    link.setAttribute('aria-busy', 'true');
+    fetch(url, { headers: GS.token() ? { Authorization: 'Bearer ' + GS.token() } : {} })
+      .then(function (res) {
+        if (!res.ok) throw new Error('download failed');
+        return res.blob();
+      })
+      .then(function (blob) {
+        var objectUrl = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = objectUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 5000);
+      })
+      .catch(function () { GS.toast('Could not download that file'); })
+      .finally(function () {
+        link.textContent = original;
+        link.removeAttribute('aria-busy');
+      });
+  }
+
+  function saveSettings(id) {
+    GS.request('/scans/' + id, {
+      method: 'PATCH',
+      body: {
+        displayName: $('editName').value.trim(),
+        headline: $('editHeadline').value.trim(),
+        isPublic: $('editPublic').checked
+      }
+    }).then(function (res) {
+      if (!res.ok || !res.data.success) { GS.toast((res.data && res.data.message) || 'Could not save'); return; }
+      GS.toast('Saved');
+      openDetail(id);
+      loadScans();
+    });
+  }
+
+  function deleteCard(id) {
+    if (!confirm('Delete this card permanently? This removes the score, proof files, referee links and reviews.')) return;
+    GS.request('/scans/' + id, { method: 'DELETE' }).then(function (res) {
+      if (!res.ok || !res.data.success) { GS.toast((res.data && res.data.message) || 'Could not delete'); return; }
+      GS.toast('Card deleted');
+      show('list');
+      loadScans();
+    });
+  }
+
+  function inviteReferee(scanId, itemId, email, btn) {
+    btn.disabled = true;
+    GS.request('/scans/' + scanId + '/referee', { method: 'POST', body: { itemId: itemId, email: email } })
+      .then(function (res) {
+        btn.disabled = false;
+        if (!res.ok || !res.data.success) { GS.toast((res.data && res.data.message) || 'Could not create the invite'); return; }
+        GS.toast(res.data.data.emailSent ? 'Referee invite sent' : 'Invite link created');
+        openDetail(scanId);
+      }).catch(function () { btn.disabled = false; GS.toast('Could not create the invite'); });
+  }
+
+  function openDetail(id, fresh) {
+    GS.request('/scans/' + id).then(function (res) {
+      if (!res.ok || !res.data.success) {
+        GS.toast((res.data && res.data.message) || 'Could not load that card');
+        show('list');
+        return;
+      }
+      renderDetail(res.data.data, fresh || null);
+    });
+  }
+
+  // ---- Upgrade / checkout --------------------------------------------------
+  function showUpgrade(message) {
+    if (message) GS.toast(message, 5200);
+    var existing = document.getElementById('gsUpgrade');
+    if (existing) { existing.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+    var panel = document.createElement('div');
+    panel.id = 'gsUpgrade';
+    panel.className = 'gs-pro';
+    panel.style.marginTop = '18px';
+    panel.innerHTML =
+      '<p class="gs-eyebrow" style="margin-bottom:4px;">GritScore Pro</p>' +
+      '<div class="gs-pro-price">' + money(state.priceInr) + ' <span>/ ' + state.days + ' days</span></div>' +
+      '<ul class="gs-pro-list">' +
+        '<li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg><span>Full component breakdown of your score</span></li>' +
+        '<li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg><span>Specific tips on where the next points are</span></li>' +
+        '<li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg><span>Watermark-free cards and PDF export</span></li>' +
+        '<li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg><span>Unlimited rescans and multiple cards</span></li>' +
+        '<li><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg><span>More referee invites per card</span></li>' +
+      '</ul>' +
+      '<button class="gs-btn" type="button" id="gsUpgradeBuy">Get GritScore Pro</button>' +
+      '<p class="gs-hint" style="margin-top:10px;">One payment, ' + state.days + ' days. Does not change your Grit&amp;Gigs membership.</p>';
+    var host = createView.hidden ? (detailView.hidden ? $('listEmpty').parentNode : detailView) : createView;
+    host.insertBefore(panel, host.firstChild.nextSibling || null);
+    panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('gsUpgradeBuy').addEventListener('click', function () { startCheckout(); });
+  }
+
+  function loadRazorpay(cb) {
+    if (window.Razorpay) { cb(); return; }
+    var s = document.createElement('script');
+    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    s.onload = cb;
+    s.onerror = function () { GS.toast('Could not load the payment window'); };
+    document.body.appendChild(s);
+  }
+
+  function startCheckout(reason) {
+    if (reason) GS.toast(reason, 4200);
+    var btn = document.getElementById('gsUpgradeBuy');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="gs-spinner"></span> Opening checkout'; }
+    GS.request('/pro/order', { method: 'POST' }).then(function (res) {
+      if (res.status === 409) { GS.toast('GritScore Pro is already active'); loadScans(); return; }
+      if (!res.ok || !res.data.success) {
+        if (btn) { btn.disabled = false; btn.textContent = 'Get GritScore Pro'; }
+        GS.toast((res.data && res.data.message) || 'Could not start checkout');
+        return;
+      }
+      var data = res.data.data;
+      loadRazorpay(function () {
+        var rzp = new window.Razorpay({
+          key: data.key,
+          order_id: data.order.id,
+          amount: data.order.amount,
+          currency: data.order.currency || 'INR',
+          name: 'Grit&Gigs',
+          description: 'GritScore Pro · ' + state.days + ' days',
+          theme: { color: '#6C3FE8' },
+          handler: function (response) {
+            GS.request('/pro/verify', {
+              method: 'POST',
+              body: { razorpayOrderId: response.razorpay_order_id, razorpayPaymentId: response.razorpay_payment_id }
+            }).then(function (v) {
+              if (v.ok && v.data.success) {
+                GS.toast('GritScore Pro is active');
+                var panel = document.getElementById('gsUpgrade');
+                if (panel) panel.remove();
+                loadScans();
+                if (!detailView.hidden) { /* refresh current card */ }
+              } else {
+                GS.toast((v.data && v.data.message) || 'Payment received but activation failed. Contact support.');
+              }
+            });
+          },
+          modal: {
+            ondismiss: function () {
+              if (btn) { btn.disabled = false; btn.textContent = 'Get GritScore Pro'; }
+            }
+          }
+        });
+        rzp.open();
+      });
+    }).catch(function () {
+      if (btn) { btn.disabled = false; btn.textContent = 'Get GritScore Pro'; }
+      GS.toast('Could not start checkout');
+    });
+  }
+
+  // ---- Wiring --------------------------------------------------------------
+  $('newBtn').addEventListener('click', startCreate);
+  document.querySelectorAll('[data-action="new"]').forEach(function (b) { b.addEventListener('click', startCreate); });
+  $('addItem').addEventListener('click', function () { addItem(); });
+  $('backToList').addEventListener('click', function () { show('list'); loadScans(); });
+  $('cancelCreate').addEventListener('click', function () { show('list'); });
+  $('createForm').addEventListener('submit', submitCreate);
+
+  show('list');
+  loadScans();
+});
+</script>
+</body>
+</html>
