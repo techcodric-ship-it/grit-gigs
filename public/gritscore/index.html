@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>try{if(!localStorage.getItem('se_token')){location.replace('/');}}catch(e){}</script>
+<script>try{if(!localStorage.getItem('se_token') && !localStorage.getItem('se_refresh')){location.replace('/');}}catch(e){}</script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="robots" content="noindex, follow"/>
@@ -10,8 +10,9 @@
 <link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
 <link rel="stylesheet" href="/assets/app-left-sidebar.css?v=1"/>
 <link rel="stylesheet" href="/assets/gritscore.css?v=3"/>
+<script src="/js/se-auth.js?v=1" defer></script>
 <script src="/assets/app-left-sidebar.js?v=2" defer></script>
-<script src="/assets/gritscore.js?v=1" defer></script>
+<script src="/assets/gritscore.js?v=2" defer></script>
 </head>
 <body class="gs-page">
 <div class="gs-toast" id="gsToast"></div>
@@ -30,6 +31,15 @@
 </header>
 
 <main class="gs-wrap">
+
+  <section id="sessionDead" hidden>
+    <div class="gs-empty">
+      <div class="gs-empty-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v2"/></svg></div>
+      <h2 class="gs-h2">Your sign-in has expired</h2>
+      <p>Your scorecards and proof files are safe. Sign in again to pick up where you left off.</p>
+      <button class="gs-btn" type="button" id="sessionSignIn">Sign in again</button>
+    </div>
+  </section>
 
   <section id="listView">
     <div class="gs-page-hero">
@@ -230,6 +240,19 @@ document.addEventListener('DOMContentLoaded', function () {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  // Only reached when the refresh token is gone or rejected as well as the
+  // access token: show a clean sign-in state instead of an empty card list.
+  function sessionDead() {
+    try {
+      localStorage.removeItem('se_token');
+      localStorage.removeItem('se_user');
+    } catch (e) { /* private mode */ }
+    listView.hidden = true;
+    createView.hidden = true;
+    detailView.hidden = true;
+    $('sessionDead').hidden = false;
+  }
+
   function money(n) { return '\u20B9' + n; }
 
   // ---- Plan bar ------------------------------------------------------------
@@ -263,6 +286,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function loadScans() {
     return GS.request('/me').then(function (res) {
       $('listLoading').hidden = true;
+      if (res.status === 401) { sessionDead(); return; }
       if (!res.ok || !res.data.success) {
         $('listEmpty').hidden = false;
         GS.toast((res.data && res.data.message) || 'Could not load your cards');
@@ -440,8 +464,7 @@ document.addEventListener('DOMContentLoaded', function () {
       btn.disabled = false;
       btn.textContent = 'Build my scorecard';
       if (res.status === 401) {
-        GS.toast('Your session expired. Sign in again.');
-        setTimeout(function () { location.href = '/'; }, 1200);
+        sessionDead();
         return;
       }
       if (res.status === 402) {
@@ -674,7 +697,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var original = link.textContent;
     link.textContent = 'Preparing';
     link.setAttribute('aria-busy', 'true');
-    fetch(url, { headers: GS.token() ? { Authorization: 'Bearer ' + GS.token() } : {} })
+    GS.authedFetch(url, {})
       .then(function (res) {
         if (!res.ok) throw new Error('download failed');
         return res.blob();
@@ -735,6 +758,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function openDetail(id, fresh) {
     GS.request('/scans/' + id).then(function (res) {
+      if (res.status === 401) { sessionDead(); return; }
       if (!res.ok || !res.data.success) {
         GS.toast((res.data && res.data.message) || 'Could not load that card');
         show('list');
@@ -833,6 +857,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ---- Wiring --------------------------------------------------------------
+  $('sessionSignIn').addEventListener('click', function () { location.href = '/'; });
   document.addEventListener('click', function (e) {
     var open = e.target && e.target.closest ? e.target.closest('[data-open]') : null;
     if (open) openDetail(open.getAttribute('data-open'));

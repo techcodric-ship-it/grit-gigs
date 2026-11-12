@@ -17,6 +17,26 @@
     return headers;
   }
 
+  // Route auth-carrying calls through the shared SeAuth helper when it is on
+  // the page. A 7-day access token ages out long before the 30-day refresh
+  // token, and without this a signed-in member saw "Token expired" and an
+  // empty card list. SeAuth exchanges se_refresh for a new se_token and
+  // retries once; fall back to a plain bearer request when it is absent.
+  function authedFetch(url, init) {
+    if (window.SeAuth && typeof window.SeAuth.fetch === 'function') {
+      return window.SeAuth.fetch(url, init);
+    }
+    var opts = init || {};
+    var headers = {};
+    for (var k in (opts.headers || {})) {
+      if (Object.prototype.hasOwnProperty.call(opts.headers, k)) headers[k] = opts.headers[k];
+    }
+    var t = token();
+    if (t) headers.Authorization = 'Bearer ' + t;
+    opts.headers = headers;
+    return fetch(url, opts);
+  }
+
   function request(path, options) {
     var opts = options || {};
     var init = {
@@ -30,7 +50,7 @@
     var ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var timer = ctl ? setTimeout(function () { ctl.abort(); }, timeout) : null;
     if (ctl) init.signal = ctl.signal;
-    return fetch(API + path, init).then(function (res) {
+    return authedFetch(API + path, init).then(function (res) {
       return res.json().catch(function () { return { success: false, message: 'Unexpected server response' }; })
         .then(function (data) { return { status: res.status, ok: res.ok, data: data }; });
     }).finally(function () { if (timer) clearTimeout(timer); });
@@ -109,6 +129,7 @@
     token: token,
     user: user,
     request: request,
+    authedFetch: authedFetch,
     toast: toast,
     esc: esc,
     plural: plural,
