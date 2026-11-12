@@ -39,7 +39,7 @@
       <ul class="gs-trust">
         <li>Score computed, never guessed</li>
         <li>Proof stays yours</li>
-        <li>One free scorecard</li>
+        <li id="heroPlanChip">One free scorecard</li>
       </ul>
       <div class="gs-hero-ctas">
         <button class="gs-btn" id="newBtn" type="button">Build my first card</button>
@@ -286,6 +286,10 @@ document.addEventListener('DOMContentLoaded', function () {
   function renderList() {
     var wrap = $('listCards');
     var count = $('cardsCount');
+    var heroBtn = $('newBtn');
+    if (heroBtn) heroBtn.textContent = state.scans.length ? 'Create another scorecard' : 'Build my first card';
+    var planChip = $('heroPlanChip');
+    if (planChip) planChip.textContent = state.isPro ? 'Up to ' + state.proScans + ' scorecards' : 'One free scorecard';
     $('listEmpty').hidden = state.scans.length > 0;
     if (!state.scans.length) {
       wrap.innerHTML = '';
