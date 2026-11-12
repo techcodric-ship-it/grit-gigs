@@ -9,7 +9,7 @@
 <meta name="description" content="Turn the work you have actually shipped into a shareable Proof Score backed by links, files and referees."/>
 <link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
 <link rel="stylesheet" href="/assets/app-left-sidebar.css?v=1"/>
-<link rel="stylesheet" href="/assets/gritscore.css?v=2"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=3"/>
 <script src="/assets/app-left-sidebar.js?v=2" defer></script>
 <script src="/assets/gritscore.js?v=1" defer></script>
 </head>
@@ -32,15 +32,29 @@
 <main class="gs-wrap">
 
   <section id="listView">
-    <p class="gs-eyebrow">GritScore</p>
-    <h1 class="gs-h1">The work you can prove, in one number.</h1>
-    <p class="gs-lede">Add what you have shipped, attach the link, file or screenshot that proves it, and GritScore turns it into a shareable scorecard. The score is arithmetic on verified evidence — never a guess about who you are.</p>
+    <div class="gs-page-hero">
+      <p class="gs-eyebrow">GritScore · by Grit&amp;Gigs</p>
+      <h1 class="gs-h1">The work you can prove, in one number.</h1>
+      <p class="gs-lede">Add what you have shipped, attach the link, file or screenshot that proves it, and GritScore turns it into a shareable scorecard. The score is arithmetic on verified evidence — never a guess about who you are.</p>
+      <ul class="gs-trust">
+        <li>Score computed, never guessed</li>
+        <li>Proof stays yours</li>
+        <li>One free scorecard</li>
+      </ul>
+      <div class="gs-hero-ctas">
+        <button class="gs-btn" id="newBtn" type="button">Build my first card</button>
+        <a class="gs-btn ghost" href="#howItWorks">How it works</a>
+      </div>
+    </div>
 
-    <div id="planBar" class="gs-alert" hidden></div>
+    <div id="planBar" class="gs-promo" hidden></div>
 
-    <div class="gs-between" style="margin-bottom:18px;">
-      <h2 class="gs-h2" style="margin:0;">Your scorecards</h2>
-      <button class="gs-btn" id="newBtn" type="button">New scorecard</button>
+    <div class="gs-section-head">
+      <div>
+        <h2 class="gs-h2" style="margin:0;">Your scorecards</h2>
+        <p class="gs-muted gs-small" id="cardsCount" style="margin:4px 0 0;">Loading your cards…</p>
+      </div>
+      <button class="gs-btn subtle sm" id="newBtnTop" type="button">+ New scorecard</button>
     </div>
 
     <div id="listLoading" class="gs-card">
@@ -49,11 +63,38 @@
       <div class="gs-skeleton" style="width:52%;"></div>
     </div>
     <div id="listEmpty" class="gs-empty" hidden>
+      <div class="gs-empty-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6Z"/><path d="m8.6 11.9 2.3 2.3 4.5-4.6"/></svg></div>
       <h2 class="gs-h2">No scorecards yet</h2>
       <p>Your first card is free. Add two or three pieces of work, attach proof, and you will have a shareable score in about five minutes.</p>
       <button class="gs-btn" type="button" data-action="new">Build my first card</button>
     </div>
     <div id="listCards" class="gs-grid gs-2"></div>
+
+    <section class="gs-how" id="howItWorks">
+      <h2 class="gs-h2" style="margin:0;">How GritScore works</h2>
+      <div class="gs-how-grid">
+        <div class="gs-how-step">
+          <div class="gs-how-k">1</div>
+          <b>Add your work</b>
+          <p>Upload a PDF resume or paste the text, then list the projects, roles and results you want scored.</p>
+        </div>
+        <div class="gs-how-step">
+          <div class="gs-how-k">2</div>
+          <b>Attach proof</b>
+          <p>A live link beats a screenshot. Files are stored with the card; dead or duplicate links lower the score.</p>
+        </div>
+        <div class="gs-how-step">
+          <div class="gs-how-k">3</div>
+          <b>Share and collect reviews</b>
+          <p>Publish a public scorecard, ask a referee to confirm an item, and let visitors leave a star rating.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="gs-foot">
+      <span>GritScore is a Grit&amp;Gigs product. A Proof Score summarises evidence — it is not a hiring verdict.</span>
+      <a href="/feed">Back to Home</a>
+    </div>
   </section>
 
   <section id="createView" hidden>
@@ -198,17 +239,24 @@ document.addEventListener('DOMContentLoaded', function () {
     if (isAdmin) $('adminLink').hidden = false;
     if (state.isPro) {
       bar.hidden = false;
-      bar.className = 'gs-alert ok';
-      bar.innerHTML = '<strong>GritScore Pro is active.</strong> Full breakdown, improvement tips, PDF export, no watermark, up to ' + state.proScans + ' cards.';
+      bar.className = 'gs-promo ok';
+      bar.innerHTML = '<div class="gs-promo-copy">' +
+        '<span class="gs-promo-k">GritScore Pro</span>' +
+        '<b>Active on your account</b>' +
+        '<span>Full breakdown, next-point tips, PDF export, no watermark and up to ' + state.proScans + ' cards.</span>' +
+      '</div>';
       return;
     }
     bar.hidden = false;
-    bar.className = 'gs-alert';
-    bar.innerHTML = 'Free plan: <strong>' + state.freeScans + ' scorecard</strong>, score preview and a watermarked card. ' +
-      'GritScore Pro is ' + money(state.priceInr) + ' for ' + state.days + ' days and removes the cap on rescans, adds the full breakdown, tips and PDF export. ' +
-      '<a href="#" id="upgradeInline">See what Pro adds</a>.';
+    bar.className = 'gs-promo';
+    bar.innerHTML = '<div class="gs-promo-copy">' +
+      '<span class="gs-promo-k">Free plan · ' + state.freeScans + ' scorecard</span>' +
+      '<b>GritScore Pro — ' + money(state.priceInr) + ' / ' + state.days + ' days</b>' +
+      '<span>Full breakdown, next-point tips, PDF export, no watermark and up to ' + state.proScans + ' cards.</span>' +
+    '</div>' +
+    '<button class="gs-btn sm" type="button" id="upgradeInline">See what Pro adds</button>';
     var link = $('upgradeInline');
-    if (link) link.addEventListener('click', function (e) { e.preventDefault(); startCheckout(); });
+    if (link) link.addEventListener('click', function () { showUpgrade(); });
   }
 
   // ---- List ----------------------------------------------------------------
@@ -237,24 +285,37 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderList() {
     var wrap = $('listCards');
+    var count = $('cardsCount');
     $('listEmpty').hidden = state.scans.length > 0;
-    if (!state.scans.length) { wrap.innerHTML = ''; return; }
+    if (!state.scans.length) {
+      wrap.innerHTML = '';
+      if (count) count.textContent = state.isPro ? 'GritScore Pro · up to ' + state.proScans + ' cards' : 'Your first card is free';
+      return;
+    }
+    var publicCount = state.scans.filter(function (s) { return s.isPublic; }).length;
+    if (count) {
+      count.textContent = state.scans.length + ' ' + GS.plural(state.scans.length, 'scorecard') +
+        ' · ' + publicCount + ' public' +
+        (state.isPro ? ' · Pro' : '');
+    }
     wrap.innerHTML = state.scans.map(function (s) {
       var verified = s.verificationTier === 'third_party_confirmed' ? 'third' : (s.verificationTier === 'evidence_checked' ? 'ok' : '');
-      return '<article class="gs-card" style="display:flex;flex-direction:column;gap:10px;">' +
-        '<div class="gs-between">' +
+      return '<article class="gs-score-card">' +
+        '<div class="gs-score-card-top">' +
           '<span class="' + GS.tierClass(s.tier) + '">' + GS.esc(s.tier || 'Starter') + '</span>' +
           '<span class="gs-badge ' + (s.isPublic ? 'ok' : '') + '">' + (s.isPublic ? 'Public' : 'Private') + '</span>' +
         '</div>' +
         '<div>' +
-          '<div style="font-family:var(--gs-font-display);font-size:2.6rem;font-weight:800;line-height:1;letter-spacing:-0.04em;">' +
-            (s.score === null || s.score === undefined ? '—' : s.score) +
-            '<span class="gs-score-outof" style="font-size:0.9rem;"> /900</span>' +
-          '</div>' +
-          '<div class="gs-muted gs-small" style="margin-top:4px;">' + GS.esc(s.displayName) + ' · ' + s.itemCount + ' ' + GS.plural(s.itemCount, 'item') + '</div>' +
+          '<div class="gs-score-card-num">' + (s.score === null || s.score === undefined ? '—' : s.score) +
+            '<span class="gs-score-outof"> /900</span></div>' +
+          '<div class="gs-score-card-name">' + GS.esc(s.displayName) + '</div>' +
+          '<div class="gs-score-card-meta">' + s.itemCount + ' ' + GS.plural(s.itemCount, 'item') +
+            (s.isPublic && s.slug ? ' · /score/' + GS.esc(s.slug) : '') + '</div>' +
         '</div>' +
-        '<span class="gs-verify ' + verified + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>' + GS.esc(s.verificationLabel) + '</span>' +
-        '<div class="gs-between" style="margin-top:4px;">' +
+        (s.verificationLabel ? '<div class="gs-score-card-foot">' +
+          '<span class="gs-verify ' + verified + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>' +
+          GS.esc(s.verificationLabel) + '</span></div>' : '') +
+        '<div class="gs-score-card-actions">' +
           '<button class="gs-btn sm" type="button" data-open="' + GS.esc(s.id) + '">Open</button>' +
           (s.isPublic ? '<a class="gs-btn subtle sm" href="/score/' + GS.esc(s.slug) + '" target="_blank" rel="noopener">View public</a>' : '') +
         '</div>' +
@@ -569,10 +630,10 @@ document.addEventListener('DOMContentLoaded', function () {
   function bindDetail(data) {
     var scan = data.scan;
     detailView.querySelectorAll('[data-action]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
+      btn.addEventListener('click', function (e) {
         var action = btn.getAttribute('data-action');
         if (action === 'back') { show('list'); loadScans(); return; }
-        if (action === 'upgrade') { startCheckout(); return; }
+        if (action === 'upgrade') { e.preventDefault(); showUpgrade(); return; }
         if (action === 'copy') {
           var url = btn.getAttribute('data-url');
           if (navigator.clipboard) navigator.clipboard.writeText(url).then(function () { GS.toast('Link copied'); });
@@ -595,7 +656,7 @@ document.addEventListener('DOMContentLoaded', function () {
         e.preventDefault();
         var kind = link.getAttribute('data-download');
         if (kind === 'pdf' && link.getAttribute('data-pro') === '0') {
-          startCheckout('PDF export is part of GritScore Pro.');
+          showUpgrade('PDF export is part of GritScore Pro.');
           return;
         }
         downloadFile(link.getAttribute('href'), 'gritscore-' + scan.slug + (kind === 'pdf' ? '.pdf' : '.png'), link);
@@ -700,8 +761,9 @@ document.addEventListener('DOMContentLoaded', function () {
       '</ul>' +
       '<button class="gs-btn" type="button" id="gsUpgradeBuy">Get GritScore Pro</button>' +
       '<p class="gs-hint" style="margin-top:10px;">One payment, ' + state.days + ' days. Does not change your Grit&amp;Gigs membership.</p>';
-    var host = createView.hidden ? (detailView.hidden ? $('listEmpty').parentNode : detailView) : createView;
-    host.insertBefore(panel, host.firstChild.nextSibling || null);
+    if (!createView.hidden) createView.insertBefore(panel, createView.firstElementChild ? createView.firstElementChild.nextSibling : null);
+    else if (!detailView.hidden) detailView.insertBefore(panel, detailView.firstElementChild ? detailView.firstElementChild.nextSibling : null);
+    else $('planBar').insertAdjacentElement('afterend', panel);
     panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
     $('gsUpgradeBuy').addEventListener('click', function () { startCheckout(); });
   }
@@ -767,7 +829,12 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ---- Wiring --------------------------------------------------------------
+  document.addEventListener('click', function (e) {
+    var open = e.target && e.target.closest ? e.target.closest('[data-open]') : null;
+    if (open) openDetail(open.getAttribute('data-open'));
+  });
   $('newBtn').addEventListener('click', startCreate);
+  $('newBtnTop').addEventListener('click', startCreate);
   document.querySelectorAll('[data-action="new"]').forEach(function (b) { b.addEventListener('click', startCreate); });
   $('addItem').addEventListener('click', function () { addItem(); });
   $('backToList').addEventListener('click', function () { show('list'); loadScans(); });
