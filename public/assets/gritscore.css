@@ -1,12 +1,13 @@
 /* ==========================================================================
    GritScore: proof score cards
    Light, professional theme that matches Prep and the main Grit&Gigs app:
-   white page, white cards, hairline borders, violet signal colour, Syne for
-   display type and Inter for body copy. Shared by /gritscore,
+   white page, white cards, hairline borders, violet signal colour, Bricolage
+   Grotesque for display type and Inter for body copy — the same pair Prep
+   uses. Shared by /gritscore,
    /gritscore/admin, /gritscore/referee and the public /score/:slug page.
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
   --gs-bg: #FFFFFF;
@@ -32,7 +33,7 @@
   --gs-radius: 18px;
   --gs-radius-sm: 12px;
   --gs-font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --gs-font-display: "Syne", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --gs-font-display: "Bricolage Grotesque", "Inter", ui-sans-serif, system-ui, sans-serif;
   --gs-shadow: 0 1px 2px rgba(24, 21, 34, 0.04), 0 14px 34px rgba(24, 21, 34, 0.06);
   --gs-shadow-lift: 0 4px 12px rgba(24, 21, 34, 0.06), 0 20px 46px rgba(24, 21, 34, 0.1);
   --gs-topbar-h: 52px;
@@ -667,6 +668,57 @@ a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
 .gs-inline-form .gs-field { margin-bottom: 0; }
 .gs-hidden { display: none !important; }
 
+/* ---- Public card stats and reader guide ---------------------------------- */
+
+.gs-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+.gs-stat {
+  padding: 16px 16px 14px;
+  background: var(--gs-surface);
+  border: 1px solid var(--gs-line);
+  border-radius: 14px;
+  box-shadow: var(--gs-shadow);
+}
+.gs-stat-k {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gs-ink-3);
+  margin-bottom: 6px;
+}
+.gs-stat b {
+  font-family: var(--gs-font-display);
+  font-size: 1.28rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--gs-ink);
+}
+
+.gs-read-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.gs-read-item {
+  padding: 16px;
+  background: var(--gs-bg-2);
+  border: 1px solid var(--gs-line);
+  border-radius: 14px;
+}
+.gs-read-item p {
+  margin: 9px 0 0;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--gs-ink-3);
+}
+
 /* ---- Product hero (owner landing) ---------------------------------------- */
 
 .gs-page-hero {
@@ -812,6 +864,24 @@ a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
   text-overflow: ellipsis;
 }
 .gs-score-card-meta { font-size: 0.8rem; color: var(--gs-ink-3); margin: -6px 0 0; }
+.gs-score-card-headline {
+  font-size: 0.82rem;
+  color: var(--gs-ink-2);
+  margin: 3px 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gs-score-card-url {
+  margin-left: auto;
+  max-width: 55%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  color: var(--gs-ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .gs-score-card-foot { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
 .gs-score-card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; padding-top: 4px; }
 
@@ -896,6 +966,8 @@ a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
   .gs-grid.gs-2, .gs-grid.gs-3 { grid-template-columns: 1fr; }
   .gs-row, .gs-row-3 { grid-template-columns: 1fr; }
   .gs-how-grid { grid-template-columns: 1fr; }
+  .gs-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gs-read-grid { grid-template-columns: 1fr; }
   .gs-wrap { padding: calc(var(--gs-topbar-h) + 20px) 16px 56px; }
   .gs-page-hero { padding: 30px 18px 26px; border-radius: 20px; }
   .gs-promo { padding: 16px 18px; }

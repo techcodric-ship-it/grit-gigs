@@ -9,10 +9,10 @@
 <meta name="description" content="Turn the work you have actually shipped into a shareable Proof Score backed by links, files and referees."/>
 <link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
 <link rel="stylesheet" href="/assets/app-left-sidebar.css?v=1"/>
-<link rel="stylesheet" href="/assets/gritscore.css?v=3"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=4"/>
 <script src="/js/se-auth.js?v=1" defer></script>
 <script src="/assets/app-left-sidebar.js?v=2" defer></script>
-<script src="/assets/gritscore.js?v=2" defer></script>
+<script src="/assets/gritscore.js?v=3" defer></script>
 </head>
 <body class="gs-page">
 <div class="gs-toast" id="gsToast"></div>
@@ -77,6 +77,12 @@
       <h2 class="gs-h2">No scorecards yet</h2>
       <p>Your first card is free. Add two or three pieces of work, attach proof, and you will have a shareable score in about five minutes.</p>
       <button class="gs-btn" type="button" data-action="new">Build my first card</button>
+    </div>
+    <div id="listError" class="gs-empty" hidden>
+      <div class="gs-empty-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5"/><path d="M12 17h.01"/><path d="M10.3 3.9 2.5 17.4A2 2 0 0 0 4.2 20.4h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></div>
+      <h2 class="gs-h2">We could not load your cards</h2>
+      <p id="listErrorMsg">The server did not answer. Nothing is lost — try again.</p>
+      <button class="gs-btn" type="button" id="listRetry">Try again</button>
     </div>
     <div id="listCards" class="gs-grid gs-2"></div>
 
@@ -283,13 +289,20 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ---- List ----------------------------------------------------------------
+  function loadError(message) {
+    $('listLoading').hidden = true;
+    $('listEmpty').hidden = true;
+    $('listError').hidden = false;
+    $('listErrorMsg').textContent = message || 'The server did not answer. Nothing is lost — try again.';
+  }
+
   function loadScans() {
+    $('listError').hidden = true;
     return GS.request('/me').then(function (res) {
       $('listLoading').hidden = true;
       if (res.status === 401) { sessionDead(); return; }
       if (!res.ok || !res.data.success) {
-        $('listEmpty').hidden = false;
-        GS.toast((res.data && res.data.message) || 'Could not load your cards');
+        loadError(res.data && res.data.message);
         return;
       }
       var data = res.data.data;
@@ -302,8 +315,7 @@ document.addEventListener('DOMContentLoaded', function () {
       renderPlanBar();
       renderList();
     }).catch(function () {
-      $('listLoading').hidden = true;
-      $('listEmpty').hidden = false;
+      loadError('Could not reach the server. Check your connection and try again.');
     });
   }
 
@@ -315,6 +327,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var planChip = $('heroPlanChip');
     if (planChip) planChip.textContent = state.isPro ? 'Up to ' + state.proScans + ' scorecards' : 'One free scorecard';
     $('listEmpty').hidden = state.scans.length > 0;
+    $('listError').hidden = true;
     if (!state.scans.length) {
       wrap.innerHTML = '';
       if (count) count.textContent = state.isPro ? 'GritScore Pro · up to ' + state.proScans + ' cards' : 'Your first card is free';
@@ -328,6 +341,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     wrap.innerHTML = state.scans.map(function (s) {
       var verified = s.verificationTier === 'third_party_confirmed' ? 'third' : (s.verificationTier === 'evidence_checked' ? 'ok' : '');
+      var skillCount = (s.skills || []).length;
+      var meta = [s.itemCount + ' ' + GS.plural(s.itemCount, 'item'),
+        skillCount ? skillCount + ' ' + GS.plural(skillCount, 'skill') : '',
+        s.createdAt ? 'created ' + GS.timeAgo(s.createdAt) : ''].filter(Boolean).join(' · ');
       return '<article class="gs-score-card">' +
         '<div class="gs-score-card-top">' +
           '<span class="' + GS.tierClass(s.tier) + '">' + GS.esc(s.tier || 'Starter') + '</span>' +
@@ -337,12 +354,14 @@ document.addEventListener('DOMContentLoaded', function () {
           '<div class="gs-score-card-num">' + (s.score === null || s.score === undefined ? '—' : s.score) +
             '<span class="gs-score-outof"> /900</span></div>' +
           '<div class="gs-score-card-name">' + GS.esc(s.displayName) + '</div>' +
-          '<div class="gs-score-card-meta">' + s.itemCount + ' ' + GS.plural(s.itemCount, 'item') +
-            (s.isPublic && s.slug ? ' · /score/' + GS.esc(s.slug) : '') + '</div>' +
+          (s.headline ? '<div class="gs-score-card-headline">' + GS.esc(s.headline) + '</div>' : '') +
+          '<div class="gs-score-card-meta">' + meta + '</div>' +
         '</div>' +
         (s.verificationLabel ? '<div class="gs-score-card-foot">' +
           '<span class="gs-verify ' + verified + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>' +
-          GS.esc(s.verificationLabel) + '</span></div>' : '') +
+          GS.esc(s.verificationLabel) + '</span>' +
+          (s.isPublic && s.slug ? '<span class="gs-score-card-url">/score/' + GS.esc(s.slug) + '</span>' : '') +
+        '</div>' : '') +
         '<div class="gs-score-card-actions">' +
           '<button class="gs-btn sm" type="button" data-open="' + GS.esc(s.id) + '">Open</button>' +
           (s.isPublic ? '<a class="gs-btn subtle sm" href="/score/' + GS.esc(s.slug) + '" target="_blank" rel="noopener">View public</a>' : '') +
@@ -864,6 +883,11 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   $('newBtn').addEventListener('click', startCreate);
   $('newBtnTop').addEventListener('click', startCreate);
+  $('listRetry').addEventListener('click', function () {
+    $('listError').hidden = true;
+    $('listLoading').hidden = false;
+    loadScans();
+  });
   document.querySelectorAll('[data-action="new"]').forEach(function (b) { b.addEventListener('click', startCreate); });
   $('addItem').addEventListener('click', function () { addItem(); });
   $('backToList').addEventListener('click', function () { show('list'); loadScans(); });
@@ -871,6 +895,7 @@ document.addEventListener('DOMContentLoaded', function () {
   $('createForm').addEventListener('submit', submitCreate);
 
   show('list');
+  renderPlanBar();
   loadScans();
 });
 </script>

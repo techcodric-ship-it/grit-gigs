@@ -1090,6 +1090,12 @@ async function publicPayload(scan: GritScoreScan, viewerId: string | null): Prom
     },
     disclaimer: PUBLIC_LABELS.disclaimer,
     license: PUBLIC_LABELS.scoreName,
+    pro: {
+      priceInr: GRITSCORE_PRO.priceInr,
+      days: GRITSCORE_PRO.days,
+      watermark: !ownerPro,
+      active: ownerPro,
+    },
   };
 }
 

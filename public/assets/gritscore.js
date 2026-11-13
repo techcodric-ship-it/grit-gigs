@@ -37,10 +37,40 @@
     return fetch(url, opts);
   }
 
+  // Proxy restarts and oversized uploads come back as HTML, not JSON. Turn
+  // those into a sentence a person can act on instead of "Unexpected server
+  // response", and retry an idempotent GET once when the proxy was restarting.
+  function friendlyStatus(status) {
+    if (status === 401) return 'Your session expired. Sign in again.';
+    if (status === 403) return 'You do not have access to that.';
+    if (status === 404) return 'That item could not be found.';
+    if (status === 413) return 'That upload is too large. Keep each file under 5 MB.';
+    if (status === 429) return 'Too many requests. Try again in a minute.';
+    if (status === 502 || status === 503 || status === 504) {
+      return 'The server took too long to answer. Try again in a moment.';
+    }
+    return 'Something went wrong (HTTP ' + status + '). Please try again.';
+  }
+
+  function readResponse(res) {
+    var type = (res.headers.get('content-type') || '').toLowerCase();
+    if (type.indexOf('json') === -1) {
+      return res.text().catch(function () { return ''; }).then(function () {
+        return { status: res.status, ok: false, data: { success: false, message: friendlyStatus(res.status) } };
+      });
+    }
+    return res.json().catch(function () {
+      return { success: false, message: friendlyStatus(res.status) };
+    }).then(function (data) {
+      return { status: res.status, ok: res.ok, data: data };
+    });
+  }
+
   function request(path, options) {
     var opts = options || {};
+    var method = opts.method || 'GET';
     var init = {
-      method: opts.method || 'GET',
+      method: method,
       headers: authHeaders(opts.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
       credentials: 'same-origin'
     };
@@ -50,10 +80,13 @@
     var ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var timer = ctl ? setTimeout(function () { ctl.abort(); }, timeout) : null;
     if (ctl) init.signal = ctl.signal;
-    return authedFetch(API + path, init).then(function (res) {
-      return res.json().catch(function () { return { success: false, message: 'Unexpected server response' }; })
-        .then(function (data) { return { status: res.status, ok: res.ok, data: data }; });
-    }).finally(function () { if (timer) clearTimeout(timer); });
+    var url = API + path;
+    return authedFetch(url, init).then(function (res) {
+      if (method !== 'GET' || res.status < 502 || res.status > 504) return res;
+      return new Promise(function (resolve) {
+        setTimeout(function () { resolve(authedFetch(url, init)); }, 700);
+      });
+    }).then(readResponse).finally(function () { if (timer) clearTimeout(timer); });
   }
 
   function toast(message, ms) {
