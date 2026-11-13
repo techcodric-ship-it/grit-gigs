@@ -40,15 +40,12 @@ export function verificationLabel(tier: VerificationTier): string {
   }
 }
 
-/** Exact score visibility rule for public cards. */
+/** Exact score visibility rule for public cards. The owner decides whether
+ *  the number is public; the tier stays visible either way. Confidence is
+ *  communicated by the "provisional" label while proof is still thin. */
 export function canShowExactScore(input: {
-  itemCount: number;
-  verifiedItems: number;
-  isPro: boolean;
   showExactScore: boolean;
-  minVerified: number;
+  score: number | null;
 }): boolean {
-  if (!input.showExactScore) return false;
-  if (input.isPro) return true;
-  return input.itemCount > 0 && input.verifiedItems >= input.minVerified;
+  return input.showExactScore && input.score != null;
 }

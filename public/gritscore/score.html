@@ -131,6 +131,14 @@ document.addEventListener('DOMContentLoaded', function () {
     var roles = uniqueList((scan.roles || []).concat(items.map(function (i) { return i.role; }).filter(Boolean))).slice(0, 4);
     var hasScore = !(scan.score === null || scan.score === undefined);
     var verifiedClass = tierVerifiedClass(scan.verificationTier);
+    var confidence = '';
+    if (hasScore) {
+      if (checked >= 3) confidence = 'Evidence-based, not a hiring verdict';
+      else if (checked === 0) confidence = 'Provisional \u00b7 no checked proof yet';
+      else confidence = 'Provisional \u00b7 ' + checked + ' of ' + totalItems + ' items have checked proof';
+    } else {
+      confidence = 'Score hidden \u00b7 tier shown instead';
+    }
 
     var html = '';
 
@@ -169,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function () {
         (hasScore
           ? '<div class="gs-pub-score-num">' + scan.score + '<span> / 900</span></div>'
           : '<div class="gs-pub-score-num" style="font-size:2.2rem;letter-spacing:-0.03em;">' + GS.esc(scan.tier || 'Starter') + '</div>') +
-        '<div class="gs-pub-score-sub">' + (hasScore ? 'Evidence-based, not a hiring verdict' : 'Tier shown until enough proof is checked') + '</div>' +
+        '<div class="gs-pub-score-sub">' + confidence + '</div>' +
       '</div>' +
     '</section>';
 

@@ -24,7 +24,6 @@ import {
   CARD_TEMPLATES,
   DEFAULT_CARD_TEMPLATE,
   EVIDENCE_VALUE,
-  EXACT_SCORE_MIN_VERIFIED,
   GRITSCORE_PRO,
   LIMITS,
   PUBLIC_LABELS,
@@ -34,7 +33,7 @@ import {
   type VerificationTier,
 } from "./config";
 import { buildTips, computeScore, type ScoreComponents, type ScoreItemInput } from "./score";
-import { resolveVerificationTier, verificationLabel } from "./verify";
+import { canShowExactScore, resolveVerificationTier, verificationLabel } from "./verify";
 import {
   alignExtraction,
   deterministicExtraction,
@@ -531,10 +530,7 @@ async function isOwnerPro(userId: string): Promise<boolean> {
 }
 
 async function buildCardData(scan: GritScoreScan, items: GritScoreItem[], opts: { ownerView: boolean; isPro: boolean }): Promise<CardData> {
-  const verifiedItems = items.filter((item) => item.evidenceStatus === "ok").length;
-  const showScore =
-    opts.ownerView ||
-    Boolean(scan.showExactScore && (opts.isPro || (items.length > 0 && verifiedItems >= EXACT_SCORE_MIN_VERIFIED)));
+  const showScore = opts.ownerView || canShowExactScore({ showExactScore: scan.showExactScore, score: scan.score });
   return {
     displayName: scan.displayName || "Grit&Gigs member",
     headline: scan.headline,
@@ -1322,8 +1318,7 @@ async function publicPayload(scan: GritScoreScan, viewerId: string | null): Prom
   const items = await listItems(scan.id);
   const ownerPro = await isOwnerPro(scan.userId);
   const verifiedItems = items.filter((i) => i.evidenceStatus === "ok").length;
-  const showExact =
-    scan.showExactScore && (ownerPro || (items.length > 0 && verifiedItems >= EXACT_SCORE_MIN_VERIFIED));
+  const showExact = canShowExactScore({ showExactScore: scan.showExactScore, score: scan.score });
   const stats = await reviewStats(scan.id);
   const reviews = await listVisibleReviews(scan.id);
   const referees = await listReferees(scan.id);
