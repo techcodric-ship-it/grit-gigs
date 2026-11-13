@@ -49,6 +49,13 @@
     <a class="gs-btn" href="/gritscore">Build your own Proof Score</a>
   </div>
 
+  <div id="loadError" class="gs-empty" hidden>
+    <div class="gs-empty-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5"/><path d="M12 17h.01"/><path d="M10.3 3.9 2.5 17.4A2 2 0 0 0 4.2 20.4h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></div>
+    <h2 class="gs-h2">We could not load this card</h2>
+    <p id="loadErrorMsg">The server did not answer. Nothing has changed — try again.</p>
+    <button class="gs-btn" type="button" id="loadRetry">Try again</button>
+  </div>
+
   <div id="card" hidden></div>
 </main>
 
@@ -296,20 +303,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function load(skipSpinner) {
     if (!skipSpinner) { $('loading').hidden = false; }
-    GS.authedFetch(GS.API + '/public/' + encodeURIComponent(slug), {}).then(function (res) {
-      return res.json().then(function (data) { return { ok: res.ok, data: data }; });
-    }).then(function (res) {
+    $('card').hidden = true;
+    $('notFound').hidden = true;
+    $('loadError').hidden = true;
+    GS.request('/public/' + encodeURIComponent(slug)).then(function (res) {
       finish();
-      if (!res.ok || !res.data.success) {
-        $('notFound').hidden = false;
-        return;
-      }
-      render(res.data.data);
+      if (res.ok && res.data && res.data.success) { render(res.data.data); return; }
+      if (res.status === 404 || res.status === 403) { $('notFound').hidden = false; return; }
+      $('loadErrorMsg').textContent = (res.data && res.data.message) ||
+        'The server did not answer. Nothing has changed — try again.';
+      $('loadError').hidden = false;
     }).catch(function () {
       finish();
-      $('notFound').hidden = false;
+      $('loadErrorMsg').textContent = 'Could not reach the server. Check your connection and try again.';
+      $('loadError').hidden = false;
     });
   }
+
+  $('loadRetry').addEventListener('click', function () { load(); });
 
   if (!slug) { finish(); $('notFound').hidden = false; return; }
   load();
