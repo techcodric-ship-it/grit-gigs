@@ -37,6 +37,8 @@ export const extractionSchema = z.object({
   skills: z.array(z.string().trim().min(1).max(60)).max(30).default([]),
   roles: z.array(z.string().trim().min(1).max(120)).max(12).default([]),
   items: z.array(extractionItemSchema).max(20),
+  /** Portfolio links found in the resume or work-item proof. */
+  links: z.array(z.string().trim().max(600)).max(20).default([]),
   summary: z.string().trim().max(1200).default(""),
 });
 
@@ -59,9 +61,10 @@ export const GRITSCORE_SYSTEM_PROMPT = [
   "   - impactNotes: the exact measurable phrase, or an empty string",
   "   - complexity: 1-5, how much genuine engineering/craft difficulty the work shows (1 = routine task, 5 = hard, ambiguous, high-stakes work)",
   "   - clarity: 1-5, how clearly a stranger could understand what was built and why (1 = vague, 5 = specific and concrete)",
-  "5. summary: 2-3 plain sentences describing what this person has demonstrably done. No praise, no score, no markdown.",
-  "6. Output STRICT JSON only, matching this shape:",
-  '{"skills": string[], "roles": string[], "items": [{"title": string, "skills": string[], "evidenceType": "liveLink"|"github"|"published"|"certificate"|"file"|"screenshot"|"none", "hasQuantifiedImpact": boolean, "impactNotes": string, "complexity": number, "clarity": number}], "summary": string}',
+  "5. links: http(s) links that appear in the resume or work items, such as a portfolio, GitHub, personal site, published article or certificate. Copy them exactly, max 20.",
+  "6. summary: 2-3 plain sentences describing what this person has demonstrably done. No praise, no score, no markdown.",
+  "7. Output STRICT JSON only, matching this shape:",
+  '{"skills": string[], "roles": string[], "items": [{"title": string, "skills": string[], "evidenceType": "liveLink"|"github"|"published"|"certificate"|"file"|"screenshot"|"none", "hasQuantifiedImpact": boolean, "impactNotes": string, "complexity": number, "clarity": number}], "links": string[], "summary": string}',
   "No prose before or after the JSON. No code fences.",
 ].join("\n");
 
@@ -141,6 +144,7 @@ export function parseExtraction(raw: string, expectedItems: number): Extraction 
       skills: dedupeSkills(item.skills),
     })),
     skills: dedupeSkills(data.skills),
+    links: dedupeLinks(data.links),
   };
 }
 
@@ -218,6 +222,30 @@ function heuristicClarity(item: ExtractionItemInput): number {
   return Math.min(5, Math.max(1, score));
 }
 
+export function harvestLinks(text: string): string[] {
+  const raw = String(text ?? "");
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const re = /https?:\/\/[^\s<>"'`]+/gi;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(raw)) !== null && out.length < 20) {
+    const cleaned = match[0].replace(/[),.;:!?]+$/, "");
+    let value: string;
+    try {
+      const url = new URL(cleaned);
+      if (url.protocol !== "http:" && url.protocol !== "https:") continue;
+      value = url.toString().replace(/\/$/, "");
+    } catch {
+      continue;
+    }
+    const key = value.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(value.slice(0, 600));
+  }
+  return out;
+}
+
 export function deterministicExtraction(input: ExtractionInput): Extraction {
   const resumeSkills = harvestSkillsFromResume(input.resumeText);
   const items: ExtractionItem[] = input.items.map((item) => {
@@ -238,12 +266,32 @@ export function deterministicExtraction(input: ExtractionInput): Extraction {
     input.items.map((i) => String(i.role ?? "").trim()).filter(Boolean),
   );
   const allSkills = dedupeSkills([...resumeSkills, ...items.flatMap((i) => i.skills)]);
+  const itemLinks = input.items
+    .map((i) => String(i.proofUrl ?? "").trim())
+    .filter((url) => /^https?:\/\//i.test(url));
+  const links = dedupeLinks([...harvestLinks(input.resumeText), ...itemLinks]);
   return {
     skills: allSkills.slice(0, 30),
     roles: roles.slice(0, 12),
     items,
+    links,
     summary: `${input.displayName ? `${input.displayName.split(" ")[0]} has` : "This profile has"} ${input.items.length} documented work item${input.items.length === 1 ? "" : "s"}${allSkills.length ? ` spanning ${allSkills.slice(0, 4).join(", ")}` : ""}. Evidence is classified from the proof attached to each item.`,
   };
+}
+
+function dedupeLinks(links: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of links) {
+    const value = String(raw ?? "").trim();
+    if (!/^https?:\/\//i.test(value)) continue;
+    const key = value.toLowerCase().replace(/\/+$/, "");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(value.slice(0, 600));
+    if (out.length >= 20) break;
+  }
+  return out;
 }
 
 export type ChatFn = (messages: { role: "system" | "user"; content: string }[]) => Promise<string>;
@@ -292,10 +340,12 @@ export async function extractProfile(
  *  or remove items; a length mismatch already falls back, this is belt-and-
  *  braces for the router. */
 export function alignExtraction(input: ExtractionInput, extraction: Extraction): Extraction {
-  if (extraction.items.length === input.items.length) return extraction;
+  const links = extraction.links?.length ? dedupeLinks(extraction.links) : deterministicExtraction(input).links;
+  if (extraction.items.length === input.items.length) return { ...extraction, links };
   const fallback = deterministicExtraction(input);
   return {
     ...extraction,
+    links,
     items: input.items.map((_, i) => extraction.items[i] ?? fallback.items[i]),
   };
 }

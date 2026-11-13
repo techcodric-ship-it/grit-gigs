@@ -3,6 +3,7 @@ import {
   alignExtraction,
   deterministicExtraction,
   extractProfile,
+  harvestLinks,
   harvestSkillsFromResume,
   parseExtraction,
   type ExtractionInput,
@@ -105,6 +106,35 @@ describe("deterministic extraction", () => {
     const out = deterministicExtraction(input);
     expect(out.summary).toContain("2 documented work items");
     expect(out.summary.toLowerCase()).not.toContain("google");
+  });
+
+  it("collects portfolio links from the resume and item proof", () => {
+    const out = deterministicExtraction({
+      ...input,
+      resumeText: `${input.resumeText} Portfolio: https://asha.dev and https://github.com/asha.`,
+    });
+    expect(out.links).toContain("https://asha.dev");
+    expect(out.links).toContain("https://github.com/asha/billing");
+    // Trailing punctuation is trimmed, never glued to the URL.
+    expect(out.links.some((l) => l.endsWith("."))).toBe(false);
+  });
+});
+
+describe("harvestLinks", () => {
+  it("trims punctuation, dedupes and rejects non-http links", () => {
+    const links = harvestLinks(
+      "See https://asha.dev, https://asha.dev/ and javascript:alert(1). Mirror: http://example.com/a?b=1).",
+    );
+    expect(links).toEqual(["https://asha.dev", "http://example.com/a?b=1"]);
+  });
+
+  it("caps the list so a noisy resume cannot bloat a payload", () => {
+    const text = Array.from({ length: 30 }, (_, i) => `https://example.com/p${i}`).join(" ");
+    expect(harvestLinks(text)).toHaveLength(20);
+  });
+
+  it("returns an empty list for text without links", () => {
+    expect(harvestLinks("No links here.")).toEqual([]);
   });
 });
 

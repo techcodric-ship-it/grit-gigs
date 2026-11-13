@@ -111,6 +111,26 @@ export const LIMITS = {
   slugLength: 10,
 } as const;
 
+/** Public card designs. The first one is the free default: one polished card
+ *  is included on every plan. The rest are Pro-only so the upgrade has a
+ *  visible, useful benefit instead of a vague "more features" promise. */
+export const CARD_TEMPLATES = [
+  { id: "violet", name: "Violet", mood: "Confident and modern", pro: false },
+  { id: "ink", name: "Ink", mood: "Editorial black and white", pro: true },
+  { id: "paper", name: "Paper", mood: "Warm, calm and understated", pro: true },
+  { id: "ocean", name: "Ocean", mood: "Cool blue, product-minded", pro: true },
+  { id: "ember", name: "Ember", mood: "Bold, warm and energetic", pro: true },
+  { id: "mono", name: "Mono", mood: "Sharp minimal grid", pro: true },
+] as const;
+
+export type CardTemplate = (typeof CARD_TEMPLATES)[number]["id"];
+export const DEFAULT_CARD_TEMPLATE: CardTemplate = "violet";
+export const CARD_TEMPLATE_IDS = CARD_TEMPLATES.map((t) => t.id) as CardTemplate[];
+
+export function isCardTemplate(value: unknown): value is CardTemplate {
+  return typeof value === "string" && (CARD_TEMPLATE_IDS as string[]).includes(value);
+}
+
 export const PUBLIC_LABELS = {
   scoreName: "Proof Score",
   disclaimer:

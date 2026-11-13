@@ -9,7 +9,7 @@
 <meta name="description" content="Turn the work you have actually shipped into a shareable Proof Score backed by links, files and referees."/>
 <link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
 <link rel="stylesheet" href="/assets/app-left-sidebar.css?v=1"/>
-<link rel="stylesheet" href="/assets/gritscore.css?v=4"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=5"/>
 <script src="/js/se-auth.js?v=1" defer></script>
 <script src="/assets/app-left-sidebar.js?v=2" defer></script>
 <script src="/assets/gritscore.js?v=3" defer></script>
@@ -531,6 +531,109 @@ document.addEventListener('DOMContentLoaded', function () {
     return '<span class="gs-badge ' + s.cls + '">' + GS.esc(s.text) + '</span>';
   }
 
+  function designPreview(id) {
+    var map = {
+      violet: 'radial-gradient(120% 160% at 100% 0%, #E9DEFF 0%, #F7F2FF 48%, #FFFFFF 100%)',
+      ink: 'radial-gradient(120% 160% at 100% 0%, #2A2A3A 0%, #14141C 58%, #0B0B11 100%)',
+      paper: 'radial-gradient(120% 160% at 100% 0%, #F3E5CE 0%, #FBF6EC 52%, #FFFFFF 100%)',
+      ocean: 'radial-gradient(120% 160% at 100% 0%, #D8ECFA 0%, #EEF7FD 50%, #FFFFFF 100%)',
+      ember: 'radial-gradient(120% 160% at 100% 0%, #FFE0C9 0%, #FFF3E9 52%, #FFFFFF 100%)',
+      mono: 'linear-gradient(135deg, #F7F7F7 0%, #FFFFFF 50%, #EFEFEF 100%)'
+    };
+    return map[id] || map.violet;
+  }
+
+  function designBar(id) {
+    return id === 'ink' ? 'rgba(255,255,255,0.55)' : 'rgba(24,21,34,0.22)';
+  }
+
+  function itemEditorHtml(item, index) {
+    item = item || {};
+    var skills = (item.skills || []).join(', ');
+    return '<div class="gs-edit-item" data-edit-item data-id="' + GS.esc(item.id || '') + '">' +
+      '<div class="gs-edit-item-head"><b>Work item ' + (index + 1) + '</b>' +
+        '<button class="gs-btn danger sm" type="button" data-action="removeItem">Remove</button></div>' +
+      '<div class="gs-edit-grid">' +
+        '<div class="gs-field"><label class="gs-label">Title</label>' +
+          '<input class="gs-input" data-ei="title" maxlength="200" value="' + GS.esc(item.title || '') + '" placeholder="What you built"/></div>' +
+        '<div class="gs-field"><label class="gs-label">Role</label>' +
+          '<input class="gs-input" data-ei="role" maxlength="160" value="' + GS.esc(item.role || '') + '" placeholder="Senior engineer"/></div>' +
+      '</div>' +
+      '<div class="gs-field"><label class="gs-label">What you did</label>' +
+        '<textarea class="gs-textarea" data-ei="description" maxlength="2000" placeholder="What you built or changed, for whom, and the result.">' + GS.esc(item.description || '') + '</textarea></div>' +
+      '<div class="gs-edit-grid">' +
+        '<div class="gs-field"><label class="gs-label">Start</label>' +
+          '<input class="gs-input" data-ei="startDate" maxlength="10" value="' + GS.esc(item.startDate || '') + '" placeholder="2023-01"/></div>' +
+        '<div class="gs-field"><label class="gs-label">End</label>' +
+          '<input class="gs-input" data-ei="endDate" maxlength="10" value="' + GS.esc(item.endDate || '') + '" placeholder="2023-12 or present"/></div>' +
+      '</div>' +
+      '<div class="gs-edit-grid">' +
+        '<div class="gs-field"><label class="gs-label">Proof or portfolio link</label>' +
+          '<input class="gs-input" data-ei="proofUrl" maxlength="600" value="' + GS.esc(item.proofUrl || '') + '" placeholder="https://github.com/you/project"/></div>' +
+        '<div class="gs-field"><label class="gs-label">Skills</label>' +
+          '<input class="gs-input" data-ei="skills" maxlength="400" value="' + GS.esc(skills) + '" placeholder="React, TypeScript, PostgreSQL"/></div>' +
+      '</div>' +
+      (item.evidenceStatus ? '<p class="gs-hint" style="margin-top:8px;">Proof status: ' + GS.esc(item.evidenceStatus) +
+        (item.evidenceNote ? ' \u2014 ' + GS.esc(item.evidenceNote) : '') + '</p>' : '') +
+    '</div>';
+  }
+
+  function readEditItems() {
+    var nodes = Array.prototype.slice.call(detailView.querySelectorAll('[data-edit-item]'));
+    return nodes.map(function (node) {
+      var get = function (key) {
+        var field = node.querySelector('[data-ei="' + key + '"]');
+        return field ? String(field.value || '').trim() : '';
+      };
+      var skills = get('skills').split(',').map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 12);
+      return {
+        id: node.getAttribute('data-id') || undefined,
+        title: get('title'),
+        description: get('description'),
+        role: get('role') || null,
+        startDate: get('startDate') || null,
+        endDate: get('endDate') || null,
+        proofUrl: get('proofUrl') || null,
+        skills: skills
+      };
+    });
+  }
+
+  function addEditItem() {
+    var wrap = $('editItems');
+    if (!wrap) return;
+    var count = wrap.querySelectorAll('[data-edit-item]').length;
+    if (count >= 8) { GS.toast('Eight items is the maximum. Focus on your strongest work.'); return; }
+    wrap.insertAdjacentHTML('beforeend', itemEditorHtml({}, count));
+    var nodes = wrap.querySelectorAll('[data-edit-item]');
+    var last = nodes[nodes.length - 1];
+    if (last) last.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function saveContent(id) {
+    var summary = $('editSummary') ? $('editSummary').value.trim() : '';
+    var items = readEditItems();
+    if (!items.length) { GS.toast('Add at least one work item'); return; }
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].title.length < 2) { GS.toast('Work item ' + (i + 1) + ' needs a title'); return; }
+      if (items[i].description.length < 10) { GS.toast('Work item ' + (i + 1) + ' needs a short description'); return; }
+    }
+    var btn = detailView.querySelector('[data-action="saveContent"]');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="gs-spinner"></span> Saving'; }
+    GS.request('/scans/' + id, { method: 'PATCH', body: { summary: summary, items: items } })
+      .then(function (res) {
+        if (btn) { btn.disabled = false; btn.textContent = 'Save card content'; }
+        if (!res.ok || !res.data.success) { GS.toast((res.data && res.data.message) || 'Could not save the card'); return; }
+        GS.toast('Card updated');
+        openDetail(id);
+        loadScans();
+      })
+      .catch(function () {
+        if (btn) { btn.disabled = false; btn.textContent = 'Save card content'; }
+        GS.toast('Could not save the card. Check your connection and try again.');
+      });
+  }
+
   function renderDetail(data, fresh) {
     var scan = data.scan;
     var items = data.items || [];
@@ -579,6 +682,51 @@ document.addEventListener('DOMContentLoaded', function () {
       '<label class="gs-check" style="margin-bottom:10px;"><input type="checkbox" id="editPublic"' + (scan.isPublic ? ' checked' : '') + '/>' +
         '<span>Public page is live at <code>/score/' + GS.esc(scan.slug) + '</code></span></label>' +
       '<button class="gs-btn sm" type="button" data-action="save">Save changes</button>' +
+    '</div>';
+
+    // Design picker
+    html += '<div class="gs-card" style="margin-top:16px;">' +
+      '<div class="gs-card-head"><h2 class="gs-h2" style="margin:0;">Card design</h2>' +
+        (data.isPro ? '<span class="gs-badge ok">All designs</span>' : '<span class="gs-badge accent">1 free \u00b7 more with Pro</span>') + '</div>' +
+      '<p class="gs-hint" style="margin:0 0 14px;">Your card keeps the same link and content. ' +
+        (data.isPro ? 'Switch designs whenever you like.' : 'The Violet design is included. GritScore Pro unlocks every design.') + '</p>' +
+      '<div class="gs-design-grid">' +
+        (data.templates || []).map(function (t) {
+          return '<button class="gs-design" type="button" data-design="' + GS.esc(t.id) + '"' +
+            ' data-locked="' + (t.locked ? '1' : '0') + '" aria-pressed="' + (scan.template === t.id ? 'true' : 'false') + '">' +
+            '<span class="gs-design-preview" style="background:' + designPreview(t.id) + '">' +
+              '<i style="width:22%;background:' + designBar(t.id) + '"></i>' +
+              '<i style="width:34%;background:' + designBar(t.id) + '"></i>' +
+              '<i style="width:16%;background:' + designBar(t.id) + '"></i>' +
+            '</span>' +
+            '<span class="gs-design-body">' +
+              '<span class="gs-design-name">' + GS.esc(t.name) +
+                (t.locked ? '<span class="gs-badge accent">Pro</span>' : '<span class="gs-badge ok">Free</span>') + '</span>' +
+              '<span class="gs-design-mood">' + GS.esc(t.mood) + '</span>' +
+            '</span>' +
+          '</button>';
+        }).join('') +
+      '</div>' +
+      (data.isPro ? '' : '<div class="gs-edit-actions" style="margin-top:14px;">' +
+        '<button class="gs-btn subtle sm" type="button" data-action="upgrade">Unlock all card designs</button></div>') +
+    '</div>';
+
+    // Content editor
+    html += '<div class="gs-card" style="margin-top:16px;" id="contentEditor">' +
+      '<div class="gs-card-head"><h2 class="gs-h2" style="margin:0;">Card content</h2>' +
+        '<span class="gs-muted gs-small">This is what visitors see</span></div>' +
+      '<p class="gs-hint" style="margin:0 0 14px;">Fill in your bio and the work you want people to see. ' +
+        'Add a proof link where you can \u2014 checked links lift your score and appear as buttons on the card.</p>' +
+      '<div class="gs-field"><label class="gs-label">Bio summary</label>' +
+        '<textarea class="gs-textarea" id="editSummary" maxlength="1200" placeholder="Two or three plain sentences about what you have shipped and the work you want to be known for.">' + GS.esc(scan.summary || data.summary || '') + '</textarea>' +
+        '<p class="gs-hint">Keep it factual. No score, rating or markdown.</p></div>' +
+      '<div id="editItems">' + items.map(function (item, index) { return itemEditorHtml(item, index); }).join('') + '</div>' +
+      '<div class="gs-edit-actions">' +
+        '<button class="gs-btn subtle sm" type="button" data-action="addItem">Add another work item</button>' +
+      '</div>' +
+      '<div class="gs-edit-actions" style="margin-top:6px;">' +
+        '<button class="gs-btn" type="button" data-action="saveContent">Save card content</button>' +
+      '</div>' +
     '</div>';
 
     // Summary + skills
@@ -687,6 +835,14 @@ document.addEventListener('DOMContentLoaded', function () {
           return;
         }
         if (action === 'save') return saveSettings(scan.id);
+        if (action === 'saveContent') return saveContent(scan.id);
+        if (action === 'addItem') return addEditItem();
+        if (action === 'removeItem') {
+          var editItem = btn.closest('[data-edit-item]');
+          if (editItem) editItem.remove();
+          if (!detailView.querySelector('[data-edit-item]')) addEditItem();
+          return;
+        }
         if (action === 'delete') return deleteCard(scan.id);
         if (action === 'invite') {
           var itemId = btn.getAttribute('data-item');
@@ -706,6 +862,26 @@ document.addEventListener('DOMContentLoaded', function () {
           return;
         }
         downloadFile(link.getAttribute('href'), 'gritscore-' + scan.slug + (kind === 'pdf' ? '.pdf' : '.png'), link);
+      });
+    });
+    detailView.querySelectorAll('[data-design]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var design = btn.getAttribute('data-design');
+        if (btn.getAttribute('data-locked') === '1') {
+          showUpgrade('Card designs are part of GritScore Pro. Your free card keeps the Violet design.');
+          return;
+        }
+        if (design === scan.template) return;
+        btn.disabled = true;
+        GS.request('/scans/' + scan.id, { method: 'PATCH', body: { template: design } })
+          .then(function (res) {
+            btn.disabled = false;
+            if (res.status === 402) { showUpgrade((res.data && res.data.message) || 'Card designs are part of GritScore Pro.'); return; }
+            if (!res.ok || !res.data.success) { GS.toast((res.data && res.data.message) || 'Could not change the design'); return; }
+            GS.toast('Design updated');
+            openDetail(scan.id);
+          })
+          .catch(function () { btn.disabled = false; GS.toast('Could not change the design'); });
       });
     });
   }
