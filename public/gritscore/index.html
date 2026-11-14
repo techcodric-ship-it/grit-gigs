@@ -635,10 +635,11 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function initialsOf(name) {
-    var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    var clean = String(name || '').replace(/[^\p{L}\p{N}\s]+/gu, ' ').trim();
+    var parts = clean.split(/\s+/).filter(Boolean);
     if (!parts.length) return 'GS';
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
   }
 
   function renderDetail(data, fresh) {
