@@ -34,6 +34,7 @@ import {
 } from "./config";
 import { buildTips, computeScore, type ScoreComponents, type ScoreItemInput } from "./score";
 import { canShowExactScore, resolveVerificationTier, verificationLabel } from "./verify";
+import { looksLikeImage, safePhotoUrl } from "./photo";
 import {
   alignExtraction,
   deterministicExtraction,
@@ -147,6 +148,30 @@ function runUpload(req: Request, res: Response, next: NextFunction): void {
   upload.any()(req, res, (err: unknown) => {
     if (err) {
       const message = (err as { code?: string }).code === "LIMIT_FILE_SIZE" ? "File is larger than 5 MB" : "Upload rejected";
+      res.status(400).json({ success: false, message });
+      return;
+    }
+    next();
+  });
+}
+
+const photoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: LIMITS.proofBytes, files: 1 },
+  fileFilter: (_req, file, cb) => {
+    if (["image/jpeg", "image/png", "image/webp"].includes(file.mimetype)) cb(null, true);
+    else cb(new Error("IMAGE_TYPE"));
+  },
+});
+
+function runPhotoUpload(req: Request, res: Response, next: NextFunction): void {
+  photoUpload.single("photo")(req, res, (err: unknown) => {
+    if (err) {
+      const code = (err as { code?: string }).code;
+      const message =
+        code === "LIMIT_FILE_SIZE"
+          ? "Photo is larger than 5 MB"
+          : "Choose a JPG, PNG or WebP image";
       res.status(400).json({ success: false, message });
       return;
     }
@@ -556,6 +581,7 @@ interface ScanView {
   isPublic: boolean;
   showExactScore: boolean;
   template: string;
+  photoUrl: string | null;
   summary: string | null;
   skills: string[];
   roles: string[];
@@ -577,6 +603,7 @@ function scanView(scan: GritScoreScan, itemCount = 0): ScanView {
     isPublic: scan.isPublic,
     showExactScore: scan.showExactScore,
     template: scan.template,
+    photoUrl: safePhotoUrl(scan.photoUrl),
     summary: scan.summary,
     skills: (scan.extracted?.skills ?? []).slice(0, 30),
     roles: (scan.extracted?.roles ?? []).slice(0, 12),
@@ -628,8 +655,8 @@ async function requireOwnScan(req: Request, res: Response): Promise<GritScoreSca
   return scan;
 }
 
-async function storeProofFile(file: { buffer: Buffer; originalname: string }): Promise<{ url: string; name: string }> {
-  const uploaded = await uploadToSupabase(file.buffer, file.originalname, "gritscore");
+async function storeProofFile(file: { buffer: Buffer; originalname: string; mimetype?: string }): Promise<{ url: string; name: string }> {
+  const uploaded = await uploadToSupabase(file.buffer, file.originalname, "gritscore", false, file.mimetype || "application/octet-stream");
   if (uploaded) return { url: uploaded, name: file.originalname };
   fs.mkdirSync(PROOF_DIR, { recursive: true });
   const ext = (path.extname(file.originalname).toLowerCase().match(/^\.[a-z0-9]{1,6}$/)?.[0]) ?? ".bin";
@@ -1108,12 +1135,59 @@ router.patch("/scans/:id", authenticate, gritDbGate, writeLimiter, async (req: R
   }
 });
 
+router.post("/scans/:id/photo", authenticate, gritDbGate, writeLimiter, runPhotoUpload, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const scan = await requireOwnScan(req, res);
+    if (!scan) return;
+    const file = req.file;
+    if (!file || !file.buffer?.length) {
+      res.status(400).json({ success: false, message: "Choose a photo to upload" });
+      return;
+    }
+    if (!looksLikeImage(file.buffer)) {
+      res.status(400).json({ success: false, message: "That file is not a JPG, PNG or WebP image" });
+      return;
+    }
+    const stored = await storeProofFile(file);
+    const previous = safePhotoUrl(scan.photoUrl);
+    const [updated] = await db
+      .update(gritscoreScansTable)
+      .set({ photoUrl: stored.url, updatedAt: new Date() })
+      .where(eq(gritscoreScansTable.id, scan.id))
+      .returning();
+    removeLocalFile(previous);
+    res.json({ success: true, data: { scan: scanView(updated ?? scan) } });
+  } catch (err) {
+    logger.error({ err }, "[gritscore] photo upload failed");
+    res.status(500).json({ success: false, message: "Could not save that photo" });
+  }
+});
+
+router.delete("/scans/:id/photo", authenticate, gritDbGate, writeLimiter, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const scan = await requireOwnScan(req, res);
+    if (!scan) return;
+    const previous = safePhotoUrl(scan.photoUrl);
+    const [updated] = await db
+      .update(gritscoreScansTable)
+      .set({ photoUrl: null, updatedAt: new Date() })
+      .where(eq(gritscoreScansTable.id, scan.id))
+      .returning();
+    removeLocalFile(previous);
+    res.json({ success: true, data: { scan: scanView(updated ?? scan) } });
+  } catch (err) {
+    logger.error({ err }, "[gritscore] photo remove failed");
+    res.status(500).json({ success: false, message: "Could not remove that photo" });
+  }
+});
+
 router.delete("/scans/:id", authenticate, gritDbGate, async (req: Request, res: Response): Promise<void> => {
   try {
     const scan = await requireOwnScan(req, res);
     if (!scan) return;
     const items = await listItems(scan.id);
     for (const item of items) removeLocalFile(item.proofFileUrl);
+    removeLocalFile(safePhotoUrl(scan.photoUrl));
     await deleteScanData(scan);
     res.json({ success: true, data: { deleted: true } });
   } catch (err) {
@@ -1337,6 +1411,7 @@ async function publicPayload(scan: GritScoreScan, viewerId: string | null): Prom
       skills: topSkills(scan, items).slice(0, 8),
       roles: scan.extracted?.roles?.slice(0, 5) ?? [],
       template: cardTemplate(scan),
+      photoUrl: safePhotoUrl(scan.photoUrl),
       isProCard: ownerPro,
       watermark: !ownerPro,
       confirmedReferees: confirmed,

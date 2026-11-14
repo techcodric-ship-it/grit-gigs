@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS gritscore_scans (
   is_public BOOLEAN NOT NULL DEFAULT FALSE,
   show_exact_score BOOLEAN NOT NULL DEFAULT FALSE,
   template VARCHAR(30) NOT NULL DEFAULT 'violet',
+  photo_url TEXT,
   ai_used BOOLEAN NOT NULL DEFAULT FALSE,
   abuse_flags JSONB NOT NULL DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -53,6 +54,8 @@ CREATE TABLE IF NOT EXISTS gritscore_scans (
 );
 CREATE INDEX IF NOT EXISTS gritscore_scans_user_idx ON gritscore_scans (user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS gritscore_scans_public_idx ON gritscore_scans (is_public) WHERE is_public = TRUE;
+-- Additive upgrade for databases created before profile photos existed.
+ALTER TABLE gritscore_scans ADD COLUMN IF NOT EXISTS photo_url TEXT;
 
 CREATE TABLE IF NOT EXISTS gritscore_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

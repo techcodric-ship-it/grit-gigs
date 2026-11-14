@@ -39,6 +39,8 @@ export const gritscoreScansTable = pgTable("gritscore_scans", {
   isPublic: boolean("is_public").notNull().default(false),
   showExactScore: boolean("show_exact_score").notNull().default(false),
   template: varchar("template", { length: 30 }).notNull().default("violet"),
+  /** Owner-uploaded profile photo. Shown on the card; never used in scoring. */
+  photoUrl: text("photo_url"),
   aiUsed: boolean("ai_used").notNull().default(false),
   abuseFlags: jsonb("abuse_flags").$type<string[]>().notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

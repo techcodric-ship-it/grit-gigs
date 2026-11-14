@@ -9,7 +9,7 @@
 <meta name="description" content="Turn the work you have actually shipped into a shareable Proof Score backed by links, files and referees."/>
 <link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
 <link rel="stylesheet" href="/assets/app-left-sidebar.css?v=1"/>
-<link rel="stylesheet" href="/assets/gritscore.css?v=5"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=6"/>
 <script src="/js/se-auth.js?v=1" defer></script>
 <script src="/assets/app-left-sidebar.js?v=2" defer></script>
 <script src="/assets/gritscore.js?v=3" defer></script>
@@ -634,6 +634,13 @@ document.addEventListener('DOMContentLoaded', function () {
       });
   }
 
+  function initialsOf(name) {
+    var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return 'GS';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  }
+
   function renderDetail(data, fresh) {
     var scan = data.scan;
     var items = data.items || [];
@@ -682,6 +689,23 @@ document.addEventListener('DOMContentLoaded', function () {
       '<label class="gs-check" style="margin-bottom:10px;"><input type="checkbox" id="editPublic"' + (scan.isPublic ? ' checked' : '') + '/>' +
         '<span>Public page is live at <code>/score/' + GS.esc(scan.slug) + '</code></span></label>' +
       '<button class="gs-btn sm" type="button" data-action="save">Save changes</button>' +
+      '<div class="gs-photo-edit">' +
+        '<div class="gs-photo-preview" id="photoPreview">' +
+          (scan.photoUrl
+            ? '<img src="' + GS.esc(scan.photoUrl) + '" alt="Current profile photo"/>'
+            : GS.esc(initialsOf(scan.displayName))) +
+        '</div>' +
+        '<div class="gs-photo-copy">' +
+          '<label class="gs-label" for="photoInput" style="margin-bottom:2px;">Profile photo</label>' +
+          '<p class="gs-hint">JPG, PNG or WebP up to 5 MB. It appears on the public card and is never used to compute the score.</p>' +
+          '<div class="gs-edit-actions" style="margin-top:0;">' +
+            '<label class="gs-btn subtle sm" for="photoInput">' + (scan.photoUrl ? 'Replace photo' : 'Choose photo') + '</label>' +
+            '<input type="file" id="photoInput" accept="image/jpeg,image/png,image/webp" hidden/>' +
+            (scan.photoUrl ? '<button class="gs-btn danger sm" type="button" data-action="removePhoto">Remove photo</button>' : '') +
+          '</div>' +
+          '<p class="gs-photo-status" id="photoStatus" hidden></p>' +
+        '</div>' +
+      '</div>' +
     '</div>';
 
     // Design picker
@@ -836,6 +860,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         if (action === 'save') return saveSettings(scan.id);
         if (action === 'saveContent') return saveContent(scan.id);
+        if (action === 'removePhoto') { e.preventDefault(); return removePhoto(scan.id); }
         if (action === 'addItem') return addEditItem();
         if (action === 'removeItem') {
           var editItem = btn.closest('[data-edit-item]');
@@ -884,6 +909,9 @@ document.addEventListener('DOMContentLoaded', function () {
           .catch(function () { btn.disabled = false; GS.toast('Could not change the design'); });
       });
     });
+
+    var photoInput = detailView.querySelector('#photoInput');
+    if (photoInput) photoInput.addEventListener('change', function () { uploadPhoto(scan, photoInput); });
   }
 
   // The API expects the bearer token in a header, so a plain anchor click would
@@ -938,6 +966,70 @@ document.addEventListener('DOMContentLoaded', function () {
       show('list');
       loadScans();
     });
+  }
+
+  function photoStatus(message, bad) {
+    var el = $('photoStatus');
+    if (!el) return;
+    el.hidden = !message;
+    el.textContent = message || '';
+    el.className = 'gs-photo-status' + (bad ? ' bad' : '');
+  }
+
+  function uploadPhoto(scan, input) {
+    var file = input.files && input.files[0];
+    if (!file) return;
+    var type = String(file.type || '').toLowerCase();
+    if (['image/jpeg', 'image/png', 'image/webp'].indexOf(type) === -1) {
+      photoStatus('Choose a JPG, PNG or WebP image.', true);
+      input.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      photoStatus('That image is larger than 5 MB.', true);
+      input.value = '';
+      return;
+    }
+
+    var preview = $('photoPreview');
+    var previousPreview = preview ? preview.innerHTML : '';
+    var localUrl = window.URL && URL.createObjectURL ? URL.createObjectURL(file) : '';
+    if (preview && localUrl) preview.innerHTML = '<img src="' + GS.esc(localUrl) + '" alt="Selected profile photo"/>';
+    photoStatus('Uploading\u2026');
+
+    function restore(message) {
+      if (localUrl) URL.revokeObjectURL(localUrl);
+      if (preview) preview.innerHTML = previousPreview;
+      photoStatus(message, true);
+    }
+
+    var form = new FormData();
+    form.append('photo', file);
+    GS.request('/scans/' + scan.id + '/photo', { method: 'POST', body: form })
+      .then(function (res) {
+        if (!res.ok || !res.data.success) {
+          restore((res.data && res.data.message) || 'Could not save that photo.');
+          return;
+        }
+        if (localUrl) URL.revokeObjectURL(localUrl);
+        GS.toast('Photo updated');
+        openDetail(scan.id);
+      })
+      .catch(function () {
+        restore('Could not save that photo. Check your connection and try again.');
+      })
+      .finally(function () { input.value = ''; });
+  }
+
+  function removePhoto(id) {
+    if (!confirm('Remove the profile photo from this card?')) return;
+    GS.request('/scans/' + id + '/photo', { method: 'DELETE' })
+      .then(function (res) {
+        if (!res.ok || !res.data.success) { GS.toast((res.data && res.data.message) || 'Could not remove the photo'); return; }
+        GS.toast('Photo removed');
+        openDetail(id);
+      })
+      .catch(function () { GS.toast('Could not remove the photo'); });
   }
 
   function inviteReferee(scanId, itemId, email, btn) {

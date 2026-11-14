@@ -1244,3 +1244,548 @@ body[data-gs-template="mono"] {
   .gs-pub-panel { padding: 18px; }
   .gs-design-grid { grid-template-columns: 1fr; }
 }
+
+/* ==========================================================================
+   GritScore flip card
+   The free public card. Portrait, card-sized, two faces: the identity and
+   score on the front, the proof story on the back. Sized in container units
+   so every element scales with the card instead of the viewport.
+   ========================================================================== */
+
+.gs-flip-scene {
+  width: min(400px, 92vw);
+  aspect-ratio: 340 / 660;
+  margin: 4px auto 0;
+  perspective: 1800px;
+  container-type: inline-size;
+}
+.gs-flip {
+  --gs-flip-accent: #8B6CFF;
+  --gs-flip-paper: #F7F8FB;
+  --gs-flip-ink: #11182B;
+  --gs-flip-muted: #5B6479;
+  --gs-flip-line: #DDE1EB;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+  cursor: pointer;
+  border-radius: 28px;
+  outline-offset: 6px;
+}
+.gs-flip:focus-visible { outline: 3px solid var(--gs-accent); }
+.gs-flip.flipped { transform: rotateY(180deg); }
+.gs-flip-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow: 0 30px 60px -28px rgba(10, 16, 40, 0.5), 0 2px 0 rgba(255, 255, 255, 0.35) inset;
+}
+.gs-flip-front { background: #11182B; color: #FFFFFF; }
+.gs-flip-back { transform: rotateY(180deg); background: var(--gs-flip-paper); color: var(--gs-flip-ink); }
+
+/* Template accents. The free card is Violet; Pro designs tint the same card. */
+body[data-gs-template="violet"] .gs-flip { --gs-flip-accent: #8B6CFF; --gs-flip-paper: #F7F5FF; }
+body[data-gs-template="ink"]    .gs-flip { --gs-flip-accent: #FFFFFF; --gs-flip-paper: #F4F4F7; }
+body[data-gs-template="paper"]  .gs-flip { --gs-flip-accent: #C08A3E; --gs-flip-paper: #FBF6EC; }
+body[data-gs-template="ocean"]  .gs-flip { --gs-flip-accent: #4FB3E8; --gs-flip-paper: #F0F8FD; }
+body[data-gs-template="ember"]  .gs-flip { --gs-flip-accent: #FB923C; --gs-flip-paper: #FFF5EC; }
+body[data-gs-template="mono"]   .gs-flip { --gs-flip-accent: #111111; --gs-flip-paper: #F5F5F5; }
+
+/* ---- Front --------------------------------------------------------------- */
+.gs-flip-photo {
+  position: absolute;
+  inset: 0 0 34% 0;
+  background: radial-gradient(120% 80% at 70% 15%, #5A4BC4 0%, #33296E 45%, #141331 100%);
+}
+.gs-flip-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(17, 24, 43, 0) 50%, #11182B 100%);
+  pointer-events: none;
+}
+.gs-flip-photo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 26%;
+  display: block;
+}
+.gs-flip-mono {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--gs-font-display);
+  font-size: 38cqw;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: rgba(255, 255, 255, 0.2);
+}
+.gs-flip-brand {
+  position: absolute;
+  top: 5cqw;
+  left: 6cqw;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 2cqw;
+  padding: 1.6cqw 3.2cqw;
+  border-radius: 99px;
+  background: rgba(17, 24, 43, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  font-family: var(--gs-font-display);
+  font-size: 4.2cqw;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+.gs-flip-brand i { width: 2.4cqw; height: 2.4cqw; border-radius: 50%; background: var(--gs-flip-accent); }
+
+.gs-flip-stamp {
+  position: absolute;
+  right: 6cqw;
+  top: calc(64% - 15cqw);
+  width: 30cqw;
+  height: 30cqw;
+  z-index: 4;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.35));
+}
+.gs-flip-stamp svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.gs-flip-stamp .disc { fill: #FFFFFF; }
+.gs-flip-stamp .track { fill: none; stroke: #E3E6EF; stroke-width: 7; }
+.gs-flip-stamp .arc {
+  fill: none;
+  stroke: var(--gs-flip-accent);
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-dasharray: 263.9;
+  stroke-dashoffset: 263.9;
+  transition: stroke-dashoffset 1.4s cubic-bezier(0.3, 0.7, 0.1, 1) 0.25s;
+}
+.gs-flip-stamp b {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  color: #11182B;
+  font-family: var(--gs-font-display);
+  font-size: 10.5cqw;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.gs-flip-stamp b small {
+  display: block;
+  margin-top: 0.8cqw;
+  font-family: var(--gs-font);
+  font-size: 2.7cqw;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: #5B6479;
+}
+.gs-flip-stamp b.gs-flip-stamp-tier { font-size: 7cqw; }
+
+.gs-flip-info {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  min-height: 36%;
+  padding: 9cqw 7cqw 6cqw;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 3cqw;
+  z-index: 2;
+}
+.gs-flip-name {
+  font-family: var(--gs-font-display);
+  font-size: 8.6cqw;
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  max-width: 56cqw;
+  overflow-wrap: anywhere;
+}
+/* Long names step down instead of pushing the trust row off the card. */
+.gs-flip-name.n-long { font-size: 7cqw; letter-spacing: -0.015em; }
+.gs-flip-name.n-xlong { font-size: 5.8cqw; letter-spacing: -0.01em; }
+.gs-flip-head {
+  margin-top: 1.6cqw;
+  max-width: 56cqw;
+  font-size: 3.9cqw;
+  line-height: 1.35;
+  color: #B9C1D9;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+.gs-flip-rate {
+  display: flex;
+  align-items: center;
+  gap: 2cqw;
+  margin-top: 2.4cqw;
+  font-size: 3.4cqw;
+  color: #B9C1D9;
+}
+.gs-flip-rate b { color: #FFFFFF; font-weight: 700; }
+.gs-flip-norev { color: #8F99B8; }
+.gs-flip-scale {
+  margin-top: 1.8cqw;
+  max-width: 56cqw;
+  font-size: 3.1cqw;
+  line-height: 1.4;
+  font-weight: 600;
+  color: #8F99B8;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+.gs-flip-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 2cqw;
+}
+.gs-flip-trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2cqw;
+  align-items: center;
+}
+.gs-flip-trust span {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.4cqw;
+  padding: 1.6cqw 3cqw;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.09);
+  color: #E6EAF6;
+  font-size: 3.2cqw;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.gs-flip-trust svg {
+  width: 3.4cqw;
+  height: 3.4cqw;
+  fill: none;
+  stroke: #5FD6A0;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.gs-flip-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.4cqw;
+  font-size: 3cqw;
+  color: #8F99B8;
+  white-space: nowrap;
+}
+.gs-flip-hint svg {
+  width: 3.4cqw;
+  height: 3.4cqw;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---- Back ---------------------------------------------------------------- */
+.gs-flip-pad {
+  position: absolute;
+  inset: 0;
+  padding: 5cqw 6cqw 4.5cqw;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.gs-flip-pad::-webkit-scrollbar { width: 0; height: 0; }
+.gs-flip-back-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 3cqw;
+}
+.gs-flip-back-top h3 {
+  margin: 0;
+  font-family: var(--gs-font-display);
+  font-size: 6cqw;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.gs-flip-back-top p {
+  margin: 0.8cqw 0 0;
+  font-size: 3.3cqw;
+  line-height: 1.35;
+  color: var(--gs-flip-muted);
+}
+.gs-flip-tier {
+  padding: 1.8cqw 3.2cqw;
+  border-radius: 99px;
+  background: #11182B;
+  color: #FFFFFF;
+  font-family: var(--gs-font-display);
+  font-size: 3.2cqw;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.gs-flip-sec {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2cqw;
+  margin: 3.2cqw 0 1.8cqw;
+  font-family: var(--gs-font-display);
+  font-size: 3.5cqw;
+  font-weight: 700;
+  color: var(--gs-flip-ink);
+}
+.gs-flip-sec span {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.2cqw;
+  font-family: var(--gs-font);
+  font-size: 3cqw;
+  font-weight: 500;
+  color: var(--gs-flip-muted);
+}
+.gs-flip-sec span b { color: var(--gs-flip-ink); font-weight: 700; }
+
+.gs-flip-bars { display: grid; gap: 2.1cqw; }
+.gs-flip-bar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "l v" "t t";
+  align-items: center;
+  gap: 1cqw 2cqw;
+  font-size: 3.2cqw;
+  color: var(--gs-flip-muted);
+}
+.gs-flip-bar > span { grid-area: l; }
+.gs-flip-bar em {
+  grid-area: v;
+  font-style: normal;
+  font-weight: 700;
+  text-align: right;
+  color: var(--gs-flip-ink);
+}
+.gs-flip-track {
+  grid-area: t;
+  height: 2cqw;
+  border-radius: 9px;
+  background: var(--gs-flip-line);
+  overflow: hidden;
+}
+.gs-flip-track i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 9px;
+  background: var(--c, var(--gs-flip-accent));
+  transition: width 1s cubic-bezier(0.3, 0.7, 0.1, 1) 0.4s;
+}
+.gs-flip.loaded .gs-flip-track i { width: var(--v, 0%); }
+
+.gs-flip-items { display: grid; gap: 2.2cqw; }
+.gs-flip-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2cqw;
+  padding: 2.1cqw 2.8cqw;
+  border: 1px solid var(--gs-flip-line);
+  border-radius: 3.4cqw;
+  background: #FFFFFF;
+}
+.gs-flip-item strong {
+  display: block;
+  font-size: 3.5cqw;
+  line-height: 1.25;
+  font-weight: 700;
+  color: var(--gs-flip-ink);
+}
+.gs-flip-item div span {
+  display: block;
+  margin-top: 0.4cqw;
+  font-size: 2.9cqw;
+  line-height: 1.35;
+  color: var(--gs-flip-muted);
+}
+.gs-flip-badge {
+  padding: 1.2cqw 2.4cqw;
+  border-radius: 99px;
+  font-size: 2.8cqw;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.gs-flip-badge.b-ok { background: #DDF3E8; color: #0F6A45; }
+.gs-flip-badge.b-link { background: #E1E7FF; color: #2A43B0; }
+.gs-flip-badge.b-warn { background: #FFF1D6; color: #8A5A00; }
+.gs-flip-badge.b-self { background: #E9ECF4; color: #5B6479; }
+.gs-flip-empty { margin: 0; font-size: 3.1cqw; line-height: 1.45; color: var(--gs-flip-muted); }
+.gs-flip-more { margin: 1.6cqw 0 0; font-size: 2.9cqw; color: var(--gs-flip-muted); }
+
+.gs-flip-revs { display: grid; gap: 2cqw; }
+.gs-flip-rev {
+  padding: 2cqw 2.6cqw;
+  border: 1px solid var(--gs-flip-line);
+  border-radius: 3.4cqw;
+  background: #FFFFFF;
+}
+.gs-flip-rev .who {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2cqw;
+  margin-bottom: 0.8cqw;
+  font-size: 2.9cqw;
+  font-weight: 700;
+}
+.gs-flip-rev p {
+  margin: 0;
+  font-size: 2.9cqw;
+  line-height: 1.4;
+  color: #2A3350;
+}
+.gs-flip-stars {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  font-size: var(--s, 3.2cqw);
+  line-height: 1;
+  letter-spacing: 0.12em;
+}
+.gs-flip-stars .bg { color: #CBD1DF; }
+.gs-flip-front .gs-flip-stars .bg { color: rgba(255, 255, 255, 0.28); }
+.gs-flip-stars .fg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  color: #E8962A;
+}
+
+.gs-flip-skills { display: flex; flex-wrap: wrap; gap: 1.6cqw; }
+.gs-flip-skills span {
+  padding: 1.2cqw 2.6cqw;
+  border-radius: 99px;
+  background: #E9ECF4;
+  color: #2A3350;
+  font-size: 2.9cqw;
+  font-weight: 500;
+}
+.gs-flip-tag {
+  margin-top: 2.8cqw;
+  padding-top: 2.2cqw;
+  border-top: 1px dashed var(--gs-flip-line);
+  font-size: 2.8cqw;
+  line-height: 1.4;
+  color: var(--gs-flip-muted);
+}
+.gs-flip-foot {
+  margin-top: auto;
+  padding-top: 2.2cqw;
+  display: flex;
+  justify-content: space-between;
+  gap: 2cqw;
+  font-size: 2.8cqw;
+  color: var(--gs-flip-muted);
+}
+
+/* ---- The card page shell ------------------------------------------------- */
+.gs-wrap.gs-public { --gs-wrap-max: 760px; }
+.gs-flip-share { justify-content: center; }
+.gs-flip-details {
+  margin-top: 20px;
+  border: 1px solid var(--gs-line);
+  border-radius: 18px;
+  background: #FFFFFF;
+  box-shadow: var(--gs-shadow);
+  overflow: hidden;
+}
+.gs-flip-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--gs-font-display);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.gs-flip-details > summary::-webkit-details-marker { display: none; }
+.gs-flip-details > summary::after {
+  content: "+";
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--gs-accent);
+}
+.gs-flip-details[open] > summary::after { content: "\2013"; }
+.gs-flip-details-count { margin-left: auto; font-family: var(--gs-font); font-size: 0.78rem; font-weight: 600; color: var(--gs-ink-3); }
+.gs-flip-details > .gs-pub-body { padding: 0 16px 16px; margin-top: 0; }
+
+/* ---- Owner photo upload -------------------------------------------------- */
+.gs-photo-edit {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--gs-line);
+}
+.gs-photo-preview {
+  width: 88px;
+  height: 88px;
+  min-width: 88px;
+  border-radius: 24px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--gs-line);
+  background: var(--gs-accent-soft);
+  color: var(--gs-accent-deep);
+  font-family: var(--gs-font-display);
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.gs-photo-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gs-photo-copy { flex: 1; min-width: 0; }
+.gs-photo-copy .gs-hint { margin: 2px 0 10px; }
+.gs-photo-copy label.gs-btn { cursor: pointer; }
+.gs-photo-status { margin: 8px 0 0; font-size: 0.78rem; font-weight: 600; color: var(--gs-ink-3); }
+.gs-photo-status.bad { color: var(--gs-bad); }
+
+@media (max-width: 520px) {
+  .gs-flip-scene { width: min(360px, 94vw); }
+  .gs-flip-details > summary { padding: 14px 16px; }
+  .gs-photo-edit { gap: 13px; }
+  .gs-photo-preview { width: 72px; height: 72px; min-width: 72px; border-radius: 20px; font-size: 1.3rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gs-flip { transition-duration: 0.01s; }
+  .gs-flip-stamp .arc, .gs-flip-track i { transition: none; }
+}

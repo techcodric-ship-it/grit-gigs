@@ -71,6 +71,7 @@ export async function uploadToSupabase(
   originalName: string,
   subfolder: string,
   retried = false,
+  contentType = "application/octet-stream",
 ): Promise<string | null> {
   const client = supabaseAdmin || supabase;
   if (!client) return null;
@@ -82,7 +83,7 @@ export async function uploadToSupabase(
     const { error } = await client.storage
       .from(UPLOADS_BUCKET)
       .upload(fileName, buffer, {
-        contentType: "application/octet-stream",
+        contentType,
         upsert: false,
       });
 
@@ -91,7 +92,7 @@ export async function uploadToSupabase(
       // If bucket might not exist, try to ensure it and retry once
       if (!_bucketKnown && !retried) {
         await ensureBucket();
-        return uploadToSupabase(buffer, originalName, subfolder, true);
+        return uploadToSupabase(buffer, originalName, subfolder, true, contentType);
       }
       return null;
     }
