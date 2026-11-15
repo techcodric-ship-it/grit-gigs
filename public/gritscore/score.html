@@ -18,7 +18,7 @@
 <meta name="twitter:description" content="A shareable Proof Score built from work a person can prove."/>
 <link rel="canonical" href="https://www.gritandgigs.in/score"/>
 <link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
-<link rel="stylesheet" href="/assets/gritscore.css?v=7"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=8"/>
 <script src="/js/se-auth.js?v=1" defer></script>
 <script src="/assets/gritscore.js?v=4" defer></script>
 </head>
@@ -124,6 +124,69 @@ document.addEventListener('DOMContentLoaded', function () {
     return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>';
   }
 
+  // ---- Theme art -----------------------------------------------------------
+  // Decorative only. The Web design draws a spider web from polar maths, the
+  // Space design floats a planet and orbit, the Arctic design adds ice shards.
+  // All of it is CSS-hidden for the other designs and ignored by screen readers.
+  function web(cx, cy, radius, from, to, spokes, rings) {
+    var angles = [];
+    var out = '';
+    var i;
+    var k;
+    for (i = 0; i <= spokes; i++) {
+      var a = (from + (to - from) * i / spokes) * Math.PI / 180;
+      angles.push([Math.cos(a), Math.sin(a)]);
+    }
+    angles.forEach(function (v) {
+      out += '<path pathLength="1" d="M' + cx + ' ' + cy + 'L' +
+        (cx + v[0] * radius).toFixed(1) + ' ' + (cy + v[1] * radius).toFixed(1) + '"/>';
+    });
+    for (k = 1; k <= rings; k++) {
+      var r = radius * Math.pow(k / rings, 1.2);
+      for (i = 0; i < spokes; i++) {
+        var p = angles[i];
+        var q = angles[i + 1];
+        var mx = (p[0] + q[0]) / 2;
+        var my = (p[1] + q[1]) / 2;
+        out += '<path class="r" pathLength="1" d="M' + (cx + p[0] * r).toFixed(1) + ' ' + (cy + p[1] * r).toFixed(1) +
+          'Q' + (cx + mx * r * 0.9).toFixed(1) + ' ' + (cy + my * r * 0.9).toFixed(1) +
+          ' ' + (cx + q[0] * r).toFixed(1) + ' ' + (cy + q[1] * r).toFixed(1) + '"/>';
+      }
+    }
+    return out;
+  }
+
+  function webSvg(inner) {
+    return '<svg class="gs-flip-web" viewBox="0 0 100 176" preserveAspectRatio="none" aria-hidden="true">' + inner + '</svg>';
+  }
+
+  function frontFx(template) {
+    if (template === 'spider') {
+      return '<div class="gs-flip-fx web">' + webSvg(
+        web(100, 0, 96, 91, 180, 8, 7) +
+        web(0, 176, 72, 271, 359, 6, 5) +
+        web(100, 118, 30, 128, 232, 4, 4)
+      ) + '</div>';
+    }
+    if (template === 'space') {
+      return '<div class="gs-flip-fx space"><b class="planet"></b><div class="orbit"><i></i><i></i></div></div>';
+    }
+    if (template === 'arctic') {
+      return '<div class="gs-flip-fx arctic"><b></b><b></b><b></b></div>';
+    }
+    return '';
+  }
+
+  function backFx(template) {
+    if (template === 'spider') {
+      return '<div class="gs-flip-fx web">' + webSvg(
+        web(100, 0, 70, 91, 180, 7, 6) +
+        web(0, 176, 50, 271, 359, 5, 4)
+      ) + '</div>';
+    }
+    return '';
+  }
+
   function itemBadge(item) {
     if (item.evidenceStatus === 'ok') return '<span class="gs-flip-badge b-ok">Checked</span>';
     if (item.evidenceStatus === 'blocked') return '<span class="gs-flip-badge b-warn">Link is up</span>';
@@ -176,13 +239,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ---- Flip card ----------------------------------------------------------
     html += '<div class="gs-flip-scene">' +
+      '<div class="gs-flip-tilt" id="gsFlipTilt">' +
       '<div class="gs-flip" id="gsFlip" role="button" tabindex="0" aria-pressed="false" aria-label="GritScore card. Press to flip.">' +
 
         '<section class="gs-flip-face gs-flip-front" id="gsFlipFront">' +
+          '<div class="gs-flip-art" aria-hidden="true"></div>' +
           '<div class="gs-flip-photo">' +
             '<span class="gs-flip-mono" aria-hidden="true">' + GS.esc(initialsOf(scan.displayName)) + '</span>' +
             (scan.photoUrl ? '<img id="gsFlipPhoto" src="' + GS.esc(scan.photoUrl) + '" alt="" loading="eager"/>' : '') +
           '</div>' +
+          frontFx(template) +
           '<div class="gs-flip-brand"><i></i>GritScore</div>' +
           '<div class="gs-flip-stamp">' +
             '<svg viewBox="0 0 100 100" aria-hidden="true">' +
@@ -214,9 +280,11 @@ document.addEventListener('DOMContentLoaded', function () {
               '<div class="gs-flip-hint">Tap to flip ' + flipHintIcon() + '</div>' +
             '</div>' +
           '</div>' +
+          '<div class="gs-flip-shine" aria-hidden="true"></div>' +
         '</section>' +
 
         '<section class="gs-flip-face gs-flip-back" id="gsFlipBack" aria-hidden="true">' +
+          backFx(template) +
           '<div class="gs-flip-pad">' +
             '<div class="gs-flip-back-top">' +
               '<div>' +
@@ -224,6 +292,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<p>' + GS.esc(roles.length ? roles.join(' \u00b7 ') : (scan.verificationLabel || 'Self-reported')) + '</p>' +
               '</div>' +
               '<span class="gs-flip-tier">' + GS.esc(scan.tier || 'Starter') + '</span>' +
+            '</div>' +
+
+            '<div class="gs-flip-stats">' +
+              '<div><b>' + totalItems + '</b><span>' + GS.plural(totalItems, 'item') + '</span></div>' +
+              '<div><b>' + checked + '</b><span>checked</span></div>' +
+              '<div><b>' + confirmed + '</b><span>' + GS.plural(confirmed, 'referee') + '</span></div>' +
             '</div>' +
 
             '<div class="gs-flip-sec">How proof stacks up</div>' +
@@ -284,8 +358,10 @@ document.addEventListener('DOMContentLoaded', function () {
               '<span>grit&amp;gigs' + (scan.watermark ? ' \u00b7 free card' : '') + '</span>' +
             '</div>' +
           '</div>' +
+          '<div class="gs-flip-shine" aria-hidden="true"></div>' +
         '</section>' +
 
+      '</div>' +
       '</div>' +
     '</div>';
 
@@ -473,6 +549,32 @@ document.addEventListener('DOMContentLoaded', function () {
       card.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); }
       });
+
+      // Pointer parallax feeds the theme art, glare and a small tilt. The card
+      // flip lives on a child element, so the tilt never fights the flip.
+      var scene = document.querySelector('.gs-flip-scene');
+      var tilt = $('gsFlipTilt');
+      var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (scene && !still && window.PointerEvent) {
+        scene.addEventListener('pointermove', function (e) {
+          if (e.pointerType === 'touch') return;
+          var rect = scene.getBoundingClientRect();
+          if (!rect.width || !rect.height) return;
+          var x = (e.clientX - rect.left) / rect.width;
+          var y = (e.clientY - rect.top) / rect.height;
+          scene.style.setProperty('--gs-mx', (x * 100).toFixed(1));
+          scene.style.setProperty('--gs-my', (y * 100).toFixed(1));
+          if (tilt) {
+            tilt.classList.add('live');
+            tilt.style.transform = 'rotateX(' + ((0.5 - y) * 8).toFixed(2) + 'deg) rotateY(' + ((x - 0.5) * 10).toFixed(2) + 'deg)';
+          }
+        });
+        scene.addEventListener('pointerleave', function () {
+          scene.style.removeProperty('--gs-mx');
+          scene.style.removeProperty('--gs-my');
+          if (tilt) { tilt.classList.remove('live'); tilt.style.transform = ''; }
+        });
+      }
 
       var photo = $('gsFlipPhoto');
       if (photo) photo.addEventListener('error', function () { photo.style.display = 'none'; });

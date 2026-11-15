@@ -116,6 +116,11 @@ export const LIMITS = {
  *  visible, useful benefit instead of a vague "more features" promise. */
 export const CARD_TEMPLATES = [
   { id: "violet", name: "Violet", mood: "Confident and modern", pro: false },
+  { id: "gold", name: "Gold", mood: "Obsidian black with 24k accents", pro: true },
+  { id: "spider", name: "Web", mood: "Crimson and cobalt comic energy", pro: true },
+  { id: "carbon", name: "Carbon", mood: "Carbon fibre and racing orange", pro: true },
+  { id: "space", name: "Space", mood: "Deep space and a ringed planet", pro: true },
+  { id: "arctic", name: "Arctic", mood: "Glacier light and sharp ice", pro: true },
   { id: "ink", name: "Ink", mood: "Editorial black and white", pro: true },
   { id: "paper", name: "Paper", mood: "Warm, calm and understated", pro: true },
   { id: "ocean", name: "Ocean", mood: "Cool blue, product-minded", pro: true },

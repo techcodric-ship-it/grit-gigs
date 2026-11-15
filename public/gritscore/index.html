@@ -9,7 +9,7 @@
 <meta name="description" content="Turn the work you have actually shipped into a shareable Proof Score backed by links, files and referees."/>
 <link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
 <link rel="stylesheet" href="/assets/app-left-sidebar.css?v=1"/>
-<link rel="stylesheet" href="/assets/gritscore.css?v=7"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=8"/>
 <script src="/js/se-auth.js?v=1" defer></script>
 <script src="/assets/app-left-sidebar.js?v=2" defer></script>
 <script src="/assets/gritscore.js?v=4" defer></script>
@@ -535,6 +535,11 @@ document.addEventListener('DOMContentLoaded', function () {
   function designPreview(id) {
     var map = {
       violet: 'radial-gradient(120% 160% at 100% 0%, #E9DEFF 0%, #F7F2FF 48%, #FFFFFF 100%)',
+      gold: 'radial-gradient(120% 130% at 80% 0%, #6B5326 0%, #1A1508 58%, #0A0A0B 100%)',
+      spider: 'linear-gradient(150deg, #E3122D 0%, #7A0A1A 45%, #0B1A4A 100%)',
+      carbon: 'linear-gradient(150deg, #3A2A1C 0%, #14100C 58%, #0C0D10 100%)',
+      space: 'radial-gradient(120% 130% at 25% 20%, #6C5BFF 0%, #2A1B72 52%, #070816 100%)',
+      arctic: 'linear-gradient(150deg, #EAF2FA 0%, #BFE0FF 52%, #7FB2FF 100%)',
       ink: 'radial-gradient(120% 160% at 100% 0%, #2A2A3A 0%, #14141C 58%, #0B0B11 100%)',
       paper: 'radial-gradient(120% 160% at 100% 0%, #F3E5CE 0%, #FBF6EC 52%, #FFFFFF 100%)',
       ocean: 'radial-gradient(120% 160% at 100% 0%, #D8ECFA 0%, #EEF7FD 50%, #FFFFFF 100%)',
@@ -545,7 +550,9 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function designBar(id) {
-    return id === 'ink' ? 'rgba(255,255,255,0.55)' : 'rgba(24,21,34,0.22)';
+    return ['ink', 'gold', 'spider', 'carbon', 'space'].indexOf(id) >= 0
+      ? 'rgba(255,255,255,0.62)'
+      : 'rgba(24,21,34,0.22)';
   }
 
   function itemEditorHtml(item, index) {
