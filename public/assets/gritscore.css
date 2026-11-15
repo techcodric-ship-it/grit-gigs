@@ -1035,84 +1035,6 @@ body[data-gs-template="violet"] {
   --gs-t-avatar-ink: #FFFFFF;
   --gs-t-score: #3B1F86;
 }
-body[data-gs-template="ink"] {
-  --gs-accent: #5B21B6;
-  --gs-accent-soft: #F3EEFF;
-  --gs-t-cover: radial-gradient(120% 160% at 100% 0%, #2A2A3A 0%, #14141C 58%, #0B0B11 100%);
-  --gs-t-cover-line: #2A2A38;
-  --gs-t-ink: #FFFFFF;
-  --gs-t-muted: #B9B9C9;
-  --gs-t-chip-bg: rgba(255, 255, 255, 0.08);
-  --gs-t-chip-ink: #E9E9F2;
-  --gs-t-chip-line: rgba(255, 255, 255, 0.18);
-  --gs-t-avatar: linear-gradient(135deg, #FFFFFF 0%, #C9C9D6 100%);
-  --gs-t-avatar-ink: #14141C;
-  --gs-t-score: #FFFFFF;
-}
-body[data-gs-template="paper"] {
-  --gs-accent: #9A6B2F;
-  --gs-accent-2: #B07C36;
-  --gs-accent-deep: #7A4F1B;
-  --gs-accent-soft: #F7EEDC;
-  --gs-t-cover: radial-gradient(120% 160% at 100% 0%, #F3E5CE 0%, #FBF6EC 52%, #FFFFFF 100%);
-  --gs-t-cover-line: #EADCC4;
-  --gs-t-ink: #2B2118;
-  --gs-t-muted: #6A5B49;
-  --gs-t-chip-bg: #FFFDF8;
-  --gs-t-chip-ink: #6B4E2A;
-  --gs-t-chip-line: #E9DAC2;
-  --gs-t-avatar: linear-gradient(135deg, #9A6B2F 0%, #D3A15C 100%);
-  --gs-t-avatar-ink: #FFFFFF;
-  --gs-t-score: #6B4515;
-}
-body[data-gs-template="ocean"] {
-  --gs-accent: #0E6BA8;
-  --gs-accent-2: #1387C9;
-  --gs-accent-deep: #084C7A;
-  --gs-accent-soft: #E7F3FB;
-  --gs-t-cover: radial-gradient(120% 160% at 100% 0%, #D8ECFA 0%, #EEF7FD 50%, #FFFFFF 100%);
-  --gs-t-cover-line: #D2E7F5;
-  --gs-t-ink: #0B2239;
-  --gs-t-muted: #46617A;
-  --gs-t-chip-bg: #FFFFFF;
-  --gs-t-chip-ink: #0E4D75;
-  --gs-t-chip-line: #CFE5F4;
-  --gs-t-avatar: linear-gradient(135deg, #0E6BA8 0%, #4FB3E8 100%);
-  --gs-t-avatar-ink: #FFFFFF;
-  --gs-t-score: #084C7A;
-}
-body[data-gs-template="ember"] {
-  --gs-accent: #C2410C;
-  --gs-accent-2: #EA580C;
-  --gs-accent-deep: #9A3412;
-  --gs-accent-soft: #FFF0E6;
-  --gs-t-cover: radial-gradient(120% 160% at 100% 0%, #FFE0C9 0%, #FFF3E9 52%, #FFFFFF 100%);
-  --gs-t-cover-line: #F7D9C2;
-  --gs-t-ink: #2B1408;
-  --gs-t-muted: #72452C;
-  --gs-t-chip-bg: #FFFFFF;
-  --gs-t-chip-ink: #8A3A12;
-  --gs-t-chip-line: #F6D5BD;
-  --gs-t-avatar: linear-gradient(135deg, #C2410C 0%, #FB923C 100%);
-  --gs-t-avatar-ink: #FFFFFF;
-  --gs-t-score: #9A3412;
-}
-body[data-gs-template="mono"] {
-  --gs-accent: #1F1F1F;
-  --gs-accent-2: #333333;
-  --gs-accent-deep: #000000;
-  --gs-accent-soft: #F0F0F0;
-  --gs-t-cover: linear-gradient(135deg, #F7F7F7 0%, #FFFFFF 50%, #EFEFEF 100%);
-  --gs-t-cover-line: #DEDEDE;
-  --gs-t-ink: #101010;
-  --gs-t-muted: #5B5B5B;
-  --gs-t-chip-bg: #FFFFFF;
-  --gs-t-chip-ink: #303030;
-  --gs-t-chip-line: #D9D9D9;
-  --gs-t-avatar: linear-gradient(135deg, #111111 0%, #4A4A4A 100%);
-  --gs-t-avatar-ink: #FFFFFF;
-  --gs-t-score: #111111;
-}
 
 .gs-pub-cover {
   position: relative;
@@ -1350,11 +1272,6 @@ body[data-gs-template="mono"] {
 /* Template accents. The free card is Violet; Pro designs re-skin the same
    card by swapping tokens, so every design keeps identical markup and logic. */
 body[data-gs-template="violet"] .gs-flip { --gs-flip-accent: #8B6CFF; --gs-flip-paper: #F7F5FF; --gs-flip-edge: rgba(139, 108, 255, 0.32); }
-body[data-gs-template="ink"]    .gs-flip { --gs-flip-accent: #FFFFFF; --gs-flip-paper: #F4F4F7; }
-body[data-gs-template="paper"]  .gs-flip { --gs-flip-accent: #C08A3E; --gs-flip-paper: #FBF6EC; }
-body[data-gs-template="ocean"]  .gs-flip { --gs-flip-accent: #4FB3E8; --gs-flip-paper: #F0F8FD; }
-body[data-gs-template="ember"]  .gs-flip { --gs-flip-accent: #FB923C; --gs-flip-paper: #FFF5EC; }
-body[data-gs-template="mono"]   .gs-flip { --gs-flip-accent: #111111; --gs-flip-accent-ink: #FFFFFF; --gs-flip-paper: #F5F5F5; }
 
 body[data-gs-template="gold"] .gs-flip {
   --gs-flip-accent: #E2BC6B;

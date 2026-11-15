@@ -121,11 +121,6 @@ export const CARD_TEMPLATES = [
   { id: "carbon", name: "Carbon", mood: "Carbon fibre and racing orange", pro: true },
   { id: "space", name: "Space", mood: "Deep space and a ringed planet", pro: true },
   { id: "arctic", name: "Arctic", mood: "Glacier light and sharp ice", pro: true },
-  { id: "ink", name: "Ink", mood: "Editorial black and white", pro: true },
-  { id: "paper", name: "Paper", mood: "Warm, calm and understated", pro: true },
-  { id: "ocean", name: "Ocean", mood: "Cool blue, product-minded", pro: true },
-  { id: "ember", name: "Ember", mood: "Bold, warm and energetic", pro: true },
-  { id: "mono", name: "Mono", mood: "Sharp minimal grid", pro: true },
 ] as const;
 
 export type CardTemplate = (typeof CARD_TEMPLATES)[number]["id"];
@@ -134,6 +129,26 @@ export const CARD_TEMPLATE_IDS = CARD_TEMPLATES.map((t) => t.id) as CardTemplate
 
 export function isCardTemplate(value: unknown): value is CardTemplate {
   return typeof value === "string" && (CARD_TEMPLATE_IDS as string[]).includes(value);
+}
+
+/** Designs that were retired when the Pro set was narrowed to five. Cards
+ *  saved on one of them keep their look by moving to the closest new design
+ *  instead of snapping back to the free card. */
+const RETIRED_TEMPLATES: Record<string, CardTemplate> = {
+  ink: "gold",
+  paper: "arctic",
+  ocean: "space",
+  ember: "carbon",
+  mono: "carbon",
+};
+
+/** Accepts a current or retired design id and always returns a live design. */
+export function normaliseCardTemplate(value: unknown): CardTemplate {
+  if (isCardTemplate(value)) return value;
+  if (typeof value === "string" && Object.prototype.hasOwnProperty.call(RETIRED_TEMPLATES, value)) {
+    return RETIRED_TEMPLATES[value];
+  }
+  return DEFAULT_CARD_TEMPLATE;
 }
 
 export const PUBLIC_LABELS = {

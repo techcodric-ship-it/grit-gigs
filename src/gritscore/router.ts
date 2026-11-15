@@ -28,6 +28,7 @@ import {
   LIMITS,
   PUBLIC_LABELS,
   isCardTemplate,
+  normaliseCardTemplate,
   type CardTemplate,
   type EvidenceType,
   type VerificationTier,
@@ -352,7 +353,7 @@ function publicLinks(scan: GritScoreScan, items: GritScoreItem[]): { url: string
 }
 
 function cardTemplate(scan: GritScoreScan): CardTemplate {
-  return isCardTemplate(scan.template) ? scan.template : DEFAULT_CARD_TEMPLATE;
+  return normaliseCardTemplate(scan.template);
 }
 
 class ContentEditError extends Error {
@@ -602,7 +603,7 @@ function scanView(scan: GritScoreScan, itemCount = 0): ScanView {
     verificationLabel: verificationLabel(scan.verificationTier),
     isPublic: scan.isPublic,
     showExactScore: scan.showExactScore,
-    template: scan.template,
+    template: cardTemplate(scan),
     photoUrl: safePhotoUrl(scan.photoUrl),
     summary: scan.summary,
     skills: (scan.extracted?.skills ?? []).slice(0, 30),
