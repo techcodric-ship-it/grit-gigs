@@ -64,7 +64,9 @@ export function layout(content: string): string {
     .wrap { max-width: 560px; margin: 0 auto; padding: 24px 16px; }
     .card { background: #fff; border-radius: 16px; padding: 40px 32px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
     .logo { text-align: center; margin-bottom: 32px; }
-    .logo svg { width: 140px; height: auto; }
+    .logo img { display: block; border: 0; border-radius: 10px; }
+    .logo-text { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 800; font-size: 20px; letter-spacing: -0.02em; color: #0A0A0F; }
+    .logo-text span { color: #6C3FE8; }
     .divider { height: 1px; background: #e8e8ec; margin: 28px 0; }
     .footer { text-align: center; padding: 20px 16px 0; }
     .footer p { margin: 4px 0; font-size: 0.76rem; color: #999; }
@@ -81,10 +83,16 @@ export function layout(content: string): string {
 <body>
   <div class="wrap">
     <div class="logo">
-      <svg viewBox="0 0 140 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="140" height="36" rx="8" fill="#6C3DE0"/>
-        <text x="10" y="25" font-family="'Segoe UI',sans-serif" font-size="16" font-weight="800" fill="white">Grit&amp;Gigs</text>
-      </svg>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;">
+        <tr>
+          <td style="padding-right:10px;vertical-align:middle;">
+            <img src="${APP_URL}/favicon-192.png?v=10" width="40" height="40" alt="Grit&amp;Gigs" style="display:block;border:0;border-radius:10px;"/>
+          </td>
+          <td style="vertical-align:middle;">
+            <span class="logo-text">Grit<span>&amp;Gigs</span></span>
+          </td>
+        </tr>
+      </table>
     </div>
     <div class="card">
       ${content}
