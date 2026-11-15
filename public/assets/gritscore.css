@@ -7,7 +7,7 @@
    /gritscore/admin, /gritscore/referee and the public /score/:slug page.
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');
 
 :root {
   --gs-bg: #FFFFFF;
@@ -85,13 +85,18 @@ a:hover { text-decoration: underline; }
   align-items: center;
   gap: 10px;
   color: var(--gs-ink);
+  white-space: nowrap;
 }
 .gs-brand:hover { text-decoration: none; }
+/* Same mark + wordmark as the shared .topnav logo (feed.html / prep pages):
+   44px bordered tile, 26px logo, Syne 800 and the Prep violet on "&Gigs". */
 .gs-brand-mark {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  border-radius: 11px;
+  box-sizing: border-box;
+  width: auto;
+  height: 44px;
+  min-width: 44px;
+  padding: 0 8px;
+  border-radius: 12px;
   background: #fff;
   border: 1px solid rgba(10, 10, 15, 0.12);
   box-shadow: 0 1px 2px rgba(10, 10, 15, 0.04);
@@ -104,17 +109,17 @@ a:hover { text-decoration: underline; }
   border-color: rgba(108, 63, 232, 0.35);
   box-shadow: 0 6px 20px rgba(108, 63, 232, 0.16);
 }
-.gs-brand-mark img { width: 28px; height: 28px; display: block; }
+.gs-brand-mark img { width: 26px; height: 26px; border-radius: 7px; object-fit: contain; display: block; }
 .gs-brand-mark svg { width: 18px; height: 18px; stroke: var(--gs-accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .gs-brand-text {
-  font-family: var(--gs-font-display);
+  font-family: 'Syne', var(--gs-font-display);
   font-weight: 800;
   font-size: 1.1rem;
   letter-spacing: -0.04em;
   color: #0A0A0F;
   white-space: nowrap;
 }
-.gs-brand-amp { color: var(--gs-accent); margin-left: 2px; }
+.gs-brand-amp { color: #5B4EE8; margin-left: 3px; }
 .gs-brand-sep { color: var(--gs-line-strong); font-weight: 600; }
 .gs-brand-product {
   font-family: var(--gs-font-display);
@@ -135,6 +140,20 @@ a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
   white-space: nowrap;
 }
 .gs-topbar-link:hover { background: var(--gs-accent-soft); color: var(--gs-accent-deep); text-decoration: none; }
+.gs-topbar-avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+.gs-topbar-avatar:hover { background: var(--gs-accent-soft); text-decoration: none; }
+.gs-topbar-avatar img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; display: block; }
+@media (min-width: 1000px) {
+  /* The shared left sidebar already carries the profile avatar on desktop. */
+  .gs-topbar-avatar { display: none; }
+}
 
 /* ---- Headings ------------------------------------------------------------- */
 
@@ -978,12 +997,20 @@ a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
   .gs-table { display: block; overflow-x: auto; white-space: nowrap; }
 }
 
+@media (max-width: 600px) {
+  /* Match the shared topnav on phones: logo tile only, no wordmark. */
+  .gs-brand-text { display: none; }
+}
+
 @media (max-width: 520px) {
   .gs-card-head { flex-direction: column; align-items: flex-start; }
   .gs-score-num { font-size: 3.4rem; }
   .gs-share-row .gs-btn { flex: 1 1 auto; }
-  .gs-brand-mark { width: 36px; height: 36px; min-width: 36px; border-radius: 10px; }
-  .gs-brand-mark img { width: 25px; height: 25px; }
+  .gs-topbar { padding: 0 12px; gap: 8px; }
+  .gs-topbar-avatar { width: 32px; height: 32px; }
+  .gs-topbar-avatar img { width: 24px; height: 24px; }
+  .gs-brand-mark { min-width: 36px; height: 36px; padding: 0 4px; border-radius: 10px; }
+  .gs-brand-mark img { width: 22px; height: 22px; }
   .gs-brand-sep { display: none; }
 }
 

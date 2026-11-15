@@ -57,7 +57,7 @@ describe("styles: prep pages sit on feed.css, not the legacy main.css", () => {
   for (const page of PREP_PAGES) {
     it(`${page} links feed.css and drops main.css`, () => {
       const html = read(page);
-      expect(html).toContain('<link rel="stylesheet" href="/assets/feed.css?v=36"/>');
+      expect(html).toContain('<link rel="stylesheet" href="/assets/feed.css?v=37"/>');
       expect(html).not.toContain("css/main.css");
       expect(html).toMatch(/prep\/prep\.css\?v=\d+/);
     });

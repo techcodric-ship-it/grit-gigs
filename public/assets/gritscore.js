@@ -157,6 +157,48 @@
     return '<span class="gs-stars readonly">' + out + '</span>';
   }
 
+  // The shared topnav on feed/prep pages paints #navAv from se_user and
+  // /api/auth/me. GritScore pages don't load that script, so their sidebar and
+  // topbar avatar stayed on the dicebear "seed=grit" fallback ("GR"). Paint
+  // both here, with the same profilePhoto + name seed the rest of the app uses.
+  function avatarSrc(u) {
+    if (!u) return '';
+    if (u.profilePhoto) return u.profilePhoto;
+    var name = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
+    return 'https://api.dicebear.com/9.x/initials/svg?seed=' +
+      encodeURIComponent(name || u.email || 'grit') +
+      '&backgroundColor=f0f0f0&textColor=262626&bold=true';
+  }
+
+  function paintAvatar(u) {
+    if (!u || (!u.id && !u.email)) return;
+    var src = avatarSrc(u);
+    ['navAv', 'appSideAvatar'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el && src && el.getAttribute('src') !== src) el.src = src;
+    });
+    var link = document.getElementById('navProfile');
+    if (link && u.id) link.href = '/profile.html?id=' + encodeURIComponent(u.id);
+  }
+
+  function initAvatar() {
+    if (!document.getElementById('navAv') && !document.getElementById('appSideAvatar')) return;
+    var cached = user();
+    if (cached && (cached.id || cached.email)) paintAvatar(cached);
+    authedFetch('/api/auth/me')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        var fresh = d && d.success && d.data && d.data.user;
+        if (!fresh || !fresh.id) return;
+        paintAvatar(fresh);
+        try { localStorage.setItem('se_user', JSON.stringify(Object.assign({}, cached, fresh))); } catch (e) { /* private mode */ }
+      })
+      .catch(function () { /* keep the cached avatar */ });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initAvatar);
+  else initAvatar();
+
   window.GS = {
     API: API,
     token: token,

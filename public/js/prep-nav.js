@@ -39,6 +39,52 @@
   var row = document.querySelector(ICONS);
   if (!row) return;
 
+  // GritScore is not feature-flagged. The desktop sidebar carries it from
+  // 1000px up, but phones only see this icon row, so it has to be here too.
+  // Prep (above) is inserted ahead of the first child later, which lands
+  // Prep, GritScore, Feed, … in the same order as the sidebar.
+  if (!row.querySelector('a[href="/gritscore"]')) {
+    var gsLink = document.createElement("a");
+    gsLink.href = "/gritscore";
+    gsLink.title = "GritScore";
+    gsLink.setAttribute("data-gs-nav", "1");
+    gsLink.innerHTML =
+      '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+      '<path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6Z"/>' +
+      '<path d="m8.6 11.9 2.3 2.3 4.5-4.6"/>' +
+      "</svg>";
+    row.insertBefore(gsLink, row.firstElementChild);
+  }
+
+  // The extra icon has to share the phone header with the logo and the profile
+  // avatar. feed.css only scales the row down to 36px icons, which overflows a
+  // 360px screen once GritScore joins the eight existing icons, so shrink the
+  // row here instead of version-bumping the shared stylesheet.
+  if (!document.querySelector("style[data-gs-nav-sizes]")) {
+    var sizes = document.createElement("style");
+    sizes.setAttribute("data-gs-nav-sizes", "1");
+    // !important because prep-parity.css pins the row at 36px icons with
+    // !important up to 600px. Appended to the body: a <style> appended to the
+    // head after parsing is not applied in Chromium.
+    sizes.textContent =
+      "@media (max-width: 480px) {" +
+      ".topnav { padding-left: 10px !important; padding-right: 10px !important; }" +
+      ".topnav .icons { gap: 0 !important; }" +
+      ".topnav .icons a { width: 32px !important; height: 32px !important; }" +
+      ".topnav .icons svg { width: 18px !important; height: 18px !important; }" +
+      ".topnav .nav-logo-mark { min-width: 40px !important; height: 40px !important; }" +
+      ".topnav .nav-logo-mark img { width: 24px !important; height: 24px !important; }" +
+      "}" +
+      "@media (max-width: 340px) {" +
+      ".topnav { padding-left: 8px !important; padding-right: 8px !important; }" +
+      ".topnav .icons a { width: 28px !important; height: 28px !important; }" +
+      ".topnav .icons svg { width: 16px !important; height: 16px !important; }" +
+      ".topnav .nav-logo-mark { min-width: 36px !important; height: 36px !important; }" +
+      ".topnav .nav-logo-mark img { width: 22px !important; height: 22px !important; }" +
+      "}";
+    (document.body || document.head || document.documentElement).appendChild(sizes);
+  }
+
   function removePrepIcon() {
     var stale = row.querySelector('a[href="/prep"]');
     if (stale) stale.parentNode.removeChild(stale);
