@@ -957,6 +957,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function applyDesign(design, locked, btn) {
     var scan = state.lastDetail && state.lastDetail.scan;
     if (locked) {
+      closeDesignPreview();
       showUpgrade('Card designs are part of GritScore Pro. Your free card keeps the Violet design.');
       return;
     }
