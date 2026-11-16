@@ -18,9 +18,9 @@
 <meta name="twitter:description" content="A shareable Proof Score built from work a person can prove."/>
 <link rel="canonical" href="https://www.gritandgigs.in/score"/>
 <link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
-<link rel="stylesheet" href="/assets/gritscore.css?v=8"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=9"/>
 <script src="/js/se-auth.js?v=1" defer></script>
-<script src="/assets/gritscore.js?v=4" defer></script>
+<script src="/assets/gritscore.js?v=5" defer></script>
 </head>
 <body class="gs-page">
 <div class="gs-toast" id="gsToast"></div>
@@ -125,67 +125,8 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ---- Theme art -----------------------------------------------------------
-  // Decorative only. The Web design draws a spider web from polar maths, the
-  // Space design floats a planet and orbit, the Arctic design adds ice shards.
-  // All of it is CSS-hidden for the other designs and ignored by screen readers.
-  function web(cx, cy, radius, from, to, spokes, rings) {
-    var angles = [];
-    var out = '';
-    var i;
-    var k;
-    for (i = 0; i <= spokes; i++) {
-      var a = (from + (to - from) * i / spokes) * Math.PI / 180;
-      angles.push([Math.cos(a), Math.sin(a)]);
-    }
-    angles.forEach(function (v) {
-      out += '<path pathLength="1" d="M' + cx + ' ' + cy + 'L' +
-        (cx + v[0] * radius).toFixed(1) + ' ' + (cy + v[1] * radius).toFixed(1) + '"/>';
-    });
-    for (k = 1; k <= rings; k++) {
-      var r = radius * Math.pow(k / rings, 1.2);
-      for (i = 0; i < spokes; i++) {
-        var p = angles[i];
-        var q = angles[i + 1];
-        var mx = (p[0] + q[0]) / 2;
-        var my = (p[1] + q[1]) / 2;
-        out += '<path class="r" pathLength="1" d="M' + (cx + p[0] * r).toFixed(1) + ' ' + (cy + p[1] * r).toFixed(1) +
-          'Q' + (cx + mx * r * 0.9).toFixed(1) + ' ' + (cy + my * r * 0.9).toFixed(1) +
-          ' ' + (cx + q[0] * r).toFixed(1) + ' ' + (cy + q[1] * r).toFixed(1) + '"/>';
-      }
-    }
-    return out;
-  }
-
-  function webSvg(inner) {
-    return '<svg class="gs-flip-web" viewBox="0 0 100 176" preserveAspectRatio="none" aria-hidden="true">' + inner + '</svg>';
-  }
-
-  function frontFx(template) {
-    if (template === 'spider') {
-      return '<div class="gs-flip-fx web">' + webSvg(
-        web(100, 0, 96, 91, 180, 8, 7) +
-        web(0, 176, 72, 271, 359, 6, 5) +
-        web(100, 118, 30, 128, 232, 4, 4)
-      ) + '</div>';
-    }
-    if (template === 'space') {
-      return '<div class="gs-flip-fx space"><b class="planet"></b><div class="orbit"><i></i><i></i></div></div>';
-    }
-    if (template === 'arctic') {
-      return '<div class="gs-flip-fx arctic"><b></b><b></b><b></b></div>';
-    }
-    return '';
-  }
-
-  function backFx(template) {
-    if (template === 'spider') {
-      return '<div class="gs-flip-fx web">' + webSvg(
-        web(100, 0, 70, 91, 180, 7, 6) +
-        web(0, 176, 50, 271, 359, 5, 4)
-      ) + '</div>';
-    }
-    return '';
-  }
+  // The decorative layers live in gritscore.js so the owner's design preview
+  // draws exactly the same card as this public page.
 
   function itemBadge(item) {
     if (item.evidenceStatus === 'ok') return '<span class="gs-flip-badge b-ok">Checked</span>';
@@ -248,7 +189,7 @@ document.addEventListener('DOMContentLoaded', function () {
             '<span class="gs-flip-mono" aria-hidden="true">' + GS.esc(initialsOf(scan.displayName)) + '</span>' +
             (scan.photoUrl ? '<img id="gsFlipPhoto" src="' + GS.esc(scan.photoUrl) + '" alt="" loading="eager"/>' : '') +
           '</div>' +
-          frontFx(template) +
+          GS.frontFx(template) +
           '<div class="gs-flip-brand"><i></i>GritScore</div>' +
           '<div class="gs-flip-stamp">' +
             '<svg viewBox="0 0 100 100" aria-hidden="true">' +
@@ -284,7 +225,7 @@ document.addEventListener('DOMContentLoaded', function () {
         '</section>' +
 
         '<section class="gs-flip-face gs-flip-back" id="gsFlipBack" aria-hidden="true">' +
-          backFx(template) +
+          GS.backFx(template) +
           '<div class="gs-flip-pad">' +
             '<div class="gs-flip-back-top">' +
               '<div>' +
@@ -542,8 +483,23 @@ document.addEventListener('DOMContentLoaded', function () {
         if (back) back.setAttribute('aria-hidden', String(!on));
       }
       function flip() { setFlipped(!card.classList.contains('flipped')); }
+      // A tap flips the card, but a drag is the user scrolling the back face.
+      // Without this, swiping the proof list on a phone flipped the card back
+      // to the front mid-read.
+      var downX = 0;
+      var downY = 0;
+      var dragged = false;
+      card.addEventListener('pointerdown', function (e) {
+        downX = e.clientX;
+        downY = e.clientY;
+        dragged = false;
+      });
+      card.addEventListener('pointermove', function (e) {
+        if (Math.abs(e.clientX - downX) > 8 || Math.abs(e.clientY - downY) > 8) dragged = true;
+      });
       card.addEventListener('click', function (e) {
         if (e.target.closest('a,button,input,textarea,select,summary')) return;
+        if (dragged) { dragged = false; return; }
         flip();
       });
       card.addEventListener('keydown', function (e) {

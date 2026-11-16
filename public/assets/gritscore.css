@@ -1019,7 +1019,7 @@ a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
    The page stays white; only the cover and accents change between designs.
    ========================================================================== */
 
-body[data-gs-template="violet"] {
+[data-gs-template="violet"] {
   --gs-accent: #6C3FE8;
   --gs-accent-2: #7C3AED;
   --gs-accent-deep: #5B21B6;
@@ -1162,15 +1162,45 @@ body[data-gs-template="violet"] {
 
 /* Owner design picker and card-content editor */
 .gs-design-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.gs-design { padding: 0; border: 1px solid var(--gs-line); border-radius: 14px; overflow: hidden; background: #fff; text-align: left; cursor: pointer; font: inherit; color: var(--gs-ink); transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s; }
+.gs-design { position: relative; border: 1px solid var(--gs-line); border-radius: 14px; overflow: hidden; background: #fff; color: var(--gs-ink); transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s; }
 .gs-design:hover { border-color: var(--gs-line-strong); transform: translateY(-1px); }
-.gs-design[aria-pressed="true"] { border-color: var(--gs-accent); box-shadow: 0 0 0 3px var(--gs-accent-soft); }
-.gs-design[disabled] { cursor: not-allowed; opacity: 0.68; transform: none; }
-.gs-design-preview { height: 66px; border-bottom: 1px solid var(--gs-line); display: flex; align-items: flex-end; gap: 5px; padding: 12px; }
+.gs-design.current { border-color: var(--gs-accent); box-shadow: 0 0 0 3px var(--gs-accent-soft); }
+.gs-design-pick { display: block; width: 100%; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.gs-design-pick:disabled { cursor: not-allowed; opacity: 0.68; }
+.gs-design-preview { position: relative; height: 66px; border-bottom: 1px solid var(--gs-line); display: flex; align-items: flex-end; gap: 5px; padding: 12px; }
 .gs-design-preview i { display: block; height: 7px; border-radius: 99px; background: rgba(255, 255, 255, 0.7); }
-.gs-design-body { padding: 10px 12px 12px; }
+.gs-design-body { display: block; padding: 10px 12px 12px; }
 .gs-design-name { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-weight: 700; font-size: 0.85rem; }
 .gs-design-mood { font-size: 0.72rem; color: var(--gs-ink-3); margin-top: 2px; line-height: 1.4; }
+.gs-design-eye { position: absolute; top: 8px; right: 8px; z-index: 1; display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px; border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 999px; background: rgba(10, 10, 15, 0.52); color: #fff; font: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.01em; cursor: pointer; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.gs-design-eye:hover { background: rgba(10, 10, 15, 0.7); }
+.gs-design-eye svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Design preview dialog: the real flip card in the chosen theme, not a mock. */
+.gs-preview-modal[hidden] { display: none; }
+.gs-preview-modal { position: fixed; inset: 0; z-index: 90; display: flex; align-items: flex-start; justify-content: center; padding: 24px 16px; overflow-y: auto; background: rgba(10, 10, 15, 0.62); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.gs-preview-panel { width: min(430px, 100%); margin: auto; background: #fff; border-radius: 22px; box-shadow: 0 30px 80px -20px rgba(10, 10, 15, 0.55); overflow: hidden; }
+.gs-preview-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px 20px 0; }
+.gs-preview-eyebrow { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gs-ink-3); margin: 0 0 4px; }
+.gs-preview-title { margin: 0; font-family: var(--gs-font-display); font-size: 1.15rem; letter-spacing: -0.02em; }
+.gs-preview-mood { margin: 3px 0 0; font-size: 0.78rem; color: var(--gs-ink-3); }
+.gs-preview-close { flex: 0 0 auto; display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--gs-line); border-radius: 50%; background: #fff; color: var(--gs-ink-2); cursor: pointer; }
+.gs-preview-close:hover { background: var(--gs-surface-2); }
+.gs-preview-close svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.gs-preview-stage { padding: 16px 20px 6px; }
+.gs-preview-stage .gs-flip-scene { width: min(310px, 100%); margin: 0 auto; }
+.gs-preview-foot { padding: 10px 20px 18px; display: grid; gap: 12px; }
+.gs-preview-foot .gs-preview-actions { display: flex; gap: 9px; flex-wrap: wrap; }
+.gs-preview-foot .gs-preview-actions .gs-btn { flex: 1 1 auto; }
+.gs-preview-locked { margin: 0; font-size: 0.78rem; color: var(--gs-ink-3); line-height: 1.5; }
+.gs-preview-note { margin: 0; font-size: 0.75rem; color: var(--gs-ink-3); line-height: 1.5; }
+@media (max-width: 520px) {
+  .gs-preview-modal { padding: 12px 8px; }
+  .gs-preview-panel { border-radius: 18px; }
+  .gs-preview-head { padding: 16px 16px 0; }
+  .gs-preview-stage { padding: 12px 16px 4px; }
+  .gs-preview-foot { padding: 8px 16px 16px; }
+}
 .gs-edit-item { border: 1px solid var(--gs-line); border-radius: 14px; padding: 16px; background: var(--gs-surface-2); margin-bottom: 12px; }
 .gs-edit-item-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .gs-edit-item-head b { font-family: var(--gs-font-display); font-size: 0.9rem; letter-spacing: -0.01em; }
@@ -1212,6 +1242,7 @@ body[data-gs-template="violet"] {
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
   transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .gs-flip-tilt.live { transition: transform 0.08s linear; }
@@ -1243,6 +1274,7 @@ body[data-gs-template="violet"] {
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
   transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
   cursor: pointer;
   border-radius: 28px;
@@ -1250,6 +1282,15 @@ body[data-gs-template="violet"] {
 }
 .gs-flip:focus-visible { outline: 3px solid var(--gs-accent); }
 .gs-flip.flipped { transform: rotateY(180deg); }
+/* Mobile Safari / Android Chrome can drop backface-visibility on a face that
+   contains a scrolling child (.gs-flip-pad), which makes both sides paint at
+   once and the card looks like a jumble of two designs. Toggling visibility at
+   the halfway point of the flip guarantees only one face is ever on screen,
+   while still letting the turn animate. */
+.gs-flip-front { visibility: visible; transition: visibility 0s linear 0.4s; }
+.gs-flip-back { visibility: hidden; transition: visibility 0s linear 0s; }
+.gs-flip.flipped .gs-flip-front { visibility: hidden; }
+.gs-flip.flipped .gs-flip-back { visibility: visible; transition-delay: 0.4s; }
 .gs-flip-face {
   position: absolute;
   inset: 0;
@@ -1271,9 +1312,9 @@ body[data-gs-template="violet"] {
 
 /* Template accents. The free card is Violet; Pro designs re-skin the same
    card by swapping tokens, so every design keeps identical markup and logic. */
-body[data-gs-template="violet"] .gs-flip { --gs-flip-accent: #8B6CFF; --gs-flip-paper: #F7F5FF; --gs-flip-edge: rgba(139, 108, 255, 0.32); }
+[data-gs-template="violet"] .gs-flip { --gs-flip-accent: #8B6CFF; --gs-flip-paper: #F7F5FF; --gs-flip-edge: rgba(139, 108, 255, 0.32); }
 
-body[data-gs-template="gold"] .gs-flip {
+[data-gs-template="gold"] .gs-flip {
   --gs-flip-accent: #E2BC6B;
   --gs-flip-accent-ink: #0A0A0B;
   --gs-flip-front-bg: #0A0A0B;
@@ -1297,7 +1338,7 @@ body[data-gs-template="gold"] .gs-flip {
   --gs-flip-chip-ink: #F3E8CC;
   --gs-flip-star-empty: rgba(243, 232, 204, 0.22);
 }
-body[data-gs-template="spider"] .gs-flip {
+[data-gs-template="spider"] .gs-flip {
   --gs-flip-accent: #E3122D;
   --gs-flip-accent-ink: #FFFFFF;
   --gs-flip-front-bg: #0B1A4A;
@@ -1321,7 +1362,7 @@ body[data-gs-template="spider"] .gs-flip {
   --gs-flip-chip-ink: #FFFFFF;
   --gs-flip-star-empty: rgba(255, 255, 255, 0.3);
 }
-body[data-gs-template="carbon"] .gs-flip {
+[data-gs-template="carbon"] .gs-flip {
   --gs-flip-accent: #FF6A1A;
   --gs-flip-accent-ink: #0A0A0B;
   --gs-flip-front-bg: #0C0D10;
@@ -1345,7 +1386,7 @@ body[data-gs-template="carbon"] .gs-flip {
   --gs-flip-chip-ink: #FFFFFF;
   --gs-flip-star-empty: rgba(255, 255, 255, 0.3);
 }
-body[data-gs-template="space"] .gs-flip {
+[data-gs-template="space"] .gs-flip {
   --gs-flip-accent: #9B8CFF;
   --gs-flip-accent-ink: #0A0A0B;
   --gs-flip-front-bg: #070816;
@@ -1369,7 +1410,7 @@ body[data-gs-template="space"] .gs-flip {
   --gs-flip-chip-ink: #F3F1FF;
   --gs-flip-star-empty: rgba(243, 241, 255, 0.3);
 }
-body[data-gs-template="arctic"] .gs-flip {
+[data-gs-template="arctic"] .gs-flip {
   --gs-flip-accent: #1E6BFF;
   --gs-flip-accent-ink: #FFFFFF;
   --gs-flip-front-bg: #EAF2FA;
@@ -1405,20 +1446,20 @@ body[data-gs-template="arctic"] .gs-flip {
   pointer-events: none;
   opacity: 0;
 }
-body[data-gs-template="gold"] .gs-flip-art {
+[data-gs-template="gold"] .gs-flip-art {
   opacity: 1;
   background:
     radial-gradient(80% 50% at 85% 0, rgba(226, 188, 107, 0.28), transparent 60%),
     repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.035) 0 2px, transparent 2px 8px);
 }
-body[data-gs-template="spider"] .gs-flip-art {
+[data-gs-template="spider"] .gs-flip-art {
   opacity: 1;
   background:
     radial-gradient(rgba(255, 255, 255, 0.12) 1.2px, transparent 1.7px) 0 0 / 3cqw 3cqw,
     linear-gradient(160deg, transparent 64%, #E3122D 64% 67.5%, transparent 67.5%),
     radial-gradient(80% 50% at 0 100%, rgba(43, 79, 216, 0.55), transparent 70%);
 }
-body[data-gs-template="carbon"] .gs-flip-art {
+[data-gs-template="carbon"] .gs-flip-art {
   opacity: 1;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.06) 25%, transparent 25%) 0 0 / 2.4cqw 2.4cqw,
@@ -1427,13 +1468,13 @@ body[data-gs-template="carbon"] .gs-flip-art {
     linear-gradient(45deg, rgba(255, 255, 255, 0.06) 25%, transparent 25%) 0 0 / 2.4cqw 2.4cqw,
     linear-gradient(115deg, transparent 60%, #FF6A1A 60% 63%, transparent 63% 66%, rgba(255, 106, 26, 0.55) 66% 67.6%, transparent 67.6%);
 }
-body[data-gs-template="carbon"] .gs-flip-art::after {
+[data-gs-template="carbon"] .gs-flip-art::after {
   content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(105deg, transparent calc(var(--gs-mx, 50) * 1% - 20%), rgba(255, 255, 255, 0.16) calc(var(--gs-mx, 50) * 1%), transparent calc(var(--gs-mx, 50) * 1% + 20%));
 }
-body[data-gs-template="space"] .gs-flip-art {
+[data-gs-template="space"] .gs-flip-art {
   opacity: 1;
   background:
     radial-gradient(1.4px 1.4px at 12% 62%, #FFFFFF 50%, transparent),
@@ -1445,7 +1486,7 @@ body[data-gs-template="space"] .gs-flip-art {
     radial-gradient(1.2px 1.2px at 8% 92%, #FFFFFF 50%, transparent),
     radial-gradient(70% 40% at 20% 100%, rgba(108, 91, 255, 0.5), transparent 70%);
 }
-body[data-gs-template="arctic"] .gs-flip-art {
+[data-gs-template="arctic"] .gs-flip-art {
   opacity: 1;
   background:
     radial-gradient(60% 30% at 20% 100%, rgba(255, 255, 255, 0.9), transparent 70%),
@@ -1475,9 +1516,9 @@ body[data-gs-template="arctic"] .gs-flip-art {
   border-radius: inherit;
   pointer-events: none;
 }
-body[data-gs-template="spider"] .gs-flip-fx.web,
-body[data-gs-template="space"] .gs-flip-fx.space,
-body[data-gs-template="arctic"] .gs-flip-fx.arctic { display: block; }
+[data-gs-template="spider"] .gs-flip-fx.web,
+[data-gs-template="space"] .gs-flip-fx.space,
+[data-gs-template="arctic"] .gs-flip-fx.arctic { display: block; }
 .gs-flip-web {
   position: absolute;
   inset: 0;
@@ -1573,7 +1614,7 @@ body[data-gs-template="arctic"] .gs-flip-fx.arctic { display: block; }
   transform: translate(calc((var(--gs-mx, 50) - 50) * -0.3cqw), calc((var(--gs-my, 50) - 50) * -0.3cqw));
 }
 
-body[data-gs-template="gold"] .gs-flip-name {
+[data-gs-template="gold"] .gs-flip-name {
   background: linear-gradient(100deg, #F8E7B0, #C9973F 35%, #F8E7B0 55%, #B98A34 80%);
   background-size: 220% 100%;
   background-position: calc(var(--gs-mx, 50) * 1%) 0;
@@ -1581,13 +1622,13 @@ body[data-gs-template="gold"] .gs-flip-name {
   background-clip: text;
   color: transparent;
 }
-body[data-gs-template="spider"] .gs-flip-name,
-body[data-gs-template="carbon"] .gs-flip-name { text-transform: uppercase; }
-body[data-gs-template="spider"] .gs-flip-name { font-style: italic; }
-body[data-gs-template="spider"] .gs-flip-name.n-long,
-body[data-gs-template="carbon"] .gs-flip-name.n-long { font-size: 6.4cqw; }
-body[data-gs-template="spider"] .gs-flip-name.n-xlong,
-body[data-gs-template="carbon"] .gs-flip-name.n-xlong { font-size: 5.4cqw; }
+[data-gs-template="spider"] .gs-flip-name,
+[data-gs-template="carbon"] .gs-flip-name { text-transform: uppercase; }
+[data-gs-template="spider"] .gs-flip-name { font-style: italic; }
+[data-gs-template="spider"] .gs-flip-name.n-long,
+[data-gs-template="carbon"] .gs-flip-name.n-long { font-size: 6.4cqw; }
+[data-gs-template="spider"] .gs-flip-name.n-xlong,
+[data-gs-template="carbon"] .gs-flip-name.n-xlong { font-size: 5.4cqw; }
 
 /* ---- Front --------------------------------------------------------------- */
 .gs-flip-photo {
@@ -1811,6 +1852,8 @@ body[data-gs-template="carbon"] .gs-flip-name.n-xlong { font-size: 5.4cqw; }
   flex-direction: column;
   overflow-y: auto;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 .gs-flip-pad::-webkit-scrollbar { width: 0; height: 0; }
 .gs-flip-back-top {
@@ -2112,6 +2155,7 @@ body[data-gs-template="carbon"] .gs-flip-name.n-xlong { font-size: 5.4cqw; }
 @media (prefers-reduced-motion: reduce) {
   .gs-flip { transition-duration: 0.01s; }
   .gs-flip-tilt { transition-duration: 0.01s; }
+  .gs-flip-front, .gs-flip-back { transition-delay: 0s !important; }
   .gs-flip-stamp .arc, .gs-flip-track i { transition: none; }
   .gs-flip-fx.web path { animation: none; stroke-dashoffset: 0; }
   .gs-flip-fx.space .orbit i { animation: none; }

@@ -199,6 +199,69 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initAvatar);
   else initAvatar();
 
+  // ---- Theme art -----------------------------------------------------------
+  // Shared by the public card and the owner's design preview so both draw the
+  // same decoration. Decorative only: every layer is aria-hidden and hidden by
+  // CSS on designs that don't use it.
+  function web(cx, cy, radius, from, to, spokes, rings) {
+    var angles = [];
+    var out = '';
+    var i;
+    var k;
+    for (i = 0; i <= spokes; i++) {
+      var a = (from + (to - from) * i / spokes) * Math.PI / 180;
+      angles.push([Math.cos(a), Math.sin(a)]);
+    }
+    angles.forEach(function (v) {
+      out += '<path pathLength="1" d="M' + cx + ' ' + cy + 'L' +
+        (cx + v[0] * radius).toFixed(1) + ' ' + (cy + v[1] * radius).toFixed(1) + '"/>';
+    });
+    for (k = 1; k <= rings; k++) {
+      var r = radius * Math.pow(k / rings, 1.2);
+      for (i = 0; i < spokes; i++) {
+        var p = angles[i];
+        var q = angles[i + 1];
+        var mx = (p[0] + q[0]) / 2;
+        var my = (p[1] + q[1]) / 2;
+        out += '<path class="r" pathLength="1" d="M' + (cx + p[0] * r).toFixed(1) + ' ' + (cy + p[1] * r).toFixed(1) +
+          'Q' + (cx + mx * r * 0.9).toFixed(1) + ' ' + (cy + my * r * 0.9).toFixed(1) +
+          ' ' + (cx + q[0] * r).toFixed(1) + ' ' + (cy + q[1] * r).toFixed(1) + '"/>';
+      }
+    }
+    return out;
+  }
+
+  function webSvg(inner) {
+    return '<svg class="gs-flip-web" viewBox="0 0 100 176" preserveAspectRatio="none" aria-hidden="true">' + inner + '</svg>';
+  }
+
+  function frontFx(template) {
+    if (template === 'spider') {
+      return '<div class="gs-flip-fx web">' + webSvg(
+        web(100, 0, 96, 91, 180, 8, 7) +
+        web(0, 176, 72, 271, 359, 6, 5) +
+        web(100, 118, 30, 128, 232, 4, 4)
+      ) + '</div>';
+    }
+    if (template === 'space') {
+      return '<div class="gs-flip-fx space"><b class="planet"></b><div class="orbit"><i></i><i></i></div></div>';
+    }
+    if (template === 'arctic') {
+      return '<div class="gs-flip-fx arctic"><b></b><b></b><b></b></div>';
+    }
+    return '';
+  }
+
+  function backFx(template) {
+    if (template === 'spider') {
+      return '<div class="gs-flip-fx web">' + webSvg(
+        web(100, 0, 70, 91, 180, 7, 6) +
+        web(0, 176, 50, 271, 359, 5, 4)
+      ) + '</div>';
+    }
+    return '';
+  }
+
   window.GS = {
     API: API,
     token: token,
@@ -208,6 +271,8 @@
     toast: toast,
     esc: esc,
     plural: plural,
+    frontFx: frontFx,
+    backFx: backFx,
     timeAgo: timeAgo,
     tierClass: tierClass,
     starsHtml: starsHtml,

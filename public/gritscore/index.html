@@ -9,10 +9,10 @@
 <meta name="description" content="Turn the work you have actually shipped into a shareable Proof Score backed by links, files and referees."/>
 <link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
 <link rel="stylesheet" href="/assets/app-left-sidebar.css?v=1"/>
-<link rel="stylesheet" href="/assets/gritscore.css?v=8"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=9"/>
 <script src="/js/se-auth.js?v=1" defer></script>
 <script src="/assets/app-left-sidebar.js?v=2" defer></script>
-<script src="/assets/gritscore.js?v=4" defer></script>
+<script src="/assets/gritscore.js?v=5" defer></script>
 </head>
 <body class="gs-page">
 <div class="gs-toast" id="gsToast"></div>
@@ -229,6 +229,30 @@
     </div>
   </div>
 </template>
+
+<div class="gs-preview-modal" id="gsPreviewModal" hidden>
+  <div class="gs-preview-panel" id="gsPreviewPanel" role="dialog" aria-modal="true" aria-labelledby="gsPreviewTitle">
+    <div class="gs-preview-head">
+      <div>
+        <p class="gs-preview-eyebrow">Design preview</p>
+        <h2 class="gs-preview-title" id="gsPreviewTitle">Gold</h2>
+        <p class="gs-preview-mood" id="gsPreviewMood"></p>
+      </div>
+      <button class="gs-preview-close" type="button" data-preview-close aria-label="Close preview">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="gs-preview-stage" id="gsPreviewStage"></div>
+    <div class="gs-preview-foot">
+      <p class="gs-preview-note" style="margin:0;">This is your real card, in the chosen design. Press it to flip.</p>
+      <div class="gs-preview-actions">
+        <button class="gs-btn subtle" type="button" data-preview-flip>Flip card</button>
+        <button class="gs-btn" type="button" id="gsPreviewApply">Use this design</button>
+      </div>
+      <p class="gs-preview-locked" id="gsPreviewLocked" hidden>GritScore Pro unlocks this design. The Violet design stays free.</p>
+    </div>
+  </div>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -645,7 +669,323 @@ document.addEventListener('DOMContentLoaded', function () {
     return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
   }
 
+  // ---- Design preview ------------------------------------------------------
+  // The preview renders the same flip card markup and theme tokens as the
+  // public /score/:slug page, so what an owner sees is what visitors get.
+  function previewNameClass(name) {
+    var len = String(name || '').trim().length;
+    if (len > 30) return ' n-xlong';
+    if (len > 18) return ' n-long';
+    return '';
+  }
+
+  function previewStars(value, size) {
+    var pct = Math.max(0, Math.min(100, (Number(value) || 0) / 5 * 100));
+    var glyphs = '\u2605\u2605\u2605\u2605\u2605';
+    return '<span class="gs-flip-stars" role="img" aria-label="' + (Number(value) || 0).toFixed(1) + ' out of 5 stars" style="--s:' + (size || 3.2) + 'cqw">' +
+      '<span class="bg" aria-hidden="true">' + glyphs + '</span>' +
+      '<span class="fg" aria-hidden="true" style="width:' + pct + '%">' + glyphs + '</span>' +
+    '</span>';
+  }
+
+  function previewBadge(item) {
+    if (item.evidenceStatus === 'ok') return '<span class="gs-flip-badge b-ok">Checked</span>';
+    if (item.evidenceStatus === 'blocked') return '<span class="gs-flip-badge b-warn">Link is up</span>';
+    if (item.proofUrl) return '<span class="gs-flip-badge b-link">Link included</span>';
+    if (item.proofFileName) return '<span class="gs-flip-badge b-link">File attached</span>';
+    return '<span class="gs-flip-badge b-self">Self-reported</span>';
+  }
+
+  function previewDateRange(item) {
+    return [item.startDate, item.endDate].filter(Boolean).join(' \u2013 ');
+  }
+
+  function uniqueStrings(list) {
+    var seen = {};
+    var out = [];
+    (list || []).forEach(function (raw) {
+      var value = String(raw || '').trim();
+      if (!value) return;
+      var key = value.toLowerCase();
+      if (seen[key]) return;
+      seen[key] = true;
+      out.push(value);
+    });
+    return out;
+  }
+
+  function previewCardHtml(template) {
+    var data = state.lastDetail || {};
+    var scan = data.scan || {};
+    var items = data.items || [];
+    var revs = data.reviews || { count: 0, average: 0, latest: [] };
+    var latest = revs.latest || [];
+    var checked = items.filter(function (i) { return i.evidenceStatus === 'ok'; }).length;
+    var confirmed = (data.referees || []).filter(function (r) { return r.status === 'CONFIRMED'; }).length;
+    var totalItems = scan.itemCount || items.length;
+    var proofCount = items.filter(function (i) { return i.evidenceStatus === 'ok' || i.proofUrl || i.proofFileName; }).length;
+    var skills = uniqueStrings((data.skills || scan.skills || []).concat.apply(data.skills || scan.skills || [], items.map(function (i) { return i.skills || []; }))).slice(0, 8);
+    var roles = uniqueStrings((data.roles || scan.roles || []).concat(items.map(function (i) { return i.role; }).filter(Boolean))).slice(0, 4);
+    var hasScore = !(scan.score === null || scan.score === undefined);
+    var score = hasScore ? Number(scan.score) : null;
+    var pct = hasScore ? Math.max(0, Math.min(100, (score - 300) / 600 * 100)) : 0;
+    var subline = scan.headline || (roles.length ? roles.join(' \u00b7 ') : '');
+    var confidence;
+    if (hasScore) {
+      if (checked >= 3) confidence = 'Checked proof on ' + checked + ' of ' + totalItems + ' items';
+      else if (checked === 0) confidence = 'Provisional \u00b7 no checked proof yet';
+      else confidence = 'Provisional \u00b7 ' + checked + ' of ' + totalItems + ' items have checked proof';
+    } else {
+      confidence = 'Score hidden \u00b7 tier shown instead';
+    }
+    var scaleLine = hasScore ? '300\u2013900 scale \u00b7 ' + confidence : confidence;
+    var arcOffset = (263.9 * (1 - pct / 100)).toFixed(1);
+
+    return '<div class="gs-flip-scene">' +
+      '<div class="gs-flip" role="button" tabindex="0" aria-pressed="false" aria-label="GritScore card preview. Press to flip.">' +
+        '<section class="gs-flip-face gs-flip-front">' +
+          '<div class="gs-flip-art" aria-hidden="true"></div>' +
+          '<div class="gs-flip-photo">' +
+            '<span class="gs-flip-mono" aria-hidden="true">' + GS.esc(initialsOf(scan.displayName)) + '</span>' +
+            (scan.photoUrl ? '<img src="' + GS.esc(scan.photoUrl) + '" alt=""/>' : '') +
+          '</div>' +
+          GS.frontFx(template) +
+          '<div class="gs-flip-brand"><i></i>GritScore</div>' +
+          '<div class="gs-flip-stamp">' +
+            '<svg viewBox="0 0 100 100" aria-hidden="true">' +
+              '<circle class="disc" cx="50" cy="50" r="49"/>' +
+              '<circle class="track" cx="50" cy="50" r="42"/>' +
+              '<circle class="arc" cx="50" cy="50" r="42" style="stroke-dashoffset:' + arcOffset + '"/>' +
+            '</svg>' +
+            (hasScore
+              ? '<b>' + score + '<small>of 900</small></b>'
+              : '<b class="gs-flip-stamp-tier"><span>' + GS.esc(scan.tier || 'Starter') + '</span><small>tier</small></b>') +
+          '</div>' +
+          '<div class="gs-flip-info">' +
+            '<div>' +
+              '<div class="gs-flip-name' + previewNameClass(scan.displayName) + '">' + GS.esc(scan.displayName) + '</div>' +
+              (subline ? '<div class="gs-flip-head">' + GS.esc(subline) + '</div>' : '') +
+              '<div class="gs-flip-rate">' +
+                (revs.count
+                  ? previewStars(revs.average, 3.4) + '<span><b>' + Number(revs.average).toFixed(1) + '</b> from ' + revs.count + ' ' + GS.plural(revs.count, 'review') + '</span>'
+                  : '<span class="gs-flip-norev">No reviews yet</span>') +
+              '</div>' +
+              '<div class="gs-flip-scale">' + GS.esc(scaleLine) + '</div>' +
+            '</div>' +
+            '<div class="gs-flip-bottom">' +
+              '<div class="gs-flip-trust">' +
+                '<span>' + totalItems + ' ' + GS.plural(totalItems, 'item') + '</span>' +
+                '<span>' + proofCount + ' with proof</span>' +
+                (confirmed ? '<span>' + confirmed + ' referee</span>' : '') +
+              '</div>' +
+              '<div class="gs-flip-hint">Tap to flip <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg></div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="gs-flip-shine" aria-hidden="true"></div>' +
+        '</section>' +
+
+        '<section class="gs-flip-face gs-flip-back" aria-hidden="true">' +
+          GS.backFx(template) +
+          '<div class="gs-flip-pad">' +
+            '<div class="gs-flip-back-top">' +
+              '<div>' +
+                '<h3>' + GS.esc(scan.displayName) + '</h3>' +
+                '<p>' + GS.esc(roles.length ? roles.join(' \u00b7 ') : (scan.verificationLabel || 'Self-reported')) + '</p>' +
+              '</div>' +
+              '<span class="gs-flip-tier">' + GS.esc(scan.tier || 'Starter') + '</span>' +
+            '</div>' +
+
+            '<div class="gs-flip-stats">' +
+              '<div><b>' + totalItems + '</b><span>' + GS.plural(totalItems, 'item') + '</span></div>' +
+              '<div><b>' + checked + '</b><span>checked</span></div>' +
+              '<div><b>' + confirmed + '</b><span>' + GS.plural(confirmed, 'referee') + '</span></div>' +
+            '</div>' +
+
+            '<div class="gs-flip-sec">How proof stacks up</div>' +
+            '<div class="gs-flip-bars">' +
+              '<div class="gs-flip-bar" style="--v:' + (totalItems ? Math.round(Math.max(totalItems - checked, 0) / totalItems * 100) : 0) + '%;--c:#5B6479">' +
+                '<span>Self-reported only</span><em>' + Math.max(totalItems - checked, 0) + '</em>' +
+                '<div class="gs-flip-track"><i></i></div>' +
+              '</div>' +
+              '<div class="gs-flip-bar" style="--v:' + (totalItems ? Math.round(Math.min(checked, totalItems) / totalItems * 100) : 0) + '%;--c:#3C5BDB">' +
+                '<span>Evidence checked</span><em>' + checked + '</em>' +
+                '<div class="gs-flip-track"><i></i></div>' +
+              '</div>' +
+              '<div class="gs-flip-bar" style="--v:' + (totalItems ? Math.round(Math.min(confirmed, totalItems) / totalItems * 100) : 0) + '%;--c:#1B8458">' +
+                '<span>Referee confirmed</span><em>' + confirmed + '</em>' +
+                '<div class="gs-flip-track"><i></i></div>' +
+              '</div>' +
+            '</div>' +
+
+            '<div class="gs-flip-sec">Scored work</div>' +
+            '<div class="gs-flip-items">' +
+              (items.length
+                ? items.slice(0, 3).map(function (item) {
+                    var meta = [item.role, previewDateRange(item)].filter(Boolean).join(' \u00b7 ');
+                    return '<div class="gs-flip-item">' +
+                      '<div><strong>' + GS.esc(item.title) + '</strong>' +
+                      (meta ? '<span>' + GS.esc(meta) + '</span>' : '') + '</div>' +
+                      previewBadge(item) +
+                    '</div>';
+                  }).join('')
+                : '<p class="gs-flip-empty">No work items yet.</p>') +
+            '</div>' +
+            (items.length > 3 ? '<p class="gs-flip-more">+ ' + (items.length - 3) + ' more in the full history below</p>' : '') +
+
+            '<div class="gs-flip-sec rv">Reviews' +
+              '<span>' + (revs.count ? previewStars(revs.average, 2.8) + '<b>' + Number(revs.average).toFixed(1) + '</b> from ' + revs.count : 'None yet') + '</span>' +
+            '</div>' +
+            '<div class="gs-flip-revs">' +
+              (latest.length
+                ? latest.slice(0, 1).map(function (r) {
+                    return '<div class="gs-flip-rev">' +
+                      '<div class="who"><span>' + GS.esc(r.reviewerName || 'A collaborator') + '</span>' + previewStars(r.stars, 2.8) + '</div>' +
+                      (r.comment ? '<p>\u201C' + GS.esc(r.comment) + '\u201D</p>' : '') +
+                    '</div>';
+                  }).join('')
+                : '<p class="gs-flip-empty">No reviews yet. A past collaborator can add one.</p>') +
+            '</div>' +
+
+            (skills.length
+              ? '<div class="gs-flip-sec">Skills shown</div>' +
+                '<div class="gs-flip-skills">' + skills.map(function (s) {
+                  return '<span>' + GS.esc(s) + '</span>';
+                }).join('') + '</div>'
+              : '') +
+
+            '<div class="gs-flip-tag">Evidence beats claims. Not a hiring verdict. Just receipts, scored.</div>' +
+            '<div class="gs-flip-foot">' +
+              '<span>Updated ' + GS.esc(GS.timeAgo(scan.createdAt) || 'recently') + '</span>' +
+              '<span>grit&amp;gigs \u00b7 preview</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="gs-flip-shine" aria-hidden="true"></div>' +
+        '</section>' +
+      '</div>' +
+    '</div>';
+  }
+
+  var previewState = { id: null, locked: false, trigger: null };
+
+  function wirePreviewCard() {
+    var stage = $('gsPreviewStage');
+    var card = stage ? stage.querySelector('.gs-flip') : null;
+    if (!card) return;
+    var front = stage.querySelector('.gs-flip-front');
+    var back = stage.querySelector('.gs-flip-back');
+    var downX = 0;
+    var downY = 0;
+    var dragged = false;
+    function setFlipped(on) {
+      card.classList.toggle('flipped', on);
+      card.setAttribute('aria-pressed', String(on));
+      if (front) front.setAttribute('aria-hidden', String(on));
+      if (back) back.setAttribute('aria-hidden', String(!on));
+    }
+    card.addEventListener('pointerdown', function (e) {
+      downX = e.clientX;
+      downY = e.clientY;
+      dragged = false;
+    });
+    card.addEventListener('pointermove', function (e) {
+      if (Math.abs(e.clientX - downX) > 8 || Math.abs(e.clientY - downY) > 8) dragged = true;
+    });
+    card.addEventListener('click', function (e) {
+      if (e.target.closest('a,button,input,textarea,select,summary')) return;
+      if (dragged) { dragged = false; return; }
+      setFlipped(!card.classList.contains('flipped'));
+    });
+    card.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        setFlipped(!card.classList.contains('flipped'));
+      }
+    });
+  }
+
+  function openDesignPreview(id, trigger) {
+    var data = state.lastDetail || {};
+    var templates = data.templates || [];
+    var tpl = null;
+    for (var i = 0; i < templates.length; i++) { if (templates[i].id === id) tpl = templates[i]; }
+    if (!tpl) return;
+    var modal = $('gsPreviewModal');
+    var panel = $('gsPreviewPanel');
+    var stage = $('gsPreviewStage');
+    if (!modal || !panel || !stage) return;
+
+    panel.setAttribute('data-gs-template', id);
+    $('gsPreviewTitle').textContent = tpl.name;
+    $('gsPreviewMood').textContent = tpl.mood || '';
+    stage.innerHTML = previewCardHtml(id);
+
+    var live = data.scan && data.scan.template === id;
+    var apply = $('gsPreviewApply');
+    previewState = { id: id, locked: !!tpl.locked, trigger: trigger || document.activeElement };
+    if (tpl.locked) {
+      $('gsPreviewLocked').hidden = false;
+      apply.disabled = false;
+      apply.textContent = 'Unlock with Pro';
+    } else if (live) {
+      $('gsPreviewLocked').hidden = true;
+      apply.disabled = true;
+      apply.textContent = 'This design is live';
+    } else {
+      $('gsPreviewLocked').hidden = true;
+      apply.disabled = false;
+      apply.textContent = 'Use this design';
+    }
+
+    modal.hidden = false;
+    document.documentElement.style.overflow = 'hidden';
+    wirePreviewCard();
+    var closeBtn = modal.querySelector('[data-preview-close]');
+    if (closeBtn) closeBtn.focus();
+  }
+
+  function closeDesignPreview() {
+    var modal = $('gsPreviewModal');
+    if (!modal || modal.hidden) return;
+    modal.hidden = true;
+    document.documentElement.style.overflow = '';
+    if (previewState.trigger && typeof previewState.trigger.focus === 'function') {
+      try { previewState.trigger.focus(); } catch (e) { /* element is gone */ }
+    }
+    previewState = { id: null, locked: false, trigger: null };
+  }
+
+  function applyDesign(design, locked, btn) {
+    var scan = state.lastDetail && state.lastDetail.scan;
+    if (locked) {
+      showUpgrade('Card designs are part of GritScore Pro. Your free card keeps the Violet design.');
+      return;
+    }
+    if (!scan) return;
+    if (design === scan.template) { closeDesignPreview(); return; }
+    if (btn) btn.disabled = true;
+    GS.request('/scans/' + scan.id, { method: 'PATCH', body: { template: design } })
+      .then(function (res) {
+        if (btn) btn.disabled = false;
+        if (res.status === 402) {
+          showUpgrade((res.data && res.data.message) || 'Card designs are part of GritScore Pro.');
+          return;
+        }
+        if (!res.ok || !res.data.success) {
+          GS.toast((res.data && res.data.message) || 'Could not change the design');
+          return;
+        }
+        GS.toast('Design updated');
+        closeDesignPreview();
+        openDetail(scan.id);
+      })
+      .catch(function () {
+        if (btn) btn.disabled = false;
+        GS.toast('Could not change the design');
+      });
+  }
+
   function renderDetail(data, fresh) {
+    state.lastDetail = data;
     var scan = data.scan;
     var items = data.items || [];
     var score = fresh && fresh.score != null ? fresh.score : scan.score;
@@ -720,19 +1060,25 @@ document.addEventListener('DOMContentLoaded', function () {
         (data.isPro ? 'Switch designs whenever you like.' : 'The Violet design is included. GritScore Pro unlocks every design.') + '</p>' +
       '<div class="gs-design-grid">' +
         (data.templates || []).map(function (t) {
-          return '<button class="gs-design" type="button" data-design="' + GS.esc(t.id) + '"' +
-            ' data-locked="' + (t.locked ? '1' : '0') + '" aria-pressed="' + (scan.template === t.id ? 'true' : 'false') + '">' +
+          var current = scan.template === t.id;
+          return '<div class="gs-design' + (current ? ' current' : '') + '" data-tile="' + GS.esc(t.id) + '">' +
             '<span class="gs-design-preview" style="background:' + designPreview(t.id) + '">' +
               '<i style="width:22%;background:' + designBar(t.id) + '"></i>' +
               '<i style="width:34%;background:' + designBar(t.id) + '"></i>' +
               '<i style="width:16%;background:' + designBar(t.id) + '"></i>' +
             '</span>' +
-            '<span class="gs-design-body">' +
-              '<span class="gs-design-name">' + GS.esc(t.name) +
-                (t.locked ? '<span class="gs-badge accent">Pro</span>' : '<span class="gs-badge ok">Free</span>') + '</span>' +
-              '<span class="gs-design-mood">' + GS.esc(t.mood) + '</span>' +
-            '</span>' +
-          '</button>';
+            '<button class="gs-design-eye" type="button" data-preview="' + GS.esc(t.id) + '" aria-label="Preview the ' + GS.esc(t.name) + ' design">' +
+              '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.6-6.5 9.5-6.5S21.5 12 21.5 12s-3.6 6.5-9.5 6.5S2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>Preview' +
+            '</button>' +
+            '<button class="gs-design-pick" type="button" data-design="' + GS.esc(t.id) + '"' +
+              ' data-locked="' + (t.locked ? '1' : '0') + '" aria-pressed="' + (current ? 'true' : 'false') + '">' +
+              '<span class="gs-design-body">' +
+                '<span class="gs-design-name">' + GS.esc(t.name) +
+                  (t.locked ? '<span class="gs-badge accent">Pro</span>' : '<span class="gs-badge ok">Free</span>') + '</span>' +
+                '<span class="gs-design-mood">' + GS.esc(t.mood) + '</span>' +
+              '</span>' +
+            '</button>' +
+          '</div>';
         }).join('') +
       '</div>' +
       (data.isPro ? '' : '<div class="gs-edit-actions" style="margin-top:14px;">' +
@@ -895,22 +1241,12 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     detailView.querySelectorAll('[data-design]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        var design = btn.getAttribute('data-design');
-        if (btn.getAttribute('data-locked') === '1') {
-          showUpgrade('Card designs are part of GritScore Pro. Your free card keeps the Violet design.');
-          return;
-        }
-        if (design === scan.template) return;
-        btn.disabled = true;
-        GS.request('/scans/' + scan.id, { method: 'PATCH', body: { template: design } })
-          .then(function (res) {
-            btn.disabled = false;
-            if (res.status === 402) { showUpgrade((res.data && res.data.message) || 'Card designs are part of GritScore Pro.'); return; }
-            if (!res.ok || !res.data.success) { GS.toast((res.data && res.data.message) || 'Could not change the design'); return; }
-            GS.toast('Design updated');
-            openDetail(scan.id);
-          })
-          .catch(function () { btn.disabled = false; GS.toast('Could not change the design'); });
+        applyDesign(btn.getAttribute('data-design'), btn.getAttribute('data-locked') === '1', btn);
+      });
+    });
+    detailView.querySelectorAll('[data-preview]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        openDesignPreview(btn.getAttribute('data-preview'), btn);
       });
     });
 
@@ -1165,6 +1501,29 @@ document.addEventListener('DOMContentLoaded', function () {
   $('backToList').addEventListener('click', function () { show('list'); loadScans(); });
   $('cancelCreate').addEventListener('click', function () { show('list'); });
   $('createForm').addEventListener('submit', submitCreate);
+
+  // Design preview dialog controls
+  var previewModal = $('gsPreviewModal');
+  if (previewModal) {
+    previewModal.querySelectorAll('[data-preview-close]').forEach(function (b) {
+      b.addEventListener('click', closeDesignPreview);
+    });
+    previewModal.addEventListener('click', function (e) {
+      if (e.target === previewModal) closeDesignPreview();
+    });
+    var previewFlip = previewModal.querySelector('[data-preview-flip]');
+    if (previewFlip) previewFlip.addEventListener('click', function () {
+      var card = $('gsPreviewStage') ? $('gsPreviewStage').querySelector('.gs-flip') : null;
+      if (card) card.click();
+    });
+    var previewApply = $('gsPreviewApply');
+    if (previewApply) previewApply.addEventListener('click', function () {
+      applyDesign(previewState.id, previewState.locked, previewApply);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeDesignPreview();
+    });
+  }
 
   show('list');
   renderPlanBar();
