@@ -1847,15 +1847,48 @@ a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
   position: absolute;
   inset: 0;
   z-index: 3;
-  padding: 5cqw 6cqw 4.5cqw;
+  padding: 5cqw 6cqw 9cqw;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 .gs-flip-pad::-webkit-scrollbar { width: 0; height: 0; }
+/* The card shell never grows or scrolls; only .gs-flip-pad moves. The cue is
+   an overlay on the fixed face, so long histories cannot change the layout. */
+.gs-flip-scroll-cue {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.2cqw;
+  padding: 7cqw 6cqw 3.2cqw;
+  background: linear-gradient(to top, var(--gs-flip-paper) 52%, transparent);
+  color: var(--gs-flip-muted);
+  font-size: 2.8cqw;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.gs-flip-scroll-cue svg {
+  width: 3.2cqw;
+  height: 3.2cqw;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.gs-flip-back.has-scroll:not(.at-end) .gs-flip-scroll-cue { opacity: 1; }
 .gs-flip-back-top {
   display: flex;
   justify-content: space-between;
@@ -1974,12 +2007,19 @@ a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
 .gs-flip-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 2cqw;
+  align-items: start;
+  gap: 1cqw 2cqw;
   padding: 2.1cqw 2.8cqw;
   border: 1px solid var(--gs-flip-line);
   border-radius: 3.4cqw;
   background: var(--gs-flip-card-bg);
+}
+.gs-flip-item-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 2cqw;
+  min-width: 0;
 }
 .gs-flip-item strong {
   display: block;
@@ -1988,12 +2028,82 @@ a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
   font-weight: 700;
   color: var(--gs-flip-ink);
 }
-.gs-flip-item div span {
+.gs-flip-item-head > div > span {
   display: block;
   margin-top: 0.4cqw;
   font-size: 2.9cqw;
   line-height: 1.35;
   color: var(--gs-flip-muted);
+}
+.gs-flip-item-desc {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 2.9cqw;
+  line-height: 1.45;
+  color: var(--gs-flip-body);
+  overflow-wrap: anywhere;
+}
+.gs-flip-item-detail {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.2cqw;
+  margin-top: 0.4cqw;
+  font-size: 2.6cqw;
+  color: var(--gs-flip-muted);
+}
+.gs-flip-item-detail a {
+  color: #2A43B0;
+  font-weight: 700;
+  text-decoration: none;
+}
+.gs-flip-item-detail a svg {
+  width: 2.6cqw;
+  height: 2.6cqw;
+  vertical-align: -0.4cqw;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.gs-flip-item-skills {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1cqw;
+}
+.gs-flip-item-skills span {
+  padding: 0.8cqw 1.8cqw;
+  border-radius: 99px;
+  background: var(--gs-flip-chip-bg);
+  color: var(--gs-flip-chip-ink);
+  font-size: 2.4cqw;
+}
+.gs-flip-about {
+  margin: 0;
+  font-size: 3cqw;
+  line-height: 1.5;
+  color: var(--gs-flip-body);
+  overflow-wrap: anywhere;
+}
+.gs-flip-links { display: grid; gap: 1.4cqw; }
+.gs-flip-links a {
+  display: grid;
+  gap: 0.3cqw;
+  padding: 1.8cqw 2.4cqw;
+  border: 1px solid var(--gs-flip-line);
+  border-radius: 3cqw;
+  background: var(--gs-flip-card-bg);
+  color: var(--gs-flip-ink);
+  text-decoration: none;
+}
+.gs-flip-links b { font-size: 3cqw; line-height: 1.25; }
+.gs-flip-links small {
+  font-size: 2.5cqw;
+  color: var(--gs-flip-muted);
+  overflow-wrap: anywhere;
 }
 .gs-flip-badge {
   padding: 1.2cqw 2.4cqw;
@@ -2032,6 +2142,12 @@ a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
   font-size: 2.9cqw;
   line-height: 1.4;
   color: var(--gs-flip-body);
+}
+.gs-flip-rev time {
+  display: block;
+  margin-top: 1cqw;
+  font-size: 2.5cqw;
+  color: var(--gs-flip-muted);
 }
 .gs-flip-stars {
   position: relative;

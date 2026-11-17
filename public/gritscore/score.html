@@ -18,9 +18,9 @@
 <meta name="twitter:description" content="A shareable Proof Score built from work a person can prove."/>
 <link rel="canonical" href="https://www.gritandgigs.in/score"/>
 <link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
-<link rel="stylesheet" href="/assets/gritscore.css?v=12"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=13"/>
 <script src="/js/se-auth.js?v=2" defer></script>
-<script src="/assets/gritscore.js?v=6" defer></script>
+<script src="/assets/gritscore.js?v=7" defer></script>
 </head>
 <body class="gs-page">
 <div class="gs-toast" id="gsToast"></div>
@@ -148,11 +148,51 @@ document.addEventListener('DOMContentLoaded', function () {
     return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>';
   }
 
+  function proofLink(item) {
+    var url = GS.safeUrl(item.proofUrl);
+    if (!url) return '';
+    return '<a href="' + GS.esc(url) + '" target="_blank" rel="noopener nofollow">' + proofIcon() +
+      'Open ' + GS.esc(item.proofLabel || 'proof') + '</a>';
+  }
+
+  function fullItem(item) {
+    var meta = [item.role, dateRange(item)].filter(Boolean).join(' \u00b7 ');
+    var skills = (item.skills || []).slice(0, 8);
+    var proof = proofLink(item);
+    return '<article class="gs-flip-item">' +
+      '<div class="gs-flip-item-head"><div><strong>' + GS.esc(item.title) + '</strong>' +
+        (meta ? '<span>' + GS.esc(meta) + '</span>' : '') + '</div>' + itemBadge(item) + '</div>' +
+      (item.description ? '<p class="gs-flip-item-desc">' + GS.esc(item.description) + '</p>' : '') +
+      (skills.length ? '<div class="gs-flip-item-skills">' + skills.map(function (s) {
+        return '<span>' + GS.esc(s) + '</span>';
+      }).join('') + '</div>' : '') +
+      ((proof || item.evidenceNote) ? '<div class="gs-flip-item-detail">' + proof +
+        (item.evidenceNote ? '<span>' + GS.esc(item.evidenceNote) + '</span>' : '') + '</div>' : '') +
+      '</article>';
+  }
+
+  function fullReview(r) {
+    return '<article class="gs-flip-rev">' +
+      '<div class="who"><span>' + GS.esc(r.name) + '</span>' + starsMarkup(r.stars, 2.8) + '</div>' +
+      (r.comment ? '<p>\u201C' + GS.esc(r.comment) + '\u201D</p>' : '') +
+      '<time>' + GS.esc(GS.timeAgo(r.createdAt) || 'Recent') + '</time>' +
+      '</article>';
+  }
+
+  function fullLink(link) {
+    var url = GS.safeUrl(link.url);
+    if (!url) return '';
+    var shown = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    return '<a href="' + GS.esc(url) + '" target="_blank" rel="noopener nofollow">' +
+      '<b>' + GS.esc(link.label || 'Open link') + '</b><small>' + GS.esc(shown) + '</small></a>';
+  }
+
   function render(data) {
     payload = data;
     var scan = data.scan;
-    var items = data.items || [];
+    var items = GS.latestItems(data.items || []);
     var reviews = data.reviews || { count: 0, average: 0, items: [], canReview: true };
+    reviews.items = GS.latestReviews(reviews.items);
     var links = data.links || [];
     var template = scan.template || 'violet';
     document.body.setAttribute('data-gs-template', template);
@@ -243,6 +283,11 @@ document.addEventListener('DOMContentLoaded', function () {
               '<div><b>' + confirmed + '</b><span>' + GS.plural(confirmed, 'referee') + '</span></div>' +
             '</div>' +
 
+            (scan.summary
+              ? '<div class="gs-flip-sec">About</div>' +
+                '<p class="gs-flip-about">' + GS.esc(scan.summary) + '</p>'
+              : '') +
+
             '<div class="gs-flip-sec">How proof stacks up</div>' +
             '<div class="gs-flip-bars">' +
               '<div class="gs-flip-bar" style="--v:' + (totalItems ? Math.round(Math.max(totalItems - checked, 0) / totalItems * 100) : 0) + '%;--c:#5B6479">' +
@@ -259,32 +304,24 @@ document.addEventListener('DOMContentLoaded', function () {
               '</div>' +
             '</div>' +
 
-            '<div class="gs-flip-sec">Scored work</div>' +
+            '<div class="gs-flip-sec">Scored work<span>latest first</span></div>' +
             '<div class="gs-flip-items">' +
               (items.length
-                ? items.slice(0, 3).map(function (item) {
-                    var meta = [item.role, dateRange(item)].filter(Boolean).join(' \u00b7 ');
-                    return '<div class="gs-flip-item">' +
-                      '<div><strong>' + GS.esc(item.title) + '</strong>' +
-                      (meta ? '<span>' + GS.esc(meta) + '</span>' : '') + '</div>' +
-                      itemBadge(item) +
-                    '</div>';
-                  }).join('')
+                ? items.map(fullItem).join('')
                 : '<p class="gs-flip-empty">No work items yet.</p>') +
             '</div>' +
-            (items.length > 3 ? '<p class="gs-flip-more">+ ' + (items.length - 3) + ' more in the full history below</p>' : '') +
+
+            (links.length
+              ? '<div class="gs-flip-sec">Links</div>' +
+                '<div class="gs-flip-links">' + links.map(fullLink).filter(Boolean).join('') + '</div>'
+              : '') +
 
             '<div class="gs-flip-sec rv">Reviews' +
               '<span>' + (reviews.count ? starsMarkup(reviews.average, 2.8) + '<b>' + Number(reviews.average).toFixed(1) + '</b> from ' + reviews.count : 'None yet') + '</span>' +
             '</div>' +
             '<div class="gs-flip-revs">' +
               (reviews.items && reviews.items.length
-                ? reviews.items.slice(0, 1).map(function (r) {
-                    return '<div class="gs-flip-rev">' +
-                      '<div class="who"><span>' + GS.esc(r.name) + '</span>' + starsMarkup(r.stars, 2.8) + '</div>' +
-                      (r.comment ? '<p>\u201C' + GS.esc(r.comment) + '\u201D</p>' : '') +
-                    '</div>';
-                  }).join('')
+                ? reviews.items.map(fullReview).join('')
                 : '<p class="gs-flip-empty">No reviews yet. A past collaborator can add one below.</p>') +
             '</div>' +
 
@@ -301,6 +338,7 @@ document.addEventListener('DOMContentLoaded', function () {
               '<span>grit&amp;gigs' + (scan.watermark ? ' \u00b7 free card' : '') + '</span>' +
             '</div>' +
           '</div>' +
+          '<div class="gs-flip-scroll-cue" aria-hidden="true">Scroll for more <svg viewBox="0 0 24 24"><path d="M12 4v15"/><path d="m6 13 6 6 6-6"/></svg></div>' +
           '<div class="gs-flip-shine" aria-hidden="true"></div>' +
         '</section>' +
 
@@ -485,6 +523,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (back) back.setAttribute('aria-hidden', String(!on));
       }
       function flip() { setFlipped(!card.classList.contains('flipped')); }
+      GS.wireCardScroll(back);
       // A tap flips the card, but a drag is the user scrolling the back face.
       // Without this, swiping the proof list on a phone flipped the card back
       // to the front mid-read.

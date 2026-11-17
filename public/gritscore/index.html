@@ -9,10 +9,10 @@
 <meta name="description" content="Turn the work you have actually shipped into a shareable Proof Score backed by links, files and referees."/>
 <link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
 <link rel="stylesheet" href="/assets/app-left-sidebar.css?v=2"/>
-<link rel="stylesheet" href="/assets/gritscore.css?v=12"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=13"/>
 <script src="/js/se-auth.js?v=2" defer></script>
 <script src="/assets/app-left-sidebar.js?v=3" defer></script>
-<script src="/assets/gritscore.js?v=6" defer></script>
+<script src="/assets/gritscore.js?v=7" defer></script>
 </head>
 <body class="gs-page">
 <div class="gs-toast" id="gsToast"></div>
@@ -703,6 +703,46 @@ document.addEventListener('DOMContentLoaded', function () {
     return [item.startDate, item.endDate].filter(Boolean).join(' \u2013 ');
   }
 
+  function previewProofLink(item) {
+    var url = GS.safeUrl(item.proofUrl);
+    if (!url) return '';
+    return '<a href="' + GS.esc(url) + '" target="_blank" rel="noopener nofollow">' +
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>' +
+      'Open ' + GS.esc(item.proofFileName || 'proof') + '</a>';
+  }
+
+  function previewFullItem(item) {
+    var meta = [item.role, previewDateRange(item)].filter(Boolean).join(' \u00b7 ');
+    var skills = (item.skills || []).slice(0, 8);
+    var proof = previewProofLink(item);
+    return '<article class="gs-flip-item">' +
+      '<div class="gs-flip-item-head"><div><strong>' + GS.esc(item.title) + '</strong>' +
+        (meta ? '<span>' + GS.esc(meta) + '</span>' : '') + '</div>' + previewBadge(item) + '</div>' +
+      (item.description ? '<p class="gs-flip-item-desc">' + GS.esc(item.description) + '</p>' : '') +
+      (skills.length ? '<div class="gs-flip-item-skills">' + skills.map(function (s) {
+        return '<span>' + GS.esc(s) + '</span>';
+      }).join('') + '</div>' : '') +
+      ((proof || item.evidenceNote) ? '<div class="gs-flip-item-detail">' + proof +
+        (item.evidenceNote ? '<span>' + GS.esc(item.evidenceNote) + '</span>' : '') + '</div>' : '') +
+      '</article>';
+  }
+
+  function previewFullReview(r) {
+    return '<article class="gs-flip-rev">' +
+      '<div class="who"><span>' + GS.esc(r.reviewerName || 'A collaborator') + '</span>' + previewStars(r.stars, 2.8) + '</div>' +
+      (r.comment ? '<p>\u201C' + GS.esc(r.comment) + '\u201D</p>' : '') +
+      '<time>' + GS.esc(GS.timeAgo(r.createdAt) || 'Recent') + '</time>' +
+      '</article>';
+  }
+
+  function previewFullLink(link) {
+    var url = GS.safeUrl(link.url);
+    if (!url) return '';
+    var shown = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    return '<a href="' + GS.esc(url) + '" target="_blank" rel="noopener nofollow">' +
+      '<b>' + GS.esc(link.label || 'Open link') + '</b><small>' + GS.esc(shown) + '</small></a>';
+  }
+
   function uniqueStrings(list) {
     var seen = {};
     var out = [];
@@ -720,9 +760,10 @@ document.addEventListener('DOMContentLoaded', function () {
   function previewCardHtml(template) {
     var data = state.lastDetail || {};
     var scan = data.scan || {};
-    var items = data.items || [];
-    var revs = data.reviews || { count: 0, average: 0, latest: [] };
-    var latest = revs.latest || [];
+    var items = GS.latestItems(data.items || []);
+    var revs = data.reviews || { count: 0, average: 0, latest: [], items: [] };
+    var latest = GS.latestReviews(revs.items || revs.latest);
+    var links = data.links || [];
     var checked = items.filter(function (i) { return i.evidenceStatus === 'ok'; }).length;
     var confirmed = (data.referees || []).filter(function (r) { return r.status === 'CONFIRMED'; }).length;
     var totalItems = scan.itemCount || items.length;
@@ -804,6 +845,11 @@ document.addEventListener('DOMContentLoaded', function () {
               '<div><b>' + confirmed + '</b><span>' + GS.plural(confirmed, 'referee') + '</span></div>' +
             '</div>' +
 
+            (data.summary || scan.summary
+              ? '<div class="gs-flip-sec">About</div>' +
+                '<p class="gs-flip-about">' + GS.esc(data.summary || scan.summary) + '</p>'
+              : '') +
+
             '<div class="gs-flip-sec">How proof stacks up</div>' +
             '<div class="gs-flip-bars">' +
               '<div class="gs-flip-bar" style="--v:' + (totalItems ? Math.round(Math.max(totalItems - checked, 0) / totalItems * 100) : 0) + '%;--c:#5B6479">' +
@@ -820,32 +866,24 @@ document.addEventListener('DOMContentLoaded', function () {
               '</div>' +
             '</div>' +
 
-            '<div class="gs-flip-sec">Scored work</div>' +
+            '<div class="gs-flip-sec">Scored work<span>latest first</span></div>' +
             '<div class="gs-flip-items">' +
               (items.length
-                ? items.slice(0, 3).map(function (item) {
-                    var meta = [item.role, previewDateRange(item)].filter(Boolean).join(' \u00b7 ');
-                    return '<div class="gs-flip-item">' +
-                      '<div><strong>' + GS.esc(item.title) + '</strong>' +
-                      (meta ? '<span>' + GS.esc(meta) + '</span>' : '') + '</div>' +
-                      previewBadge(item) +
-                    '</div>';
-                  }).join('')
+                ? items.map(previewFullItem).join('')
                 : '<p class="gs-flip-empty">No work items yet.</p>') +
             '</div>' +
-            (items.length > 3 ? '<p class="gs-flip-more">+ ' + (items.length - 3) + ' more in the full history below</p>' : '') +
+
+            (links.length
+              ? '<div class="gs-flip-sec">Links</div>' +
+                '<div class="gs-flip-links">' + links.map(previewFullLink).filter(Boolean).join('') + '</div>'
+              : '') +
 
             '<div class="gs-flip-sec rv">Reviews' +
               '<span>' + (revs.count ? previewStars(revs.average, 2.8) + '<b>' + Number(revs.average).toFixed(1) + '</b> from ' + revs.count : 'None yet') + '</span>' +
             '</div>' +
             '<div class="gs-flip-revs">' +
               (latest.length
-                ? latest.slice(0, 1).map(function (r) {
-                    return '<div class="gs-flip-rev">' +
-                      '<div class="who"><span>' + GS.esc(r.reviewerName || 'A collaborator') + '</span>' + previewStars(r.stars, 2.8) + '</div>' +
-                      (r.comment ? '<p>\u201C' + GS.esc(r.comment) + '\u201D</p>' : '') +
-                    '</div>';
-                  }).join('')
+                ? latest.map(previewFullReview).join('')
                 : '<p class="gs-flip-empty">No reviews yet. A past collaborator can add one.</p>') +
             '</div>' +
 
@@ -862,6 +900,7 @@ document.addEventListener('DOMContentLoaded', function () {
               '<span>grit&amp;gigs \u00b7 preview</span>' +
             '</div>' +
           '</div>' +
+          '<div class="gs-flip-scroll-cue" aria-hidden="true">Scroll for more <svg viewBox="0 0 24 24"><path d="M12 4v15"/><path d="m6 13 6 6 6-6"/></svg></div>' +
           '<div class="gs-flip-shine" aria-hidden="true"></div>' +
         '</section>' +
       '</div>' +
@@ -885,6 +924,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (front) front.setAttribute('aria-hidden', String(on));
       if (back) back.setAttribute('aria-hidden', String(!on));
     }
+    GS.wireCardScroll(back);
     card.addEventListener('pointerdown', function (e) {
       downX = e.clientX;
       downY = e.clientY;

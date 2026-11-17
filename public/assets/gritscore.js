@@ -125,6 +125,54 @@
     return Math.floor(months / 12) + 'y ago';
   }
 
+  function parsedTime(value) {
+    if (!value) return 0;
+    var time = new Date(value).getTime();
+    return isFinite(time) ? time : 0;
+  }
+
+  function safeUrl(value) {
+    var raw = String(value === null || value === undefined ? '' : value).trim();
+    return /^https?:\/\//i.test(raw) ? raw : '';
+  }
+
+  function latestReviews(list) {
+    return (list || []).slice().sort(function (a, b) {
+      return parsedTime(b.createdAt) - parsedTime(a.createdAt);
+    });
+  }
+
+  // Work dates decide "latest" first. Undated items stay after dated ones,
+  // newest-added first, then keep the owner's saved order for exact ties.
+  function latestItems(list) {
+    return (list || []).map(function (item, index) { return { item: item, index: index }; }).sort(function (a, b) {
+      var aWork = Math.max(parsedTime(a.item.startDate), parsedTime(a.item.endDate));
+      var bWork = Math.max(parsedTime(b.item.startDate), parsedTime(b.item.endDate));
+      if (aWork !== bWork) return bWork - aWork;
+      var aAdded = parsedTime(a.item.createdAt);
+      var bAdded = parsedTime(b.item.createdAt);
+      if (aAdded !== bAdded) return bAdded - aAdded;
+      return a.index - b.index;
+    }).map(function (entry) { return entry.item; });
+  }
+
+  // Keep the card shell fixed; only its back panel scrolls. The cue hides once
+  // the reader reaches the end so the design does not carry a permanent badge.
+  function wireCardScroll(back) {
+    if (!back) return;
+    var pad = back.querySelector('.gs-flip-pad');
+    if (!pad || pad.dataset.gsScrollReady === '1') return;
+    pad.dataset.gsScrollReady = '1';
+    function update() {
+      var hidden = Math.max(0, pad.scrollHeight - pad.clientHeight);
+      back.classList.toggle('has-scroll', hidden > 2);
+      back.classList.toggle('at-end', pad.scrollTop >= hidden - 2);
+    }
+    pad.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    requestAnimationFrame(update);
+  }
+
   var EVIDENCE_LABEL = {
     liveLink: 'Live link',
     github: 'Repository',
@@ -276,6 +324,10 @@
     frontFx: frontFx,
     backFx: backFx,
     timeAgo: timeAgo,
+    latestItems: latestItems,
+    latestReviews: latestReviews,
+    safeUrl: safeUrl,
+    wireCardScroll: wireCardScroll,
     tierClass: tierClass,
     starsHtml: starsHtml,
     EVIDENCE_LABEL: EVIDENCE_LABEL,
