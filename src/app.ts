@@ -7,11 +7,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import { prepRouter } from "./prep/router";
-import { makePrepPages } from "./prep/pages";
 import { gritscoreRouter } from "./gritscore/router";
 import { makeGritScorePages, makeScorePage } from "./gritscore/pages";
-import { isPrepEnabled } from "./prep/feature";
 import { metaPixelScript } from "./lib/meta-pixel-script";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -20,7 +17,7 @@ const app: Express = express();
 
 app.set("trust proxy", 2);
 // Auth-adjacent GETs must never be cached or revalidated by 304 — a pinned
-// stale 401 makes the prep gates show "Sign in" forever. Disable ETags and
+// stale 401 makes signed-in gates show "Sign in" forever. Disable ETags and
 // serve the API no-store.
 app.disable("etag");
 app.use("/api", (_req, res, next) => {
@@ -85,28 +82,11 @@ const rootDir = path.resolve(__dirname, "..");
 app.use("/uploads", (_req, res, next) => { res.set("X-Robots-Tag", "noindex"); next(); });
 app.use("/uploads", express.static(path.join(rootDir, "uploads")));
 
-// Prep (Company Report) — new namespaced feature, gated by FEATURE_PREP.
-// MUST mount before `app.use("/api", router)`: routes/index.ts ends in a
-// terminal 404 catch-all that never calls next(), so mounting prep after it
-// would make every /api/prep/* route answer "Route not found".
-app.use("/api/prep", prepRouter);
-// GritScore — same ordering rule as prep: mount before the terminal 404.
+// GritScore — MUST mount before `app.use("/api", router)`: routes/index.ts
+// ends in a terminal 404 catch-all that never calls next(), so mounting it
+// after would make every /api/gritscore/* route answer "Route not found".
 app.use("/api/gritscore", gritscoreRouter);
 app.use("/api", router);
-
-// Prep nav flash fix: ship the flag as a cookie on every response (including
-// the HTML itself), so prep-nav.js can paint the Prep icon synchronously at
-// script time instead of after a /api/prep/flag round-trip. The fetch still
-// revalidates; the cookie only removes the 2s gap on tab switches. When the
-// flag is off the cookie is actively cleared so stale browsers lose the icon.
-app.use((_req, res, next) => {
-  if (isPrepEnabled()) {
-    res.cookie("prep_nav", "1", { path: "/", maxAge: 365 * 24 * 60 * 60 * 1000, sameSite: "lax" });
-  } else {
-    res.clearCookie("prep_nav", { path: "/" });
-  }
-  next();
-});
 
 // Serve frontend static files (public/ folder next to server)
 const publicPath = path.join(rootDir, "public");
@@ -166,9 +146,12 @@ app.get("/js/meta-pixel.js", (_req, res) => {
   res.send(metaPixelScript());
 });
 
-// Prep pages: redirect to /feed while FEATURE_PREP is off, otherwise serve
-// public/prep/* with extensionless URLs. Registered before static.
-app.use("/prep", makePrepPages(publicPath));
+// Prep is retired. Any old link or bookmark lands on GritScore instead of the
+// SPA fallback, which would otherwise serve index.html for /prep and confuse
+// crawlers with a soft 404.
+app.use("/prep", (_req, res) => {
+  res.redirect(301, "/gritscore");
+});
 
 // GritScore pages: /gritscore, /gritscore/admin, /gritscore/referee, and the
 // public /score/:slug shell with server-injected Open Graph tags. Both must be

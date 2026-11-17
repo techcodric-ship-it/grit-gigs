@@ -1,9 +1,8 @@
 /* ==========================================================================
    GritScore: proof score cards
-   Light, professional theme that matches Prep and the main Grit&Gigs app:
-   white page, white cards, hairline borders, violet signal colour, Bricolage
-   Grotesque for display type and Inter for body copy — the same pair Prep
-   uses. Shared by /gritscore,
+   Light, professional theme that matches the main Grit&Gigs app: white page,
+   white cards, hairline borders, violet signal colour, Bricolage Grotesque for
+   display type and Inter for body copy. Shared by /gritscore,
    /gritscore/admin, /gritscore/referee and the public /score/:slug page.
    ========================================================================== */
 
@@ -88,8 +87,8 @@ a:hover { text-decoration: underline; }
   white-space: nowrap;
 }
 .gs-brand:hover { text-decoration: none; }
-/* Same mark + wordmark as the shared .topnav logo (feed.html / prep pages):
-   44px bordered tile, 26px logo, Syne 800 and the Prep violet on "&Gigs". */
+/* Same mark + wordmark as the shared .topnav logo (feed.html and the other
+   app pages): 44px bordered tile, 26px logo, Syne 800 and the violet on "&Gigs". */
 .gs-brand-mark {
   box-sizing: border-box;
   width: auto;
@@ -2144,6 +2143,46 @@ a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
 .gs-photo-copy label.gs-btn { cursor: pointer; }
 .gs-photo-status { margin: 8px 0 0; font-size: 0.78rem; font-weight: 600; color: var(--gs-ink-3); }
 .gs-photo-status.bad { color: var(--gs-bad); }
+
+/* Coarse-pointer and narrow screens: the 3D turn is unreliable in mobile
+   WebKit. backface-visibility can fail on a face that contains a scrolling
+   child, and the mirrored front paints for a beat before the back settles.
+   Mobile therefore swaps the turn for a plain opacity crossfade: no rotateY,
+   no visibility delay, exactly one face on screen at every moment. */
+@media (max-width: 820px), (hover: none) and (pointer: coarse) {
+  .gs-flip-scene { perspective: none; }
+  .gs-flip-tilt,
+  .gs-flip-tilt.live {
+    transform: none !important;
+    transform-style: flat;
+    -webkit-transform-style: flat;
+    transition: none;
+  }
+  .gs-flip {
+    transform: none !important;
+    transform-style: flat;
+    -webkit-transform-style: flat;
+    transition: none;
+  }
+  .gs-flip.flipped { transform: none !important; }
+  .gs-flip-face {
+    transform: none !important;
+    backface-visibility: visible;
+    -webkit-backface-visibility: visible;
+    transition: opacity 0.22s ease;
+  }
+  .gs-flip-front,
+  .gs-flip-back {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity 0.22s ease;
+    transition-delay: 0s !important;
+  }
+  .gs-flip-back { opacity: 0; pointer-events: none; }
+  .gs-flip.flipped .gs-flip-front { visibility: visible; opacity: 0; pointer-events: none; }
+  .gs-flip.flipped .gs-flip-back { visibility: visible; opacity: 1; pointer-events: auto; }
+  .gs-flip:not(.flipped) .gs-flip-front { visibility: visible; opacity: 1; pointer-events: auto; }
+}
 
 @media (max-width: 520px) {
   .gs-flip-scene { width: min(360px, 94vw); }

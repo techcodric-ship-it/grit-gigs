@@ -2,7 +2,7 @@
 // snippet into every page. The pixel id is public, so the default below is
 // safe to commit; `META_PIXEL_ID` can override it without a code change.
 //
-// `window.PrepTrack` is always defined, even when no pixel id is set, so page
+// `window.GritTrack` is always defined, even when no pixel id is set, so page
 // code can call it unconditionally and nothing throws if the script is blocked.
 
 import { metaPixelId } from "./meta-capi";
@@ -15,7 +15,7 @@ export function buildMetaPixelScript(pixelId: string): string {
   const id = (pixelId || "").trim();
   return `/* Grit&Gigs — Meta pixel loader (generated, do not edit in devtools) */
 (function () {
-  window.PrepTrack = {
+  window.GritTrack = {
     track: function (name, params, eventId) {
       if (typeof window.fbq !== "function") return;
       var args = ["track", name, params || {}];
@@ -24,24 +24,24 @@ export function buildMetaPixelScript(pixelId: string): string {
     },
     viewContent: function () {
       this.track("ViewContent", {
-        content_name: "prep",
-        content_category: "interview_prep"
+        content_name: "gritscore",
+        content_category: "proof_score"
       });
     },
     initiateCheckout: function (value) {
       this.track("InitiateCheckout", {
-        content_name: "prep_pro",
-        content_category: "interview_prep",
-        value: value || 199,
+        content_name: "gritscore_pro",
+        content_category: "proof_score",
+        value: value || 99,
         currency: "INR",
         num_items: 1
       });
     },
     purchase: function (eventId, value) {
       this.track("Purchase", {
-        content_name: "prep_pro",
-        content_category: "interview_prep",
-        value: value || 199,
+        content_name: "gritscore_pro",
+        content_category: "proof_score",
+        value: value || 99,
         currency: "INR",
         num_items: 1
       }, eventId);

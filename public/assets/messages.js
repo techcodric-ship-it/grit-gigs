@@ -326,10 +326,10 @@
         if (!d.success) { c.toast(d.message || 'Upload failed', true); return; }
         var atts = (d.data ? d.data.files : []) || [];
         if (atts.length) {
-          var prepped = atts.map(function (f) { return { name: f.name || 'File', url: f.url, type: f.mimeType || '' }; });
-          window._pendingAtts = (window._pendingAtts || []).concat(prepped);
+          var attachedFiles = atts.map(function (f) { return { name: f.name || 'File', url: f.url, type: f.mimeType || '' }; });
+          window._pendingAtts = (window._pendingAtts || []).concat(attachedFiles);
           renderPendingAtts();
-          c.toast('Attached ' + prepped.length + ' file(s) — press Send');
+          c.toast('Attached ' + attachedFiles.length + ' file(s) — press Send');
         }
       })
       .catch(function () { c.toast('Network error', true); });

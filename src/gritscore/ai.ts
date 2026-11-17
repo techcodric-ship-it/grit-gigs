@@ -10,7 +10,7 @@
 // schema so a scan never dead-ends.
 
 import { z } from "zod";
-import { chatCompletion } from "../prep/ai";
+import { geminiChat } from "./gemini";
 import type { EvidenceType } from "./config";
 
 export const EVIDENCE_TYPES = [
@@ -309,7 +309,7 @@ export interface ExtractionOutcome {
  */
 export async function extractProfile(
   input: ExtractionInput,
-  chat: ChatFn = (messages) => chatCompletion(messages, undefined, 1400),
+  chat: ChatFn = (messages) => geminiChat(messages, undefined, 1400),
 ): Promise<ExtractionOutcome> {
   const messages = [
     { role: "system" as const, content: GRITSCORE_SYSTEM_PROMPT },

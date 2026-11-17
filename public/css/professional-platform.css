@@ -89,12 +89,8 @@ header .nav-logo-mark img, footer .nav-logo-mark img { width: 32px !important; h
 .nav-logo-text { display: inline-flex !important; align-items: center !important; height: 44px !important; line-height: 44px !important; font-family: Syne, Inter, sans-serif !important; font-size: 1.1rem !important; font-weight: 800 !important; letter-spacing: -0.04em !important; white-space: nowrap !important; }
 .nav-logo-text .logo-text-black { color: #0a0a0f !important; }
 .nav-logo-text .logo-text-blue { color: #6c3fe8 !important; margin-left: 3px !important; }
-.hook#hookPrep, .block.soon { background: #fff !important; color: var(--pro-text) !important; }
-.hook#hookPrep h2, .block.soon h2, .block.soon p, .block.soon li { color: var(--pro-text) !important; }
-.hook#hookPrep .hook-kicker, .hook#hookPrep .hook-lead { color: var(--pro-muted) !important; }
-.hook#hookPrep .hook-mini div { background: #fff !important; border-color: var(--pro-line) !important; color: var(--pro-text) !important; }
-.hook#hookPrep .hook-mini b { color: var(--pro-text) !important; }
-.hook#hookPrep .hook-mini span { color: var(--pro-muted) !important; }
+.block.soon { background: #fff !important; color: var(--pro-text) !important; }
+.block.soon h2, .block.soon p, .block.soon li { color: var(--pro-text) !important; }
 .block.soon .soon-card { background: #fff !important; border-color: var(--pro-line) !important; box-shadow: var(--pro-shadow, 0 8px 24px rgba(23,23,28,.06)) !important; }
 .block.soon .soon-card .sc-label, .block.soon .soon-card .sc-score, .block.soon .soon-card .sc-note { color: var(--pro-text) !important; }
 .block.soon p b { color: var(--pro-text) !important; }

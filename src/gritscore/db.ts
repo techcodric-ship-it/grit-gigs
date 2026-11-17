@@ -1,4 +1,4 @@
-// Idempotent DDL + DB helpers for GritScore. Mirrors the prep pattern: additive
+// Idempotent DDL + DB helpers for GritScore. Additive
 // CREATE ... IF NOT EXISTS on first use, so production never depends on a
 // migration having been run before deploy.
 

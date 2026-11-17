@@ -15,17 +15,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Phase 0 barter protection: refuse to deploy anything whose diff touches
-      # a barter-locked path or whose barter files no longer match the baseline
-      # hashes in docs/prep-barter-lock.json.
-      - name: Barter protection guard
-        run: |
-          set -euo pipefail
-          node scripts/prep-guard.mjs
-          if [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
-            node scripts/prep-guard.mjs "${{ github.event.before }}..${{ github.sha }}"
-          fi
-
       - name: Pull new code and restart the app
         uses: appleboy/ssh-action@v1
         with:
@@ -44,29 +33,17 @@ jobs:
             git reset --hard origin/main
             echo "DEPLOYED: $(git log --oneline -1)"
 
-            # Prep (Company Report) feature flag: keep FEATURE_PREP=true in the
-            # server .env across deploys (git reset never touches ignored files,
-            # but this makes the enablement explicit and idempotent). The app
-            # reads .env via dotenv on every boot, so the restart below picks it
-            # up. To turn Prep off again, change this line to false (or remove
-            # it and delete the .env entry) and push.
-            ENVF=/opt/gritgigs/.env
-            if grep -q '^FEATURE_PREP=' "$ENVF"; then
-              sed -i 's/^FEATURE_PREP=.*/FEATURE_PREP=true/' "$ENVF"
-            else
-              printf '\nFEATURE_PREP=true\n' >> "$ENVF"
-            fi
-            echo "FEATURE_PREP: $(grep '^FEATURE_PREP=' "$ENVF")"
-
             # Diagnostic: can the server reach the payment gateway at all?
             # 401 (no credentials sent) proves egress works; a timeout here
             # would explain dead checkouts. No secrets are ever echoed.
             echo "rz-egress: $(curl -s -m 10 -o /dev/null -w '%{http_code} in %{time_total}s' https://api.razorpay.com/v1/orders || echo unreachable)"
 
-            # Gemini key for Prep AI summaries (src/prep/ai.ts reads GEMINI_API_KEY
-            # at boot via dotenv). Value comes from the repo secret and is never
-            # echoed — only whether it was set. Rewritten atomially each deploy so
-            # a rotated secret replaces the old line exactly once.
+            # Gemini key for GritScore extraction (src/gritscore/gemini.ts reads
+            # GEMINI_API_KEY at boot via dotenv). Value comes from the repo
+            # secret and is never echoed — only whether it was set. Rewritten
+            # atomically each deploy so a rotated secret replaces the old line
+            # exactly once.
+            ENVF=/opt/gritgigs/.env
             if [ -n "${{ secrets.GEMINI_API_KEY }}" ]; then
               GEMTMP=$(mktemp)
               grep -v '^GEMINI_API_KEY=' "$ENVF" > "$GEMTMP" || true
@@ -74,7 +51,14 @@ jobs:
               mv "$GEMTMP" "$ENVF"
               echo "GEMINI_API_KEY: written (value masked)"
             else
-              echo "::warning::GEMINI_API_KEY repo secret not set — Prep AI summaries stay disabled"
+              echo "::warning::GEMINI_API_KEY repo secret not set — GritScore extraction falls back to heuristics"
+            fi
+
+            # Prep is retired. Drop the old flag from the server env so a stale
+            # FEATURE_PREP=true cannot outlive the code that read it.
+            if grep -q '^FEATURE_PREP=' "$ENVF"; then
+              sed -i '/^FEATURE_PREP=/d' "$ENVF"
+              echo "FEATURE_PREP removed"
             fi
 
             # A git reset leaves the old process running the old code. TypeScript
@@ -141,18 +125,15 @@ jobs:
           [ "$code" = "410" ] || { echo "::error::spotlight API returned $code (expected 410)"; exit 1; }
           echo "retired spotlight endpoints OK"
 
-          # Prep (Company Report) is enabled: the flag probe must say so, the
-          # API must answer (flag-off would 404 the gate), and the pages must
-          # serve instead of redirecting to /feed. Also confirm the nav script
-          # tag ships on /feed (the prep icon is injected client-side only when
-          # the flag answers enabled:true).
-          flag=$(curl -fsS --retry 5 --retry-delay 5 --retry-connrefused $BASE/api/prep/flag)
-          echo "prep flag: $flag"
-          echo "$flag" | grep -q '"enabled":true' || { echo "::error::FEATURE_PREP not enabled in production"; exit 1; }
-          code=$(curl -s -o /dev/null -w '%{http_code}' --retry 5 --retry-delay 5 "$BASE/api/prep/companies?q=infosys")
-          [ "$code" = "200" ] || { echo "::error::prep API returned $code (expected 200)"; exit 1; }
+          # GritScore is the only scoring surface now. Probe the marketing page,
+          # the admin page and one existing public card; /prep must permanently
+          # redirect instead of 404ing or rendering a soft-404 via SPA fallback.
+          for p in /gritscore /gritscore/admin /score/amuthavanan-e-259902; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --retry 5 --retry-delay 5 --retry-connrefused "$BASE$p")
+            echo "$p -> $code"
+            [ "$code" = "200" ] || { echo "::error::$p returned $code (expected 200)"; exit 1; }
+          done
           code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/prep")
-          [ "$code" = "200" ] || { echo "::error::/prep returned $code (expected 200 once enabled)"; exit 1; }
-          curl -fsS "$BASE/feed" | grep -q '/js/prep-nav.js' || { echo "::error::prep-nav.js tag missing from /feed"; exit 1; }
-          echo "prep enabled OK"
+          [ "$code" = "301" ] || { echo "::error::/prep returned $code (expected 301 to /gritscore)"; exit 1; }
+          echo "gritscore pages OK, /prep retired OK"
           echo "SITE OK"

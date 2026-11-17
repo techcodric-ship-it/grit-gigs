@@ -2,7 +2,7 @@
 //
 // Two responsibilities:
 //  1. /gritscore and /gritscore/* - extensionless static pages out of
-//     public/gritscore, same pattern as /prep.
+//     public/gritscore.
 //  2. /score/:slug - the public scorecard shell with per-card Open Graph tags
 //     injected server-side, because social scrapers do not run JavaScript.
 

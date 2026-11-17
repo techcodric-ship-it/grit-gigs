@@ -44,20 +44,13 @@
   .app-shell-topnav { padding-right: 16px !important; }
   .app-shell-topnav > .icons { display: none !important; }
 
-  body.desktop-app-shell > .wrap:not(:has(.prep-hero-sm)) {
+  body.desktop-app-shell > .wrap {
     width: calc(100% - 280px) !important;
     max-width: none !important;
     margin-left: 280px !important;
     margin-right: 0 !important;
     box-sizing: border-box;
     justify-content: center !important;
-  }
-
-  body.desktop-app-shell > .prep-wrap,
-  body.desktop-app-shell > .prep-wrap:has(.prep-hero-sm) {
-    width: min(1080px, calc(100% - 328px)) !important;
-    max-width: 1080px !important;
-    margin-left: calc(280px + (100% - 280px - min(1080px, calc(100% - 328px))) / 2) !important;
   }
 
   body.desktop-app-shell > .wrap > .col-main { margin-left: 0 !important; }

@@ -36,7 +36,7 @@ const SEED_POSTS: {
     comments: 14,
   },
   {
-    text: "I can teach spoken English + interview prep if you teach me Excel + Google Sheets for my gig work. 2 sessions, fully remote.",
+    text: "I can teach spoken English and interview practice if you teach me Excel + Google Sheets for my gig work. 2 sessions, fully remote.",
     kind: "BARTER",
     tags: ["barter", "skills"],
     location: "Remote",

@@ -78,9 +78,9 @@ describe("meta pixel loader", () => {
     expect(js).toContain('window.fbq("track", "PageView")');
   });
 
-  it("still defines PrepTrack when no pixel id is configured", () => {
+  it("still defines GritTrack when no pixel id is configured", () => {
     const js = buildMetaPixelScript("");
-    expect(js).toContain("window.PrepTrack");
+    expect(js).toContain("window.GritTrack");
     // No id means the loader bails before touching fbq, so nothing is sent.
     expect(js).toContain('var PIXEL_ID = "";');
     expect(js).toContain("if (!PIXEL_ID || typeof window.fbq");

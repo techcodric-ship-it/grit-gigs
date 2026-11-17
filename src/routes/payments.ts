@@ -1,9 +1,9 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, sql, and, or, inArray } from "drizzle-orm";
-import { db, withdrawalRequestsTable, transactionsTable, freelanceWalletsTable, notificationsTable, usersTable } from "../db";
+import { db, withdrawalRequestsTable, transactionsTable, freelanceWalletsTable, notificationsTable } from "../db";
 import { verifyWebhookSignature } from "../lib/razorpay";
-import { completeProOrder } from "../prep/monetization-db";
-import { PREP_PRO_PRICE_INR } from "../prep/monetization";
+import { completeGritScoreOrder, notifyGritScorePro } from "../gritscore/db";
+import { GRITSCORE_PRO } from "../gritscore/config";
 import { trackPurchase } from "../lib/meta-capi";
 
 const router: IRouter = Router();
@@ -136,36 +136,38 @@ router.post("/payments/webhook", async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    // Prep Pro orders share the SUBSCRIPTION type but must never credit wallet
-    // cash. They are completed here instead of via /pro/verify so a capture is
-    // never lost when the browser closes before verification runs. The amount
-    // is re-checked against the product price before anything is granted.
-    if (pending.type === "SUBSCRIPTION" && (pending.description || "").startsWith("PREP_PRO:")) {
-      if (Number(amountPaise) !== Math.round(PREP_PRO_PRICE_INR * 100)) {
-        res.status(200).json({ success: true, message: "Prep Pro amount mismatch" });
+    // GritScore Pro orders also share the SUBSCRIPTION type but must never
+    // credit wallet cash. They are completed here instead of only via
+    // /pro/verify so a capture is never lost when the browser closes before
+    // verification runs. The amount is re-checked before anything is granted.
+    if (pending.type === "SUBSCRIPTION" && (pending.description || "").startsWith("GRITSCORE_PRO:")) {
+      if (Number(amountPaise) !== Math.round(GRITSCORE_PRO.priceInr * 100)) {
+        res.status(200).json({ success: true, message: "GritScore Pro amount mismatch" });
         return;
       }
       try {
-        const result = await completeProOrder(pending.userId, orderId, paymentId);
+        const result = await completeGritScoreOrder(pending.userId, orderId, paymentId);
         if (result.ok) {
-          const [buyer] = await db
-            .select({ email: usersTable.email })
-            .from(usersTable)
-            .where(eq(usersTable.id, pending.userId))
-            .limit(1);
+          await notifyGritScorePro(pending.userId, result.entitlement.expiresAt);
           void trackPurchase({
             eventId: paymentId,
-            value: PREP_PRO_PRICE_INR,
+            value: GRITSCORE_PRO.priceInr,
             currency: "INR",
-            email: buyer?.email ?? null,
-            sourceUrl: "https://www.gritandgigs.in/prep",
+            sourceUrl: "https://www.gritandgigs.in/gritscore",
           });
         }
-        res.status(200).json({ success: true, message: "Prep Pro order handled" });
+        res.status(200).json({ success: true, message: "GritScore Pro order handled" });
       } catch (err) {
-        console.error("[payments] prep pro webhook completion failed:", err);
-        res.status(500).json({ success: false, message: "Prep Pro completion failed" });
+        console.error("[payments] gritscore pro webhook completion failed:", err);
+        res.status(500).json({ success: false, message: "GritScore Pro completion failed" });
       }
+      return;
+    }
+
+    // Prep is retired. Any legacy PENDING Prep Pro row is acknowledged and
+    // ignored so it can never fall through to a wallet-cash credit.
+    if (pending.type === "SUBSCRIPTION" && (pending.description || "").startsWith("PREP_PRO:")) {
+      res.status(200).json({ success: true, message: "Retired prep order ignored" });
       return;
     }
 

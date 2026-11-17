@@ -1,10 +1,10 @@
-// Prep-page session helper (window.SeAuth).
+// GritScore-page session helper (window.SeAuth).
 //
-// Prep pages read localStorage se_token into a Bearer header with no refresh
-// path, so once the 7-day access token aged out a signed-in member hit
-// "Sign in to continue" in the interview gate and the nav PRO chip dropped to
-// paying members — site pages already recover via the 30-day rotating
-// se_refresh token (feed-app.js / main.js), prep pages never did.
+// GritScore pages read localStorage se_token into a Bearer header with no
+// refresh path, so once the 7-day access token aged out a signed-in member hit
+// "Sign in to continue" and the nav PRO chip dropped to paying members — site
+// pages already recover via the 30-day rotating se_refresh token
+// (feed-app.js / main.js), GritScore pages never did.
 //
 //   token() / haveRefresh() / haveSession()
 //   refresh()        -> Promise<bool>; only one refresh in flight at a time

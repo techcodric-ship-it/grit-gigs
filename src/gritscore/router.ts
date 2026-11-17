@@ -11,7 +11,7 @@ import multer from "multer";
 import { z } from "zod";
 import { and, desc, eq, gt, ilike, or, sql } from "drizzle-orm";
 
-import { db, notificationsTable, usersTable } from "../db";
+import { db, notificationsTable, transactionsTable, usersTable } from "../db";
 import { authenticate, optionalAuth, requireAdmin } from "../middlewares/authenticate";
 import { adminAuth } from "../middlewares/adminAuth";
 import { sendNotificationEmail } from "../lib/email";
@@ -73,6 +73,7 @@ import {
   validateWeights,
 } from "./db";
 import {
+  gritscoreEntitlementsTable,
   gritscoreItemsTable,
   gritscoreRefereesTable,
   gritscoreReviewsTable,
@@ -1761,6 +1762,104 @@ router.post("/pro/verify", authenticate, gritDbGate, purchaseLimiter, async (req
 
 // ---- Admin -----------------------------------------------------------------
 
+/** One aggregate call for the main /admin overview strip: how many cards
+ *  exist, how many are public, how many Pro entitlements are live, how much
+ *  Pro revenue has actually been captured, and what needs attention. */
+router.get("/admin/overview", adminGuard, gritDbGate, async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const now = new Date();
+    const [scanAgg] = await db
+      .select({
+        scans: sql<number>`count(*)::int`,
+        publicScans: sql<number>`count(*) filter (where ${gritscoreScansTable.isPublic})::int`,
+      })
+      .from(gritscoreScansTable);
+    const [proAgg] = await db
+      .select({
+        proActive: sql<number>`count(*) filter (where ${gritscoreEntitlementsTable.status} = 'ACTIVE' and ${gritscoreEntitlementsTable.expiresAt} > ${now})::int`,
+      })
+      .from(gritscoreEntitlementsTable)
+      .where(eq(gritscoreEntitlementsTable.kind, "GRITSCORE_PRO"));
+    const [refAgg] = await db
+      .select({
+        refereesPending: sql<number>`count(*) filter (where ${gritscoreRefereesTable.status} = 'PENDING')::int`,
+      })
+      .from(gritscoreRefereesTable);
+    const [orderAgg] = await db
+      .select({
+        pendingOrders: sql<number>`count(*) filter (where ${transactionsTable.status} = 'PENDING')::int`,
+        revenueInr: sql<number>`coalesce(sum(${transactionsTable.amount}) filter (where ${transactionsTable.status} = 'COMPLETED'), 0)::int`,
+      })
+      .from(transactionsTable)
+      .where(and(eq(transactionsTable.type, "SUBSCRIPTION"), ilike(transactionsTable.description, "GRITSCORE_PRO:%")));
+
+    res.json({
+      success: true,
+      data: {
+        scans: Number(scanAgg?.scans ?? 0),
+        publicScans: Number(scanAgg?.publicScans ?? 0),
+        proActive: Number(proAgg?.proActive ?? 0),
+        refereesPending: Number(refAgg?.refereesPending ?? 0),
+        pendingOrders: Number(orderAgg?.pendingOrders ?? 0),
+        revenueInr: Number(orderAgg?.revenueInr ?? 0),
+      },
+    });
+  } catch (err) {
+    logger.error({ err }, "[gritscore] admin overview failed");
+    res.status(500).json({ success: false, message: "Could not load overview" });
+  }
+});
+
+/** Pro oversight: who is active, when it expires, and every GritScore order in
+ *  the ledger. Read-only — activation still only happens through a captured
+ *  Razorpay payment. */
+router.get("/admin/pro", adminGuard, gritDbGate, async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const entitlements = await db
+      .select({
+        id: gritscoreEntitlementsTable.id,
+        userId: gritscoreEntitlementsTable.userId,
+        status: gritscoreEntitlementsTable.status,
+        pricePaidInr: gritscoreEntitlementsTable.pricePaidInr,
+        startedAt: gritscoreEntitlementsTable.startedAt,
+        expiresAt: gritscoreEntitlementsTable.expiresAt,
+        email: usersTable.email,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+      })
+      .from(gritscoreEntitlementsTable)
+      .leftJoin(usersTable, eq(usersTable.id, gritscoreEntitlementsTable.userId))
+      .where(eq(gritscoreEntitlementsTable.kind, "GRITSCORE_PRO"))
+      .orderBy(desc(gritscoreEntitlementsTable.startedAt))
+      .limit(100);
+
+    const orders = await db
+      .select({
+        id: transactionsTable.id,
+        userId: transactionsTable.userId,
+        amount: transactionsTable.amount,
+        status: transactionsTable.status,
+        description: transactionsTable.description,
+        gatewayOrderId: transactionsTable.gatewayOrderId,
+        gatewayTxnId: transactionsTable.gatewayTxnId,
+        createdAt: transactionsTable.createdAt,
+        email: usersTable.email,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+      })
+      .from(transactionsTable)
+      .leftJoin(usersTable, eq(usersTable.id, transactionsTable.userId))
+      .where(and(eq(transactionsTable.type, "SUBSCRIPTION"), ilike(transactionsTable.description, "GRITSCORE_PRO:%")))
+      .orderBy(desc(transactionsTable.createdAt))
+      .limit(100);
+
+    res.json({ success: true, data: { entitlements, orders } });
+  } catch (err) {
+    logger.error({ err }, "[gritscore] admin pro list failed");
+    res.status(500).json({ success: false, message: "Could not load Pro data" });
+  }
+});
+
 router.get("/admin/scans", adminGuard, gritDbGate, async (req: Request, res: Response): Promise<void> => {
   try {
     const q = String(req.query.q ?? "").trim().slice(0, 80);
@@ -1803,6 +1902,12 @@ router.get("/admin/scans/:id", adminGuard, gritDbGate, async (req: Request, res:
       return;
     }
     const items = await listItems(scan.id);
+    const referees = await listReferees(scan.id);
+    const reviews = await db
+      .select()
+      .from(gritscoreReviewsTable)
+      .where(eq(gritscoreReviewsTable.scanId, scan.id))
+      .orderBy(desc(gritscoreReviewsTable.createdAt));
     const config = await getScoreConfig();
     const input = { items: items.map(scoreInputFor), verificationTier: scan.verificationTier };
     const result = computeScore(input, config);
@@ -1811,6 +1916,8 @@ router.get("/admin/scans/:id", adminGuard, gritDbGate, async (req: Request, res:
       data: {
         scan,
         items,
+        referees,
+        reviews,
         computed: result,
         abuseFlags: scan.abuseFlags ?? [],
         aiUsed: scan.aiUsed,

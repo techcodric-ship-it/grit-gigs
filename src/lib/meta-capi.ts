@@ -19,7 +19,7 @@ import { logger } from "./logger";
 export const DEFAULT_META_PIXEL_ID = "4550145695221450";
 export const DEFAULT_META_DATASET_ID = "1694905348640933";
 export const META_GRAPH_VERSION = "v21.0";
-export const META_DEFAULT_SOURCE_URL = "https://www.gritandgigs.in/prep";
+export const META_DEFAULT_SOURCE_URL = "https://www.gritandgigs.in/gritscore";
 
 export interface PurchaseEventInput {
   /** Unique per sale. Razorpay payment id — shared with the browser event. */

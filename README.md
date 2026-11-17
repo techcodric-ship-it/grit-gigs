@@ -60,15 +60,13 @@ Open browser DevTools (F12) → Console tab and check for red errors.
 | POST /api/barter/requests | Post a barter request |
 | POST /api/orders | Place an order |
 | GET  /api/messages/conversations | Inbox |
-| GET  /api/prep/flag | Prep feature flag (nav probe) |
-| GET  /api/prep/companies?q= | Company search |
-| GET  /api/prep/companies/:slug/report | Company report (sourced, cited) |
-| GET  /api/prep/aptitude/topics | Aptitude quiz topics |
-| GET  /api/prep/interview/packs?company= | Company question packs (member-reported) |
-| POST /api/prep/interview/packs/submit | Submit a pack question (10/user/day) |
-| POST /api/prep/interview/answer/score | AI-score one typed answer (1/day, free) |
-| GET  /api/prep/companies/:slug/pay-aggregates | Trust: pay aggregates (min-sample) |
-| GET  /api/prep/companies/:slug/placement-aggregates | Trust: placement aggregates |
+| GET  /api/gritscore/scans | List the signed-in user's scorecards |
+| POST /api/gritscore/scan | Run a scan and compute a 300–900 score |
+| GET  /api/gritscore/scan/:id | Owner view of one scorecard |
+| GET  /api/gritscore/score/:slug | Public card (opt-in only) |
+| POST /api/gritscore/pro/order | Create a GritScore Pro order |
+| POST /api/gritscore/pro/verify | Verify a captured payment and unlock Pro |
+| GET  /api/gritscore/pro/status | Current Pro entitlement |
 
 ## Real-time (Socket.io)
 Connect with `io({ auth: { token: '<accessToken>' } })`

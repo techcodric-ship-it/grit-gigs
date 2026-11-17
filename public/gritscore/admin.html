@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"/>
 <title>GritScore admin — Grit&amp;Gigs</title>
 <link rel="icon" href="/favicon.ico?v=10"/>
-<link rel="stylesheet" href="/assets/gritscore.css?v=9"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=10"/>
 <script src="/assets/gritscore.js?v=5" defer></script>
 </head>
 <body class="gs-page">
@@ -43,6 +43,7 @@
 
     <div class="gs-tabs" role="tablist">
       <button class="gs-tab on" type="button" data-tab="scans" role="tab">Scans</button>
+      <button class="gs-tab" type="button" data-tab="pro" role="tab">Pro &amp; payments</button>
       <button class="gs-tab" type="button" data-tab="config" role="tab">Weights config</button>
     </div>
 
@@ -64,6 +65,18 @@
         </div>
       </div>
       <div id="scanDetail"></div>
+    </section>
+
+    <section class="gs-panel" id="panelPro" hidden>
+      <div class="gs-card">
+        <h2 class="gs-h2">GritScore Pro</h2>
+        <p class="gs-muted gs-small" style="margin:0 0 16px;">Read-only oversight. Pro activates only after Razorpay confirms a captured payment — there is no manual grant path.</p>
+        <div id="proSummary" class="gs-grid gs-3" style="margin-bottom:16px;"></div>
+        <h3 class="gs-h2" style="font-size:1rem;margin-bottom:10px;">Entitlements</h3>
+        <div id="proEntitlements"><p class="gs-muted gs-small">Loading…</p></div>
+        <h3 class="gs-h2" style="font-size:1rem;margin:20px 0 10px;">Order ledger</h3>
+        <div id="proOrders"><p class="gs-muted gs-small">Loading…</p></div>
+      </div>
     </section>
 
     <section class="gs-panel" id="panelConfig" hidden>
@@ -155,7 +168,9 @@ document.addEventListener('DOMContentLoaded', function () {
       tab.classList.add('on');
       var name = tab.getAttribute('data-tab');
       $('panelScans').hidden = name !== 'scans';
+      $('panelPro').hidden = name !== 'pro';
       $('panelConfig').hidden = name !== 'config';
+      if (name === 'pro') loadPro();
     });
   });
 
@@ -242,7 +257,7 @@ document.addEventListener('DOMContentLoaded', function () {
           (scan.isPublic ? '<a class="gs-btn subtle sm" href="/score/' + GS.esc(scan.slug) + '" target="_blank" rel="noopener">Public page</a>' : '') +
         '</div>' +
       '</div>' +
-      '<div class="gs-muted gs-small" style="margin-bottom:14px;">ID ' + GS.esc(scan.id) + ' · slug <code>' + GS.esc(scan.slug) + '</code> · created ' + new Date(scan.createdAt).toLocaleString('en-IN') + '</div>' +
+      '<div class="gs-muted gs-small" style="margin-bottom:14px;">ID ' + GS.esc(scan.id) + ' · slug <code>' + GS.esc(scan.slug) + '</code> · design <strong>' + GS.esc(scan.template || 'violet') + '</strong> · created ' + new Date(scan.createdAt).toLocaleString('en-IN') + '</div>' +
       '<div class="gs-grid gs-3" style="margin-bottom:16px;">' +
         '<div><div class="gs-label">Stored score</div><div style="font-family:var(--gs-font-display);font-size:1.8rem;font-weight:800;">' + (scan.score == null ? '—' : scan.score) + '</div></div>' +
         '<div><div class="gs-label">Computed now</div><div style="font-family:var(--gs-font-display);font-size:1.8rem;font-weight:800;">' + (computed.score == null ? '—' : computed.score) + '</div></div>' +
@@ -272,6 +287,33 @@ document.addEventListener('DOMContentLoaded', function () {
       }).join('') +
     '</div>';
 
+    var referees = data.referees || [];
+    html += '<div class="gs-card" style="margin-top:16px;"><h2 class="gs-h2">Referees</h2>' +
+      (referees.length ? '<div class="gs-table-wrap"><table class="gs-table"><thead><tr>' +
+        '<th>Name</th><th>Contact</th><th>Status</th><th>Responded</th><th>Invited</th>' +
+        '</tr></thead><tbody>' + referees.map(function (r) {
+          return '<tr><td><strong>' + GS.esc(r.name || '—') + '</strong></td>' +
+            '<td class="gs-muted">' + GS.esc(r.email || r.phone || '—') + '</td>' +
+            '<td>' + GS.esc(r.status || '—') + '</td>' +
+            '<td class="gs-muted gs-nowrap">' + (r.respondedAt ? new Date(r.respondedAt).toLocaleString('en-IN') : '—') + '</td>' +
+            '<td class="gs-muted gs-nowrap">' + new Date(r.createdAt).toLocaleString('en-IN') + '</td></tr>';
+        }).join('') + '</tbody></table></div>'
+        : '<p class="gs-muted gs-small" style="margin:0;">No referees invited.</p>') +
+    '</div>';
+
+    var reviews = data.reviews || [];
+    html += '<div class="gs-card" style="margin-top:16px;"><h2 class="gs-h2">Reviews</h2>' +
+      (reviews.length ? reviews.map(function (r) {
+        return '<div class="gs-item"><div class="gs-item-head"><div>' +
+          '<p class="gs-item-title">' + GS.esc(r.reviewerName || 'Reviewer') + ' · ' + Number(r.stars || 0) + '/5</p>' +
+          '<div class="gs-item-meta">' + GS.esc(r.status || 'VISIBLE') + ' · ' + new Date(r.createdAt).toLocaleString('en-IN') + '</div>' +
+          '</div></div>' +
+          (r.comment ? '<p class="gs-item-desc">' + GS.esc(r.comment) + '</p>' : '') +
+        '</div>';
+      }).join('')
+        : '<p class="gs-muted gs-small" style="margin:0;">No reviews submitted.</p>') +
+    '</div>';
+
     $('scanDetail').innerHTML = html;
     $('scanDetail').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -291,6 +333,60 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.textContent = 'Recompute';
         GS.toast(err.message || 'Could not recompute');
       });
+    });
+  }
+
+  // ---- Pro & payments ------------------------------------------------------
+  function inr(n) { return '\u20B9' + Number(n || 0).toLocaleString('en-IN'); }
+
+  function loadPro() {
+    $('proSummary').innerHTML = '<div class="gs-skeleton" style="height:64px;"></div>';
+    $('proEntitlements').innerHTML = '<p class="gs-muted gs-small">Loading…</p>';
+    $('proOrders').innerHTML = '';
+    api('/admin/pro').then(function (res) {
+      if (!res.ok || !res.data.success) { GS.toast((res.data && res.data.message) || 'Could not load Pro data'); return; }
+      var d = res.data.data || {};
+      var ents = d.entitlements || [];
+      var orders = d.orders || [];
+      var now = Date.now();
+      var active = ents.filter(function (e) { return e.status === 'ACTIVE' && new Date(e.expiresAt).getTime() > now; }).length;
+      var pending = orders.filter(function (o) { return o.status === 'PENDING'; }).length;
+      var revenue = orders.filter(function (o) { return o.status === 'COMPLETED'; })
+        .reduce(function (sum, o) { return sum + Number(o.amount || 0); }, 0);
+
+      $('proSummary').innerHTML =
+        '<div><div class="gs-label">Live Pro</div><div style="font-family:var(--gs-font-display);font-size:1.6rem;font-weight:800;">' + active + '</div></div>' +
+        '<div><div class="gs-label">Captured revenue</div><div style="font-family:var(--gs-font-display);font-size:1.6rem;font-weight:800;">' + inr(revenue) + '</div></div>' +
+        '<div><div class="gs-label">Pending orders</div><div style="font-family:var(--gs-font-display);font-size:1.6rem;font-weight:800;">' + pending + '</div></div>';
+
+      $('proEntitlements').innerHTML = ents.length
+        ? '<div class="gs-table-wrap"><table class="gs-table"><thead><tr><th>Member</th><th>Status</th><th>Paid</th><th>Started</th><th>Expires</th></tr></thead><tbody>' +
+          ents.map(function (e) {
+            var name = ((e.firstName || '') + ' ' + (e.lastName || '')).trim() || e.email || '—';
+            var live = e.status === 'ACTIVE' && new Date(e.expiresAt).getTime() > now;
+            return '<tr><td><strong>' + GS.esc(name) + '</strong><div class="gs-muted" style="font-size:0.72rem;">' + GS.esc(e.email || '') + '</div></td>' +
+              '<td>' + (live ? '<span class="gs-badge ok">Active</span>' : '<span class="gs-badge">Expired</span>') + '</td>' +
+              '<td class="num">' + inr(e.pricePaidInr) + '</td>' +
+              '<td class="gs-muted gs-nowrap">' + new Date(e.startedAt).toLocaleDateString('en-IN') + '</td>' +
+              '<td class="gs-nowrap">' + new Date(e.expiresAt).toLocaleDateString('en-IN') + '</td></tr>';
+          }).join('') + '</tbody></table></div>'
+        : '<p class="gs-muted gs-small" style="margin:0;">No entitlements yet.</p>';
+
+      $('proOrders').innerHTML = orders.length
+        ? '<div class="gs-table-wrap"><table class="gs-table"><thead><tr><th>Member</th><th>Amount</th><th>Status</th><th>Order</th><th>Payment</th><th>Created</th></tr></thead><tbody>' +
+          orders.map(function (o) {
+            var name = ((o.firstName || '') + ' ' + (o.lastName || '')).trim() || o.email || '—';
+            return '<tr><td><strong>' + GS.esc(name) + '</strong><div class="gs-muted" style="font-size:0.72rem;">' + GS.esc(o.email || '') + '</div></td>' +
+              '<td class="num">' + inr(o.amount) + '</td>' +
+              '<td>' + (o.status === 'COMPLETED' ? '<span class="gs-badge ok">Captured</span>' : '<span class="gs-badge warn">Pending</span>') + '</td>' +
+              '<td class="gs-muted" style="font-size:0.72rem;word-break:break-all;">' + GS.esc(o.gatewayOrderId || '—') + '</td>' +
+              '<td class="gs-muted" style="font-size:0.72rem;word-break:break-all;">' + GS.esc(o.gatewayTxnId || '—') + '</td>' +
+              '<td class="gs-muted gs-nowrap">' + new Date(o.createdAt).toLocaleString('en-IN') + '</td></tr>';
+          }).join('') + '</tbody></table></div>'
+        : '<p class="gs-muted gs-small" style="margin:0;">No GritScore orders yet.</p>';
+    }).catch(function (e) {
+      GS.toast(e.message || 'Could not load Pro data');
+      $('proEntitlements').innerHTML = '<p class="gs-muted gs-small" style="margin:0;">Could not load.</p>';
     });
   }
 

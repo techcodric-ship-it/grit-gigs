@@ -157,7 +157,7 @@
     return '<span class="gs-stars readonly">' + out + '</span>';
   }
 
-  // The shared topnav on feed/prep pages paints #navAv from se_user and
+  // The shared topnav on feed and other app pages paints #navAv from se_user and
   // /api/auth/me. GritScore pages don't load that script, so their sidebar and
   // topbar avatar stayed on the dicebear "seed=grit" fallback ("GR"). Paint
   // both here, with the same profilePhoto + name seed the rest of the app uses.
