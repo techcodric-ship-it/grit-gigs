@@ -20,6 +20,10 @@ export const EVIDENCE_TYPES = [
   "certificate",
   "file",
   "screenshot",
+  // Barter evidence is created from the database, never emitted by the model.
+  // It is listed here only so ExtractionItem's type covers every EvidenceType.
+  "barter_completion",
+  "barter_review",
   "none",
 ] as const;
 

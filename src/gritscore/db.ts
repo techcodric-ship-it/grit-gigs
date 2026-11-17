@@ -80,6 +80,12 @@ CREATE TABLE IF NOT EXISTS gritscore_items (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS gritscore_items_scan_idx ON gritscore_items (scan_id, position);
+-- Additive upgrade for platform-derived evidence (completed barters/reviews).
+-- source_ref is stable across rescans; the partial index keeps one row per
+-- source per card so a refresh never duplicates a deal or a review.
+ALTER TABLE gritscore_items ADD COLUMN IF NOT EXISTS source_ref VARCHAR(80);
+CREATE UNIQUE INDEX IF NOT EXISTS gritscore_items_scan_source_uniq
+  ON gritscore_items (scan_id, source_ref) WHERE source_ref IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS gritscore_referees (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

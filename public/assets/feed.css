@@ -80,6 +80,11 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
 .topnav .icons svg { width: 23px; height: 23px; fill: none; stroke: #6C3FE8; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: fill .12s ease; }
 .topnav .icons a.on svg { fill: #6C3FE8; stroke: #6C3FE8; }
 .topnav .icons a:hover svg { fill: #EFE6FF; }
+/* GritScore lives in the desktop left sidebar. This top-nav copy is the phone
+   route in; without it there is no way to reach GritScore below 1000px. */
+@media (min-width: 1000px) {
+  .topnav .icons a.gritscore-nav { display: none; }
+}
 .topnav .avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
 .badge { position: relative; }
 .badge .cnt { position: absolute; top: 2px; right: 2px; background: var(--signal); color: #fff; font-size: 9px; font-weight: 700; min-width: 15px; height: 15px; border-radius: 8px; display: grid; place-items: center; padding: 0 3px; }
@@ -349,8 +354,8 @@ h4.sub-title { font-size: 14px; font-weight: 600; margin: 20px 0 12px; }
 @media (max-width: 600px) {
   .topnav { padding: 0 12px; }
   .topnav .nav-logo-text { display: none; }
-  .topnav .icons { gap: 2px; }
-  .topnav .icons a { width: 36px; height: 36px; }
+  .topnav .icons { gap: 1px; }
+  .topnav .icons a { width: 34px; height: 34px; }
   .topnav .icons svg { width: 20px; height: 20px; }
 
   /* Mobile search lives on Explore only, directly above the filter tabs, so the

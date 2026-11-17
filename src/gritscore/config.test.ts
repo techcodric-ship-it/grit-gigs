@@ -3,6 +3,7 @@ import {
   CARD_TEMPLATES,
   CARD_TEMPLATE_IDS,
   DEFAULT_CARD_TEMPLATE,
+  EVIDENCE_VALUE,
   GRITSCORE_PRO,
   isCardTemplate,
   normaliseCardTemplate,
@@ -43,5 +44,15 @@ describe("card templates", () => {
   it("keeps GritScore Pro separate from the platform Pro price", () => {
     expect(GRITSCORE_PRO.priceInr).toBe(99);
     expect(GRITSCORE_PRO.scope).toBe("gritscore");
+  });
+
+  it("values platform-recorded barter evidence without changing the score scale", () => {
+    expect(EVIDENCE_VALUE.barter_completion).toBe(1.0);
+    expect(EVIDENCE_VALUE.barter_review).toBe(0.7);
+    // Existing evidence values are untouched.
+    expect(EVIDENCE_VALUE.liveLink).toBe(1.0);
+    expect(EVIDENCE_VALUE.file).toBe(0.7);
+    expect(EVIDENCE_VALUE.screenshot).toBe(0.5);
+    expect(EVIDENCE_VALUE.none).toBe(0.1);
   });
 });

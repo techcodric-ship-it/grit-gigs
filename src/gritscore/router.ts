@@ -9,7 +9,7 @@ import { Router, type IRouter, type NextFunction, type Request, type Response } 
 import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import multer from "multer";
 import { z } from "zod";
-import { and, desc, eq, gt, ilike, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, ilike, isNull, or, sql } from "drizzle-orm";
 
 import { db, notificationsTable, transactionsTable, usersTable } from "../db";
 import { authenticate, optionalAuth, requireAdmin } from "../middlewares/authenticate";
@@ -45,6 +45,7 @@ import {
   type ExtractionItemInput,
 } from "./ai";
 import { classifyEvidence, detectAbuse, detectFileKind, normaliseUrl, checkProofUrl, proofFileKind, proofLabel } from "./evidence";
+import { collectBarterEvidence } from "./barter-evidence-db";
 import { PdfExtractionError, extractPdfText, isPdf } from "./pdf";
 import { renderCardPdf, renderCardPng, type CardData } from "./card";
 import {
@@ -90,6 +91,20 @@ const APP_URL = (process.env.APP_URL || "https://www.gritandgigs.in").trim().rep
 
 const PROOF_DIR = path.join(PROJECT_ROOT, "uploads", "gritscore");
 const MAX_BODY_ITEMS = LIMITS.maxItems;
+
+/** One item ready for scoring and insertion. Manual items carry no sourceRef;
+ *  barter-derived items do, so they can be upserted instead of duplicated. */
+interface PreparedItem {
+  input: ExtractionItemInput;
+  proofUrl: string | null;
+  proofFileUrl: string | null;
+  proofFileName: string | null;
+  evidenceType: EvidenceType;
+  evidenceStatus: string;
+  evidenceNote: string;
+  skills: string[];
+  sourceRef?: string | null;
+}
 
 // ---- Middleware ------------------------------------------------------------
 
@@ -361,6 +376,51 @@ class ContentEditError extends Error {
   readonly status = 400;
 }
 
+/** Upsert the user's current barter outcomes onto a card, keyed by sourceRef.
+ *  Manual items occupy the leading positions; derived items follow. Stale rows
+ *  (a deal cancelled, a review removed) are dropped. */
+async function refreshBarterEvidence(scanId: string, userId: string, manualCount: number): Promise<void> {
+  const drafts = await collectBarterEvidence(userId, MAX_BODY_ITEMS - manualCount);
+  if (!drafts) return; // read failed — keep existing derived rows, never wipe them
+  const existing = (await listItems(scanId)).filter((item) => item.sourceRef);
+  const byRef = new Map(existing.map((item) => [item.sourceRef as string, item]));
+  const desired = new Set(drafts.map((draft) => draft.sourceRef));
+
+  for (const item of existing) {
+    if (!desired.has(item.sourceRef as string)) {
+      await db.delete(gritscoreItemsTable).where(eq(gritscoreItemsTable.id, item.id));
+    }
+  }
+
+  for (let i = 0; i < drafts.length; i++) {
+    const draft = drafts[i];
+    const values = {
+      position: manualCount + i,
+      title: draft.title,
+      description: draft.description,
+      role: draft.role,
+      startDate: draft.startDate,
+      endDate: draft.endDate,
+      evidenceType: draft.evidenceType,
+      proofUrl: draft.proofUrl,
+      evidenceStatus: draft.evidenceStatus,
+      evidenceNote: draft.evidenceNote.slice(0, 200),
+      sourceRef: draft.sourceRef,
+      skills: draft.skills,
+      hasQuantifiedImpact: false,
+      impactNotes: "",
+      complexity: 2,
+      clarity: 3,
+    };
+    const prev = byRef.get(draft.sourceRef);
+    if (prev) {
+      await db.update(gritscoreItemsTable).set(values).where(eq(gritscoreItemsTable.id, prev.id));
+    } else {
+      await db.insert(gritscoreItemsTable).values({ scanId, ...values });
+    }
+  }
+}
+
 /** Replace the owner-written content of a card and re-score it deterministically.
  *  Free owners can use this: filling in a thin card is not a new scan. */
 async function applyContentEdit(
@@ -370,9 +430,13 @@ async function applyContentEdit(
 ): Promise<Record<string, unknown>> {
   const existing = await listItems(scan.id);
   const byId = new Map(existing.map((item) => [item.id, item]));
+  const manualExisting = existing.filter((item) => !item.sourceRef);
   for (const item of body.items) {
     if (item.id && !byId.has(item.id)) {
       throw new ContentEditError("One of the work items is no longer on this card. Refresh and try again.");
+    }
+    if (item.id && byId.get(item.id)?.sourceRef) {
+      throw new ContentEditError("Barter records are added by the platform and cannot be edited here.");
     }
   }
 
@@ -471,7 +535,9 @@ async function applyContentEdit(
   const headline = body.headline !== undefined ? (body.headline.trim().slice(0, 200) || null) : scan.headline;
 
   const keepIds = new Set(body.items.map((item) => item.id).filter((id): id is string => Boolean(id)));
-  for (const item of existing) {
+  // Only owner-written rows are replaced. Derived barter rows are managed by
+  // refreshBarterEvidence so a content edit never makes them vanish.
+  for (const item of manualExisting) {
     if (keepIds.has(item.id)) continue;
     removeLocalFile(item.proofFileUrl);
     await db.delete(gritscoreItemsTable).where(eq(gritscoreItemsTable.id, item.id));
@@ -511,26 +577,36 @@ async function applyContentEdit(
     }
   }
 
+  // Refresh platform-derived evidence, then score the full item set.
+  await refreshBarterEvidence(scan.id, scan.userId, body.items.length);
+  const systemItems = (await listItems(scan.id)).filter((item) => item.sourceRef);
+
   const verificationTier = resolveVerificationTier(
-    body.items.map((_, i) => ({
-      evidenceType: checks[i].evidenceType,
-      evidenceStatus: checks[i].evidenceStatus,
-    })),
+    [
+      ...body.items.map((_, i) => ({
+        evidenceType: checks[i].evidenceType,
+        evidenceStatus: checks[i].evidenceStatus,
+      })),
+      ...systemItems.map((item) => ({ evidenceType: item.evidenceType, evidenceStatus: item.evidenceStatus })),
+    ],
     await countConfirmedReferees(scan.id),
   );
   const config = await getScoreConfig();
-  const scoreItems: ScoreItemInput[] = body.items.map((item, i) => ({
-    evidenceType: effectiveEvidence({
-      evidenceType: checks[i].evidenceType,
-      evidenceStatus: checks[i].evidenceStatus,
-    }),
-    complexity: extracted.items[i]?.complexity ?? 1,
-    clarity: extracted.items[i]?.clarity ?? 1,
-    hasQuantifiedImpact: extracted.items[i]?.hasQuantifiedImpact ?? false,
-    skills: extracted.items[i]?.skills ?? [],
-    startDate: inputs[i].startDate,
-    endDate: inputs[i].endDate,
-  }));
+  const scoreItems: ScoreItemInput[] = [
+    ...body.items.map((item, i) => ({
+      evidenceType: effectiveEvidence({
+        evidenceType: checks[i].evidenceType,
+        evidenceStatus: checks[i].evidenceStatus,
+      }),
+      complexity: extracted.items[i]?.complexity ?? 1,
+      clarity: extracted.items[i]?.clarity ?? 1,
+      hasQuantifiedImpact: extracted.items[i]?.hasQuantifiedImpact ?? false,
+      skills: extracted.items[i]?.skills ?? [],
+      startDate: inputs[i].startDate,
+      endDate: inputs[i].endDate,
+    })),
+    ...systemItems.map(scoreInputFor),
+  ];
   const result = computeScore({ items: scoreItems, verificationTier }, config);
 
   return {
@@ -616,6 +692,8 @@ function scanView(scan: GritScoreScan, itemCount = 0): ScanView {
 }
 
 async function recomputeScan(scan: GritScoreScan): Promise<{ items: GritScoreItem[]; isPro: boolean; changed: boolean }> {
+  const before = await listItems(scan.id);
+  await refreshBarterEvidence(scan.id, scan.userId, before.filter((item) => !item.sourceRef).length);
   const items = await listItems(scan.id);
   const confirmed = await countConfirmedReferees(scan.id);
   const verificationTier = resolveVerificationTier(items, confirmed);
@@ -761,24 +839,17 @@ router.post(
         if (match) proofByIndex.set(Number(match[1]), file);
       }
 
-      // Prior URLs owned by this user, for duplicate detection.
+      // Prior URLs owned by this user, for duplicate detection. Derived barter
+      // items are excluded: their delivery links are DB-sourced and stable, so
+      // they must never neutralise a later item as "reused".
       const priorRows = await db
         .select({ url: gritscoreItemsTable.proofUrl })
         .from(gritscoreItemsTable)
         .innerJoin(gritscoreScansTable, eq(gritscoreItemsTable.scanId, gritscoreScansTable.id))
-        .where(eq(gritscoreScansTable.userId, user.id));
+        .where(and(eq(gritscoreScansTable.userId, user.id), isNull(gritscoreItemsTable.sourceRef)));
       const priorUrls = priorRows.map((r) => r.url).filter((u): u is string => !!u);
 
-      const prepared: {
-        input: ExtractionItemInput;
-        proofUrl: string | null;
-        proofFileUrl: string | null;
-        proofFileName: string | null;
-        evidenceType: EvidenceType;
-        evidenceStatus: string;
-        evidenceNote: string;
-        skills: string[];
-      }[] = [];
+      const prepared: PreparedItem[] = [];
 
       for (let i = 0; i < body.items.length; i++) {
         const item = body.items[i];
@@ -828,6 +899,32 @@ router.post(
           skills: item.skills ?? [],
         });
       }
+
+      // Platform-recorded barter evidence is appended after the owner's items.
+      // Reserve at least one slot for a manual item (the body schema requires
+      // one) and never let derived evidence dominate the card.
+      const barterDrafts = (await collectBarterEvidence(user.id, MAX_BODY_ITEMS - body.items.length)) ?? [];
+      const systemPrepared: PreparedItem[] = barterDrafts.map((draft) => ({
+        input: {
+          title: draft.title,
+          description: draft.description,
+          role: draft.role,
+          startDate: draft.startDate,
+          endDate: draft.endDate,
+          evidenceType: draft.evidenceType,
+          proofUrl: draft.proofUrl,
+          userSkills: draft.skills,
+        },
+        proofUrl: draft.proofUrl,
+        proofFileUrl: null,
+        proofFileName: null,
+        evidenceType: draft.evidenceType,
+        evidenceStatus: draft.evidenceStatus,
+        evidenceNote: draft.evidenceNote,
+        skills: draft.skills,
+        sourceRef: draft.sourceRef,
+      }));
+      const combined: PreparedItem[] = [...prepared, ...systemPrepared];
 
       const abuse = detectAbuse(
         prepared.map((p) => ({
@@ -885,19 +982,24 @@ router.post(
       }
 
       const verificationTier = resolveVerificationTier(
-        prepared.map((p) => ({ evidenceType: p.evidenceType, evidenceStatus: p.evidenceStatus })),
+        combined.map((p) => ({ evidenceType: p.evidenceType, evidenceStatus: p.evidenceStatus })),
         0,
       );
       const config = await getScoreConfig();
-      const scoreItems: ScoreItemInput[] = prepared.map((p, i) => ({
-        evidenceType: p.evidenceType,
-        complexity: extraction.items[i]?.complexity ?? 1,
-        clarity: extraction.items[i]?.clarity ?? 1,
-        hasQuantifiedImpact: extraction.items[i]?.hasQuantifiedImpact ?? false,
-        skills: extraction.items[i]?.skills ?? p.skills,
-        startDate: p.input.startDate,
-        endDate: p.input.endDate,
-      }));
+      // Derived items do not go through the AI; give them modest, fixed craft
+      // values so the score stays deterministic and cannot be prompt-inflated.
+      const scoreItems: ScoreItemInput[] = combined.map((p, i) => {
+        const ai = p.sourceRef ? undefined : extraction.items[i];
+        return {
+          evidenceType: p.evidenceType,
+          complexity: ai?.complexity ?? (p.sourceRef ? 2 : 1),
+          clarity: ai?.clarity ?? (p.sourceRef ? 3 : 1),
+          hasQuantifiedImpact: ai?.hasQuantifiedImpact ?? false,
+          skills: ai?.skills ?? p.skills,
+          startDate: p.input.startDate,
+          endDate: p.input.endDate,
+        };
+      });
       const result = computeScore({ items: scoreItems, verificationTier }, config);
 
       const displayName = (body.displayName || ownerName(user, "Grit&Gigs member")).slice(0, 120);
@@ -941,7 +1043,7 @@ router.post(
         const insertedItems = await tx
           .insert(gritscoreItemsTable)
           .values(
-            prepared.map((p, i) => ({
+            combined.map((p, i) => ({
               scanId: scan.id,
               position: i,
               title: p.input.title,
@@ -955,11 +1057,12 @@ router.post(
               proofFileName: p.proofFileName,
               evidenceStatus: p.evidenceStatus,
               evidenceNote: p.evidenceNote.slice(0, 200),
-              skills: extraction.items[i]?.skills ?? p.skills,
-              hasQuantifiedImpact: extraction.items[i]?.hasQuantifiedImpact ?? false,
-              impactNotes: extraction.items[i]?.impactNotes ?? "",
-              complexity: extraction.items[i]?.complexity ?? 1,
-              clarity: extraction.items[i]?.clarity ?? 1,
+              sourceRef: p.sourceRef ?? null,
+              skills: scoreItems[i].skills ?? p.skills,
+              hasQuantifiedImpact: scoreItems[i].hasQuantifiedImpact,
+              impactNotes: p.sourceRef ? "" : extraction.items[i]?.impactNotes ?? "",
+              complexity: scoreItems[i].complexity,
+              clarity: scoreItems[i].clarity,
             })),
           )
           .returning();

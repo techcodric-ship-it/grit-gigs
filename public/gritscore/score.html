@@ -18,9 +18,9 @@
 <meta name="twitter:description" content="A shareable Proof Score built from work a person can prove."/>
 <link rel="canonical" href="https://www.gritandgigs.in/score"/>
 <link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
-<link rel="stylesheet" href="/assets/gritscore.css?v=10"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=12"/>
 <script src="/js/se-auth.js?v=2" defer></script>
-<script src="/assets/gritscore.js?v=5" defer></script>
+<script src="/assets/gritscore.js?v=6" defer></script>
 </head>
 <body class="gs-page">
 <div class="gs-toast" id="gsToast"></div>
@@ -129,6 +129,8 @@ document.addEventListener('DOMContentLoaded', function () {
   // draws exactly the same card as this public page.
 
   function itemBadge(item) {
+    if (item.evidenceType === 'barter_completion') return '<span class="gs-flip-badge b-barter">Barter verified</span>';
+    if (item.evidenceType === 'barter_review') return '<span class="gs-flip-badge b-barter">Review received</span>';
     if (item.evidenceStatus === 'ok') return '<span class="gs-flip-badge b-ok">Checked</span>';
     if (item.evidenceStatus === 'blocked') return '<span class="gs-flip-badge b-warn">Link is up</span>';
     if (item.proofUrl) return '<span class="gs-flip-badge b-link">Link included</span>';

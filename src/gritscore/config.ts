@@ -12,6 +12,10 @@ export type EvidenceType =
   | "certificate"
   | "file"
   | "screenshot"
+  // Platform-recorded barter outcomes. Derived from completed deals / received
+  // reviews, never from text the card owner typed, so the API is the source.
+  | "barter_completion"
+  | "barter_review"
   | "none";
 
 export type VerificationTier =
@@ -33,6 +37,11 @@ export const EVIDENCE_VALUE: Record<EvidenceType, number> = {
   github: 1.0,
   published: 1.0,
   certificate: 1.0,
+  // A completed barter needs BOTH parties to accept the other's delivery, so
+  // it is recorded evidence rather than a self-claim. A review the owner
+  // *received* is real feedback but easier to farm, hence the lower value.
+  barter_completion: 1.0,
+  barter_review: 0.7,
   file: 0.7,
   screenshot: 0.5,
   none: 0.1,

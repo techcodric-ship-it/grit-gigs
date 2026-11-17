@@ -35,4 +35,16 @@ describe("GritScore session handling", () => {
     expect(html).toContain('id="sessionDead"');
     expect(html).toContain("sessionSignIn");
   });
+
+  it("renders barter evidence with distinct labels and badges", () => {
+    const js = read("assets/gritscore.js");
+    expect(js).toContain("barter_completion: 'Barter completed'");
+    expect(js).toContain("barter_review: 'Barter review'");
+    const owner = read("gritscore/index.html");
+    const publicCard = read("gritscore/score.html");
+    for (const html of [owner, publicCard]) {
+      expect(html).toContain("b-barter");
+      expect(html).toContain("Barter verified");
+    }
+  });
 });

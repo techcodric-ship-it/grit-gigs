@@ -132,6 +132,8 @@
     certificate: 'Certificate',
     file: 'Document',
     screenshot: 'Screenshot',
+    barter_completion: 'Barter completed',
+    barter_review: 'Barter review',
     none: 'No proof'
   };
 

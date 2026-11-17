@@ -65,6 +65,9 @@ export const gritscoreItemsTable = pgTable("gritscore_items", {
   /** unchecked | ok | blocked | dead | invalid | duplicate */
   evidenceStatus: varchar("evidence_status", { length: 20 }).notNull().default("unchecked"),
   evidenceNote: varchar("evidence_note", { length: 200 }),
+  /** Stable id for platform-derived items (e.g. barter:match:<uuid>). NULL for
+   *  owner-written items. Used to dedupe derived evidence across refreshes. */
+  sourceRef: varchar("source_ref", { length: 80 }),
   skills: jsonb("skills").$type<string[]>().notNull().default([]),
   hasQuantifiedImpact: boolean("has_quantified_impact").notNull().default(false),
   impactNotes: text("impact_notes"),

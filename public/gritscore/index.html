@@ -9,10 +9,10 @@
 <meta name="description" content="Turn the work you have actually shipped into a shareable Proof Score backed by links, files and referees."/>
 <link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
 <link rel="stylesheet" href="/assets/app-left-sidebar.css?v=2"/>
-<link rel="stylesheet" href="/assets/gritscore.css?v=10"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=12"/>
 <script src="/js/se-auth.js?v=2" defer></script>
 <script src="/assets/app-left-sidebar.js?v=3" defer></script>
-<script src="/assets/gritscore.js?v=5" defer></script>
+<script src="/assets/gritscore.js?v=6" defer></script>
 </head>
 <body class="gs-page">
 <div class="gs-toast" id="gsToast"></div>
@@ -549,7 +549,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function itemStatus(item) {
     var s = GS.STATUS_LABEL[item.evidenceStatus] || { text: item.evidenceStatus || 'Not checked', cls: '' };
-    if (item.evidenceType === 'file' || item.evidenceType === 'screenshot' || item.evidenceType === 'certificate') {
+    if (item.evidenceType === 'barter_completion' || item.evidenceType === 'barter_review') {
+      s = { text: item.evidenceType === 'barter_completion' ? 'Barter verified' : 'Review received', cls: 'barter' };
+    } else if (item.evidenceType === 'file' || item.evidenceType === 'screenshot' || item.evidenceType === 'certificate') {
       s = { text: 'File attached', cls: 'ok' };
     }
     return '<span class="gs-badge ' + s.cls + '">' + GS.esc(s.text) + '</span>';
@@ -688,6 +690,8 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function previewBadge(item) {
+    if (item.evidenceType === 'barter_completion') return '<span class="gs-flip-badge b-barter">Barter verified</span>';
+    if (item.evidenceType === 'barter_review') return '<span class="gs-flip-badge b-barter">Review received</span>';
     if (item.evidenceStatus === 'ok') return '<span class="gs-flip-badge b-ok">Checked</span>';
     if (item.evidenceStatus === 'blocked') return '<span class="gs-flip-badge b-warn">Link is up</span>';
     if (item.proofUrl) return '<span class="gs-flip-badge b-link">Link included</span>';

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  EVIDENCE_TYPES,
   alignExtraction,
   deterministicExtraction,
   extractProfile,
@@ -182,5 +183,14 @@ describe("alignExtraction", () => {
     const aligned = alignExtraction(input, { ...partial, items: [partial.items[0]] });
     expect(aligned.items).toHaveLength(2);
     expect(aligned.items[1].title).toBe("Design system");
+  });
+});
+
+describe("barter evidence types", () => {
+  it("accepts the DB-derived types for type completeness but never emits them for user items", () => {
+    expect(EVIDENCE_TYPES).toContain("barter_completion");
+    expect(EVIDENCE_TYPES).toContain("barter_review");
+    const result = deterministicExtraction(input);
+    expect(result.items.some((item) => item.evidenceType?.startsWith("barter_"))).toBe(false);
   });
 });

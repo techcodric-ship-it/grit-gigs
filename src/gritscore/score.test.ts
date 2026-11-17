@@ -73,6 +73,23 @@ describe("computeScore", () => {
     expect(r.score).toBeLessThan(850);
   });
 
+  it("scores platform-recorded barter evidence with the same deterministic formula", () => {
+    const completion = computeScore({
+      items: [strong({ evidenceType: "barter_completion" })],
+      verificationTier: "evidence_checked",
+    });
+    const review = computeScore({
+      items: [strong({ evidenceType: "barter_review" })],
+      verificationTier: "evidence_checked",
+    });
+    expect(completion.components.proof).toBe(1);
+    expect(review.components.proof).toBeCloseTo(EVIDENCE_VALUE.barter_review, 5);
+    expect(completion.score).toBeGreaterThan(review.score);
+    // 300 + 600 * weightedSum still holds exactly for both new types.
+    expect(completion.score).toBe(Math.round(300 + 600 * completion.weightedSum));
+    expect(review.score).toBe(Math.round(300 + 600 * review.weightedSum));
+  });
+
   it("caps self-reported cards at 600 even when the arithmetic is higher", () => {
     const items = [strong(), strong(), strong(), strong()];
     const r = computeScore({ items, verificationTier: "self_reported" });

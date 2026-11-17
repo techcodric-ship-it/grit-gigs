@@ -418,6 +418,7 @@ a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
 .gs-badge.warn { color: var(--gs-warn); border-color: rgba(154, 100, 0, 0.25); background: var(--gs-warn-soft); }
 .gs-badge.bad { color: var(--gs-bad); border-color: rgba(183, 52, 44, 0.25); background: var(--gs-bad-soft); }
 .gs-badge.accent { color: var(--gs-accent-deep); border-color: rgba(108, 63, 232, 0.25); background: var(--gs-accent-soft); }
+.gs-badge.barter { color: #1F6E8C; border-color: rgba(31, 110, 140, 0.25); background: #E3F4FA; }
 
 /* ---- Proof items ---------------------------------------------------------- */
 
@@ -2004,6 +2005,7 @@ a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
 .gs-flip-badge.b-ok { background: #DDF3E8; color: #0F6A45; }
 .gs-flip-badge.b-link { background: #E1E7FF; color: #2A43B0; }
 .gs-flip-badge.b-warn { background: #FFF1D6; color: #8A5A00; }
+.gs-flip-badge.b-barter { background: #E3F4FA; color: #1F6E8C; }
 .gs-flip-badge.b-self { background: #E9ECF4; color: #5B6479; }
 .gs-flip-empty { margin: 0; font-size: 3.1cqw; line-height: 1.45; color: var(--gs-flip-muted); }
 .gs-flip-more { margin: 1.6cqw 0 0; font-size: 2.9cqw; color: var(--gs-flip-muted); }
@@ -2146,9 +2148,10 @@ a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
 
 /* Coarse-pointer and narrow screens: the 3D turn is unreliable in mobile
    WebKit. backface-visibility can fail on a face that contains a scrolling
-   child, and the mirrored front paints for a beat before the back settles.
-   Mobile therefore swaps the turn for a plain opacity crossfade: no rotateY,
-   no visibility delay, exactly one face on screen at every moment. */
+   child, so the mirrored front paints for a beat before the back settles.
+   Mobile uses a two-face turn instead: each face scales down to an edge and
+   the other scales up, with opacity doing the crossfade. It reads like a card
+   turning, but no rotateY is involved and neither face is ever mirrored. */
 @media (max-width: 820px), (hover: none) and (pointer: coarse) {
   .gs-flip-scene { perspective: none; }
   .gs-flip-tilt,
@@ -2166,22 +2169,40 @@ a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
   }
   .gs-flip.flipped { transform: none !important; }
   .gs-flip-face {
-    transform: none !important;
     backface-visibility: visible;
     -webkit-backface-visibility: visible;
-    transition: opacity 0.22s ease;
+    transform-origin: 50% 50%;
+    will-change: transform, opacity;
+    transition: opacity 0.28s ease, transform 0.4s cubic-bezier(0.2, 0.75, 0.25, 1);
+    transition-delay: 0s;
   }
   .gs-flip-front,
   .gs-flip-back {
     visibility: visible;
+    /* Both faces are always in the DOM and unrotated; scaleX stays positive,
+       so there is no mirrored backface to paint during the turn. */
+    transform: scaleX(1);
     opacity: 1;
-    transition: opacity 0.22s ease;
-    transition-delay: 0s !important;
   }
-  .gs-flip-back { opacity: 0; pointer-events: none; }
-  .gs-flip.flipped .gs-flip-front { visibility: visible; opacity: 0; pointer-events: none; }
-  .gs-flip.flipped .gs-flip-back { visibility: visible; opacity: 1; pointer-events: auto; }
-  .gs-flip:not(.flipped) .gs-flip-front { visibility: visible; opacity: 1; pointer-events: auto; }
+  .gs-flip:not(.flipped) .gs-flip-front,
+  .gs-flip.flipped .gs-flip-back {
+    /* Override the desktop visibility toggles: both faces stay paintable so
+       they can animate in and out instead of snapping. */
+    visibility: visible;
+    opacity: 1;
+    transform: scaleX(1);
+    pointer-events: auto;
+    /* Let the outgoing face collapse first so the incoming face turns in. */
+    transition-delay: 0.08s;
+  }
+  .gs-flip:not(.flipped) .gs-flip-back,
+  .gs-flip.flipped .gs-flip-front {
+    visibility: visible;
+    opacity: 0;
+    transform: scaleX(0.02);
+    pointer-events: none;
+    transition-delay: 0s;
+  }
 }
 
 @media (max-width: 520px) {
@@ -2194,7 +2215,7 @@ a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
 @media (prefers-reduced-motion: reduce) {
   .gs-flip { transition-duration: 0.01s; }
   .gs-flip-tilt { transition-duration: 0.01s; }
-  .gs-flip-front, .gs-flip-back { transition-delay: 0s !important; }
+  .gs-flip-front, .gs-flip-back { transition-delay: 0s !important; transition-duration: 0.01s !important; }
   .gs-flip-stamp .arc, .gs-flip-track i { transition: none; }
   .gs-flip-fx.web path { animation: none; stroke-dashoffset: 0; }
   .gs-flip-fx.space .orbit i { animation: none; }
