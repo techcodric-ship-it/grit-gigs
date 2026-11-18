@@ -487,16 +487,9 @@ router.post("/messages/conversations/:conversationId/messages", authenticate, as
   const isGroup = conv.isGroup ?? false;
   const recipientId = !isGroup ? (conv.user1Id === req.user!.id ? conv.user2Id : conv.user1Id) : null;
 
-  // Contact info (email, phone) is censored for normal conversations. In support
-  // conversations with an admin recipient, the real details are kept so the
-  // platform can help — admins see the original, other users never do. Group
-  // (circle) chats keep real details too, so members can reach each other.
-  let finalText = (messageText || "").trim();
-  const [admin] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "amuthavananfl@gmail.com")).limit(1);
-  if (!isGroup && !(admin && admin.id === recipientId)) {
-    const contactPattern = /(?:\+?\d{1,3}[-.\s]?\d{5}[-.\s]?\d{4,})|(?:\d{5}[-.\s]?\d{4,})|(?:\b\d{7,15}\b)|(?:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
-    finalText = finalText.replace(contactPattern, '[hidden]');
-  }
+  // Contact details (email, phone) are stored exactly as written so people can
+  // actually exchange them in messages. They used to be replaced with [hidden].
+  const finalText = (messageText || "").trim();
 
   const [message] = await db.insert(messagesTable).values({
     conversationId: convId,
