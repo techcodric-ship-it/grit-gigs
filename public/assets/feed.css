@@ -84,6 +84,48 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
 .badge { position: relative; }
 .badge .cnt { position: absolute; top: 2px; right: 2px; background: var(--signal); color: #fff; font-size: 9px; font-weight: 700; min-width: 15px; height: 15px; border-radius: 8px; display: grid; place-items: center; padding: 0 3px; }
 
+/* GritScore is new: a small flag on the top-nav icon and a pill in the desktop
+   sidebar so people notice it. Flex order puts it directly after Home on the
+   compact nav; every other icon keeps its default order. */
+.topnav .icons > a[href="/feed"] { order: -2; }
+.topnav .icons a.gritscore-nav { position: relative; order: -1; }
+.topnav .icons a.gritscore-nav::after {
+  content: "New";
+  position: absolute;
+  top: -5px;
+  right: -8px;
+  z-index: 3;
+  padding: 1px 5px 2px;
+  border-radius: 99px;
+  background: #F59E0B;
+  color: #fff;
+  font-family: 'Syne', sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: .02em;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .18);
+  pointer-events: none;
+}
+.app-left-sidebar a[href="/gritscore"] .app-side-label::after,
+.feed-left-sidebar a[href="/gritscore"] span:last-child::after {
+  content: "New";
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px 2px;
+  border-radius: 99px;
+  background: #F59E0B;
+  color: #fff;
+  font-family: 'Syne', sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.3;
+  vertical-align: middle;
+}
+@media (max-width: 600px) {
+  .topnav .icons a.gritscore-nav::after { top: -4px; right: -5px; font-size: 8px; padding: 1px 4px 2px; }
+}
+
 /* ── layout ── */
 .wrap { max-width: 935px; margin: 0 auto; padding: 76px 16px 60px; display: flex; justify-content: center; }
 .col-main { width: 100%; max-width: 630px; }
