@@ -1347,14 +1347,20 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function saveSettings(id) {
+    var body = {
+      displayName: $('editName').value.trim(),
+      headline: $('editHeadline').value.trim(),
+      isPublic: $('editPublic').checked
+    };
+    // Older cached pages have no link field. Never erase saved links just
+    // because the field is missing from the DOM.
+    var linksField = $('editPortfolioLinks');
+    if (linksField) {
+      body.portfolioLinks = linksField.value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+    }
     GS.request('/scans/' + id, {
       method: 'PATCH',
-      body: {
-        displayName: $('editName').value.trim(),
-        headline: $('editHeadline').value.trim(),
-        portfolioLinks: String($('editPortfolioLinks') ? $('editPortfolioLinks').value : '').split('\n').map(function (s) { return s.trim(); }).filter(Boolean),
-        isPublic: $('editPublic').checked
-      }
+      body: body
     }).then(function (res) {
       if (!res.ok || !res.data.success) { GS.toast((res.data && res.data.message) || 'Could not save'); return; }
       GS.toast('Saved');
