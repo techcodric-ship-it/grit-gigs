@@ -1831,15 +1831,19 @@ a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
   stroke-linejoin: round;
 }
 .gs-front-link {
+  position: absolute;
+  top: 5cqw;
+  right: 6cqw;
+  z-index: 5;
   display: inline-flex;
   align-items: center;
-  max-width: 26cqw;
+  max-width: 34cqw;
   padding: 0.9cqw 2cqw;
   border: 1px solid var(--gs-flip-edge);
   border-radius: 99px;
   background: var(--gs-flip-trust-bg);
   color: var(--gs-flip-trust-ink);
-  font-size: 2.5cqw;
+  font-size: 2.4cqw;
   font-weight: 600;
   line-height: 1.2;
   text-decoration: none;
