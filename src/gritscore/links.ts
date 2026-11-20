@@ -28,8 +28,13 @@ function linkKey(value: string): string {
 }
 
 function cleanUrl(raw: unknown): string | null {
-  const value = String(raw ?? "").trim();
-  if (!/^https?:\/\//i.test(value)) return null;
+  let value = String(raw ?? "").trim();
+  // People paste "github.com/you" far more often than the full URL. Accept a
+  // bare hostname and store it as https:// — never anything nontrivial.
+  if (!/^https?:\/\//i.test(value)) {
+    if (!/^[a-z0-9.-]+\.[a-z]{2,}(?:[/:?#]|$)/i.test(value)) return null;
+    value = `https://${value}`;
+  }
   return value.slice(0, MAX_LINK_LENGTH);
 }
 

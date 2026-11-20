@@ -17,6 +17,13 @@ describe("normalisePortfolioLinks", () => {
     const long = "https://example.com/" + "a".repeat(700);
     expect(normalisePortfolioLinks(long)[0]).toHaveLength(600);
   });
+
+  it("turns a bare portfolio domain into an https link", () => {
+    expect(normalisePortfolioLinks(["github.com/techcodric-ship-it"])).toEqual([
+      "https://github.com/techcodric-ship-it",
+    ]);
+    expect(normalisePortfolioLinks(["javascript:alert(1)"])).toEqual([]);
+  });
 });
 
 describe("publicLinks", () => {
