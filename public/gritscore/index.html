@@ -9,7 +9,7 @@
 <meta name="description" content="Turn the work you have actually shipped into a shareable Proof Score backed by links, files and referees."/>
 <link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
 <link rel="stylesheet" href="/assets/app-left-sidebar.css?v=2"/>
-<link rel="stylesheet" href="/assets/gritscore.css?v=13"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=14"/>
 <script src="/js/se-auth.js?v=2" defer></script>
 <script src="/assets/app-left-sidebar.js?v=3" defer></script>
 <script src="/assets/gritscore.js?v=7" defer></script>
@@ -715,7 +715,13 @@ document.addEventListener('DOMContentLoaded', function () {
     var meta = [item.role, previewDateRange(item)].filter(Boolean).join(' \u00b7 ');
     var skills = (item.skills || []).slice(0, 8);
     var proof = previewProofLink(item);
-    return '<article class="gs-flip-item">' +
+    var url = GS.safeUrl(item.proofUrl);
+    // Clicking anywhere on the scored-work item opens the submitted proof link.
+    var hit = url
+      ? '<a class="gs-flip-item-open" href="' + GS.esc(url) + '" target="_blank" rel="noopener nofollow"' +
+        ' aria-label="Open proof for ' + GS.esc(item.title) + '" title="Open submitted proof"></a>'
+      : '';
+    return '<article class="gs-flip-item' + (url ? ' has-proof' : '') + '">' + hit +
       '<div class="gs-flip-item-head"><div><strong>' + GS.esc(item.title) + '</strong>' +
         (meta ? '<span>' + GS.esc(meta) + '</span>' : '') + '</div>' + previewBadge(item) + '</div>' +
       (item.description ? '<p class="gs-flip-item-desc">' + GS.esc(item.description) + '</p>' : '') +
@@ -1188,7 +1194,7 @@ document.addEventListener('DOMContentLoaded', function () {
           '<div class="gs-item-foot">' +
             '<span class="gs-chip accent">' + GS.esc(GS.EVIDENCE_LABEL[item.evidenceType] || item.evidenceType) + '</span>' +
             (item.skills || []).slice(0, 6).map(function (s) { return '<span class="gs-chip">' + GS.esc(s) + '</span>'; }).join('') +
-            (item.proofUrl ? '<a class="gs-item-link" href="' + GS.esc(item.proofUrl) + '" target="_blank" rel="noopener nofollow">Open proof</a>' : '') +
+            (GS.safeUrl(item.proofUrl) ? '<a class="gs-item-link" href="' + GS.esc(GS.safeUrl(item.proofUrl)) + '" target="_blank" rel="noopener nofollow">Open proof</a>' : '') +
           '</div>' +
           (item.evidenceNote ? '<p class="gs-hint" style="margin-top:8px;">' + GS.esc(item.evidenceNote) + '</p>' : '') +
           '<div class="gs-inline-form" style="margin-top:10px;">' +
