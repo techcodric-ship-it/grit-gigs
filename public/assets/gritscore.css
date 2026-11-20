@@ -1830,6 +1830,23 @@ a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+.gs-front-link {
+  display: inline-flex;
+  align-items: center;
+  max-width: 42cqw;
+  padding: 1.6cqw 3cqw;
+  border-radius: 99px;
+  background: var(--gs-flip-accent);
+  color: var(--gs-flip-accent-ink);
+  font-size: 3.2cqw;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.gs-front-link:hover { filter: brightness(1.1); text-decoration: underline; }
 .gs-flip-hint {
   display: inline-flex;
   align-items: center;

@@ -18,7 +18,7 @@
 <meta name="twitter:description" content="A shareable Proof Score built from work a person can prove."/>
 <link rel="canonical" href="https://www.gritandgigs.in/score"/>
 <link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
-<link rel="stylesheet" href="/assets/gritscore.css?v=14"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=15"/>
 <script src="/js/se-auth.js?v=2" defer></script>
 <script src="/assets/gritscore.js?v=7" defer></script>
 </head>
@@ -224,6 +224,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     var scaleLine = hasScore ? '300\u2013900 scale \u00b7 ' + confidence : confidence;
 
+    var frontLink = links.length
+      ? '<a class="gs-front-link" href="' + GS.esc(GS.safeUrl(links[0].url)) + '" target="_blank" rel="noopener nofollow" ' +
+          'aria-label="Open ' + GS.esc(links[0].label || 'portfolio') + '" title="Open portfolio">Portfolio ' +
+          GS.esc(String(links[0].label || '').slice(0, 22)) + ' \u2197</a>'
+      : '';
+
     var html = '';
 
     // ---- Flip card ----------------------------------------------------------
@@ -265,6 +271,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<span>' + totalItems + ' ' + GS.plural(totalItems, 'item') + '</span>' +
                 '<span>' + proofCount + ' with proof</span>' +
                 (confirmed ? '<span>' + checkIcon() + confirmed + ' referee</span>' : '') +
+                frontLink +
               '</div>' +
               '<div class="gs-flip-hint">Tap to flip ' + flipHintIcon() + '</div>' +
             '</div>' +
