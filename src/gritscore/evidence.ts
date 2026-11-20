@@ -266,7 +266,9 @@ export function detectAbuse(items: AbuseInputItem[], priorUrls: string[] = []): 
     const label = `Item ${index + 1}`;
     if ((item.description ?? "").trim().length < 15) flags.push(`${label}: description is too short to be evidence`);
     if (!item.title || item.title.trim().length < 3) flags.push(`${label}: title is missing`);
-    if (item.evidenceType === "none") flags.push(`${label}: no proof attached`);
+    if (item.evidenceType === "none" && !(item.proofUrl ? normaliseUrl(item.proofUrl) : null)) {
+      flags.push(`${label}: no proof attached`);
+    }
     const normalised = item.proofUrl ? normaliseUrl(item.proofUrl) : null;
     if (normalised && seen.has(normalised)) {
       flags.push(`${label}: proof URL is reused`);

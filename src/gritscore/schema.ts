@@ -41,6 +41,10 @@ export const gritscoreScansTable = pgTable("gritscore_scans", {
   template: varchar("template", { length: 30 }).notNull().default("violet"),
   /** Owner-uploaded profile photo. Shown on the card; never used in scoring. */
   photoUrl: text("photo_url"),
+  /** Owner-submitted portfolio/profile URLs shown in the card's Links section.
+   *  Kept separate from work-item proof so a proof link never doubles as a
+   *  portfolio link. */
+  portfolioLinks: jsonb("portfolio_links").$type<string[] | null>(),
   aiUsed: boolean("ai_used").notNull().default(false),
   abuseFlags: jsonb("abuse_flags").$type<string[]>().notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

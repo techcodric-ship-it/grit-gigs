@@ -45,6 +45,7 @@ import {
   type ExtractionItemInput,
 } from "./ai";
 import { classifyEvidence, detectAbuse, detectFileKind, normaliseUrl, checkProofUrl, proofFileKind, proofLabel } from "./evidence";
+import { normalisePortfolioLinks, publicLinks } from "./links";
 import { collectBarterEvidence } from "./barter-evidence-db";
 import { PdfExtractionError, extractPdfText, isPdf } from "./pdf";
 import { renderCardPdf, renderCardPng, type CardData } from "./card";
@@ -347,27 +348,6 @@ function proofItemsFor(items: GritScoreItem[]): { title: string; label: string }
     }));
 }
 
-/** Links a visitor can open: checked proof links first, then links found in
- *  the resume. Only http(s) is ever returned, so a stored value can never
- *  become a javascript: link on the public page. */
-function publicLinks(scan: GritScoreScan, items: GritScoreItem[]): { url: string; label: string }[] {
-  const seen = new Set<string>();
-  const out: { url: string; label: string }[] = [];
-  const push = (raw: string | null | undefined) => {
-    const value = String(raw ?? "").trim();
-    if (!/^https?:\/\//i.test(value)) return;
-    const key = value.toLowerCase().replace(/\/+$/, "");
-    if (seen.has(key)) return;
-    seen.add(key);
-    out.push({ url: value.slice(0, 600), label: proofLabel(value) });
-  };
-  for (const item of items) {
-    if (item.evidenceStatus === "ok" || item.evidenceStatus === "blocked") push(item.proofUrl);
-  }
-  for (const link of scan.extracted?.links ?? []) push(link);
-  return out.slice(0, 8);
-}
-
 function cardTemplate(scan: GritScoreScan): CardTemplate {
   return normaliseCardTemplate(scan.template);
 }
@@ -445,9 +425,12 @@ async function applyContentEdit(
       const prev = item.id ? byId.get(item.id) : undefined;
       const url = item.proofUrl ? String(item.proofUrl).trim() : null;
       if (prev && (prev.proofUrl ?? null) === url) {
+        // Self-heal rows filled before proof classification existed: a stored
+        // proof URL must not stay labelled as "none" on the next content save.
+        const evidenceType = url && prev.evidenceType === "none" ? classifyEvidence({ url }) : prev.evidenceType;
         return {
           url,
-          evidenceType: prev.evidenceType,
+          evidenceType,
           evidenceStatus: prev.evidenceStatus,
           evidenceNote: prev.evidenceNote ?? "",
           keepFile: true,
@@ -625,6 +608,14 @@ async function applyContentEdit(
     verificationTier,
     components: result.components,
     tips: pro ? buildTips(result, scoreItems) : null,
+    // Recomputed on every content edit so stale flags never linger after the
+    // owner attaches a link or rewrites a description.
+    abuseFlags: detectAbuse(inputs.map((item) => ({
+      title: item.title,
+      description: item.description,
+      proofUrl: item.proofUrl,
+      evidenceType: item.evidenceType,
+    }))).flags,
   };
 }
 
@@ -660,6 +651,7 @@ interface ScanView {
   showExactScore: boolean;
   template: string;
   photoUrl: string | null;
+  portfolioLinks: string[];
   summary: string | null;
   skills: string[];
   roles: string[];
@@ -682,6 +674,7 @@ function scanView(scan: GritScoreScan, itemCount = 0): ScanView {
     showExactScore: scan.showExactScore,
     template: cardTemplate(scan),
     photoUrl: safePhotoUrl(scan.photoUrl),
+    portfolioLinks: normalisePortfolioLinks(scan.portfolioLinks),
     summary: scan.summary,
     skills: (scan.extracted?.skills ?? []).slice(0, 30),
     roles: (scan.extracted?.roles ?? []).slice(0, 12),
@@ -1194,6 +1187,10 @@ router.patch("/scans/:id", authenticate, gritDbGate, writeLimiter, async (req: R
     if (typeof req.body?.isPublic === "boolean") patch.isPublic = req.body.isPublic;
     if (typeof req.body?.showExactScore === "boolean") patch.showExactScore = req.body.showExactScore;
     if (typeof req.body?.displayName === "string") patch.displayName = req.body.displayName.trim().slice(0, 120) || scan.displayName;
+    if (req.body?.portfolioLinks !== undefined) {
+      const links = normalisePortfolioLinks(req.body.portfolioLinks);
+      patch.portfolioLinks = links.length ? links : null;
+    }
 
     if (req.body?.template !== undefined) {
       if (!isCardTemplate(req.body.template)) {

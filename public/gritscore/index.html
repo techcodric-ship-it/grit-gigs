@@ -547,8 +547,16 @@ document.addEventListener('DOMContentLoaded', function () {
     }).join('');
   }
 
+  function evidenceChip(item) {
+    if (item.evidenceType === 'barter_completion') return 'Barter verified';
+    if (item.evidenceType === 'barter_review') return 'Review received';
+    if (item.evidenceType === 'none' && (GS.safeUrl(item.proofUrl) || item.proofFileName)) return 'Portfolio link';
+    return GS.EVIDENCE_LABEL[item.evidenceType] || item.evidenceType || 'No proof';
+  }
+
   function itemStatus(item) {
     var s = GS.STATUS_LABEL[item.evidenceStatus] || { text: item.evidenceStatus || 'Not checked', cls: '' };
+    if (item.evidenceStatus === 'ok') s = { text: 'Checked', cls: 'ok' };
     if (item.evidenceType === 'barter_completion' || item.evidenceType === 'barter_review') {
       s = { text: item.evidenceType === 'barter_completion' ? 'Barter verified' : 'Review received', cls: 'barter' };
     } else if (item.evidenceType === 'file' || item.evidenceType === 'screenshot' || item.evidenceType === 'certificate') {
@@ -1080,6 +1088,12 @@ document.addEventListener('DOMContentLoaded', function () {
         '<div class="gs-field"><label class="gs-label">Headline</label>' +
           '<input class="gs-input" id="editHeadline" maxlength="200" value="' + GS.esc(scan.headline || '') + '"/></div>' +
       '</div>' +
+      '<div class="gs-field" style="margin-bottom:10px;">' +
+        '<label class="gs-label" for="editPortfolioLinks">Portfolio / profile links</label>' +
+        '<textarea class="gs-textarea" id="editPortfolioLinks" rows="3" maxlength="4800" placeholder="https://github.com/you' + '\n' + 'https://yourportfolio.dev">' +
+          GS.esc((scan.portfolioLinks || []).join('\n')) + '</textarea>' +
+        '<p class="gs-hint">One link per line. These appear in the Links section of your card and public page. Up to 8 links. Work-item proof links stay on the work item.</p>' +
+      '</div>' +
       '<label class="gs-check" style="margin-bottom:10px;"><input type="checkbox" id="editPublic"' + (scan.isPublic ? ' checked' : '') + '/>' +
         '<span>Public page is live at <code>/score/' + GS.esc(scan.slug) + '</code></span></label>' +
       '<button class="gs-btn sm" type="button" data-action="save">Save changes</button>' +
@@ -1192,7 +1206,7 @@ document.addEventListener('DOMContentLoaded', function () {
           '</div>' + itemStatus(item) + '</div>' +
           '<p class="gs-item-desc">' + GS.esc(item.description) + '</p>' +
           '<div class="gs-item-foot">' +
-            '<span class="gs-chip accent">' + GS.esc(GS.EVIDENCE_LABEL[item.evidenceType] || item.evidenceType) + '</span>' +
+            '<span class="gs-chip accent">' + GS.esc(evidenceChip(item)) + '</span>' +
             (item.skills || []).slice(0, 6).map(function (s) { return '<span class="gs-chip">' + GS.esc(s) + '</span>'; }).join('') +
             (GS.safeUrl(item.proofUrl) ? '<a class="gs-item-link" href="' + GS.esc(GS.safeUrl(item.proofUrl)) + '" target="_blank" rel="noopener nofollow">Open proof</a>' : '') +
           '</div>' +
@@ -1338,6 +1352,7 @@ document.addEventListener('DOMContentLoaded', function () {
       body: {
         displayName: $('editName').value.trim(),
         headline: $('editHeadline').value.trim(),
+        portfolioLinks: String($('editPortfolioLinks') ? $('editPortfolioLinks').value : '').split('\n').map(function (s) { return s.trim(); }).filter(Boolean),
         isPublic: $('editPublic').checked
       }
     }).then(function (res) {

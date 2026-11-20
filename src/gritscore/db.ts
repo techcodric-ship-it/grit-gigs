@@ -56,6 +56,8 @@ CREATE INDEX IF NOT EXISTS gritscore_scans_user_idx ON gritscore_scans (user_id,
 CREATE INDEX IF NOT EXISTS gritscore_scans_public_idx ON gritscore_scans (is_public) WHERE is_public = TRUE;
 -- Additive upgrade for databases created before profile photos existed.
 ALTER TABLE gritscore_scans ADD COLUMN IF NOT EXISTS photo_url TEXT;
+-- Additive upgrade for owner-submitted portfolio links (separate from item proof).
+ALTER TABLE gritscore_scans ADD COLUMN IF NOT EXISTS portfolio_links JSONB;
 
 CREATE TABLE IF NOT EXISTS gritscore_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
