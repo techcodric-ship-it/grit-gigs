@@ -303,6 +303,50 @@ a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
   box-shadow: 0 0 0 3px var(--gs-accent-soft);
 }
 .gs-textarea { min-height: 96px; resize: vertical; line-height: 1.55; }
+.gs-file-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px;
+  border: 1px dashed var(--gs-line-strong);
+  border-radius: var(--gs-radius-sm);
+  background: var(--gs-surface-2);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.gs-file-picker.dragover { border-color: var(--gs-accent); background: var(--gs-accent-soft); }
+.gs-file-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.gs-file-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  padding: 9px 14px;
+  border: 1px solid var(--gs-line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--gs-ink);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(10, 10, 15, 0.04);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.gs-file-btn:hover { background: var(--gs-surface-3); border-color: var(--gs-line-strong); }
+.gs-file-btn svg {
+  width: 16px; height: 16px; fill: none; stroke: var(--gs-accent);
+  stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+}
+.gs-file-input:focus-visible + .gs-file-btn { border-color: var(--gs-accent); box-shadow: 0 0 0 3px var(--gs-accent-soft); }
+.gs-file-meta {
+  min-width: 0;
+  flex: 1 1 140px;
+  color: var(--gs-ink-3);
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .gs-hint { font-size: 0.77rem; color: var(--gs-ink-3); margin-top: 5px; line-height: 1.5; }
 .gs-row { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .gs-row-3 { display: grid; gap: 14px; grid-template-columns: repeat(3, minmax(0, 1fr)); }

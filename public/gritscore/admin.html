@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"/>
 <title>GritScore admin — Grit&amp;Gigs</title>
 <link rel="icon" href="/favicon.ico?v=10"/>
-<link rel="stylesheet" href="/assets/gritscore.css?v=17"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=18"/>
 <script src="/assets/gritscore.js?v=7" defer></script>
 </head>
 <body class="gs-page">
@@ -82,7 +82,7 @@
     <section class="gs-panel" id="panelConfig" hidden>
       <div class="gs-card">
         <h2 class="gs-h2">Score weights</h2>
-        <p class="gs-muted gs-small" style="margin:0 0 16px;">Five numbers from 0 to 1 that must sum to exactly 1. Changing these changes every future recompute. Verified caps, tiers and evidence values stay in the code config.</p>
+        <p class="gs-muted gs-small" style="margin:0 0 16px;">Five numbers from 0 to 1 that must sum to exactly 1. Changes apply automatically the next time a card is opened. Verified caps, tiers and evidence values stay in the code config.</p>
         <div class="gs-grid gs-3">
           <div class="gs-field"><label class="gs-label" for="wProof">Proof</label><input class="gs-input" id="wProof" type="number" step="0.01" min="0" max="1"/></div>
           <div class="gs-field"><label class="gs-label" for="wSkillDepth">Skill depth</label><input class="gs-input" id="wSkillDepth" type="number" step="0.01" min="0" max="1"/></div>
@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', function () {
       '<div class="gs-between" style="margin-bottom:12px;">' +
         '<h2 class="gs-h2" style="margin:0;">' + GS.esc(scan.displayName || scan.slug) + '</h2>' +
         '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
-          '<button class="gs-btn sm" type="button" id="recomputeBtn">Recompute</button>' +
+          '<button class="gs-btn subtle sm" type="button" id="recomputeBtn">Refresh score</button>' +
           (scan.isPublic ? '<a class="gs-btn subtle sm" href="/score/' + GS.esc(scan.slug) + '" target="_blank" rel="noopener">Public page</a>' : '') +
         '</div>' +
       '</div>' +
@@ -266,9 +266,9 @@ document.addEventListener('DOMContentLoaded', function () {
       (computed.capped ? '<div class="gs-capped" style="margin:0 0 16px;">Capped at ' + computed.cap + ' (self-reported). Raw ' + computed.rawScore + '.</div>' : '') +
       '<div class="gs-label">Components</div>' + (meters || '<p class="gs-muted gs-small">No items.</p>') +
       '<div class="gs-divider"></div>' +
-      '<div class="gs-label">Recompute check</div>' +
+      '<div class="gs-label">Score sync</div>' +
       '<p class="gs-muted gs-small" style="margin:0;">Stored tier <strong>' + GS.esc(scan.tier || '—') + '</strong>, verification <strong>' + GS.esc((scan.verificationTier || '').replace(/_/g, ' ')) + '</strong>. ' +
-        'Recomputing re-derives the verification tier from current evidence and referee state, then rewrites the stored score.</p>' +
+        'Stored scores refresh automatically when a card is opened or its proof changes. Use the button to force a refresh now.</p>' +
       (data.abuseFlags && data.abuseFlags.length ? '<div class="gs-alert warn" style="margin-top:14px;"><strong>Abuse flags</strong><br/>' + data.abuseFlags.map(GS.esc).join('<br/>') + '</div>' : '') +
     '</div>';
 
@@ -320,18 +320,18 @@ document.addEventListener('DOMContentLoaded', function () {
     $('recomputeBtn').addEventListener('click', function (e) {
       var btn = e.currentTarget;
       btn.disabled = true;
-      btn.innerHTML = '<span class="gs-spinner"></span> Recomputing';
+      btn.innerHTML = '<span class="gs-spinner"></span> Refreshing';
       api('/admin/scans/' + scan.id + '/recompute', { method: 'POST' }).then(function (res) {
         btn.disabled = false;
-        btn.textContent = 'Recompute';
-        if (!res.ok || !res.data.success) { GS.toast((res.data && res.data.message) || 'Could not recompute'); return; }
-        GS.toast('Recomputed');
+        btn.textContent = 'Refresh score';
+        if (!res.ok || !res.data.success) { GS.toast((res.data && res.data.message) || 'Could not refresh'); return; }
+        GS.toast('Score refreshed');
         openScan(scan.id);
         loadScans();
       }).catch(function (err) {
         btn.disabled = false;
-        btn.textContent = 'Recompute';
-        GS.toast(err.message || 'Could not recompute');
+        btn.textContent = 'Refresh score';
+        GS.toast(err.message || 'Could not refresh');
       });
     });
   }

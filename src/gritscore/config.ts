@@ -72,6 +72,9 @@ export interface ScoreConfig {
   tiers: { name: TierName; min: number }[];
   /** skillDepth saturates with item count: 1 - exp(-n / saturateAfter). */
   saturateAfter: number;
+  /** When admin weights were last saved. Cards older than this are stale and
+   *  refresh themselves on the next read — no manual recompute required. */
+  configUpdatedAt: Date | null;
 }
 
 export const DEFAULT_CONFIG: ScoreConfig = {
@@ -90,6 +93,7 @@ export const DEFAULT_CONFIG: ScoreConfig = {
     { name: "Starter", min: 300 },
   ],
   saturateAfter: 2.5,
+  configUpdatedAt: null,
 };
 
 /** GritScore Pro is a separate entitlement — never user_subscriptions.planId,

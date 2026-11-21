@@ -684,10 +684,32 @@ function scanView(scan: GritScoreScan, itemCount = 0): ScanView {
   };
 }
 
+/** Older cards can hold a valid proof URL with the pre-classification
+ *  `none` label. Heal those rows before scoring so an automatic refresh
+ *  actually uses the evidence instead of repeating the stale value. */
+async function healManualEvidence(items: GritScoreItem[]): Promise<GritScoreItem[]> {
+  const healed: GritScoreItem[] = [];
+  for (const item of items) {
+    if (!item.sourceRef && item.proofUrl && item.evidenceType === "none") {
+      const nextType = classifyEvidence({ url: item.proofUrl });
+      if (nextType !== "none") {
+        await db
+          .update(gritscoreItemsTable)
+          .set({ evidenceType: nextType })
+          .where(eq(gritscoreItemsTable.id, item.id));
+        healed.push({ ...item, evidenceType: nextType });
+        continue;
+      }
+    }
+    healed.push(item);
+  }
+  return healed;
+}
+
 async function recomputeScan(scan: GritScoreScan): Promise<{ items: GritScoreItem[]; isPro: boolean; changed: boolean }> {
   const before = await listItems(scan.id);
   await refreshBarterEvidence(scan.id, scan.userId, before.filter((item) => !item.sourceRef).length);
-  const items = await listItems(scan.id);
+  const items = await healManualEvidence(await listItems(scan.id));
   const confirmed = await countConfirmedReferees(scan.id);
   const verificationTier = resolveVerificationTier(items, confirmed);
   const config = await getScoreConfig();
@@ -697,8 +719,9 @@ async function recomputeScan(scan: GritScoreScan): Promise<{ items: GritScoreIte
   const tips = isPro ? buildTips(result, input.items) : null;
   const changed =
     scan.score !== result.score ||
-    scan.verificationTier !== verificationTier ||
-    scan.rawScore !== result.rawScore;
+    scan.rawScore !== result.rawScore ||
+    scan.tier !== result.tier ||
+    scan.verificationTier !== verificationTier;
   await db
     .update(gritscoreScansTable)
     .set({
@@ -712,6 +735,27 @@ async function recomputeScan(scan: GritScoreScan): Promise<{ items: GritScoreIte
     })
     .where(eq(gritscoreScansTable.id, scan.id));
   return { items, isPro, changed };
+}
+
+/** Cheap staleness check so a card read does not rewrite the DB every time.
+ *  Scores now follow evidence, referee state and admin weights without
+ *  waiting for someone to press `Recompute` in the admin panel. */
+async function scanNeedsScoreRefresh(scan: GritScoreScan, items: GritScoreItem[]): Promise<boolean> {
+  if (scan.score == null || scan.rawScore == null || !scan.tier) return true;
+  if (items.some((item) => !item.sourceRef && item.proofUrl && item.evidenceType === "none")) return true;
+
+  const config = await getScoreConfig();
+  if (config.configUpdatedAt && scan.updatedAt.getTime() < config.configUpdatedAt.getTime()) return true;
+
+  const confirmed = await countConfirmedReferees(scan.id);
+  return resolveVerificationTier(items, confirmed) !== scan.verificationTier;
+}
+
+async function ensureFreshScan(scan: GritScoreScan): Promise<GritScoreScan> {
+  const items = await listItems(scan.id);
+  if (!(await scanNeedsScoreRefresh(scan, items))) return scan;
+  await recomputeScan(scan);
+  return (await findScanById(scan.id)) ?? scan;
 }
 
 async function requireOwnScan(req: Request, res: Response): Promise<GritScoreScan | null> {
@@ -1096,7 +1140,7 @@ router.post(
 
 router.get("/me", authenticate, gritDbGate, async (req: Request, res: Response): Promise<void> => {
   try {
-    const scans = await listScansForUser(req.user!.id);
+    const scans = await Promise.all((await listScansForUser(req.user!.id)).map(ensureFreshScan));
     const pro = await getActiveGritScorePro(req.user!.id);
     res.json({
       success: true,
@@ -1118,8 +1162,9 @@ router.get("/me", authenticate, gritDbGate, async (req: Request, res: Response):
 
 router.get("/scans/:id", authenticate, gritDbGate, async (req: Request, res: Response): Promise<void> => {
   try {
-    const scan = await requireOwnScan(req, res);
-    if (!scan) return;
+    const owned = await requireOwnScan(req, res);
+    if (!owned) return;
+    const scan = await ensureFreshScan(owned);
     const items = await listItems(scan.id);
     const referees = await listReferees(scan.id);
     const pro = await isOwnerPro(req.user!.id);
@@ -1565,11 +1610,12 @@ async function publicPayload(scan: GritScoreScan, viewerId: string | null): Prom
 
 router.get("/public/:slug", optionalAuth, gritDbGate, async (req: Request, res: Response): Promise<void> => {
   try {
-    const scan = await findScanBySlug(String(req.params.slug || ""));
-    if (!scan) {
+    const found = await findScanBySlug(String(req.params.slug || ""));
+    if (!found) {
       res.status(404).json({ success: false, message: "This scorecard does not exist or is private." });
       return;
     }
+    const scan = await ensureFreshScan(found);
     const payload = await publicPayload(scan, req.user?.id ?? null);
     if (!payload) {
       res.status(404).json({ success: false, message: "This scorecard does not exist or is private." });
@@ -1660,11 +1706,12 @@ router.post("/public/:slug/reviews", optionalAuth, gritDbGate, reviewLimiter, as
 
 router.get("/public/:slug/card.png", gritDbGate, async (req: Request, res: Response): Promise<void> => {
   try {
-    const scan = await findScanBySlug(String(req.params.slug || ""));
-    if (!scan || !scan.isPublic) {
+    const found = await findScanBySlug(String(req.params.slug || ""));
+    if (!found || !found.isPublic) {
       res.status(404).json({ success: false, message: "Card not found" });
       return;
     }
+    const scan = await ensureFreshScan(found);
     const items = await listItems(scan.id);
     const pro = await isOwnerPro(scan.userId);
     const png = await renderCardPng(await buildCardData(scan, items, { ownerView: false, isPro: pro }));
@@ -1679,11 +1726,12 @@ router.get("/public/:slug/card.png", gritDbGate, async (req: Request, res: Respo
 
 router.get("/public/:slug/card.pdf", gritDbGate, async (req: Request, res: Response): Promise<void> => {
   try {
-    const scan = await findScanBySlug(String(req.params.slug || ""));
-    if (!scan || !scan.isPublic) {
+    const found = await findScanBySlug(String(req.params.slug || ""));
+    if (!found || !found.isPublic) {
       res.status(404).json({ success: false, message: "Card not found" });
       return;
     }
+    const scan = await ensureFreshScan(found);
     const pro = await isOwnerPro(scan.userId);
     if (!pro) {
       res.status(402).json({ success: false, code: "PAYWALL", message: "PDF export is a GritScore Pro feature." });
@@ -1703,8 +1751,9 @@ router.get("/public/:slug/card.pdf", gritDbGate, async (req: Request, res: Respo
 
 router.get("/scans/:id/card.png", authenticate, gritDbGate, async (req: Request, res: Response): Promise<void> => {
   try {
-    const scan = await requireOwnScan(req, res);
-    if (!scan) return;
+    const owned = await requireOwnScan(req, res);
+    if (!owned) return;
+    const scan = await ensureFreshScan(owned);
     const items = await listItems(scan.id);
     const pro = await isOwnerPro(req.user!.id);
     const png = await renderCardPng(await buildCardData(scan, items, { ownerView: true, isPro: pro }));
@@ -1719,8 +1768,9 @@ router.get("/scans/:id/card.png", authenticate, gritDbGate, async (req: Request,
 
 router.get("/scans/:id/card.pdf", authenticate, gritDbGate, async (req: Request, res: Response): Promise<void> => {
   try {
-    const scan = await requireOwnScan(req, res);
-    if (!scan) return;
+    const owned = await requireOwnScan(req, res);
+    if (!owned) return;
+    const scan = await ensureFreshScan(owned);
     const pro = await isOwnerPro(req.user!.id);
     if (!pro) {
       res.status(402).json({ success: false, code: "PAYWALL", message: "PDF export is a GritScore Pro feature." });
@@ -1999,11 +2049,12 @@ router.get("/admin/scans", adminGuard, gritDbGate, async (req: Request, res: Res
 
 router.get("/admin/scans/:id", adminGuard, gritDbGate, async (req: Request, res: Response): Promise<void> => {
   try {
-    const scan = await findScanById(String(req.params.id || ""));
-    if (!scan) {
+    const found = await findScanById(String(req.params.id || ""));
+    if (!found) {
       res.status(404).json({ success: false, message: "Scan not found" });
       return;
     }
+    const scan = await ensureFreshScan(found);
     const items = await listItems(scan.id);
     const referees = await listReferees(scan.id);
     const reviews = await db

@@ -9,7 +9,7 @@
 <meta name="description" content="Turn the work you have actually shipped into a shareable Proof Score backed by links, files and referees."/>
 <link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
 <link rel="stylesheet" href="/assets/app-left-sidebar.css?v=2"/>
-<link rel="stylesheet" href="/assets/gritscore.css?v=17"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=18"/>
 <script src="/js/se-auth.js?v=2" defer></script>
 <script src="/assets/app-left-sidebar.js?v=3" defer></script>
 <script src="/assets/gritscore.js?v=7" defer></script>
@@ -138,9 +138,16 @@
         <h2 class="gs-h2">2. Resume <span class="gs-muted gs-small" style="font-weight:500;">(optional but recommended)</span></h2>
         <div class="gs-row">
           <div class="gs-field">
-            <label class="gs-label" for="resumeFile">PDF resume</label>
-            <input class="gs-input" id="resumeFile" name="resume" type="file" accept=".pdf,application/pdf,text/plain"/>
-            <p class="gs-hint">Up to 5 MB. The file is read and discarded unless you tick the box below.</p>
+            <label class="gs-label" id="resumePickerLabel">PDF resume</label>
+            <div class="gs-file-picker" id="resumePicker" role="group" aria-labelledby="resumePickerLabel">
+              <input class="gs-file-input" id="resumeFile" name="resume" type="file" accept=".pdf,application/pdf,text/plain"/>
+              <label class="gs-file-btn" for="resumeFile">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg>
+                <span id="resumeFileAction">Choose PDF</span>
+              </label>
+              <span class="gs-file-meta" id="resumeFileName">No file chosen · PDF, up to 5 MB</span>
+            </div>
+            <p class="gs-hint">We read the file to build your card. Nothing is stored unless you opt in below.</p>
           </div>
           <div class="gs-field">
             <label class="gs-label" for="resumeText">Or paste the text</label>
@@ -166,7 +173,7 @@
         <h2 class="gs-h2">4. Sharing</h2>
         <label class="gs-check" style="margin-bottom:10px;">
           <input type="checkbox" id="isPublic" checked/>
-          <span>Make this card public at <strong>/score/&lt;slug&gt;</strong> so I can share the link. You can turn this off at any time.</span>
+          <span>Publish this card to get a clean link you can send to clients. You can turn it off at any time.</span>
         </label>
         <p class="gs-hint" style="margin-bottom:0;">The public page shows your score, tier, verification status, top skills and strongest proof. Visitors can leave a star rating and a short review. It is labelled a Proof Score — never a hiring verdict.</p>
       </div>
@@ -446,6 +453,8 @@ document.addEventListener('DOMContentLoaded', function () {
     itemsList.innerHTML = '';
     addItem();
     addItem();
+    if ($('resumeFile')) $('resumeFile').value = '';
+    updateResumePicker();
     var u = GS.user();
     if (u && !$('displayName').value) {
       $('displayName').value = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
@@ -1069,6 +1078,7 @@ document.addEventListener('DOMContentLoaded', function () {
             '<span class="' + GS.tierClass(tier) + '">' + GS.esc(tier || 'Starter') + '</span>' +
             '<span class="gs-verify ' + verified + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>' + GS.esc(scan.verificationLabel || data.verificationNote || 'Self-reported') + '</span>' +
           '</div>' +
+          '<p class="gs-hint" style="margin:8px 0 0;">Score refreshes automatically when you save proof or work changes.</p>' +
         '</div>' +
         '<div class="gs-right">' +
           '<div class="gs-muted gs-small">' + items.length + ' ' + GS.plural(items.length, 'item') + '</div>' +
@@ -1100,8 +1110,8 @@ document.addEventListener('DOMContentLoaded', function () {
           GS.esc((scan.portfolioLinks || []).join('\n')) + '</textarea>' +
         '<p class="gs-hint">One link per line. These appear in the Links section of your card and public page. Up to 8 links. Work-item proof links stay on the work item.</p>' +
       '</div>' +
-      '<label class="gs-check" style="margin-bottom:10px;"><input type="checkbox" id="editPublic"' + (scan.isPublic ? ' checked' : '') + '/>' +
-        '<span>Public page is live at <code>/score/' + GS.esc(scan.slug) + '</code></span></label>' +
+      '<div class="gs-check" style="margin-bottom:10px;"><input type="checkbox" id="editPublic"' + (scan.isPublic ? ' checked' : '') + '/>' +
+        '<span>Public link: <a href="/score/' + GS.esc(scan.slug) + '" target="_blank" rel="noopener">gritandgigs.in/score/' + GS.esc(scan.slug) + '</a></span></div>' +
       '<button class="gs-btn sm" type="button" data-action="save">Save changes</button>' +
       '<div class="gs-photo-edit">' +
         '<div class="gs-photo-preview" id="photoPreview">' +
@@ -1160,7 +1170,7 @@ document.addEventListener('DOMContentLoaded', function () {
       '<div class="gs-card-head"><h2 class="gs-h2" style="margin:0;">Card content</h2>' +
         '<span class="gs-muted gs-small">This is what visitors see</span></div>' +
       '<p class="gs-hint" style="margin:0 0 14px;">Fill in your bio and the work you want people to see. ' +
-        'Add a proof link where you can \u2014 checked links lift your score and appear as buttons on the card.</p>' +
+        'Add a proof link where you can \u2014 checked links lift your score and appear as buttons on the card. Saving refreshes the score automatically.</p>' +
       '<div class="gs-field"><label class="gs-label">Bio summary</label>' +
         '<textarea class="gs-textarea" id="editSummary" maxlength="1200" placeholder="Two or three plain sentences about what you have shipped and the work you want to be known for.">' + GS.esc(scan.summary || data.summary || '') + '</textarea>' +
         '<p class="gs-hint">Keep it factual. No score, rating or markdown.</p></div>' +
@@ -1560,6 +1570,45 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  function updateResumePicker() {
+    var input = $('resumeFile');
+    if (!input) return;
+    var file = input.files && input.files[0];
+    var name = $('resumeFileName');
+    var action = $('resumeFileAction');
+    if (name) name.textContent = file ? file.name : 'No file chosen \u00b7 PDF, up to 5 MB';
+    if (action) action.textContent = file ? 'Change file' : 'Choose PDF';
+  }
+
+  function wireResumePicker() {
+    var picker = $('resumePicker');
+    var input = $('resumeFile');
+    if (!picker || !input) return;
+    input.addEventListener('change', updateResumePicker);
+    ['dragenter', 'dragover'].forEach(function (type) {
+      picker.addEventListener(type, function (e) {
+        e.preventDefault();
+        picker.classList.add('dragover');
+      });
+    });
+    ['dragleave', 'drop'].forEach(function (type) {
+      picker.addEventListener(type, function (e) {
+        e.preventDefault();
+        picker.classList.remove('dragover');
+      });
+    });
+    picker.addEventListener('drop', function (e) {
+      var files = e.dataTransfer && e.dataTransfer.files;
+      if (!files || !files.length) return;
+      try {
+        input.files = files;
+        updateResumePicker();
+      } catch (_) {
+        GS.toast('Use the Choose PDF button to select your resume.');
+      }
+    });
+  }
+
   // ---- Wiring --------------------------------------------------------------
   $('sessionSignIn').addEventListener('click', function () { location.href = '/'; });
   document.addEventListener('click', function (e) {
@@ -1602,6 +1651,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  wireResumePicker();
+  updateResumePicker();
   show('list');
   renderPlanBar();
   loadScans();

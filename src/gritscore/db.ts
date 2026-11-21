@@ -337,13 +337,15 @@ let configCache: { at: number; config: ScoreConfig } | null = null;
 export async function getScoreConfig(): Promise<ScoreConfig> {
   if (configCache && Date.now() - configCache.at < 60_000) return configCache.config;
   let weights: ScoreWeights = { ...DEFAULT_WEIGHTS };
+  let configUpdatedAt: Date | null = null;
   try {
     const [row] = await db.select().from(gritscoreConfigTable).where(eq(gritscoreConfigTable.id, "default")).limit(1);
     weights = mergeWeights(row?.weights ?? null);
+    configUpdatedAt = row?.updatedAt ?? null;
   } catch (err) {
     logger.warn({ err }, "[gritscore] config read failed, using defaults");
   }
-  const config: ScoreConfig = { ...DEFAULT_CONFIG, weights };
+  const config: ScoreConfig = { ...DEFAULT_CONFIG, weights, configUpdatedAt };
   configCache = { at: Date.now(), config };
   return config;
 }
