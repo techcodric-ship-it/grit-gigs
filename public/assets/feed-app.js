@@ -542,7 +542,26 @@
     var days = Math.floor(s / 86400);
     return days + 'd';
   }
-  function kindCode(k) { return { GIG: 'GIG', BARTER: 'BARTER', WIN: 'WIN', TIPS: 'TIPS', POST: 'POST', REEL: 'REEL', PROJECT: 'PROJECT' }[k] || 'POST'; }
+  function kindCode(k) { return { GIG: 'GIG', BARTER: 'BARTER', WIN: 'WIN', TIPS: 'TIPS', POST: 'POST', REEL: 'CLIP', CLIP: 'CLIP', PROJECT: 'PROJECT' }[k] || 'POST'; }
+  function fmtCount(n) { return Number(n || 0).toLocaleString('en-IN'); }
+  function patchViewCount(postId, n) {
+    if (!postId) return;
+    var v = fmtCount(n);
+    document.querySelectorAll('[data-view-count="' + postId + '"]').forEach(function (el) { el.textContent = v; });
+  }
+  function notePostView(postId) {
+    if (!postId) return Promise.resolve(null);
+    var key = 'gg_post_view_' + postId;
+    try {
+      if (Number(sessionStorage.getItem(key) || 0) > Date.now()) return Promise.resolve(null);
+      sessionStorage.setItem(key, String(Date.now() + 30 * 60 * 1000));
+    } catch (e) {}
+    return api('/community/posts/' + postId + '/view', { method: 'POST' }).then(function (r) {
+      var n = r.ok && r.d && r.d.data ? r.d.data.viewCount : null;
+      if (n !== null) patchViewCount(postId, n);
+      return n;
+    }).catch(function () { return null; });
+  }
 
   // Status of the real work behind a BARTER / PROJECT post, from the server.
   // closed:true means a bid would be wasted, so the bid button is suppressed.
@@ -575,11 +594,12 @@
     var author = row.author || {};
     var isMine = me && me.id === (p.userId || author.id);
     var kind = kindCode(p.kind);
+    var isClip = p.kind === 'REEL' || kind === 'CLIP';
     var med = primeMedia(row);
     var mArr = mediaOf(p);
 
     var el = document.createElement('div');
-    el.className = 'card' + (kind === 'REEL' ? ' reel-card' : '');
+    el.className = 'card' + (isClip ? ' reel-card' : '');
     el.dataset.id = p.id;
     el.dataset.kind = kind;
     var followBtn = '';
@@ -591,13 +611,10 @@
 
     var mediaHtml = '';
     if (med && med.url) {
-      if (kind === 'REEL') {
-        var firstFrame = '';
-        mediaHtml = '<div class="card-media reel" data-open="' + esc(p.id) + '">' +
-          '<img src="' + esc(med.url) + '" loading="lazy" data-vsrc="' + esc(med.url) + '" onerror="this.style.display=\'none\'"/><div class="play">▶</div>' +
-          '<span class="kind-stamp">REEL</span></div>';
-      } else if (med.type === 'video') {
-        mediaHtml = '<div class="card-media"><video src="' + esc(med.url) + '" controls preload="metadata" style="max-height:680px;"></video></div>';
+      if (med.type === 'video') {
+        mediaHtml = '<div class="card-media' + (isClip ? ' reel' : '') + '">' +
+          '<video src="' + esc(med.url) + '" controls playsinline preload="metadata" style="max-height:680px;"></video>' +
+          (isClip ? '<span class="kind-stamp">CLIP</span>' : '') + '</div>';
       } else {
         mediaHtml = '<div class="card-media"' + (mArr.length > 1 ? '' : '') + '>' +
           '<img src="' + esc(med.url) + '" loading="lazy" onerror="this.style.display=\'none\'" style="' + (kind === 'BARTER' ? 'aspect-ratio:1/1;object-fit:cover;' : '') + '"/>' +
@@ -654,8 +671,9 @@
       workBar +
       (cta ? '<div style="padding:0 16px 8px;">' + cta + '</div>' : '') +
       '<div class="card-actions">' +
-        '<button class="like' + (row.likedByMe ? ' liked' : '') + '" data-like="' + esc(p.id) + '">♥<span class="c">' + Number(p.likeCount || 0).toLocaleString('en-IN') + '</span></button>' +
-        '<button data-open="' + esc(p.id) + '">💬<span class="c">' + Number(p.commentCount || 0).toLocaleString('en-IN') + '</span></button>' +
+        '<button class="like' + (row.likedByMe ? ' liked' : '') + '" data-like="' + esc(p.id) + '">♥<span class="c">' + fmtCount(p.likeCount) + '</span></button>' +
+        '<button data-open="' + esc(p.id) + '">💬<span class="c">' + fmtCount(p.commentCount) + '</span></button>' +
+        '<span class="views" title="Views">◉<span class="v" data-view-count="' + esc(p.id) + '">' + fmtCount(p.viewCount) + '</span></span>' +
         '<button class="sp" data-share="' + esc(p.id) + '">➤</button>' +
       '</div>' +
       '<div class="card-likes">' + Number(p.likeCount || 0).toLocaleString('en-IN') + ' likes</div>' +
@@ -663,6 +681,10 @@
       '<div class="card-comments">' + moreCmts + commentsHtml + '</div>' +
       '<div class="card-date">' + timeAgo(p.createdAt) + '</div>' +
       '<div class="card-comment-form"><input placeholder="Add a comment..." data-cmf="' + esc(p.id) + '"/><button data-cms="' + esc(p.id) + '">Post</button></div>';
+
+    // A played clip is a real view. Count it once per browser session.
+    var player = el.querySelector('.card-media video');
+    if (player) player.addEventListener('play', function () { notePostView(p.id); }, { once: true });
 
     // like
     var likeBtn = el.querySelector('[data-like]');
@@ -766,6 +788,7 @@
   function openPost(postId) {
     var m = document.getElementById('postModal');
     if (!m) return;
+    var viewCountPromise = notePostView(postId);
     var body = m.querySelector('.modal');
     if (body) body.innerHTML = '<div class="loading">Loading…</div>';
     m.classList.add('open');
@@ -777,6 +800,7 @@
         body.innerHTML = '';
         body.appendChild(containerEl);
       }
+      viewCountPromise.then(function (n) { if (n !== null) patchViewCount(postId, n); });
     });
   }
 
@@ -1120,6 +1144,8 @@
     avatarFor: avatarFor,
     handleFor: handleFor,
     kindCode: kindCode,
+    notePostView: notePostView,
+    patchViewCount: patchViewCount,
     mediaOf: mediaOf,
     primeMedia: primeMedia,
     renderPost: renderPost,
@@ -1210,6 +1236,7 @@
       if (typeof nn.commentCount === 'number') {
         card.querySelectorAll('[data-open="' + postId + '"] .c').forEach(function (n) { n.textContent = Number(nn.commentCount).toLocaleString('en-IN'); });
       }
+      if (typeof nn.viewCount === 'number') patchViewCount(postId, nn.viewCount);
     });
     if (feedDelegates.onChanged) { try { feedDelegates.onChanged(postId, nn); } catch (e) {} }
   }

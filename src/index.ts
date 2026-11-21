@@ -648,6 +648,7 @@ app.set("io", io);
             status TEXT DEFAULT 'ACTIVE' NOT NULL,
             like_count INTEGER DEFAULT 0 NOT NULL,
             comment_count INTEGER DEFAULT 0 NOT NULL,
+            view_count INTEGER DEFAULT 0 NOT NULL,
             created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
             updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
           );
@@ -657,6 +658,7 @@ app.set("io", io);
           ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS revisions INTEGER DEFAULT 0 NOT NULL;
           ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS want_inr INTEGER;
           ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS want_text TEXT;
+          ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS view_count INTEGER DEFAULT 0 NOT NULL;
 
           CREATE TABLE IF NOT EXISTS community_likes (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

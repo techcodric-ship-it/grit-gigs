@@ -167,6 +167,7 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
 .card-actions button.liked { color: var(--signal); }
 .card-actions button .c { font-size: 12px; margin-left: 3px; }
 .card-actions .sp { margin-left: auto; }
+.card-actions .views { display: inline-flex; align-items: center; gap: 4px; padding: 6px 4px; font-size: 12px; font-weight: 600; color: var(--dusk); }
 .card-likes { padding: 0 16px; font-size: 14px; font-weight: 600; }
 .card-caption { padding: 2px 16px; font-size: 14px; }
 .card-caption b { margin-right: 4px; }
@@ -217,6 +218,8 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
 .grid .tile:hover .over { background: rgba(0,0,0,.4); color: #fff; }
 .grid .tile .reel-ic { position: absolute; top: 8px; right: 8px; color: #fff; font-size: 20px; text-shadow: 0 1px 4px rgba(0,0,0,.5); }
 .grid .tile .kindtag { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,.6); color: #fff; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; }
+.grid .tile .tile-stats { position: absolute; inset: auto 0 0 0; display: flex; gap: 14px; padding: 14px 8px 7px; background: linear-gradient(transparent, rgba(0,0,0,.72)); color: #fff; font-size: 11px; font-weight: 700; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
+.grid .tile .tile-stats span { display: inline-flex; align-items: center; gap: 3px; }
 /* Barter/project work tiles on Explore: status badge under the kind tag, caption at the foot. */
 .grid .tile .spot-ribbon.work { top: 30px; left: 8px; background: #0E8A5F; }
 .grid .tile .over.work { inset: auto 0 0 0; top: auto; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 2px; padding: 10px; background: linear-gradient(transparent, rgba(0,0,0,.72)); color: #fff; text-align: left; font-weight: 700; font-size: 12.5px; }

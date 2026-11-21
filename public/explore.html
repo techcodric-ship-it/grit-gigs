@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, follow"/>
 <title>Explore — Grit&Gigs</title>
 <link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
-<link rel="stylesheet" href="/assets/feed.css?v=41"/><link rel="stylesheet" href="/assets/app-left-sidebar.css?v=2"/><script src="/assets/app-left-sidebar.js?v=3" defer></script>
+<link rel="stylesheet" href="/assets/feed.css?v=42"/><link rel="stylesheet" href="/assets/app-left-sidebar.css?v=2"/><script src="/assets/app-left-sidebar.js?v=3" defer></script>
 </head>
 <body class="explorepage">
 <div class="toast" id="toast"></div>
@@ -97,7 +97,7 @@
   <div class="modal" style="max-width:900px;"></div>
 </div>
 
-<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=41"></script>
+<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=42"></script>
 <script>
 (function () {
   var c = window.community;
@@ -216,21 +216,21 @@ if (kind === 'GIG' || kind === 'PROJECT') kind = '';
     div.className = 'tile';
     var img;
     if (med && med.url) {
-      if (kind === 'REEL' && med.type === 'video') {
+      if (kind === 'CLIP' && med.type === 'video') {
         img = '<video src="' + c.esc(med.url) + '" muted loop playsinline preload="metadata"></video>';
         div.classList.add('long');
       } else {
         img = '<img src="' + c.esc(med.url) + '" loading="lazy"/>';
       }
     } else {
-      img = '<div style="position:absolute;inset:0;display:grid;place-items:center;background:#efefef;font-size:30px;">' + (kind === 'REEL' ? '▶' : '💬') + '</div>';
+      img = '<div style="position:absolute;inset:0;display:grid;place-items:center;background:#efefef;font-size:30px;">' + (kind === 'CLIP' ? '▶' : '💬') + '</div>';
     }
     div.innerHTML =
       img +
       '<span class="kindtag">' + kind + '</span>' +
-      (kind === 'REEL' ? '<span class="reel-ic">▶</span>' : '') +
+      (kind === 'CLIP' ? '<span class="reel-ic">▶</span>' : '') +
       '<button class="tile-share" data-share="' + c.esc(p.id) + '" title="Share">↗</button>' +
-      '<div class="over"><span>♥ ' + Number(p.likeCount || 0) + '</span><span>💬 ' + Number(p.commentCount || 0) + '</span></div>';
+      '<div class="tile-stats"><span>♥ ' + Number(p.likeCount || 0) + '</span><span>💬 ' + Number(p.commentCount || 0) + '</span><span>◉ <span data-view-count="' + c.esc(p.id) + '">' + Number(p.viewCount || 0) + '</span></span></div>';
     // Work-status ribbon on the tile itself, so it reads without opening the post.
     if (ws) div.insertAdjacentHTML('afterbegin', '<span class="work-ribbon ' + ws.cls + '">' + c.esc(ws.label) + '</span>');
     div.addEventListener('click', function () {

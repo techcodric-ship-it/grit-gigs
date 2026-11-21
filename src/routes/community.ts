@@ -848,6 +848,35 @@ router.get("/community/posts/:id", optionalAuth, async (req: Request, res: Respo
   res.status(200).json({ success: true, data: row });
 });
 
+// Record a real post view. Opened detail views and played clips call this once
+// per browser session; the author's own views are not inflated.
+router.post("/community/posts/:id/view", optionalAuth, async (req: Request, res: Response): Promise<void> => {
+  const [post] = await db
+    .select({ id: communityPostsTable.id, userId: communityPostsTable.userId, kind: communityPostsTable.kind, viewCount: communityPostsTable.viewCount })
+    .from(communityPostsTable)
+    .where(eq(communityPostsTable.id, String(req.params.id)))
+    .limit(1);
+  if (!post || post.kind === "GIG" || post.kind === "PROJECT") {
+    res.status(404).json({ success: false, message: "Post not found" });
+    return;
+  }
+
+  if (!req.user?.id || req.user.id !== post.userId) {
+    await db
+      .update(communityPostsTable)
+      .set({ viewCount: sql`${communityPostsTable.viewCount} + 1` })
+      .where(eq(communityPostsTable.id, post.id))
+      .catch((err) => logger.warn({ err }, "Failed to record post view"));
+  }
+
+  const [fresh] = await db
+    .select({ viewCount: communityPostsTable.viewCount })
+    .from(communityPostsTable)
+    .where(eq(communityPostsTable.id, post.id))
+    .limit(1);
+  res.status(200).json({ success: true, data: { viewCount: Number(fresh?.viewCount ?? post.viewCount ?? 0) } });
+});
+
 // â”€â”€ POST /community/posts â€” create a post â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post("/community/posts", authenticate, async (req: Request, res: Response): Promise<void> => {
   const { kind, content, tags, media, priceInr, priceMaxInr, deliveryDays, revisions, wantInr, wantText, coverUrl, location, isRemote } = req.body ?? {};
@@ -1084,6 +1113,7 @@ router.get("/community/users/:id", optionalAuth, async (req: Request, res: Respo
       posts: count(communityPostsTable.id),
       likes: sql<number>`COALESCE(SUM(${communityPostsTable.likeCount}), 0)`,
       comments: sql<number>`COALESCE(SUM(${communityPostsTable.commentCount}), 0)`,
+      views: sql<number>`COALESCE(SUM(${communityPostsTable.viewCount}), 0)`,
     })
     .from(communityPostsTable)
     .where(and(eq(communityPostsTable.userId, user.id), visibleKindCond()));
@@ -1127,6 +1157,7 @@ router.get("/community/users/:id", optionalAuth, async (req: Request, res: Respo
       posts: Number(postStats?.posts ?? 0),
       likes: Number(postStats?.likes ?? 0) + Number(likesGiven?.c ?? 0),
       comments: Number(postStats?.comments ?? 0) + Number(commentsMade?.c ?? 0),
+      views: Number(postStats?.views ?? 0),
       followers: Number(followerCount?.c ?? 0),
       followingCount: Number(followingCount?.c ?? 0),
       following,
