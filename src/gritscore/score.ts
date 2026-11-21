@@ -10,15 +10,16 @@
 //   consistency 50% date coherence + 50% skills coherence
 //   clarity     mean clarity (1..5 → 0..1)
 //
-// Only the self-reported tier is capped (600). Evidence-checked and
-// third-party-confirmed cards are uncapped because the evidence behind them
-// has been independently verified.
+// Caps keep thin evidence honest: self-reported cards cannot pass 600, and a
+// card with only one or two scored work items keeps a lower depth ceiling even
+// when a referee confirms it. Fully evidenced cards can reach Legend.
 
 import {
   DEFAULT_CONFIG,
   SCORE_MAX,
   SCORE_MIN,
   SCORE_RANGE,
+  depthCapForItemCount,
   type EvidenceType,
   type ScoreConfig,
   type TierName,
@@ -51,6 +52,8 @@ export interface ScoreComponents {
   clarity: number;
 }
 
+export type ScoreCapReason = "self_reported" | "thin_evidence" | null;
+
 export interface ScoreResult {
   /** After the verification cap. This is the number shown to humans. */
   score: number;
@@ -62,6 +65,8 @@ export interface ScoreResult {
   components: ScoreComponents;
   verificationTier: VerificationTier;
   cap: number | null;
+  /** Which ceiling actually bound the score, for honest UI guidance. */
+  capReason: ScoreCapReason;
   /** Number of items that actually contributed. */
   itemCount: number;
 }
@@ -194,20 +199,34 @@ export function computeScore(input: ScoreInput, config: ScoreConfig = DEFAULT_CO
   );
 
   const rawScore = Math.round(SCORE_MIN + SCORE_RANGE * weightedSum);
-  const cap = config.caps[input.verificationTier] ?? null;
+  const verificationCap = config.caps[input.verificationTier] ?? null;
+  const depthCap = depthCapForItemCount(n);
+  const cap =
+    verificationCap === null
+      ? depthCap
+      : depthCap === null
+        ? verificationCap
+        : Math.min(verificationCap, depthCap);
   const score = cap === null ? rawScore : Math.min(rawScore, cap);
   // A card with no items is a 300 Starter card, never a NaN.
   const safeScore = clamp(score, SCORE_MIN, SCORE_MAX);
+  const capped = cap !== null && rawScore > cap;
+  const capReason: ScoreCapReason = !capped
+    ? null
+    : depthCap !== null && (verificationCap === null || depthCap <= verificationCap)
+      ? "thin_evidence"
+      : "self_reported";
 
   return {
     score: safeScore,
     rawScore: clamp(rawScore, SCORE_MIN, SCORE_MAX),
-    capped: cap !== null && rawScore > cap,
+    capped,
     tier: scoreTier(safeScore, config),
     weightedSum,
     components,
     verificationTier: input.verificationTier,
     cap,
+    capReason,
     itemCount: n,
   };
 }
@@ -266,7 +285,11 @@ export function buildTips(
   }
 
   if (result.capped && result.cap !== null) {
-    tips.unshift(`Your evidence supports a ${result.rawScore}, but self-reported work is capped at ${result.cap}. Get a referee to confirm and the cap lifts.`);
+    if (result.capReason === "thin_evidence") {
+      tips.unshift("This card is still thin on work history. Add another scored work item to lift the ceiling — a referee alone will not.");
+    } else {
+      tips.unshift(`Your evidence supports a ${result.rawScore}, but self-reported work is capped at ${result.cap}. Get a referee to confirm and the cap lifts.`);
+    }
   }
   if (tips.length === 0) {
     tips.push("This card is strong. Ask a referee to confirm an item to reach third-party confirmed status.");

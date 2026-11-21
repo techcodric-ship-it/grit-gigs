@@ -3,8 +3,11 @@ import {
   CARD_TEMPLATES,
   CARD_TEMPLATE_IDS,
   DEFAULT_CARD_TEMPLATE,
+  DEPTH_CAPS,
   EVIDENCE_VALUE,
   GRITSCORE_PRO,
+  SCORE_ENGINE_VERSION,
+  depthCapForItemCount,
   isCardTemplate,
   normaliseCardTemplate,
 } from "./config";
@@ -54,5 +57,19 @@ describe("card templates", () => {
     expect(EVIDENCE_VALUE.file).toBe(0.7);
     expect(EVIDENCE_VALUE.screenshot).toBe(0.5);
     expect(EVIDENCE_VALUE.none).toBe(0.1);
+  });
+
+  it("strictly ceilings thin cards and unlocks full range at four scored works", () => {
+    expect(depthCapForItemCount(0)).toBe(300);
+    expect(depthCapForItemCount(1)).toBe(500);
+    expect(depthCapForItemCount(2)).toBe(650);
+    expect(depthCapForItemCount(3)).toBe(750);
+    expect(depthCapForItemCount(4)).toBeNull();
+    expect(depthCapForItemCount(8)).toBeNull();
+    expect(DEPTH_CAPS[DEPTH_CAPS.length - 1]).toBe(750);
+  });
+
+  it("has a version stamp so rule changes refresh stored cards automatically", () => {
+    expect(SCORE_ENGINE_VERSION).toBeGreaterThanOrEqual(2);
   });
 });

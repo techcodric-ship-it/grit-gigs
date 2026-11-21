@@ -29,6 +29,27 @@ export const SCORE_MIN = 300;
 export const SCORE_RANGE = 600;
 export const SCORE_MAX = SCORE_MIN + SCORE_RANGE;
 
+/** Bump when the scoring rules change. ensureGritScoreDb() stamps this into
+ *  gritscore_config and moves updated_at, so every stored card refreshes on
+ *  its next read without anyone pressing Recompute. */
+export const SCORE_ENGINE_VERSION = 2;
+
+/** Thin-file discipline: one work item plus one referee is still thin evidence.
+ *  A confirmed referee lifts the self-report cap, but not the depth ceiling. */
+export const DEPTH_CAPS: readonly (number | null)[] = Object.freeze([
+  300, // no scored work
+  500, // 1 item
+  650, // 2 items
+  750, // 3 items
+  // 4+ items stay uncapped; strong evidence can still reach Legend.
+]);
+
+export function depthCapForItemCount(count: number): number | null {
+  if (!Number.isFinite(count) || count <= 0) return DEPTH_CAPS[0] ?? 300;
+  if (count >= DEPTH_CAPS.length) return null;
+  return DEPTH_CAPS[count] ?? null;
+}
+
 /** Evidence strength, 0..1. A link that can be opened beats a screenshot of a
  *  link; an unverifiable claim is worth almost nothing but is never zero, so a
  *  single weak item does not produce a misleading 300. */

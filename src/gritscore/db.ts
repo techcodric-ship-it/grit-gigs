@@ -10,6 +10,7 @@ import {
   DEFAULT_CONFIG,
   DEFAULT_WEIGHTS,
   GRITSCORE_PRO,
+  SCORE_ENGINE_VERSION,
   type ScoreConfig,
   type ScoreWeights,
 } from "./config";
@@ -135,8 +136,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS gritscore_entitlements_active_uniq
 CREATE TABLE IF NOT EXISTS gritscore_config (
   id VARCHAR(20) PRIMARY KEY,
   weights JSONB,
+  score_engine_version INTEGER NOT NULL DEFAULT 0,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- Additive upgrade for existing installs. Stamping the engine version also
+-- moves updated_at once, which makes older cards refresh on their next read.
+ALTER TABLE gritscore_config ADD COLUMN IF NOT EXISTS score_engine_version INTEGER NOT NULL DEFAULT 0;
+INSERT INTO gritscore_config (id, weights, score_engine_version, updated_at)
+VALUES ('default', NULL, ${SCORE_ENGINE_VERSION}, NOW())
+ON CONFLICT (id) DO UPDATE
+   SET score_engine_version = EXCLUDED.score_engine_version,
+       updated_at = NOW()
+ WHERE COALESCE(gritscore_config.score_engine_version, 0) < ${SCORE_ENGINE_VERSION};
 `;
 
 let ensured: Promise<void> | null = null;
@@ -145,6 +156,9 @@ export function ensureGritScoreDb(): Promise<void> {
   if (!ensured) {
     ensured = (async () => {
       await pool.query(GRITSCORE_DDL);
+      // A stamped engine version moves config.updated_at; drop any config read
+      // that happened before the stamp so cards see the new score rules.
+      configCache = null;
       logger.info("[gritscore] tables ensured");
     })().catch((err: unknown) => {
       ensured = null;
@@ -368,12 +382,13 @@ export function validateWeights(raw: unknown): ScoreWeights | null {
 
 export async function saveScoreWeights(weights: ScoreWeights): Promise<ScoreWeights> {
   const clean: Record<string, number> = { proof: weights.proof, skillDepth: weights.skillDepth, impact: weights.impact, consistency: weights.consistency, clarity: weights.clarity };
+  const now = new Date();
   await db
     .insert(gritscoreConfigTable)
-    .values({ id: "default", weights: clean, updatedAt: new Date() })
+    .values({ id: "default", weights: clean, scoreEngineVersion: SCORE_ENGINE_VERSION, updatedAt: now })
     .onConflictDoUpdate({
       target: gritscoreConfigTable.id,
-      set: { weights: clean, updatedAt: new Date() },
+      set: { weights: clean, scoreEngineVersion: SCORE_ENGINE_VERSION, updatedAt: now },
     });
   configCache = null;
   return weights;

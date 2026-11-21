@@ -1121,6 +1121,8 @@ router.post(
           score: result.score,
           rawScore: pro ? result.rawScore : null,
           capped: result.capped,
+          cap: pro ? result.cap : null,
+          capReason: pro ? result.capReason : null,
           components: pro ? result.components : null,
           tips: pro ? buildTips(result, scoreItems) : null,
           abuseFlags: abuse.flags,
@@ -1366,6 +1368,9 @@ router.post("/scans/:id/recompute", authenticate, gritDbGate, writeLimiter, asyn
         components: result.components,
         tips: buildTips(result, input.items),
         rawScore: result.rawScore,
+        capped: result.capped,
+        cap: result.cap,
+        capReason: result.capReason,
       },
     });
   } catch (err) {

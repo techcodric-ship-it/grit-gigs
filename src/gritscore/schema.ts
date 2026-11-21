@@ -124,6 +124,7 @@ export const gritscoreEntitlementsTable = pgTable("gritscore_entitlements", {
 export const gritscoreConfigTable = pgTable("gritscore_config", {
   id: varchar("id", { length: 20 }).primaryKey(),
   weights: jsonb("weights").$type<Record<string, number> | null>(),
+  scoreEngineVersion: integer("score_engine_version").notNull().default(0),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

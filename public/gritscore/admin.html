@@ -263,7 +263,7 @@ document.addEventListener('DOMContentLoaded', function () {
         '<div><div class="gs-label">Computed now</div><div style="font-family:var(--gs-font-display);font-size:1.8rem;font-weight:800;">' + (computed.score == null ? '—' : computed.score) + '</div></div>' +
         '<div><div class="gs-label">Raw (pre-cap)</div><div style="font-family:var(--gs-font-display);font-size:1.8rem;font-weight:800;">' + (computed.rawScore == null ? '—' : computed.rawScore) + '</div></div>' +
       '</div>' +
-      (computed.capped ? '<div class="gs-capped" style="margin:0 0 16px;">Capped at ' + computed.cap + ' (self-reported). Raw ' + computed.rawScore + '.</div>' : '') +
+      (computed.capped ? '<div class="gs-capped" style="margin:0 0 16px;">' + (computed.capReason === 'thin_evidence' ? 'Thin work history — capped at ' + computed.cap + ' until more scored work is added.' : 'Self-reported — capped at ' + computed.cap + '.') + ' Raw ' + computed.rawScore + '.</div>' : '') +
       '<div class="gs-label">Components</div>' + (meters || '<p class="gs-muted gs-small">No items.</p>') +
       '<div class="gs-divider"></div>' +
       '<div class="gs-label">Score sync</div>' +

@@ -75,11 +75,11 @@ describe("computeScore", () => {
 
   it("scores platform-recorded barter evidence with the same deterministic formula", () => {
     const completion = computeScore({
-      items: [strong({ evidenceType: "barter_completion" })],
+      items: Array.from({ length: 4 }, () => strong({ evidenceType: "barter_completion" })),
       verificationTier: "evidence_checked",
     });
     const review = computeScore({
-      items: [strong({ evidenceType: "barter_review" })],
+      items: Array.from({ length: 4 }, () => strong({ evidenceType: "barter_review" })),
       verificationTier: "evidence_checked",
     });
     expect(completion.components.proof).toBe(1);
@@ -108,6 +108,31 @@ describe("computeScore", () => {
     expect(confirmed.score).toBeGreaterThan(600);
   });
 
+  it("keeps a one-work card strict even with a confirmed referee", () => {
+    const r = computeScore({
+      items: [strong()],
+      verificationTier: "third_party_confirmed",
+    });
+    expect(r.itemCount).toBe(1);
+    expect(r.rawScore).toBeGreaterThan(500);
+    expect(r.score).toBe(500);
+    expect(r.tier).toBe("Rising");
+    expect(r.capped).toBe(true);
+    expect(r.capReason).toBe("thin_evidence");
+  });
+
+  it("lifts the depth ceiling only as scored work is added", () => {
+    const one = computeScore({ items: [strong()], verificationTier: "third_party_confirmed" });
+    const two = computeScore({ items: [strong(), strong()], verificationTier: "third_party_confirmed" });
+    const three = computeScore({ items: [strong(), strong(), strong()], verificationTier: "third_party_confirmed" });
+    const four = computeScore({ items: [strong(), strong(), strong(), strong()], verificationTier: "third_party_confirmed" });
+    expect(one.cap).toBe(500);
+    expect(two.cap).toBe(650);
+    expect(three.cap).toBe(750);
+    expect(four.cap).toBeNull();
+    expect(four.score).toBeGreaterThan(three.score);
+  });
+
   it("skill depth saturates: two strong items beat ten weak ones", () => {
     const deep = computeScore({ items: [strong(), strong()], verificationTier: "evidence_checked" });
     const wide = computeScore({
@@ -134,13 +159,14 @@ describe("computeScore", () => {
   });
 
   it("respects weight overrides without touching the pure function", () => {
-    const items = [strong()];
+    const proofItems = Array.from({ length: 4 }, () => strong());
+    const clarityItems = Array.from({ length: 4 }, () => weak({ clarity: 5 }));
     const proofHeavy = computeScore(
-      { items, verificationTier: "evidence_checked" },
+      { items: proofItems, verificationTier: "evidence_checked" },
       { ...DEFAULT_CONFIG, weights: { proof: 1, skillDepth: 0, impact: 0, consistency: 0, clarity: 0 } },
     );
     const clarityHeavy = computeScore(
-      { items: [weak({ clarity: 5 })], verificationTier: "evidence_checked" },
+      { items: clarityItems, verificationTier: "evidence_checked" },
       { ...DEFAULT_CONFIG, weights: { proof: 0, skillDepth: 0, impact: 0, consistency: 0, clarity: 1 } },
     );
     expect(proofHeavy.score).toBe(900);

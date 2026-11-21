@@ -1085,7 +1085,7 @@ document.addEventListener('DOMContentLoaded', function () {
           '<div class="gs-muted gs-small">' + (scan.isPublic ? 'Public' : 'Private') + '</div>' +
         '</div>' +
       '</div>' +
-      (cached && cached.capped ? '<div class="gs-capped">Your evidence supports a ' + cached.rawScore + ', but self-reported work is capped at 600. A referee confirmation lifts the cap.</div>' : '') +
+      (cached && cached.capped ? '<div class="gs-capped">' + (cached.capReason === 'thin_evidence' ? 'This card is still thin on work history, so its ceiling is ' + cached.cap + '. Add another scored work item to lift it.' : cached.capReason === 'self_reported' ? 'Your evidence supports a ' + cached.rawScore + ', but self-reported work is capped at ' + cached.cap + '. A referee confirmation lifts the cap.' : 'This card is capped at ' + (cached.cap || 600) + ' until more evidence is added.') + '</div>' : '') +
       '<div class="gs-share-row">' +
         (scan.isPublic ? '<a class="gs-btn sm" href="/score/' + GS.esc(scan.slug) + '" target="_blank" rel="noopener">Open public page</a>' +
           '<button class="gs-btn subtle sm" type="button" data-action="copy" data-url="' + GS.esc(scan.publicUrl) + '">Copy link</button>' +
