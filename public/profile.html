@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, follow"/>
 <title>Profile — Grit&Gigs</title>
 <link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
-<link rel="stylesheet" href="/assets/feed.css?v=42"/><link rel="stylesheet" href="/assets/app-left-sidebar.css?v=2"/><script src="/assets/app-left-sidebar.js?v=3" defer></script>
+<link rel="stylesheet" href="/assets/feed.css?v=43"/><link rel="stylesheet" href="/assets/app-left-sidebar.css?v=2"/><script src="/assets/app-left-sidebar.js?v=3" defer></script>
 <style>
 .pcard{background:#fff;border:1px solid #ececf0;border-radius:16px;margin-bottom:14px;overflow:hidden}
 .pbanner{height:120px;background:linear-gradient(115deg,#111 0%,#2b2b33 55%,#eab308 175%)}
@@ -263,7 +263,7 @@
   </div>
 </div>
 
-<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=42"></script>
+<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=43"></script>
 <script>
 (function () {
   var c = window.community;
@@ -402,7 +402,7 @@
     div.innerHTML = img + '<span class="kindtag">' + kind + '</span>' +
       ((kind === 'CLIP' || (med && med.type === 'video')) ? '<span class="reel-ic">▶</span>' : '') +
       '<button class="tile-share" data-share="' + c.esc(p.id) + '" title="Share">↗</button>' +
-      '<div class="tile-stats"><span>♥ ' + Number(p.likeCount || 0) + '</span><span>💬 ' + Number(p.commentCount || 0) + '</span><span>◉ <span data-view-count="' + c.esc(p.id) + '">' + Number(p.viewCount || 0) + '</span></span></div>';
+      '<div class="tile-stats"><span>♥ ' + Number(p.likeCount || 0) + '</span><span>💬 ' + Number(p.commentCount || 0) + '</span><span><svg class="v-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.3 12S6 6 12 6s9.7 6 9.7 6-3.7 6-9.7 6-9.7-6-9.7-6Z"/><circle cx="12" cy="12" r="2.6"/></svg><span data-view-count="' + c.esc(p.id) + '">' + Number(p.viewCount || 0) + '</span></span></div>';
     div.addEventListener('click', function () { c.openPost(p.id); });
     var tb = div.querySelector('.tile-share');
     if (tb) tb.addEventListener('click', function (e) { e.stopPropagation(); c.share(p.id); });
@@ -785,11 +785,12 @@
 
   window.communityFeedDelegates = window.communityFeedDelegates || {};
   window.communityFeedDelegates.onChanged = function (postId, nn) {
-    var tg = document.querySelector('.tile[data-post-id="' + postId + '"] .over');
+    var tg = document.querySelector('.tile[data-post-id="' + postId + '"] .tile-stats');
     if (!tg) return;
-    var spans = tg.querySelectorAll('span');
+    var spans = tg.querySelectorAll(':scope > span');
     if (typeof nn.likeCount === 'number' && spans[0]) spans[0].textContent = '♥ ' + Number(nn.likeCount).toLocaleString('en-IN');
     if (typeof nn.commentCount === 'number' && spans[1]) spans[1].textContent = '💬 ' + Number(nn.commentCount).toLocaleString('en-IN');
+    if (typeof nn.viewCount === 'number') c.patchViewCount(postId, nn.viewCount);
   };
   window.communityFeedDelegates.onPost = function (authorId) {
     if (authorId === profId) { refreshProfileRealtime(); loadPosts(activeTab); }

@@ -543,7 +543,9 @@
     return days + 'd';
   }
   function kindCode(k) { return { GIG: 'GIG', BARTER: 'BARTER', WIN: 'WIN', TIPS: 'TIPS', POST: 'POST', REEL: 'CLIP', CLIP: 'CLIP', PROJECT: 'PROJECT' }[k] || 'POST'; }
+  var EYE_ICON = '<svg class="v-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.3 12S6 6 12 6s9.7 6 9.7 6-3.7 6-9.7 6-9.7-6-9.7-6Z"/><circle cx="12" cy="12" r="2.6"/></svg>';
   function fmtCount(n) { return Number(n || 0).toLocaleString('en-IN'); }
+  function clipSrc(u) { return /#/.test(u) ? u : u + '#t=0.1'; }
   function patchViewCount(postId, n) {
     if (!postId) return;
     var v = fmtCount(n);
@@ -561,6 +563,39 @@
       if (n !== null) patchViewCount(postId, n);
       return n;
     }).catch(function () { return null; });
+  }
+
+  // Clips start muted as soon as they are near the viewport, so the first
+  // frame is visible instead of waiting for a click on a 10 MB upload.
+  var clipObserver = null;
+  function startClip(video) {
+    if (!video || video.dataset.userPaused === '1') return;
+    video.muted = true;
+    var p = video.play();
+    if (p && p.catch) p.catch(function () {});
+  }
+  function watchClip(video, postId) {
+    if (!video) return;
+    video.addEventListener('play', function () { delete video.dataset.userPaused; });
+    video.addEventListener('play', function () { notePostView(postId); }, { once: true });
+    video.addEventListener('pause', function () { if (!video.dataset.autoPaused) video.dataset.userPaused = '1'; });
+
+    if (!('IntersectionObserver' in window)) { startClip(video); return; }
+    if (!clipObserver) {
+      clipObserver = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          var v = e.target;
+          if (e.isIntersecting) {
+            delete v.dataset.autoPaused;
+            startClip(v);
+          } else if (!v.paused) {
+            v.dataset.autoPaused = '1';
+            v.pause();
+          }
+        });
+      }, { rootMargin: '160px 0px', threshold: 0.35 });
+    }
+    clipObserver.observe(video);
   }
 
   // Status of the real work behind a BARTER / PROJECT post, from the server.
@@ -612,8 +647,12 @@
     var mediaHtml = '';
     if (med && med.url) {
       if (med.type === 'video') {
+        var poster = p.coverUrl && !isVideoUrl(p.coverUrl) ? ' poster="' + esc(p.coverUrl) + '"' : '';
+        var mime = /\.webm(\?|$)/i.test(med.url) ? 'video/webm' : 'video/mp4';
         mediaHtml = '<div class="card-media' + (isClip ? ' reel' : '') + '">' +
-          '<video src="' + esc(med.url) + '" controls playsinline preload="metadata" style="max-height:680px;"></video>' +
+          '<video class="clip-player" controls muted loop playsinline preload="metadata" disablepictureinpicture controlslist="nodownload"' + poster + ' style="max-height:680px;">' +
+            '<source src="' + esc(clipSrc(med.url)) + '" type="' + mime + '">' +
+          '</video>' +
           (isClip ? '<span class="kind-stamp">CLIP</span>' : '') + '</div>';
       } else {
         mediaHtml = '<div class="card-media"' + (mArr.length > 1 ? '' : '') + '>' +
@@ -673,7 +712,7 @@
       '<div class="card-actions">' +
         '<button class="like' + (row.likedByMe ? ' liked' : '') + '" data-like="' + esc(p.id) + '">♥<span class="c">' + fmtCount(p.likeCount) + '</span></button>' +
         '<button data-open="' + esc(p.id) + '">💬<span class="c">' + fmtCount(p.commentCount) + '</span></button>' +
-        '<span class="views" title="Views">◉<span class="v" data-view-count="' + esc(p.id) + '">' + fmtCount(p.viewCount) + '</span></span>' +
+        '<span class="views" title="Views" aria-label="Views">' + EYE_ICON + '<span class="v" data-view-count="' + esc(p.id) + '">' + fmtCount(p.viewCount) + '</span></span>' +
         '<button class="sp" data-share="' + esc(p.id) + '">➤</button>' +
       '</div>' +
       '<div class="card-likes">' + Number(p.likeCount || 0).toLocaleString('en-IN') + ' likes</div>' +
@@ -682,9 +721,9 @@
       '<div class="card-date">' + timeAgo(p.createdAt) + '</div>' +
       '<div class="card-comment-form"><input placeholder="Add a comment..." data-cmf="' + esc(p.id) + '"/><button data-cms="' + esc(p.id) + '">Post</button></div>';
 
-    // A played clip is a real view. Count it once per browser session.
+    // Start visible clips muted and count each clip once per browser session.
     var player = el.querySelector('.card-media video');
-    if (player) player.addEventListener('play', function () { notePostView(p.id); }, { once: true });
+    if (player) watchClip(player, p.id);
 
     // like
     var likeBtn = el.querySelector('[data-like]');

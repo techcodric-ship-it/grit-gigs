@@ -28,14 +28,24 @@ const CACHE_PAGES = [
 describe("clip rendering and post views", () => {
   it("labels a REEL-backed clip as CLIP and plays the real video", () => {
     expect(FEED_APP).toMatch(/REEL:\s*'CLIP'/);
-    expect(FEED_APP).toMatch(/<video src="' \+ esc\(med\.url\) \+ '" controls playsinline preload="metadata"/);
+    expect(FEED_APP).toMatch(/<video class="clip-player" controls muted loop playsinline preload="metadata"/);
+    expect(FEED_APP).toMatch(/<source src="' \+ esc\(clipSrc\(med\.url\)\) \+ '" type="' \+ mime \+ '">/);
+    expect(FEED_APP).toContain("function clipSrc(u) { return /#/.test(u) ? u : u + '#t=0.1'; }");
     expect(FEED_APP).toMatch(/kind-stamp">CLIP/);
     expect(FEED_APP).not.toMatch(/data-vsrc/);
     expect(FEED_APP).not.toMatch(/kind-stamp">REEL/);
   });
 
+  it("starts visible clips muted instead of waiting for a click", () => {
+    expect(FEED_APP).toMatch(/function startClip\(video\)[\s\S]{0,200}video\.play\(\)/);
+    expect(FEED_APP).toMatch(/new IntersectionObserver\(function \(entries\)/);
+    expect(FEED_APP).toMatch(/rootMargin: '160px 0px', threshold: 0\.35/);
+    expect(FEED_APP).toMatch(/dataset\.userPaused/);
+  });
+
   it("counts a view once per browser session on play and detail open", () => {
-    expect(FEED_APP).toMatch(/addEventListener\('play', function \(\) \{ notePostView\(p\.id\); \}, \{ once: true \}\)/);
+    expect(FEED_APP).toMatch(/function watchClip\(video, postId\)[\s\S]{0,240}notePostView\(postId\)/);
+    expect(FEED_APP).toMatch(/watchClip\(player, p\.id\)/);
     expect(FEED_APP).toMatch(/function openPost\(postId\)[\s\S]{0,200}notePostView\(postId\)/);
     expect(FEED_APP).toMatch(/viewCountPromise\.then\(function \(n\) \{ if \(n !== null\) patchViewCount\(postId, n\); \}\)/);
     expect(FEED_APP).toMatch(/sessionStorage\.setItem\(key, String\(Date\.now\(\) \+ 30 \* 60 \* 1000\)\)/);
@@ -51,20 +61,26 @@ describe("clip rendering and post views", () => {
   });
 
   it("shows view counts in the feed and on profile/explore tiles", () => {
-    expect(FEED_APP).toMatch(/class="views" title="Views">◉<span class="v" data-view-count=/);
+    expect(FEED_APP).toMatch(/class="views" title="Views" aria-label="Views">' \+ EYE_ICON \+ '<span class="v" data-view-count=/);
+    expect(PROFILE).toMatch(/tile-stats[\s\S]{0,220}<svg class="v-ic"/);
+    expect(EXPLORE).toMatch(/tile-stats[\s\S]{0,220}<svg class="v-ic"/);
     expect(PROFILE).toMatch(/<b id="pViews">0<\/b>views/);
     expect(PROFILE).toMatch(/\$\('pViews'\)\.textContent = d\.views/);
-    expect(PROFILE).toMatch(/tile-stats[\s\S]{0,220}data-view-count=/);
-    expect(EXPLORE).toMatch(/tile-stats[\s\S]{0,220}data-view-count=/);
-    expect(FEED_CSS).toMatch(/\.card-actions \.views/);
+    expect(PROFILE).toContain(".tile[data-post-id=\"' + postId + '\"] .tile-stats");
+    expect(PROFILE).toMatch(/c\.patchViewCount\(postId, nn\.viewCount\)/);
+    expect(PROFILE).toMatch(/tile-stats[\s\S]{0,520}data-view-count=/);
+    expect(EXPLORE).toMatch(/tile-stats[\s\S]{0,520}data-view-count=/);
+    expect(FEED_CSS).toMatch(/\.card-actions \.views \{[^}]*border-radius: 999px/);
+    expect(FEED_CSS).toMatch(/\.v-ic \{/);
+    expect(FEED_CSS).toMatch(/font-variant-numeric: tabular-nums/);
     expect(FEED_CSS).toMatch(/\.grid \.tile \.tile-stats/);
   });
 
   it.each(CACHE_PAGES)("%s busts the feed asset cache", (page) => {
     const s = file(`public/${page}`);
-    expect(s).toMatch(/feed\.css\?v=42/);
-    expect(s).toMatch(/feed-app\.js\?v=42/);
-    expect(s).not.toMatch(/feed\.css\?v=41/);
-    expect(s).not.toMatch(/feed-app\.js\?v=41/);
+    expect(s).toMatch(/feed\.css\?v=43/);
+    expect(s).toMatch(/feed-app\.js\?v=43/);
+    expect(s).not.toMatch(/feed\.css\?v=42/);
+    expect(s).not.toMatch(/feed-app\.js\?v=42/);
   });
 });
