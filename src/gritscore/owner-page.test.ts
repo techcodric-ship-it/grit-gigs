@@ -19,6 +19,13 @@ describe("GritScore owner page copy", () => {
     expect(html).toContain("gs-file-picker");
   });
 
+  it("uses the same branded picker for work-item proof files", () => {
+    expect(html).toContain("data-file-picker");
+    expect(html).toContain("data-file-action");
+    expect(html).toContain("Choose file");
+    expect(html).not.toContain('<input class="gs-input" type="file" data-field="file"');
+  });
+
   it("tells owners that the score updates automatically", () => {
     expect(html).toContain("Score refreshes automatically");
     expect(html).toContain("Saving refreshes the score automatically");

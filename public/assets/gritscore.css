@@ -347,6 +347,8 @@ a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.gs-item .gs-file-picker { cursor: pointer; }
+.gs-item .gs-file-btn { padding: 8px 12px; }
 .gs-hint { font-size: 0.77rem; color: var(--gs-ink-3); margin-top: 5px; line-height: 1.5; }
 .gs-row { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .gs-row-3 { display: grid; gap: 14px; grid-template-columns: repeat(3, minmax(0, 1fr)); }

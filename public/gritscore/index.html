@@ -9,7 +9,7 @@
 <meta name="description" content="Turn the work you have actually shipped into a shareable Proof Score backed by links, files and referees."/>
 <link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
 <link rel="stylesheet" href="/assets/app-left-sidebar.css?v=2"/>
-<link rel="stylesheet" href="/assets/gritscore.css?v=18"/>
+<link rel="stylesheet" href="/assets/gritscore.css?v=19"/>
 <script src="/js/se-auth.js?v=2" defer></script>
 <script src="/assets/app-left-sidebar.js?v=3" defer></script>
 <script src="/assets/gritscore.js?v=7" defer></script>
@@ -220,12 +220,19 @@
     <div class="gs-row">
       <div class="gs-field">
         <label class="gs-label">Proof link</label>
-        <input class="gs-input" data-field="proofUrl" maxlength="600" placeholder="https://github.com/you/project"/>
+        <input class="gs-input" data-field="proofUrl" maxlength="600" placeholder="https://github.com/yourname/project"/>
         <p class="gs-hint">A live link, repo, published piece or certificate URL.</p>
       </div>
       <div class="gs-field">
-        <label class="gs-label">Or attach a file</label>
-        <input class="gs-input" type="file" data-field="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.txt,.md"/>
+        <span class="gs-label">Or attach a file</span>
+        <label class="gs-file-picker" data-file-picker>
+          <input class="gs-file-input" type="file" data-field="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.txt,.md" aria-label="Attach proof file"/>
+          <span class="gs-file-btn">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg>
+            <span data-file-action>Choose file</span>
+          </span>
+          <span class="gs-file-meta" data-file-name>No file chosen · PDF or image</span>
+        </label>
         <p class="gs-hint">PDF or image, up to 5 MB.</p>
       </div>
     </div>
@@ -401,12 +408,53 @@ document.addEventListener('DOMContentLoaded', function () {
     }).join('');
   }
 
+  function updateItemFilePicker(node) {
+    var input = node.querySelector('[data-field="file"]');
+    if (!input) return;
+    var file = input.files && input.files[0];
+    var name = node.querySelector('[data-file-name]');
+    var action = node.querySelector('[data-file-action]');
+    if (name) name.textContent = file ? file.name : 'No file chosen \u00b7 PDF or image';
+    if (action) action.textContent = file ? 'Change file' : 'Choose file';
+  }
+
+  function wireItemFilePicker(node) {
+    var picker = node.querySelector('[data-file-picker]');
+    var input = node.querySelector('[data-field="file"]');
+    if (!picker || !input) return;
+    input.addEventListener('change', function () { updateItemFilePicker(node); });
+    ['dragenter', 'dragover'].forEach(function (type) {
+      picker.addEventListener(type, function (e) {
+        e.preventDefault();
+        picker.classList.add('dragover');
+      });
+    });
+    ['dragleave', 'drop'].forEach(function (type) {
+      picker.addEventListener(type, function (e) {
+        e.preventDefault();
+        picker.classList.remove('dragover');
+      });
+    });
+    picker.addEventListener('drop', function (e) {
+      var files = e.dataTransfer && e.dataTransfer.files;
+      if (!files || !files.length) return;
+      try {
+        input.files = files;
+        updateItemFilePicker(node);
+      } catch (_) {
+        GS.toast('Use the Choose file button to attach proof.');
+      }
+    });
+    updateItemFilePicker(node);
+  }
+
   // ---- Create form ---------------------------------------------------------
   function addItem(prefill) {
     var existing = itemsList.querySelectorAll('[data-item]').length;
     if (existing >= 8) { GS.toast('Eight items is the maximum. Focus on your strongest work.'); return; }
     var node = itemTemplate.content.firstElementChild.cloneNode(true);
     itemsList.appendChild(node);
+    wireItemFilePicker(node);
     var remove = node.querySelector('[data-remove]');
     remove.addEventListener('click', function () {
       node.remove();
