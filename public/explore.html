@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, follow"/>
 <title>Explore — Grit&Gigs</title>
 <link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
-<link rel="stylesheet" href="/assets/feed.css?v=43"/><link rel="stylesheet" href="/assets/app-left-sidebar.css?v=2"/><script src="/assets/app-left-sidebar.js?v=3" defer></script>
+<link rel="stylesheet" href="/assets/feed.css?v=44"/><link rel="stylesheet" href="/assets/app-left-sidebar.css?v=2"/><script src="/assets/app-left-sidebar.js?v=3" defer></script>
 </head>
 <body class="explorepage">
 <div class="toast" id="toast"></div>
@@ -97,11 +97,14 @@
   <div class="modal" style="max-width:900px;"></div>
 </div>
 
-<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=43"></script>
+<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=44"></script>
 <script>
 (function () {
   var c = window.community;
   function $(x) { return document.getElementById(x); }
+  var TILE_HEART = '<span class="i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 5.1a5.2 5.2 0 0 0-7.4 0L12 6.5l-1.4-1.4a5.2 5.2 0 0 0-7.4 7.4L12 21.3l8.8-8.8a5.2 5.2 0 0 0 0-7.4Z"/></svg></span>';
+  var TILE_COMMENT = '<span class="i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 11.6a8.2 8.2 0 0 1-8.3 8.1 8.7 8.7 0 0 1-3.7-.8L3.5 20.5l1.6-4.7a8 8 0 0 1-.9-4.2 8.2 8.2 0 0 1 8.3-8.1 8.2 8.2 0 0 1 8 8.1Z"/></svg></span>';
+  var TILE_EYE = '<span class="i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.3 12S6 6 12 6s9.7 6 9.7 6-3.7 6-9.7 6-9.7-6-9.7-6Z"/><circle cx="12" cy="12" r="2.6"/></svg></span>';
 var params = new URLSearchParams(location.search);
 // Gig and project listings are retired — old ?kind= links fall back to All.
 var kind = params.get('kind') || '';
@@ -230,7 +233,7 @@ if (kind === 'GIG' || kind === 'PROJECT') kind = '';
       '<span class="kindtag">' + kind + '</span>' +
       (kind === 'CLIP' ? '<span class="reel-ic">▶</span>' : '') +
       '<button class="tile-share" data-share="' + c.esc(p.id) + '" title="Share">↗</button>' +
-      '<div class="tile-stats"><span>♥ ' + Number(p.likeCount || 0) + '</span><span>💬 ' + Number(p.commentCount || 0) + '</span><span><svg class="v-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.3 12S6 6 12 6s9.7 6 9.7 6-3.7 6-9.7 6-9.7-6-9.7-6Z"/><circle cx="12" cy="12" r="2.6"/></svg><span data-view-count="' + c.esc(p.id) + '">' + Number(p.viewCount || 0) + '</span></span></div>';
+      '<div class="tile-stats"><span class="tstat">' + TILE_HEART + '<b>' + Number(p.likeCount || 0) + '</b></span><span class="tstat">' + TILE_COMMENT + '<b>' + Number(p.commentCount || 0) + '</b></span><span class="tstat views">' + TILE_EYE + '<b data-view-count="' + c.esc(p.id) + '">' + Number(p.viewCount || 0) + '</b></span></div>';
     // Work-status ribbon on the tile itself, so it reads without opening the post.
     if (ws) div.insertAdjacentHTML('afterbegin', '<span class="work-ribbon ' + ws.cls + '">' + c.esc(ws.label) + '</span>');
     div.addEventListener('click', function () {

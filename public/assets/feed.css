@@ -162,14 +162,20 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
 .price-stamp { position: absolute; bottom: 10px; left: 10px; background: var(--volt); color: #fff; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 6px; }
 .price-stamp small { font-weight: 500; opacity: .9; }
 
-.card-actions { display: flex; gap: 4px; padding: 4px 12px 0; }
-.card-actions button { background: none; border: none; font-size: 23px; padding: 6px; color: var(--ink); line-height: 1; }
+.card-actions { display: flex; align-items: center; gap: 3px; padding: 5px 12px 2px; }
+.card-actions button { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 7px; border: none; border-radius: 9px; background: none; color: var(--ink); font-size: 12px; font-weight: 650; line-height: 1; cursor: pointer; transition: background .15s ease, color .15s ease; }
+.card-actions button:hover { background: rgba(16, 24, 40, .05); }
 .card-actions button.liked { color: var(--signal); }
-.card-actions button .c { font-size: 12px; margin-left: 3px; }
+.card-actions button.liked svg { fill: currentColor; }
+.card-actions button .i, .card-actions .views .i { display: grid; place-items: center; width: 18px; height: 18px; flex: 0 0 18px; }
+.card-actions button svg { display: block; width: 18px; height: 18px; }
+.card-actions button .c { font-size: 12px; font-variant-numeric: tabular-nums; }
 .card-actions .sp { margin-left: auto; }
-.card-actions .views { display: inline-flex; align-items: center; gap: 5px; margin: 2px 4px 0; padding: 5px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg, #f7f8fa); color: var(--ink-2); font-size: 12px; font-weight: 600; line-height: 1; }
-.v-ic { display: block; width: 14px; height: 14px; flex: 0 0 14px; opacity: .72; }
-.card-actions .views .v { font-variant-numeric: tabular-nums; }
+.card-actions .views { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; margin-left: 2px; padding: 0 9px 0 6px; border: 1px solid #e2e6ff; border-radius: 9px; background: linear-gradient(180deg, #f8f9ff, #f0f2ff); color: #4951ad; box-shadow: 0 1px 1px rgba(30, 38, 90, .04); }
+.card-actions .views .i { width: 20px; height: 20px; flex-basis: 20px; border-radius: 6px; background: #fff; box-shadow: 0 1px 2px rgba(35, 45, 95, .12); }
+.card-actions .views svg { display: block; width: 13px; height: 13px; }
+.card-actions .views .v { font-size: 12.5px; font-weight: 750; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+.card-actions .views .lbl { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; opacity: .62; }
 .card-likes { padding: 0 16px; font-size: 14px; font-weight: 600; }
 .card-caption { padding: 2px 16px; font-size: 14px; }
 .card-caption b { margin-right: 4px; }
@@ -220,10 +226,12 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
 .grid .tile:hover .over { background: rgba(0,0,0,.4); color: #fff; }
 .grid .tile .reel-ic { position: absolute; top: 8px; right: 8px; color: #fff; font-size: 20px; text-shadow: 0 1px 4px rgba(0,0,0,.5); }
 .grid .tile .kindtag { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,.6); color: #fff; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; }
-.grid .tile .tile-stats { position: absolute; inset: auto 0 0 0; display: flex; align-items: center; gap: 12px; padding: 18px 9px 7px; background: linear-gradient(transparent, rgba(0,0,0,.78)); color: #fff; font-size: 11px; font-weight: 650; letter-spacing: .01em; }
-.grid .tile .tile-stats > span { display: inline-flex; align-items: center; gap: 4px; line-height: 1; }
-.grid .tile .tile-stats .v-ic { width: 13px; height: 13px; flex-basis: 13px; opacity: .86; }
-.grid .tile .tile-stats [data-view-count] { font-variant-numeric: tabular-nums; }
+.grid .tile .tile-stats { position: absolute; inset: auto 6px 6px 6px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 6px 8px; border: 1px solid rgba(255,255,255,.16); border-radius: 9px; background: rgba(10,14,22,.62); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); box-shadow: 0 3px 10px rgba(0,0,0,.24); color: #fff; font-size: 10.5px; font-weight: 700; letter-spacing: .01em; }
+.grid .tile .tile-stats .tstat { display: inline-flex; align-items: center; gap: 4px; line-height: 1; }
+.grid .tile .tile-stats .i { display: grid; place-items: center; width: 13px; height: 13px; flex: 0 0 13px; opacity: .9; }
+.grid .tile .tile-stats svg { display: block; width: 13px; height: 13px; }
+.grid .tile .tile-stats b { font-weight: 700; font-variant-numeric: tabular-nums; }
+.grid .tile .tile-stats .views { color: #dfe3ff; }
 /* Barter/project work tiles on Explore: status badge under the kind tag, caption at the foot. */
 .grid .tile .spot-ribbon.work { top: 30px; left: 8px; background: #0E8A5F; }
 .grid .tile .over.work { inset: auto 0 0 0; top: auto; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 2px; padding: 10px; background: linear-gradient(transparent, rgba(0,0,0,.72)); color: #fff; text-align: left; font-weight: 700; font-size: 12.5px; }

@@ -543,7 +543,10 @@
     return days + 'd';
   }
   function kindCode(k) { return { GIG: 'GIG', BARTER: 'BARTER', WIN: 'WIN', TIPS: 'TIPS', POST: 'POST', REEL: 'CLIP', CLIP: 'CLIP', PROJECT: 'PROJECT' }[k] || 'POST'; }
-  var EYE_ICON = '<svg class="v-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.3 12S6 6 12 6s9.7 6 9.7 6-3.7 6-9.7 6-9.7-6-9.7-6Z"/><circle cx="12" cy="12" r="2.6"/></svg>';
+  var HEART_ICON = '<span class="i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 5.1a5.2 5.2 0 0 0-7.4 0L12 6.5l-1.4-1.4a5.2 5.2 0 0 0-7.4 7.4L12 21.3l8.8-8.8a5.2 5.2 0 0 0 0-7.4Z"/></svg></span>';
+  var COMMENT_ICON = '<span class="i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 11.6a8.2 8.2 0 0 1-8.3 8.1 8.7 8.7 0 0 1-3.7-.8L3.5 20.5l1.6-4.7a8 8 0 0 1-.9-4.2 8.2 8.2 0 0 1 8.3-8.1 8.2 8.2 0 0 1 8 8.1Z"/></svg></span>';
+  var EYE_ICON = '<span class="i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.3 12S6 6 12 6s9.7 6 9.7 6-3.7 6-9.7 6-9.7-6-9.7-6Z"/><circle cx="12" cy="12" r="2.6"/></svg></span>';
+  var SHARE_ICON = '<span class="i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 3 10.5 13.5"/><path d="M21 3 14.7 21l-4.2-7.5L3 9.3 21 3Z"/></svg></span>';
   function fmtCount(n) { return Number(n || 0).toLocaleString('en-IN'); }
   function clipSrc(u) { return /#/.test(u) ? u : u + '#t=0.1'; }
   function patchViewCount(postId, n) {
@@ -710,10 +713,10 @@
       workBar +
       (cta ? '<div style="padding:0 16px 8px;">' + cta + '</div>' : '') +
       '<div class="card-actions">' +
-        '<button class="like' + (row.likedByMe ? ' liked' : '') + '" data-like="' + esc(p.id) + '">♥<span class="c">' + fmtCount(p.likeCount) + '</span></button>' +
-        '<button data-open="' + esc(p.id) + '">💬<span class="c">' + fmtCount(p.commentCount) + '</span></button>' +
-        '<span class="views" title="Views" aria-label="Views">' + EYE_ICON + '<span class="v" data-view-count="' + esc(p.id) + '">' + fmtCount(p.viewCount) + '</span></span>' +
-        '<button class="sp" data-share="' + esc(p.id) + '">➤</button>' +
+        '<button class="like' + (row.likedByMe ? ' liked' : '') + '" data-like="' + esc(p.id) + '">' + HEART_ICON + '<span class="c">' + fmtCount(p.likeCount) + '</span></button>' +
+        '<button data-open="' + esc(p.id) + '">' + COMMENT_ICON + '<span class="c">' + fmtCount(p.commentCount) + '</span></button>' +
+        '<span class="views" title="Views" aria-label="Views">' + EYE_ICON + '<span class="v" data-view-count="' + esc(p.id) + '">' + fmtCount(p.viewCount) + '</span><span class="lbl">views</span></span>' +
+        '<button class="sp" data-share="' + esc(p.id) + '">' + SHARE_ICON + '</button>' +
       '</div>' +
       '<div class="card-likes">' + Number(p.likeCount || 0).toLocaleString('en-IN') + ' likes</div>' +
       caption +

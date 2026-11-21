@@ -60,27 +60,44 @@ describe("clip rendering and post views", () => {
     expect(COMMUNITY).toMatch(/views: sql<number>`COALESCE\(SUM\(\$\{communityPostsTable\.viewCount\}\), 0\)`/);
   });
 
-  it("shows view counts in the feed and on profile/explore tiles", () => {
-    expect(FEED_APP).toMatch(/class="views" title="Views" aria-label="Views">' \+ EYE_ICON \+ '<span class="v" data-view-count=/);
-    expect(PROFILE).toMatch(/tile-stats[\s\S]{0,220}<svg class="v-ic"/);
-    expect(EXPLORE).toMatch(/tile-stats[\s\S]{0,220}<svg class="v-ic"/);
+  it("shows a polished view metric with matching SVG stat icons", () => {
+    expect(FEED_APP).toContain('var HEART_ICON = \'<span class="i"><svg');
+    expect(FEED_APP).toContain('var COMMENT_ICON = \'<span class="i"><svg');
+    expect(FEED_APP).toContain('var EYE_ICON = \'<span class="i"><svg');
+    expect(FEED_APP).toContain('var SHARE_ICON = \'<span class="i"><svg');
+    expect(FEED_APP).toContain("' + HEART_ICON + '<span class=\"c\">'");
+    expect(FEED_APP).toContain("' + COMMENT_ICON + '<span class=\"c\">'");
+    expect(FEED_APP).toContain("' + EYE_ICON + '<span class=\"v\" data-view-count=\"'");
+    expect(FEED_APP).toContain('<span class=\"lbl\">views</span>');
+    expect(FEED_APP).toContain("' + SHARE_ICON + '</button>'");
+    expect(FEED_APP).not.toContain(">◉<");
+    expect(FEED_APP).not.toContain(">♥<");
+    expect(FEED_APP).not.toContain(">💬<");
+  });
+
+  it("shows view counts on feed and profile/explore tiles", () => {
+    expect(PROFILE).toContain("var TILE_EYE = '<span class=\"i\"><svg");
+    expect(EXPLORE).toContain("var TILE_EYE = '<span class=\"i\"><svg");
+    expect(PROFILE).toContain("' + TILE_HEART + '<b>'");
+    expect(EXPLORE).toContain("' + TILE_COMMENT + '<b>'");
+    expect(PROFILE).toMatch(/tile-stats[\s\S]{0,620}<b data-view-count=/);
+    expect(EXPLORE).toMatch(/tile-stats[\s\S]{0,620}<b data-view-count=/);
     expect(PROFILE).toMatch(/<b id="pViews">0<\/b>views/);
     expect(PROFILE).toMatch(/\$\('pViews'\)\.textContent = d\.views/);
     expect(PROFILE).toContain(".tile[data-post-id=\"' + postId + '\"] .tile-stats");
     expect(PROFILE).toMatch(/c\.patchViewCount\(postId, nn\.viewCount\)/);
-    expect(PROFILE).toMatch(/tile-stats[\s\S]{0,520}data-view-count=/);
-    expect(EXPLORE).toMatch(/tile-stats[\s\S]{0,520}data-view-count=/);
-    expect(FEED_CSS).toMatch(/\.card-actions \.views \{[^}]*border-radius: 999px/);
-    expect(FEED_CSS).toMatch(/\.v-ic \{/);
+    expect(PROFILE).toContain("':scope > .tstat > b'");
+    expect(FEED_CSS).toMatch(/\.card-actions \.views \{[^}]*border-radius: 9px/);
+    expect(FEED_CSS).toMatch(/\.card-actions \.views \{[^}]*background: linear-gradient/);
+    expect(FEED_CSS).toMatch(/\.grid \.tile \.tile-stats \{[^}]*backdrop-filter: blur\(8px\)/);
     expect(FEED_CSS).toMatch(/font-variant-numeric: tabular-nums/);
-    expect(FEED_CSS).toMatch(/\.grid \.tile \.tile-stats/);
   });
 
   it.each(CACHE_PAGES)("%s busts the feed asset cache", (page) => {
     const s = file(`public/${page}`);
-    expect(s).toMatch(/feed\.css\?v=43/);
-    expect(s).toMatch(/feed-app\.js\?v=43/);
-    expect(s).not.toMatch(/feed\.css\?v=42/);
-    expect(s).not.toMatch(/feed-app\.js\?v=42/);
+    expect(s).toMatch(/feed\.css\?v=44/);
+    expect(s).toMatch(/feed-app\.js\?v=44/);
+    expect(s).not.toMatch(/feed\.css\?v=43/);
+    expect(s).not.toMatch(/feed-app\.js\?v=43/);
   });
 });
