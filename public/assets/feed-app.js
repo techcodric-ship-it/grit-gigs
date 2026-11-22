@@ -568,6 +568,24 @@
     }).catch(function () { return null; });
   }
 
+  // Feed impressions count as real views once a card is meaningfully visible.
+  // The same session key as detail/clip views prevents double counting.
+  var impressionObserver = null;
+  function watchImpression(card, postId, opts) {
+    if (!card || !postId || !opts || !opts.countImpression) return;
+    if (!('IntersectionObserver' in window)) { notePostView(postId); return; }
+    if (!impressionObserver) {
+      impressionObserver = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (!e.isIntersecting) return;
+          impressionObserver.unobserve(e.target);
+          notePostView(e.target.dataset.id);
+        });
+      }, { rootMargin: '0px 0px -10% 0px', threshold: 0.3 });
+    }
+    impressionObserver.observe(card);
+  }
+
   // Clips start muted as soon as they are near the viewport, so the first
   // frame is visible instead of waiting for a click on a 10 MB upload.
   var clipObserver = null;
@@ -627,7 +645,7 @@
   function isVideoUrl(u) { return /\.(mp4|webm|m4v|mov)(\?|$)/i.test(u); }
 
   // ── render a post card ──
-  function renderPost(row) {
+  function renderPost(row, opts) {
     var p = row.post || row;
     var author = row.author || {};
     var isMine = me && me.id === (p.userId || author.id);
@@ -727,6 +745,7 @@
     // Start visible clips muted and count each clip once per browser session.
     var player = el.querySelector('.card-media video');
     if (player) watchClip(player, p.id);
+    watchImpression(el, p.id, opts);
 
     // like
     var likeBtn = el.querySelector('[data-like]');

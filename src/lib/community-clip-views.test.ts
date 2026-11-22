@@ -12,6 +12,7 @@ const SCHEMA = file("src/db/schema/community.ts");
 const INDEX = file("src/index.ts");
 const PROFILE = file("public/profile.html");
 const EXPLORE = file("public/explore.html");
+const FEED_PAGE = file("public/feed.html");
 
 const CACHE_PAGES = [
   "buy-more.html",
@@ -49,6 +50,17 @@ describe("clip rendering and post views", () => {
     expect(FEED_APP).toMatch(/function openPost\(postId\)[\s\S]{0,200}notePostView\(postId\)/);
     expect(FEED_APP).toMatch(/viewCountPromise\.then\(function \(n\) \{ if \(n !== null\) patchViewCount\(postId, n\); \}\)/);
     expect(FEED_APP).toMatch(/sessionStorage\.setItem\(key, String\(Date\.now\(\) \+ 30 \* 60 \* 1000\)\)/);
+  });
+
+  it("counts a real feed impression once a card is meaningfully visible", () => {
+    expect(FEED_APP).toContain("function renderPost(row, opts)");
+    expect(FEED_APP).toContain("watchImpression(el, p.id, opts)");
+    expect(FEED_APP).toContain("function watchImpression(card, postId, opts)");
+    expect(FEED_APP).toContain("notePostView(e.target.dataset.id)");
+    expect(FEED_APP).toContain("rootMargin: '0px 0px -10% 0px', threshold: 0.3");
+    expect(FEED_PAGE).toContain("c.renderPost(row, { countImpression: true })");
+    expect(FEED_PAGE).toContain("c.renderPost(r.d.data, { countImpression: true })");
+    expect(FEED_APP).toContain("containerEl.appendChild(renderPost(r.d.data));");
   });
 
   it("stores and returns view counts", () => {
@@ -95,9 +107,9 @@ describe("clip rendering and post views", () => {
 
   it.each(CACHE_PAGES)("%s busts the feed asset cache", (page) => {
     const s = file(`public/${page}`);
-    expect(s).toMatch(/feed\.css\?v=44/);
-    expect(s).toMatch(/feed-app\.js\?v=44/);
-    expect(s).not.toMatch(/feed\.css\?v=43/);
-    expect(s).not.toMatch(/feed-app\.js\?v=43/);
+    expect(s).toMatch(/feed\.css\?v=45/);
+    expect(s).toMatch(/feed-app\.js\?v=45/);
+    expect(s).not.toMatch(/feed\.css\?v=44/);
+    expect(s).not.toMatch(/feed-app\.js\?v=44/);
   });
 });

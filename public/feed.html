@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, follow"/>
 <title>Grit&Gigs — Feed</title>
 <link rel="icon" href="/favicon.ico?v=10"/><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=10"/><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=10"/><link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=10"/><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"/>
-<link rel="stylesheet" href="/assets/feed.css?v=44"/><link rel="stylesheet" href="/assets/feed-sidebar.css?v=6"/><link rel="stylesheet" href="/assets/app-left-sidebar.css?v=2"/><script src="/assets/app-left-sidebar.js?v=3" defer></script>
+<link rel="stylesheet" href="/assets/feed.css?v=45"/><link rel="stylesheet" href="/assets/feed-sidebar.css?v=6"/><link rel="stylesheet" href="/assets/app-left-sidebar.css?v=2"/><script src="/assets/app-left-sidebar.js?v=3" defer></script>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body class="feed-sidebar-page">
@@ -200,7 +200,7 @@
   </div>
 </div>
 
-<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=44"></script>
+<script src="/socket.io/socket.io.js"></script> <script src="/assets/onboarding.js?v=2"></script> <script src="/assets/feed-app.js?v=45"></script>
 <script>
 (function () {
   var c = window.community;
@@ -387,7 +387,7 @@
       $('composeModal').classList.remove('open');
       resetComposer();
       var postsEl = $('posts');
-      postsEl.insertBefore(c.renderPost(r.d.data), postsEl.firstChild);
+      postsEl.insertBefore(c.renderPost(r.d.data, { countImpression: true }), postsEl.firstChild);
       c.toast('Posted! Go get noticed.');
       loadSuggest();
     });
@@ -413,7 +413,7 @@
       postsEl.innerHTML = '';
       // Each BARTER / PROJECT post carries its own work status, so the state of
       // the work is visible right on the post rather than in a separate list.
-      posts.forEach(function (row) { postsEl.appendChild(c.renderPost(row)); });
+      posts.forEach(function (row) { postsEl.appendChild(c.renderPost(row, { countImpression: true })); });
     }).catch(function () { postsEl.innerHTML = '<div class="empty"><h3>Network error</h3></div>'; });
   }
 
