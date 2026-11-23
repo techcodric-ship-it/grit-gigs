@@ -106,21 +106,6 @@ input, textarea, select { font-family: inherit; font-size: 14px; color: var(--in
   letter-spacing: .01em;
   pointer-events: none;
 }
-.app-left-sidebar a[href="/gritscore"] .app-side-label::after,
-.feed-left-sidebar a[href="/gritscore"] span:last-child::after {
-  content: "New";
-  display: inline-block;
-  margin-left: 7px;
-  padding: 0 6px;
-  border-radius: 99px;
-  background: #6C3FE8;
-  color: #fff;
-  font-family: 'Syne', sans-serif;
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 15px;
-  vertical-align: middle;
-}
 @media (max-width: 600px) {
   .topnav .icons a.gritscore-nav::after { top: -2px; right: -3px; font-size: 7px; line-height: 11px; padding: 0 3px; }
 }

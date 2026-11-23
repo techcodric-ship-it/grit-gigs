@@ -42,6 +42,23 @@
   .feed-side-avatar { width: 24px !important; height: 24px !important; display: block !important; margin: 0 !important; border-radius: 50%; object-fit: cover; }
   .feed-side-link > span:not(.cnt) { min-width: 0; align-self: center; }
   .feed-side-link .cnt { position: absolute; left: 31px; top: 7px; width: 17px; height: 17px; }
+  /* Small flag so GritScore is noticeable without shouting. Lives here, next
+     to the sidebar it styles, so it also survives pages that skip feed.css. */
+  .feed-left-sidebar a[href="/gritscore"] span:last-child::after {
+    content: "New";
+    display: inline-block;
+    margin-left: 7px;
+    padding: 0 6px;
+    border-radius: 99px;
+    background: #6C3FE8;
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 15px;
+    vertical-align: middle;
+    pointer-events: none;
+  }
   body.feed-sidebar-page .wrap {
     width: calc(100% - 280px) !important;
     max-width: 1080px !important;

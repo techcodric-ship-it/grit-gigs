@@ -40,6 +40,23 @@
   .app-side-link.active .app-side-icon svg { stroke: #6c3fe8; }
   .app-side-icon img { width: 26px !important; height: 24px !important; display: block !important; margin: 0 !important; border-radius: 50%; object-fit: cover; }
   .app-side-label { min-width: 0; display: block; line-height: 24px; }
+  /* Kept in the shared sidebar stylesheet so the flag stays visible on every
+     app page, including /gritscore, which does not load feed.css. */
+  .app-left-sidebar a[href="/gritscore"] .app-side-label::after {
+    content: "New";
+    display: inline-block;
+    margin-left: 7px;
+    padding: 0 6px;
+    border-radius: 99px;
+    background: #6C3FE8;
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 15px;
+    vertical-align: middle;
+    pointer-events: none;
+  }
 
   .app-shell-topnav { padding-right: 16px !important; }
   .app-shell-topnav > .icons { display: none !important; }

@@ -129,6 +129,26 @@ a:hover { text-decoration: underline; }
   white-space: nowrap;
 }
 a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
+/* The shared sidebar already flags GritScore on desktop. This compact version
+   covers the GritScore header on smaller screens, where that sidebar is hidden. */
+.gs-new-flag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 99px;
+  background: #6C3FE8;
+  color: #fff;
+  font-family: 'Syne', var(--gs-font-display);
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 14px;
+  letter-spacing: .02em;
+  vertical-align: middle;
+  pointer-events: none;
+}
+@media (min-width: 1000px) {
+  .gs-new-flag { display: none; }
+}
 .gs-topbar-spacer { flex: 1; }
 .gs-topbar-link {
   font-size: 0.84rem;

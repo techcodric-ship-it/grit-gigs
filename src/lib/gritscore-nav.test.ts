@@ -40,3 +40,20 @@ describe("GritScore top-nav link", () => {
     expect(css()).toMatch(/\.topnav \.icons a \{ width: 34px; height: 34px; \}/);
   });
 });
+
+describe("GritScore New flag", () => {
+  it("lives in the shared sidebars so it does not disappear on /gritscore", () => {
+    expect(read("assets/app-left-sidebar.css")).toContain('.app-left-sidebar a[href="/gritscore"] .app-side-label::after');
+    expect(read("assets/app-left-sidebar.css")).toMatch(/content:\s*"New";/);
+    expect(read("assets/feed-sidebar.css")).toContain('.feed-left-sidebar a[href="/gritscore"] span:last-child::after');
+    expect(read("assets/feed-sidebar.css")).toMatch(/content:\s*"New";/);
+    expect(css()).not.toContain('a[href="/gritscore"]');
+  });
+
+  it("shows a compact flag in the GritScore header when the sidebar is hidden", () => {
+    expect(html("gritscore/index.html")).toContain('<span class="gs-new-flag">New</span>');
+    expect(read("assets/gritscore.css")).toContain(".gs-new-flag {");
+    expect(read("assets/gritscore.css")).toMatch(/\.gs-new-flag[\s\S]{0,260}font-size: 8px/);
+    expect(read("assets/gritscore.css")).toMatch(/@media \(min-width: 1000px\) \{\s*\.gs-new-flag \{ display: none; \}/);
+  });
+});

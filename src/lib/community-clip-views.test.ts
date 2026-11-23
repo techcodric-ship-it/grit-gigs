@@ -107,9 +107,9 @@ describe("clip rendering and post views", () => {
 
   it.each(CACHE_PAGES)("%s busts the feed asset cache", (page) => {
     const s = file(`public/${page}`);
-    expect(s).toMatch(/feed\.css\?v=45/);
+    expect(s).toMatch(/feed\.css\?v=46/);
     expect(s).toMatch(/feed-app\.js\?v=45/);
-    expect(s).not.toMatch(/feed\.css\?v=44/);
+    expect(s).not.toMatch(/feed\.css\?v=45/);
     expect(s).not.toMatch(/feed-app\.js\?v=44/);
   });
 });
