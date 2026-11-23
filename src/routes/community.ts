@@ -447,6 +447,15 @@ async function loadWorkStatus(
   return out;
 }
 
+// View tracking arrived after many posts already had likes. A like cannot exist
+// without a view, so this floor keeps the visible count honest for old rows and
+// for any post whose likes later overtake its stored views.
+function visibleViewCount(post: { viewCount: number | null; likeCount: number | null }): number {
+  const views = Number(post.viewCount ?? 0);
+  const likes = Number(post.likeCount ?? 0);
+  return likes > views ? likes + 1 : views;
+}
+
 async function renderPosts(rawPosts: typeof communityPostsTable.$inferSelect[], currentUserId: string | undefined, limitComments = 2): Promise<PostRowShape[]> {
   const postIds = rawPosts.map((p) => p.id);
   const authorIds = [...new Set(rawPosts.map((p) => p.userId))];
@@ -487,7 +496,7 @@ async function renderPosts(rawPosts: typeof communityPostsTable.$inferSelect[], 
       return { id: c.id, content: c.content, createdAt: c.createdAt, author: a };
     });
     return {
-      post,
+      post: { ...post, viewCount: visibleViewCount(post) },
       author,
       likedByMe: likedSet.has(post.id),
       followingAuthor: followingSet.has(post.userId),
@@ -852,7 +861,7 @@ router.get("/community/posts/:id", optionalAuth, async (req: Request, res: Respo
 // per browser session; the author's own views are not inflated.
 router.post("/community/posts/:id/view", optionalAuth, async (req: Request, res: Response): Promise<void> => {
   const [post] = await db
-    .select({ id: communityPostsTable.id, userId: communityPostsTable.userId, kind: communityPostsTable.kind, viewCount: communityPostsTable.viewCount })
+    .select({ id: communityPostsTable.id, userId: communityPostsTable.userId, kind: communityPostsTable.kind, viewCount: communityPostsTable.viewCount, likeCount: communityPostsTable.likeCount })
     .from(communityPostsTable)
     .where(eq(communityPostsTable.id, String(req.params.id)))
     .limit(1);
@@ -870,11 +879,19 @@ router.post("/community/posts/:id/view", optionalAuth, async (req: Request, res:
   }
 
   const [fresh] = await db
-    .select({ viewCount: communityPostsTable.viewCount })
+    .select({ viewCount: communityPostsTable.viewCount, likeCount: communityPostsTable.likeCount })
     .from(communityPostsTable)
     .where(eq(communityPostsTable.id, post.id))
     .limit(1);
-  res.status(200).json({ success: true, data: { viewCount: Number(fresh?.viewCount ?? post.viewCount ?? 0) } });
+  res.status(200).json({
+    success: true,
+    data: {
+      viewCount: visibleViewCount({
+        viewCount: Number(fresh?.viewCount ?? post.viewCount ?? 0),
+        likeCount: Number(fresh?.likeCount ?? post.likeCount ?? 0),
+      }),
+    },
+  });
 });
 
 // â”€â”€ POST /community/posts â€” create a post â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1113,7 +1130,7 @@ router.get("/community/users/:id", optionalAuth, async (req: Request, res: Respo
       posts: count(communityPostsTable.id),
       likes: sql<number>`COALESCE(SUM(${communityPostsTable.likeCount}), 0)`,
       comments: sql<number>`COALESCE(SUM(${communityPostsTable.commentCount}), 0)`,
-      views: sql<number>`COALESCE(SUM(${communityPostsTable.viewCount}), 0)`,
+      views: sql<number>`COALESCE(SUM(GREATEST(${communityPostsTable.viewCount}, CASE WHEN ${communityPostsTable.likeCount} > 0 THEN ${communityPostsTable.likeCount} + 1 ELSE 0 END)), 0)`,
     })
     .from(communityPostsTable)
     .where(and(eq(communityPostsTable.userId, user.id), visibleKindCond()));
