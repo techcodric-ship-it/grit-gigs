@@ -1227,6 +1227,29 @@ a.gs-brand-product:hover { text-decoration: none; color: var(--gs-accent); }
 .gs-design-eye { position: absolute; top: 8px; right: 8px; z-index: 1; display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px; border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 999px; background: rgba(10, 10, 15, 0.52); color: #fff; font: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.01em; cursor: pointer; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
 .gs-design-eye:hover { background: rgba(10, 10, 15, 0.7); }
 .gs-design-eye svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+/* Every design tile carries the owner's photo (or initials fallback), so the
+   picked design always shows the same face as the public card. */
+.gs-design-avatar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.92);
+  color: #111827;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+}
+.gs-design-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
 
 /* Design preview dialog: the real flip card in the chosen theme, not a mock. */
 .gs-preview-modal[hidden] { display: none; }

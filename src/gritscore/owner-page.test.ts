@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const html = readFileSync(path.join(process.cwd(), "public", "gritscore", "index.html"), "utf8");
 const adminHtml = readFileSync(path.join(process.cwd(), "public", "gritscore", "admin.html"), "utf8");
+const css = readFileSync(path.join(process.cwd(), "public", "assets", "gritscore.css"), "utf8");
 
 describe("GritScore owner page copy", () => {
   it("describes the public link without showing a raw slug placeholder", () => {
@@ -24,6 +25,14 @@ describe("GritScore owner page copy", () => {
     expect(html).toContain("data-file-action");
     expect(html).toContain("Choose file");
     expect(html).not.toContain('<input class="gs-input" type="file" data-field="file"');
+  });
+
+  it("keeps the owner photo visible on every card design tile", () => {
+    expect(html).toContain("var designAvatarHtml = scan.photoUrl");
+    expect(html).toContain('class="gs-design-avatar"');
+    expect(html).toContain("GS.esc(initialsOf(scan.displayName))");
+    expect(css).toContain(".gs-design-avatar img");
+    expect(css).toContain("object-fit: cover");
   });
 
   it("tells owners that the score updates automatically", () => {
