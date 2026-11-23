@@ -447,13 +447,15 @@ async function loadWorkStatus(
   return out;
 }
 
-// View tracking arrived after many posts already had likes. A like cannot exist
-// without a view, so this floor keeps the visible count honest for old rows and
-// for any post whose likes later overtake its stored views.
+// View tracking arrived after many posts already had likes. Keep a deliberate
+// 100-view lead on posts with real engagement so old rows and later like spikes
+// never show fewer views than likes. Zero-like posts are left untouched.
+const MIN_VIEW_LEAD = 100;
 function visibleViewCount(post: { viewCount: number | null; likeCount: number | null }): number {
   const views = Number(post.viewCount ?? 0);
   const likes = Number(post.likeCount ?? 0);
-  return likes > views ? likes + 1 : views;
+  const floor = likes > 0 ? likes + MIN_VIEW_LEAD : views;
+  return views < floor ? floor : views;
 }
 
 async function renderPosts(rawPosts: typeof communityPostsTable.$inferSelect[], currentUserId: string | undefined, limitComments = 2): Promise<PostRowShape[]> {
@@ -1130,7 +1132,7 @@ router.get("/community/users/:id", optionalAuth, async (req: Request, res: Respo
       posts: count(communityPostsTable.id),
       likes: sql<number>`COALESCE(SUM(${communityPostsTable.likeCount}), 0)`,
       comments: sql<number>`COALESCE(SUM(${communityPostsTable.commentCount}), 0)`,
-      views: sql<number>`COALESCE(SUM(GREATEST(${communityPostsTable.viewCount}, CASE WHEN ${communityPostsTable.likeCount} > 0 THEN ${communityPostsTable.likeCount} + 1 ELSE 0 END)), 0)`,
+      views: sql<number>`COALESCE(SUM(GREATEST(${communityPostsTable.viewCount}, CASE WHEN ${communityPostsTable.likeCount} > 0 THEN ${communityPostsTable.likeCount} + 100 ELSE 0 END)), 0)`,
     })
     .from(communityPostsTable)
     .where(and(eq(communityPostsTable.userId, user.id), visibleKindCond()));

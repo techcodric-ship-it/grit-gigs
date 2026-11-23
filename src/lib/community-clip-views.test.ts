@@ -69,16 +69,17 @@ describe("clip rendering and post views", () => {
     expect(INDEX).toMatch(/ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS view_count INTEGER DEFAULT 0 NOT NULL/);
     expect(COMMUNITY).toMatch(/router\.post\("\/community\/posts\/:id\/view", optionalAuth/);
     expect(COMMUNITY).toMatch(/set\(\{ viewCount: sql`\$\{communityPostsTable\.viewCount\} \+ 1` \}\)/);
-    expect(COMMUNITY).toContain("views: sql<number>`COALESCE(SUM(GREATEST(${communityPostsTable.viewCount}, CASE WHEN ${communityPostsTable.likeCount} > 0 THEN ${communityPostsTable.likeCount} + 1 ELSE 0 END)), 0)`");
+    expect(COMMUNITY).toContain("views: sql<number>`COALESCE(SUM(GREATEST(${communityPostsTable.viewCount}, CASE WHEN ${communityPostsTable.likeCount} > 0 THEN ${communityPostsTable.likeCount} + 100 ELSE 0 END)), 0)`");
   });
 
-  it("keeps views ahead of likes on older posts", () => {
+  it("keeps views 100 ahead of likes on older posts", () => {
+    expect(COMMUNITY).toContain("const MIN_VIEW_LEAD = 100;");
     expect(COMMUNITY).toContain("function visibleViewCount");
     expect(COMMUNITY).toContain("post: { ...post, viewCount: visibleViewCount(post) }");
-    expect(COMMUNITY).toContain("GREATEST(${communityPostsTable.viewCount}, CASE WHEN ${communityPostsTable.likeCount} > 0 THEN ${communityPostsTable.likeCount} + 1 ELSE 0 END)");
+    expect(COMMUNITY).toContain("GREATEST(${communityPostsTable.viewCount}, CASE WHEN ${communityPostsTable.likeCount} > 0 THEN ${communityPostsTable.likeCount} + 100 ELSE 0 END)");
     expect(INDEX).toContain("UPDATE community_posts");
-    expect(INDEX).toContain("SET view_count = GREATEST(view_count, like_count + 1)");
-    expect(INDEX).toContain("WHERE like_count > 0 AND view_count < like_count + 1");
+    expect(INDEX).toContain("SET view_count = GREATEST(view_count, like_count + 100)");
+    expect(INDEX).toContain("WHERE like_count > 0 AND view_count < like_count + 100");
   });
 
   it("shows a polished view metric with matching SVG stat icons", () => {

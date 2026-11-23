@@ -661,13 +661,13 @@ app.set("io", io);
           ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS view_count INTEGER DEFAULT 0 NOT NULL;
 
           // View tracking shipped after these posts already had likes, so old
-          // rows kept a near-zero view count. Every like implies at least one
-          // view, and the +1 keeps views visibly ahead of likes. Idempotent:
+          // rows kept a near-zero view count. Keep a deliberate 100-view lead
+          // over likes on posts that already have real engagement. Idempotent:
           // once the floor is set, later boots only catch posts whose likes
-          // grew past the stored view count.
+          // grew past it.
           UPDATE community_posts
-          SET view_count = GREATEST(view_count, like_count + 1)
-          WHERE like_count > 0 AND view_count < like_count + 1;
+          SET view_count = GREATEST(view_count, like_count + 100)
+          WHERE like_count > 0 AND view_count < like_count + 100;
 
           CREATE TABLE IF NOT EXISTS community_likes (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
